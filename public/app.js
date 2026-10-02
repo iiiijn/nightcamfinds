@@ -49,10 +49,10 @@ async function load() {
 }
 
 document.querySelector("#surprise")?.addEventListener("click", async () => {
-  const data = await fetch("/api/surprise").then((r) => r.json());
-  if (!data.room) return;
-  location.href = "/go/" + encodeURIComponent(data.room.id);
-});
+ try {
+   const response = await fetch("/api/surprise");
+const data = await response.json();
+ if (!response.ok || !data.room?.id) {
 sort?.addEventListener("change", load);
 q?.addEventListener("input", () => { clearTimeout(q._t); q._t = setTimeout(load, 250); });
 document.querySelector("#country")?.addEventListener("change", load);
