@@ -1,0 +1,31 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { openDatabase } from "../src/db/connect.js";
+
+test("migrations persist core records and can roll back auth tables", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-"));
+  const db = await openDatabase({ provider: "pglite", dataDir: dir, sqlDir: path.resolve("sql") });
+  const { repo } = db;
+  await repo.upsertProvider({ id: "chaturbate", name: "Chaturbate", status: "VERIFIED", campaign: "C6yxN", enabled: true });
+  await repo.saveCampaign({ id: "c1", providerId: "chaturbate", name: "cb", program: "REQUIRES_CONFIRMATION", externalCampaign: "C6yxN", status: "CONFIGURED" });
+  await repo.saveLink({ id: "l1", providerId: "chaturbate", campaign: "C6yxN", program: "REQUIRES_CONFIRMATION", destinationType: "room", status: "Unverified", verificationStatus: "REQUIRES_VERIFICATION" });
+  await repo.upsertRoom({ id: "chaturbate:ada", provider: "chaturbate", externalUsername: "ada", displayName: "ada", isLive: true, isHd: false, isNew: false, freshness: "FRESH", tags: [], languages: [] });
+  await repo.insertClick({ clickId: "click1", roomId: "chaturbate:ada", provider: "chaturbate", campaign: "C6yxN" });
+  await repo.insertPostback({ id: "p1", provider: "chaturbate", payload: { transaction_id: "t1" }, status: "accepted", clickId: "click1" });
+  await repo.insertConversion({ id: "v1", provider: "chaturbate", clickId: "click1", transactionId: "t1", amount: 1, currency: "USD", state: "Confirmed" });
+  await repo.saveConfig({ id: "cfg1", key: "runtime", value: { ok: true }, author: "owner" });
+  await repo.audit({ id: "a1", actor: "owner", action: "test", detail: { ok: true } });
+  assert.equal((await repo.providers()).length, 1);
+  assert.equal((await repo.campaigns()).length, 1);
+  assert.equal((await repo.links()).length, 1);
+  assert.equal((await repo.rooms()).length, 1);
+  assert.equal((await repo.clicks()).length, 1);
+  assert.equal((await repo.conversions()).length, 1);
+  assert.equal((await repo.postbacks()).length, 1);
+  assert.equal((await repo.configs("runtime")).length, 1);
+  assert.equal((await repo.audits()).length, 1);
+  await db.close();
+});

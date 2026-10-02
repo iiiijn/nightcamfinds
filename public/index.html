@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NightCamFinds — Discover Live Cams Right Now</title>
+  <meta name="description" content="Explore live rooms, discover new broadcasters and find popular cams from around the world.">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="age-gate" id="gate">
+    <div class="panel">
+      <p class="eyebrow">Adults only</p>
+      <h2>This site is for people 18 or older.</h2>
+      <p class="muted">A notice is not a legal age-verification system. Leave if you are under 18.</p>
+      <div class="actions">
+        <button id="enter">I am 18 or older</button>
+        <a class="btn ghost" href="https://www.google.com">Leave</a>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <header>
+      <a class="logo" href="/">NightCamFinds</a>
+      <nav>
+        <a href="/live/">Live Now</a>
+        <a href="/female/">Female</a>
+        <a href="/male/">Male</a>
+        <a href="/trans/">Trans</a>
+        <a href="/couples/">Couples</a>
+        <a href="/hd/">HD</a>
+        <a href="/new/">New</a>
+        <a href="/popular/">Popular</a>
+        <a href="/countries/">Countries</a>
+      </nav>
+    </header>
+    <section class="hero">
+      <p class="muted">Independent discovery</p>
+      <h1>Discover Live Cams Right Now</h1>
+      <p class="muted">Explore live rooms, discover new broadcasters and find popular cams from around the world.</p>
+      <div class="actions">
+        <a class="btn" href="/live/">Browse Live Cams</a>
+        <a class="btn ghost" href="/popular/">Popular Now</a>
+        <button class="ghost" id="surprise">Surprise Me</button>
+      </div>
+    </section>
+    <div class="toolbar">
+      <input id="q" placeholder="Search name, tag, country" aria-label="Search">
+      <select id="sort" aria-label="Sort">
+        <option value="recommended">Recommended</option>
+        <option value="viewers">Most Viewers</option>
+        <option value="newest">Newest</option>
+      </select>
+      <select id="country" aria-label="Country"><option value="">View All Countries</option></select>
+    </div>
+    <div id="notice" class="notice" hidden></div>
+    <div id="grid" class="grid" aria-live="polite"></div>
+    <footer>
+      <span>18+ independent directory. Provider brands are secondary.</span>
+      <a href="/affiliate-disclosure">Affiliate disclosure</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/contact">Contact</a>
+      <a href="/admin">Admin</a>
+    </footer>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
