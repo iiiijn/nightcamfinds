@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { productionMfaError } from "./mfa.js";
 
 const STEP = 30;
