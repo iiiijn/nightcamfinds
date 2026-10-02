@@ -48,12 +48,13 @@ async function load() {
   notice.textContent = data.notice || "";
 }
 
-document.querySelector("#surprise")?.addEventListener("click", async () => {
- try {
-   const response = await fetch("/api/surprise");
-const data = await response.json();
- if (!response.ok || !data.room?.id) {
-sort?.addEventListener("change", load);
-q?.addEventListener("input", () => { clearTimeout(q._t); q._t = setTimeout(load, 250); });
-document.querySelector("#country")?.addEventListener("change", load);
-loadCountries().then(load);
+ document.querySelector("#surprise")?.addEventListener("click", async () => {
+   try {
+     const response = await fetch("/api/surprise");
+     const data = await response.json();
+     if (!response.ok || !data.room?.id) return;
+     location.href = "/go/" + encodeURIComponent(data.room.id);
+   } catch (error) {
+    console.error("Surprise failed:", error);
+   }
+ });
