@@ -58,3 +58,12 @@ async function load() {
     console.error("Surprise failed:", error);
    }
  });
+document.querySelector("#sort")?.addEventListener("change", load);
+document.querySelector("#country")?.addEventListener("change", load);
+document.querySelector("#q")?.addEventListener("input", load);
+
+load().catch((error) => {
+  console.error("Could not load rooms:", error);
+  notice.textContent = "Could not load rooms. Please try again.";
+  notice.hidden = false;
+});
