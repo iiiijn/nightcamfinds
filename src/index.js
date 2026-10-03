@@ -393,7 +393,7 @@ function siteOrigin(req) {
 }
 
 function legal(pathName) {
-  const email = process.env.CONTACT_EMAIL || "operator@nightcamfinds.com";
+  const email = process.env.CONTACT_EMAIL || "bunnybelle188@gmail.com";
   const pages = {
     "/about": ["About NightCamFinds", `<p>NightCamFinds is an independent 18+ directory. It lists public live rooms supplied by partner platforms. Video plays on the partner site after you click through. This site does not host streams, take payments, or operate broadcaster accounts.</p><p>Room titles, thumbnails, viewer counts, and country codes come from the partner feed and can be wrong or out of date. Youth-adjacent words are stripped from text shown here.</p><p>Contact: <a href="mailto:${email}">${email}</a>.</p>`],
     "/affiliate-disclosure": ["Affiliate disclosure", `<p>NightCamFinds participates in affiliate programs, including Chaturbate and BongaCams. Links to partner sites are sponsored.</p><p>If you register or spend on a partner after using a tracked link, NightCamFinds may earn a commission. That does not change the price you pay. Listings are not a review of a specific performer.</p><p>Room cards go through this site’s /go/ redirect so the partner can attribute the click.</p>`],
