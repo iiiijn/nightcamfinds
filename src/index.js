@@ -168,7 +168,7 @@ function send(res, code, body, headers = {}) {
 }
 
 function page(title, body, robots = "index,follow") {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="robots" content="${robots}"><link rel="stylesheet" href="/styles.css"></head><body>${body}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="robots" content="${robots}"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"></head><body>${body}</body></html>`;
 }
 
 function publicRoom(r) {
@@ -186,12 +186,16 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/health") return send(res, 200, { ok: health.postgres !== "failing", health });
     if (url.pathname === "/robots.txt") {
       res.writeHead(200, { "content-type": "text/plain" });
-      return res.end("User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /go/\nDisallow: /search\nSitemap: /sitemap.xml\n");
+      const base = siteOrigin(req);
+      return res.end(`User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /go/\nDisallow: /search\nSitemap: ${base}/sitemap.xml\n`);
     }
     if (url.pathname === "/sitemap.xml") {
       health.sitemap = "generated";
       res.writeHead(200, { "content-type": "application/xml" });
-      return res.end(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>/</loc></url><url><loc>/live/</loc></url><url><loc>/female/</loc></url></urlset>`);
+      const base = siteOrigin(req);
+      const paths = ["/", "/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/", "/about", "/affiliate-disclosure", "/privacy", "/terms", "/contact"];
+      const body = paths.map((loc) => `<url><loc>${base}${loc}</loc></url>`).join("");
+      return res.end(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${body}</urlset>`);
     }
     if (url.pathname === "/api/rooms") {
       const current = await settings();
@@ -362,7 +366,7 @@ const server = http.createServer(async (req, res) => {
       await audit(session.username, "settings.update", body);
       return send(res, 200, { ok: true });
     }
-    if (["/privacy", "/terms", "/affiliate-disclosure", "/contact"].includes(url.pathname)) return send(res, 200, legal(url.pathname));
+    if (["/privacy", "/terms", "/affiliate-disclosure", "/contact", "/about"].includes(url.pathname)) return send(res, 200, legal(url.pathname));
     const filePath = ["/", "/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/"].includes(url.pathname) || url.pathname.match(/^\/(female|male|trans|couples|hd|new|popular|countries)\/?$/)
       ? path.join(publicDir, "index.html")
       : url.pathname === "/admin" || url.pathname === "/admin/"
@@ -380,9 +384,25 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+function siteOrigin(req) {
+  const configured = process.env.SITE_URL;
+  if (configured) return configured.replace(/\/$/, "");
+  const host = req.headers.host || "nightcamfinds.onrender.com";
+  const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0];
+  return `${proto}://${host}`;
+}
+
 function legal(pathName) {
-  const titles = { "/privacy": "Privacy Policy", "/terms": "Terms", "/affiliate-disclosure": "Affiliate Disclosure", "/contact": "Contact" };
-  return page(titles[pathName], `<main class="wrap legal"><h1>${titles[pathName]}</h1><p>Operator-editable legal draft. Not a legal determination.</p><p><a href="/">Back</a></p></main>`);
+  const email = process.env.CONTACT_EMAIL || "operator@nightcamfinds.com";
+  const pages = {
+    "/about": ["About NightCamFinds", `<p>NightCamFinds is an independent 18+ directory. It lists public live rooms supplied by partner platforms. Video plays on the partner site after you click through. This site does not host streams, take payments, or operate broadcaster accounts.</p><p>Room titles, thumbnails, viewer counts, and country codes come from the partner feed and can be wrong or out of date. Youth-adjacent words are stripped from text shown here.</p><p>Contact: <a href="mailto:${email}">${email}</a>.</p>`],
+    "/affiliate-disclosure": ["Affiliate disclosure", `<p>NightCamFinds participates in affiliate programs, including Chaturbate and BongaCams. Links to partner sites are sponsored.</p><p>If you register or spend on a partner after using a tracked link, NightCamFinds may earn a commission. That does not change the price you pay. Listings are not a review of a specific performer.</p><p>Room cards go through this site’s /go/ redirect so the partner can attribute the click.</p>`],
+    "/privacy": ["Privacy policy", `<p>Last updated 3 October 2026. Replace the contact address before you rely on this page.</p><h2>What this site stores</h2><ul><li>An age-notice flag in your browser’s localStorage after you confirm you are 18 or older.</li><li>Standard server logs: IP address, user agent, requested URL, and time. Keep these only as long as you need them for security.</li></ul><h2>Partners</h2><p>Clicking a room sends you to the partner platform. Those sites set their own cookies and have their own privacy policies.</p><p>Privacy questions: <a href="mailto:${email}">${email}</a>.</p>`],
+    "/terms": ["Terms", `<p>Last updated 3 October 2026. This is an operator draft, not a law-firm opinion.</p><p>You must be at least 18, or the age of majority where you live, whichever is higher. Do not use the site if adult material is illegal where you are.</p><p>NightCamFinds is a directory. Streams, chat, tips, and accounts belong to the partner platform. Do not scrape the site in a way that overloads it, attempt to access admin tools, or use the directory to find anyone under 18.</p><p>The directory is provided as is. NightCamFinds is not responsible for performer conduct or partner charges.</p>`],
+    "/contact": ["Contact", `<p>Operator email: <a href="mailto:${email}">${email}</a></p><p>Use this address for privacy requests, takedown notices, and affiliate questions. For a recording on a partner site, contact that platform. NightCamFinds does not host the video.</p>`]
+  };
+  const [title, body] = pages[pathName];
+  return page(title, `<main class="wrap legal"><h1>${title}</h1>${body}<p><a href="/">Back to rooms</a></p></main>`);
 }
 
 const db = await openDatabase({

@@ -1,106 +1,245 @@
 const grid = document.querySelector("#grid");
 const notice = document.querySelector("#notice");
 const gate = document.querySelector("#gate");
-if (localStorage.getItem("ncf18") === "1") gate.hidden = true;
+const countEl = document.querySelector("#result-count");
+
+if (localStorage.getItem("ncf18") === "1" && gate) gate.hidden = true;
 document.querySelector("#enter")?.addEventListener("click", () => {
   localStorage.setItem("ncf18", "1");
   gate.hidden = true;
 });
 
+const PAGES = {
+  all: {
+    kicker: "Independent discovery",
+    title: "Discover live cams right now",
+    intro: "Explore live rooms, compare viewer counts, and open a broadcaster on the partner site. NightCamFinds does not stream video itself.",
+    documentTitle: "NightCamFinds — Live cam directory"
+  },
+  live: {
+    kicker: "Live now",
+    title: "Rooms that are live now",
+    intro: "Currently online rooms from partner platforms. Counts and subjects come from the feed and can change every minute.",
+    documentTitle: "Live cams now — NightCamFinds"
+  },
+  female: {
+    kicker: "Female",
+    title: "Female live cams",
+    intro: "Rooms tagged female in the partner feed. Open a card to continue on the broadcaster’s platform.",
+    documentTitle: "Female live cams — NightCamFinds"
+  },
+  male: {
+    kicker: "Male",
+    title: "Male live cams",
+    intro: "Rooms tagged male in the partner feed. Use search or country to narrow the list.",
+    documentTitle: "Male live cams — NightCamFinds"
+  },
+  trans: {
+    kicker: "Trans",
+    title: "Trans live cams",
+    intro: "Rooms tagged trans in the partner feed. NightCamFinds only lists public rooms supplied by partners.",
+    documentTitle: "Trans live cams — NightCamFinds"
+  },
+  couples: {
+    kicker: "Couples",
+    title: "Couple live cams",
+    intro: "Rooms tagged as couples. Availability depends on who is online.",
+    documentTitle: "Couple live cams — NightCamFinds"
+  },
+  hd: {
+    kicker: "HD",
+    title: "HD live cams",
+    intro: "Rooms the feed marks as HD. Quality still depends on the broadcaster’s connection.",
+    documentTitle: "HD live cams — NightCamFinds"
+  },
+  new: {
+    kicker: "New",
+    title: "New broadcasters",
+    intro: "Rooms marked new in the feed. Newer rooms often have fewer viewers.",
+    documentTitle: "New live cams — NightCamFinds"
+  },
+  popular: {
+    kicker: "Popular",
+    title: "Most watched rooms",
+    intro: "Sorted by viewer count from the current feed.",
+    documentTitle: "Popular live cams — NightCamFinds"
+  },
+  countries: {
+    kicker: "Countries",
+    title: "Live cams by country",
+    intro: "Pick a country to filter rooms that publish a country code. Not every room includes one.",
+    documentTitle: "Live cams by country — NightCamFinds"
+  }
+};
+
+const BLOCKED = /\b(teen|teens|teenage|underage|preteen|lolita|child|children|kid|kids|young|18yo|19yo|#18\b|#19\b)\b/i;
+
 const category = location.pathname.replaceAll("/", "") || "all";
+const page = PAGES[category] || PAGES.all;
 const sort = document.querySelector("#sort");
 const q = document.querySelector("#q");
-if (category === "popular") sort.value = "viewers";
 
-async function loadCountries() {
-  const countries = await fetch("/api/countries").then((r) => r.json());
-  const select = document.querySelector("#country");
-  for (const c of countries.filter((x) => x.enabled).sort((a, b) => a.priority - b.priority)) {
-    const opt = document.createElement("option");
-    opt.value = c.iso;
-    opt.textContent = c.name;
-    select.append(opt);
-  }
+if (page) {
+  const kicker = document.querySelector("#kicker");
+  const title = document.querySelector("#page-title");
+  const intro = document.querySelector("#page-intro");
+  if (kicker) kicker.textContent = page.kicker;
+  if (title) title.textContent = page.title;
+  if (intro) intro.textContent = page.intro;
+  document.title = page.documentTitle;
+  const desc = document.querySelector('meta[name="description"]');
+  if (desc) desc.setAttribute("content", page.intro);
+  const canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical) canonical.href = location.origin + location.pathname;
+  document.querySelectorAll("nav a").forEach((a) => {
+    if (a.getAttribute("href") === location.pathname) a.setAttribute("aria-current", "page");
+  });
+}
+if (category === "popular" && sort) sort.value = "viewers";
+
+function trackForPage() {
+  return category === "all" ? "home" : category;
 }
 
-function card(room) {
-  const el = document.createElement("article");
-  el.className = "card";
-  const img = room.image ? `<img class="thumb" alt="" src="${room.image}" loading="lazy">` : `<div class="thumb"></div>`;
-  const badges = [
-    room.isHd ? "HD" : "",
-    room.isNew ? "New" : "",
-    room.viewerCount != null ? `${room.viewerCount} watching` : "",
-    room.country || ""
-  ].filter(Boolean).map((b) => `<span class="badge">${b}</span>`).join("");
-  el.innerHTML = `${img}<div class="meta"><div class="badges">${badges}</div><strong>${room.displayName}</strong><p class="muted">${room.roomSubject || room.gender || ""}</p><a class="btn" href="/go/${encodeURIComponent(room.id)}">Enter Room</a></div>`;
-  return el;
-}
-function addAffiliateLinks() {
-  const section = document.createElement("section");
-  section.className = "affiliate-links";
-
-  const heading = document.createElement("h2");
-  heading.textContent = "Explore More Live Rooms";
-
-  const intro = document.createElement("p");
-  intro.className = "muted";
-  intro.textContent = "Discover more live performers on our partner platforms.";
-
-  const links = [
+function partnerLinks() {
+  const track = encodeURIComponent(trackForPage());
+  return [
     {
-      label: "Explore Chaturbate",
-      url: "https://chaturbate.com/in/?tour=LQps&campaign=C6yxN&track=default&room=teja365884"
+      label: "Browse Chaturbate",
+      url: `https://chaturbate.com/in/?tour=LQps&campaign=C6yxN&track=${track}`
     },
     {
-      label: "Explore BongaCams",
-      url: "https://bongacams4.com/track?c=840970"
+      label: "Browse BongaCams",
+      url: `https://bongacams4.com/track?c=840970&track=${track}`
     }
   ];
+}
 
-  section.append(heading, intro);
-
-  for (const item of links) {
+function addAffiliateLinks() {
+  const wrap = document.querySelector("#partner-actions");
+  if (!wrap) return;
+  for (const item of partnerLinks()) {
     const link = document.createElement("a");
     link.className = "btn";
     link.href = item.url;
     link.textContent = item.label;
     link.target = "_blank";
     link.rel = "sponsored nofollow noopener";
-    section.append(link);
+    wrap.append(link);
   }
-
-  grid.parentNode.insertBefore(section, grid);
 }
+
+function cleanSubject(text) {
+  if (!text) return "Live room";
+  return text
+    .replace(BLOCKED, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[\s\-|#]+|[\s\-|#]+$/g, "")
+    .trim() || "Live room";
+}
+
+function card(room) {
+  const el = document.createElement("article");
+  el.className = "card";
+  const name = room.displayName || "Live room";
+  const img = document.createElement(room.image ? "img" : "div");
+  img.className = "thumb";
+  if (room.image) {
+    img.alt = `${name} live room preview`;
+    img.src = room.image;
+    img.loading = "lazy";
+  }
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  const badges = document.createElement("div");
+  badges.className = "badges";
+  const bits = [
+    ["Live", "live"],
+    room.isHd ? ["HD", ""] : null,
+    room.isNew ? ["New", ""] : null,
+    room.viewerCount != null ? [`${Number(room.viewerCount).toLocaleString()} watching`, ""] : null,
+    room.country ? [room.country, ""] : null
+  ].filter(Boolean);
+  for (const [label, extra] of bits) {
+    const span = document.createElement("span");
+    span.className = extra ? `badge ${extra}` : "badge";
+    span.textContent = label;
+    badges.append(span);
+  }
+  const strong = document.createElement("strong");
+  strong.textContent = name;
+  const subject = document.createElement("p");
+  subject.className = "muted subject";
+  subject.textContent = cleanSubject(room.roomSubject || room.gender || "");
+  const enter = document.createElement("a");
+  enter.className = "btn";
+  enter.href = "/go/" + encodeURIComponent(room.id);
+  enter.textContent = "Enter room";
+  enter.rel = "sponsored nofollow noopener";
+  meta.append(badges, strong, subject, enter);
+  el.append(img, meta);
+  return el;
+}
+
+async function loadCountries() {
+  const select = document.querySelector("#country");
+  if (!select) return;
+  try {
+    const countries = await fetch("/api/countries").then((r) => r.json());
+    const list = Array.isArray(countries) ? countries : countries.countries || [];
+    for (const c of list.filter((x) => x.enabled !== false).sort((a, b) => (a.priority || 0) - (b.priority || 0))) {
+      const opt = document.createElement("option");
+      opt.value = c.iso;
+      opt.textContent = c.name;
+      select.append(opt);
+    }
+  } catch (error) {
+    console.error("Could not load countries:", error);
+  }
+}
+
+let timer;
+function scheduleLoad() {
+  clearTimeout(timer);
+  timer = setTimeout(load, 250);
+}
+
+async function load() {
+  const params = new URLSearchParams({ category: category || "all", sort: sort?.value || "recommended", q: q?.value || "" });
+  const country = document.querySelector("#country")?.value || "";
+  if (country) params.set("country", country);
+  const data = await fetch("/api/rooms?" + params).then((r) => r.json());
+  let rooms = data.rooms || [];
+  if (country) rooms = rooms.filter((r) => (r.country || "").toUpperCase() === country.toUpperCase());
+  grid.replaceChildren(...rooms.map(card));
+  if (countEl) countEl.textContent = rooms.length ? `${rooms.length} rooms` : "No rooms match that filter.";
+  if (notice) {
+    notice.hidden = !data.notice && rooms.length > 0;
+    notice.textContent = data.notice || (rooms.length ? "" : "No rooms match that filter. Try another category or country.");
+  }
+}
+
+document.querySelector("#surprise")?.addEventListener("click", async () => {
+  try {
+    const response = await fetch("/api/surprise");
+    const data = await response.json();
+    if (!response.ok || !data.room?.id) return;
+    location.href = "/go/" + encodeURIComponent(data.room.id);
+  } catch (error) {
+    console.error("Surprise failed:", error);
+  }
+});
+sort?.addEventListener("change", load);
+document.querySelector("#country")?.addEventListener("change", load);
+q?.addEventListener("input", scheduleLoad);
 
 addAffiliateLinks();
-async function load() {
-  const params = new URLSearchParams({ category: category || "all", sort: sort.value, q: q.value });
-  const country = document.querySelector("#country").value;
-  const data = await fetch("/api/rooms?" + params).then((r) => r.json());
-  let rooms = data.rooms;
-  if (country) rooms = rooms.filter((r) => (r.country || "").toUpperCase() === country);
-  grid.replaceChildren(...rooms.map(card));
-  notice.hidden = !data.notice;
-  notice.textContent = data.notice || "";
-}
-
- document.querySelector("#surprise")?.addEventListener("click", async () => {
-   try {
-     const response = await fetch("/api/surprise");
-     const data = await response.json();
-     if (!response.ok || !data.room?.id) return;
-     location.href = "/go/" + encodeURIComponent(data.room.id);
-   } catch (error) {
-    console.error("Surprise failed:", error);
-   }
- });
-document.querySelector("#sort")?.addEventListener("change", load);
-document.querySelector("#country")?.addEventListener("change", load);
-document.querySelector("#q")?.addEventListener("input", load);
-
-load().catch((error) => {
-  console.error("Could not load rooms:", error);
-  notice.textContent = "Could not load rooms. Please try again.";
-  notice.hidden = false;
+loadCountries().finally(() => {
+  load().catch((error) => {
+    console.error("Could not load rooms:", error);
+    if (notice) {
+      notice.textContent = "Could not load rooms. Please try again.";
+      notice.hidden = false;
+    }
+  });
 });

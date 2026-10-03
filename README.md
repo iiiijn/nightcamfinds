@@ -25,7 +25,9 @@ Owner MFA is TOTP. Production must set `OWNER_MFA_SECRET`. If it is unset, MFA i
 - Chaturbate postback intake with duplicate and unmatched handling
 - Admin kill switches: providers, redirects, postbacks, maintenance
 - PostgreSQL schema in `sql/001_init.sql` (runtime store is a JSON file mirror for this environment)
-- 18+ notice, legal drafts, robots, sitemap
+- 18+ notice, legal pages, robots, sitemap
+
+Set `SITE_URL` and `CONTACT_EMAIL` in the environment before launch. Legal pages use those values. The public admin link is no longer in the footer; `/admin` still exists.
 
 ## What is not production-complete
 
