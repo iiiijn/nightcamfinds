@@ -2,7 +2,7 @@ import { chaturbateDestination } from "../adapters/chaturbate.js";
 import { bongaCashDestination } from "../adapters/bongacash.js";
 import crypto from "node:crypto";
 
-const ALLOWED_DOMAINS = new Set(["chaturbate.com", "www.chaturbate.com"]);
+const ALLOWED_DOMAINS = new Set(["chaturbate.com", "www.chaturbate.com", "bongacams.com", "www.bongacams.com"]);
 
 export function newClickId() {
   return crypto.randomBytes(16).toString("hex");
@@ -17,7 +17,7 @@ export function resolveDestination(room, link) {
     return { ok: false, reason: "destination not verified" };
   }
   if (room.provider === "chaturbate") return chaturbateDestination(room, null);
-  if (room.provider === "bongacash") return bongaCashDestination();
+  if (room.provider === "bongacash") return bongaCashDestination(room);
   return { ok: false, reason: "unknown provider" };
 }
 
@@ -27,7 +27,7 @@ export function buildRedirect(room, clickId, link) {
   if (!ALLOWED_DOMAINS.has(dest.domain)) return { ok: false, reason: "domain not allowlisted" };
   const url = new URL(dest.url);
   url.searchParams.set("click_id", clickId);
-  if ([...url.searchParams.keys()].some((k) => !["click_id", "tour", "campaign", "room", "track"].includes(k) && k.startsWith("redirect"))) {
+  if ([...url.searchParams.keys()].some((k) => !["click_id", "tour", "campaign", "room", "track", "c", "csurl"].includes(k) && k.startsWith("redirect"))) {
     return { ok: false, reason: "unexpected redirect parameter" };
   }
   return { ok: true, url: url.toString(), domain: dest.domain };
