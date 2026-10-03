@@ -36,7 +36,44 @@ function card(room) {
   el.innerHTML = `${img}<div class="meta"><div class="badges">${badges}</div><strong>${room.displayName}</strong><p class="muted">${room.roomSubject || room.gender || ""}</p><a class="btn" href="/go/${encodeURIComponent(room.id)}">Enter Room</a></div>`;
   return el;
 }
+function addAffiliateLinks() {
+  const section = document.createElement("section");
+  section.className = "affiliate-links";
 
+  const heading = document.createElement("h2");
+  heading.textContent = "Explore More Live Rooms";
+
+  const intro = document.createElement("p");
+  intro.className = "muted";
+  intro.textContent = "Discover more live performers on our partner platforms.";
+
+  const links = [
+    {
+      label: "Explore Chaturbate",
+      url: "https://chaturbate.com/in/?tour=LQps&campaign=C6yxN&track=default&room=teja365884"
+    },
+    {
+      label: "Explore BongaCams",
+      url: "https://bongacams4.com/track?c=840970"
+    }
+  ];
+
+  section.append(heading, intro);
+
+  for (const item of links) {
+    const link = document.createElement("a");
+    link.className = "btn";
+    link.href = item.url;
+    link.textContent = item.label;
+    link.target = "_blank";
+    link.rel = "sponsored nofollow noopener";
+    section.append(link);
+  }
+
+  grid.parentNode.insertBefore(section, grid);
+}
+
+addAffiliateLinks();
 async function load() {
   const params = new URLSearchParams({ category: category || "all", sort: sort.value, q: q.value });
   const country = document.querySelector("#country").value;
