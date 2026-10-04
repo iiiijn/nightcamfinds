@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: nightcamfinds
+    runtime: node
+    buildCommand: ""
+    startCommand: node server.js
+    envVars:
+      - key: PUBLIC_ORIGIN
+        sync: false
+      - key: CONTACT_EMAIL
+        value: bunnybelle188@gmail.com

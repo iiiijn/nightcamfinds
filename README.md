@@ -1,36 +1,23 @@
-# NightCamFinds
+# NightCamFinds fix
 
-Independent live-cam discovery platform. BongaCash and Chaturbate are providers. NightCamFinds owns discovery, routing, and tracking.
+This replaces the current Render service. It is Chaturbate-only and keeps campaign `C6yxN` and tour `LQps`.
 
-## Run
+What changed:
+- Age gate is stored once and hidden before paint.
+- Privacy and terms no longer say they are drafts.
+- Room text is cleaned before it is sent to the browser.
+- Cards use partner thumbnails and a Watch live link.
+- Country filter is built from rooms that actually have a country code.
+- Tier-1 visitors are pre-filtered when Cloudflare sends `CF-IPCountry`.
+- Each placement has its own track id.
+- Every room link goes to Chaturbate with a placement track id.
+- Sitemap, robots.txt, and a share image are included.
+- The last good feed is kept if Chaturbate times out.
 
-```bash
-cp .env.example .env
-npm test
-npm start
-```
+Deploy:
+1. In Render, open the NightCamFinds service and replace the repo with this folder, or upload these files over the old ones.
+2. Start command: `node server.js`
+3. Set `PUBLIC_ORIGIN` to the public URL, ideally your own domain.
+4. Point a custom domain at the service. The onrender.com URL can stay as a redirect.
 
-Open http://localhost:8787
-
-Development uses embedded PostgreSQL (PGlite) and the SQL migrations. Production requires `DATABASE_PROVIDER=postgres` and `DATABASE_URL`. It will not start on the development fallback, the default admin password, or with BongaCash postbacks enabled.
-
-Owner MFA is TOTP. Production must set `OWNER_MFA_SECRET`. If it is unset, MFA is `REQUIRES_VERIFICATION` and launch is blocked.
-
-## What is implemented
-
-- Public directory, categories, country selector, search, Surprise Me
-- Chaturbate adapter against documented API v2 (`/api/public/affiliates/onlinerooms/`)
-- BongaCash adapter that refuses to invent rooms or destinations
-- Affiliate router with domain allowlist and random click IDs
-- Chaturbate postback intake with duplicate and unmatched handling
-- Admin kill switches: providers, redirects, postbacks, maintenance
-- PostgreSQL schema in `sql/001_init.sql` (runtime store is a JSON file mirror for this environment)
-- 18+ notice, legal pages, robots, sitemap
-
-Set `SITE_URL` and `CONTACT_EMAIL` in the environment before launch. Legal pages use those values. The public admin link is no longer in the footer; `/admin` still exists.
-
-## What is not production-complete
-
-See `docs/verification-registry.md`. MFA, WAF, CDN, real PostgreSQL backups, and BongaCash API/postbacks are not claimed as done.
-
-Do not treat this build as a legal compliance determination.
+This chat cannot push to the existing Render account. The live site will not change until these files are deployed there.

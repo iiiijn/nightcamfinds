@@ -1,19 +1,22 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NightCamFinds — Live cam directory</title>
-  <meta name="description" content="NightCamFinds is an independent 18+ directory of live rooms. Filter by category, country, and popularity, then open a room on the partner site.">
+  <meta name="description" content="Browse live rooms from partner platforms, filter by country, and open a broadcaster on the partner site. NightCamFinds does not stream video.">
   <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://nightcamfinds.onrender.com/">
+  <link rel="canonical" href="__ORIGIN__/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <meta property="og:title" content="NightCamFinds — Live cam directory">
   <meta property="og:description" content="Independent 18+ directory of live rooms. Browse, filter, and open a room on the partner site.">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://nightcamfinds.onrender.com/">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:url" content="__ORIGIN__/">
+  <meta property="og:image" content="__ORIGIN__/og.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="ncf-country" content="__COUNTRY__">
   <link rel="stylesheet" href="/styles.css">
+  <script>if(localStorage.getItem("ncf18")==="1")document.documentElement.classList.add("ok");</script>
 </head>
 <body>
   <div class="age-gate" id="gate">
@@ -42,19 +45,13 @@
         <a href="/countries/">Countries</a>
       </nav>
     </header>
-   
     <section class="hero">
       <p class="eyebrow" id="kicker">Independent discovery</p>
       <h1 id="page-title">Discover live cams right now</h1>
       <p class="muted" id="page-intro">Explore live rooms, compare viewer counts, and open a broadcaster on the partner site. NightCamFinds does not stream video itself.</p>
-      <div class="actions">
-        <a class="btn" href="/live/">Browse live cams</a>
-        <a class="btn ghost" href="/popular/">Popular now</a>
-        <button class="ghost" id="surprise" type="button">Surprise me</button>
-      </div>
     </section>
     <div class="toolbar">
-      <input id="q" placeholder="Search name, tag, country" aria-label="Search">
+      <input id="q" placeholder="Search name or country" aria-label="Search">
       <select id="sort" aria-label="Sort">
         <option value="recommended">Recommended</option>
         <option value="viewers">Most viewers</option>
@@ -65,9 +62,9 @@
     <div id="notice" class="notice" hidden>Live rooms are temporarily unavailable. Please check again shortly.</div>
     <p id="result-count" class="result-count" aria-live="polite"></p>
     <div id="grid" class="grid" aria-live="polite"></div>
-    <section class="affiliate-links" id="partners">
-      <h2>Partner platforms</h2>
-      <p class="muted">These are sponsored links. NightCamFinds may earn a commission if you sign up or spend on a partner site. Room listings above already use your tracked redirect.</p>
+    <section class="affiliate-links">
+      <h2>Chaturbate</h2>
+      <p class="muted">Sponsored link. NightCamFinds may earn a commission if you sign up or spend on Chaturbate. The price you pay does not change. Video plays on Chaturbate, not here.</p>
       <div class="actions" id="partner-actions"></div>
     </section>
     <footer>
