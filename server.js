@@ -51,11 +51,30 @@ function fetchJson(url) {
 
 function clean(text) {
   return String(text || "")
+    .replace(/https?:\/\/\S+/gi, "")
+    .replace(/\b[\w.-]+\.(com|net|tv|xxx|ai)\b\S*/gi, "")
+    .replace(/\(\s*1[89]\s*\)/g, "")
     .replace(BLOCKED, "")
+    .replace(/\b(beat|barely)\s*18\b/gi, "")
     .replace(/#[^\s#]+/g, "")
     .replace(/\s{2,}/g, " ")
     .replace(/^[\s\-|#]+|[\s\-|#]+$/g, "")
     .trim();
+}
+
+const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore", BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela", PH:"Philippines", TH:"Thailand", CN:"China", JP:"Japan", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain", PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa" };
+const STATS = path.join(__dirname, "data", "clicks.json");
+const STATS_KEY = process.env.STATS_KEY || "ncf-stats";
+
+function readStats() {
+  try { return JSON.parse(fs.readFileSync(STATS, "utf8")); } catch { return {}; }
+}
+function countClick(src) {
+  fs.mkdirSync(path.dirname(STATS), { recursive: true });
+  const stats = readStats();
+  stats[src] = (stats[src] || 0) + 1;
+  stats.total = (stats.total || 0) + 1;
+  fs.writeFileSync(STATS, JSON.stringify(stats));
 }
 
 function clientIp(req) {
@@ -75,6 +94,7 @@ async function rooms(req) {
       displayName: clean(room.display_name || room.username) || room.username,
       gender: GENDER[room.gender] || "female",
       country: (room.country || "").toUpperCase(),
+      countryName: NAMES[(room.country || "").toUpperCase()] || room.country || "",
       location: clean(room.location),
       viewerCount: room.num_users || 0,
       isHd: !!room.is_hd,
@@ -148,6 +168,10 @@ const server = http.createServer(async (req, res) => {
   }
   if (pages[pathname]) return send(res, 200, pages[pathname], "text/html; charset=utf-8");
 
+  if (pathname === "/api/stats") {
+    if (url.searchParams.get("key") !== STATS_KEY) return send(res, 404, "Not found", "text/plain");
+    return send(res, 200, JSON.stringify(readStats()), "application/json");
+  }
   if (pathname === "/api/rooms") {
     const feed = await rooms(req);
     const category = url.searchParams.get("category") || "all";
@@ -175,6 +199,7 @@ const server = http.createServer(async (req, res) => {
     const id = decodeURIComponent(pathname.slice(4));
     const username = id.split(":").pop();
     const src = (url.searchParams.get("src") || "card").replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "card";
+    countClick(src);
     const feed = await rooms(req);
     const room = feed.rooms.find((r) => r.username === username);
     const target = room?.href
