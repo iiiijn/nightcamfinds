@@ -40,8 +40,23 @@ document.querySelectorAll("nav a").forEach((a) => {
   if (a.getAttribute("href") === location.pathname) a.setAttribute("aria-current", "page");
 });
 
-const TIER1 = ["US","CA","GB","IE","AU","NZ","DE","AT","CH","FR","BE","NL","LU","SE","NO","DK","FI","IS","JP","SG"];
+const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore" };
+const QUICK = ["US","GB","CA","AU","DE","FR","NL"];
+const TIER1 = Object.keys(NAMES);
+
 const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
+const quick = document.querySelector("#quick");
+for (const iso of QUICK) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "ghost";
+  button.textContent = NAMES[iso];
+  button.addEventListener("click", () => {
+    countrySelect.value = iso;
+    load();
+  });
+  quick.append(button);
+}
 
 function track() {
   const country = countrySelect.value ? "country-" + countrySelect.value.toLowerCase() : "";
@@ -82,7 +97,7 @@ function card(room) {
   meta.className = "meta";
   const badges = document.createElement("div");
   badges.className = "badges";
-  const bits = [["Live", "live"], room.isHd ? ["HD", ""] : null, room.isNew ? ["New", ""] : null, [Number(room.viewerCount || 0).toLocaleString() + " watching", ""], room.country ? [room.country, ""] : null].filter(Boolean);
+  const bits = [["Live", "live"], room.isHd ? ["HD", ""] : null, room.isNew ? ["New", ""] : null, [Number(room.viewerCount || 0).toLocaleString() + " watching", ""], room.country ? [NAMES[room.country] || room.country, ""] : null].filter(Boolean);
   for (const [label, extra] of bits) {
     const span = document.createElement("span");
     span.className = extra ? "badge " + extra : "badge";
@@ -113,14 +128,29 @@ async function load() {
     for (const iso of data.countries || []) {
       const opt = document.createElement("option");
       opt.value = iso;
-      opt.textContent = iso + (TIER1.includes(iso) ? " · tier 1" : "");
+      opt.textContent = NAMES[iso] || iso;
       countrySelect.append(opt);
     }
     if (!countrySelect.value && TIER1.includes(hinted) && (data.countries || []).includes(hinted)) countrySelect.value = hinted;
     if (countrySelect.value) return load();
   }
   const rooms = data.rooms || [];
-  grid.replaceChildren(...rooms.map(card));
+  if ((category === "all" || category === "live") && !q.value && !countrySelect.value) {
+    grid.replaceChildren();
+    for (const [key, label] of [["female","Top female"],["male","Top male"],["trans","Top trans"],["couples","Top couples"]]) {
+      const picked = rooms.filter((room) => room.gender === key).slice(0, 8);
+      if (!picked.length) continue;
+      const section = document.createElement("section");
+      section.className = "home-group";
+      const heading = document.createElement("h2");
+      heading.textContent = label;
+      const row = document.createElement("div");
+      row.className = "grid";
+      row.append(...picked.map(card));
+      section.append(heading, row);
+      grid.append(section);
+    }
+  } else grid.replaceChildren(...rooms.map(card));
   countEl.textContent = rooms.length ? rooms.length + " live rooms" : "No rooms match that filter.";
   notice.hidden = !data.notice;
   notice.textContent = data.notice || "";

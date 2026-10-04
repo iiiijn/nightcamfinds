@@ -33,7 +33,7 @@ function fetchJson(url) {
 function clean(text) {
   return String(text || "")
     .replace(BLOCKED, "")
-    .replace(/#[a-z0-9_]*(18|19|teen)[a-z0-9_]*/gi, "")
+    .replace(/#[^\s#]+/g, "")
     .replace(/\s{2,}/g, " ")
     .replace(/^[\s\-|#]+|[\s\-|#]+$/g, "")
     .trim();
