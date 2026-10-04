@@ -11,7 +11,26 @@ const TOUR = process.env.CB_TOUR || "LQps";
 const CONTACT = process.env.CONTACT_EMAIL || "bunnybelle188@gmail.com";
 const PUBLIC = path.join(__dirname, "public");
 
-const TIER1 = new Set(["US","CA","GB","IE","AU","NZ","DE","AT","CH","FR","BE","NL","LU","SE","NO","DK","FI","IS","JP","SG"]);
+const MARKETS = [
+  ["us", "US", "United States"],
+  ["gb", "GB", "United Kingdom"],
+  ["ca", "CA", "Canada"],
+  ["au", "AU", "Australia"],
+  ["de", "DE", "Germany"],
+  ["fr", "FR", "France"],
+  ["nl", "NL", "Netherlands"],
+  ["ie", "IE", "Ireland"],
+  ["nz", "NZ", "New Zealand"],
+  ["se", "SE", "Sweden"],
+  ["no", "NO", "Norway"],
+  ["dk", "DK", "Denmark"],
+  ["fi", "FI", "Finland"],
+  ["ch", "CH", "Switzerland"],
+  ["at", "AT", "Austria"],
+  ["be", "BE", "Belgium"],
+  ["jp", "JP", "Japan"],
+  ["sg", "SG", "Singapore"]
+];
 const GENDER = { f: "female", m: "male", t: "trans", c: "couples", s: "trans" };
 const BLOCKED = /\b(teen|teens|teenage|underage|preteen|lolita|child|children|kid|kids|young|barely\s*legal|18\s*yo|19\s*yo|#18\b|#19\b)\b/gi;
 
@@ -101,7 +120,7 @@ const pages = {
 };
 
 function sitemap(origin) {
-  const paths = ["/", "/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/", "/about", "/affiliate-disclosure", "/privacy", "/terms", "/contact"];
+  const paths = ["/", "/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/", "/broadcast", "/about", "/affiliate-disclosure", "/privacy", "/terms", "/contact", ...MARKETS.map(([slug]) => `/country/${slug}/`)];
   return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((p) => `<url><loc>${origin}${p}</loc></url>`).join("")}</urlset>`;
 }
 
@@ -123,6 +142,10 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, `User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /api/\nSitemap: ${pageOrigin(req)}/sitemap.xml\n`, "text/plain");
   }
   if (pathname === "/sitemap.xml") return send(res, 200, sitemap(pageOrigin(req)), "application/xml");
+  if (pathname === "/broadcast" || pathname === "/broadcast/") {
+    const html = fs.readFileSync(path.join(PUBLIC, "broadcast.html"), "utf8");
+    return send(res, 200, html, "text/html; charset=utf-8");
+  }
   if (pages[pathname]) return send(res, 200, pages[pathname], "text/html; charset=utf-8");
 
   if (pathname === "/api/rooms") {
@@ -139,7 +162,7 @@ const server = http.createServer(async (req, res) => {
     if (q) list = list.filter((r) => `${r.displayName} ${r.roomSubject} ${r.country} ${r.location}`.toLowerCase().includes(q));
     list.sort((a, b) => sort === "newest" ? Number(b.isNew) - Number(a.isNew) || b.viewerCount - a.viewerCount : b.viewerCount - a.viewerCount);
     const countries = [...new Set(feed.rooms.map((r) => r.country).filter(Boolean))].sort();
-    return send(res, 200, JSON.stringify({ rooms: list.slice(0, 60), countries, notice: feed.notice, tier1: TIER1.has((req.headers["cf-ipcountry"] || "").toUpperCase()) }), "application/json");
+    return send(res, 200, JSON.stringify({ rooms: list.slice(0, 60), countries, notice: feed.notice, tier1: MARKETS.some(([, iso]) => iso === (req.headers["cf-ipcountry"] || "").toUpperCase()) }), "application/json");
   }
 
   if (pathname === "/api/surprise") {
@@ -164,13 +187,22 @@ const server = http.createServer(async (req, res) => {
   const file = pathname === "/" || pathname.endsWith("/") ? "/index.html" : pathname;
   const safe = path.normalize(file).replace(/^(\.\.[/\\])+/, "");
   const full = path.join(PUBLIC, safe);
-  if (!full.startsWith(PUBLIC) || !fs.existsSync(full) || fs.statSync(full).isDirectory()) {
-    if (pathname.endsWith("/")) {
-      const html = fs.readFileSync(path.join(PUBLIC, "index.html"), "utf8")
-        .replaceAll("__ORIGIN__", pageOrigin(req))
-        .replace("__COUNTRY__", (req.headers["cf-ipcountry"] || "").toUpperCase());
-      return send(res, 200, html, "text/html; charset=utf-8");
+  const market = pathname.match(/^\/country\/([a-z]{2})\/$/);
+  const forced = market ? MARKETS.find(([slug]) => slug === market[1]) : null;
+  if (pathname.endsWith("/") || forced) {
+    let html = fs.readFileSync(path.join(PUBLIC, "index.html"), "utf8")
+      .replaceAll("__ORIGIN__", pageOrigin(req))
+      .replace("__COUNTRY__", (req.headers["cf-ipcountry"] || "").toUpperCase())
+      .replace("__FORCE__", forced ? forced[1] : "");
+    if (forced) {
+      html = html
+        .replace("Discover live cams right now", `Live cams in ${forced[2]}`)
+        .replace("NightCamFinds — Live cam directory", `Live cams in ${forced[2]} — NightCamFinds`)
+        .replace("Explore live rooms, compare viewer counts, and open a room on Chaturbate. NightCamFinds does not stream video itself.", `Public rooms that list ${forced[2]} in the Chaturbate feed. Counts change quickly. Video plays on Chaturbate, not on NightCamFinds.`);
     }
+    return send(res, 200, html, "text/html; charset=utf-8");
+  }
+  if (!full.startsWith(PUBLIC) || !fs.existsSync(full) || fs.statSync(full).isDirectory()) {
     return send(res, 404, "Not found", "text/plain");
   }
   const types = { ".html": "text/html", ".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml" };

@@ -45,6 +45,7 @@ const QUICK = ["US","GB","CA","AU","DE","FR","NL"];
 const TIER1 = Object.keys(NAMES);
 
 const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
+const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
 const quick = document.querySelector("#quick");
 for (const iso of QUICK) {
   const button = document.createElement("button");
@@ -68,7 +69,7 @@ function partners() {
   const src = category === "all" ? "home-footer" : category + "-footer";
   const wrap = document.querySelector("#partner-actions");
   const links = [
-    ["Browse Chaturbate", `https://chaturbate.com/in/?tour=LQps&campaign=C6yxN&track=${src}`]
+    ["Create a free account", `https://chaturbate.com/in/?tour=LQps&campaign=C6yxN&track=watch-signup`]
   ];
   for (const [label, href] of links) {
     const a = document.createElement("a");
@@ -131,7 +132,7 @@ async function load() {
       opt.textContent = NAMES[iso] || iso;
       countrySelect.append(opt);
     }
-    if (!countrySelect.value && TIER1.includes(hinted) && (data.countries || []).includes(hinted)) countrySelect.value = hinted;
+    if (!countrySelect.value && (forced || hinted) && (data.countries || []).includes(forced || hinted)) countrySelect.value = forced || hinted;
     if (countrySelect.value) return load();
   }
   const rooms = data.rooms || [];
@@ -151,7 +152,7 @@ async function load() {
       grid.append(section);
     }
   } else grid.replaceChildren(...rooms.map(card));
-  countEl.textContent = rooms.length ? rooms.length + " live rooms" : "No rooms match that filter.";
+  countEl.textContent = (rooms.length ? rooms.length + " live rooms" : "No rooms match that filter.") + " · updated " + new Date().toLocaleTimeString();
   notice.hidden = !data.notice;
   notice.textContent = data.notice || "";
 }
@@ -164,3 +165,7 @@ load().catch(() => {
   notice.hidden = false;
   notice.textContent = "Could not load rooms. Please try again.";
 });
+setInterval(() => {
+  if (document.hidden || q.value) return;
+  load().catch(() => {});
+}, 30000);
