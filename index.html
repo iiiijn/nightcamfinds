@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NightCamFinds — Live cam directory</title>
+  <meta name="description" content="Browse live rooms from partner platforms, filter by country, and open a broadcaster on the partner site. NightCamFinds does not stream video.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="__ORIGIN__/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta property="og:title" content="NightCamFinds — Live cam directory">
+  <meta property="og:description" content="Independent 18+ directory of live rooms. Browse, filter, and open a room on the partner site.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="__ORIGIN__/">
+  <meta property="og:image" content="__ORIGIN__/og.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="ncf-country" content="__COUNTRY__">
+  <link rel="stylesheet" href="/styles.css">
+  <script>if(localStorage.getItem("ncf18")==="1")document.documentElement.classList.add("ok");</script>
+</head>
+<body>
+  <div class="age-gate" id="gate">
+    <div class="panel">
+      <p class="eyebrow">Adults only</p>
+      <h2>This site is for people 18 or older.</h2>
+      <p class="muted">NightCamFinds is an independent directory. It does not host video. You must be 18 or the age of majority where you live. This notice is not a government age-verification system.</p>
+      <div class="actions">
+        <button id="enter" type="button">I am 18 or older</button>
+        <a class="btn ghost" href="https://www.google.com">Leave</a>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <header>
+      <a class="logo" href="/">NightCam<span>Finds</span></a>
+      <nav aria-label="Categories">
+        <a href="/live/">Live Now</a>
+        <a href="/female/">Female</a>
+        <a href="/male/">Male</a>
+        <a href="/trans/">Trans</a>
+        <a href="/couples/">Couples</a>
+        <a href="/hd/">HD</a>
+        <a href="/new/">New</a>
+        <a href="/popular/">Popular</a>
+        <a href="/countries/">Countries</a>
+      </nav>
+    </header>
+    <section class="hero">
+      <p class="eyebrow" id="kicker">Independent discovery</p>
+      <h1 id="page-title">Discover live cams right now</h1>
+      <p class="muted" id="page-intro">Explore live rooms, compare viewer counts, and open a broadcaster on the partner site. NightCamFinds does not stream video itself.</p>
+    </section>
+    <div class="quick" id="quick" aria-label="Tier 1 countries"></div>
+      <input id="q" placeholder="Search name or country" aria-label="Search">
+      <select id="sort" aria-label="Sort">
+        <option value="recommended">Recommended</option>
+        <option value="viewers">Most viewers</option>
+        <option value="newest">Newest</option>
+      </select>
+      <select id="country" aria-label="Country"><option value="">All countries</option></select>
+    </div>
+    <div id="notice" class="notice" hidden>Live rooms are temporarily unavailable. Please check again shortly.</div>
+    <p id="result-count" class="result-count" aria-live="polite"></p>
+    <div id="grid" class="grid" aria-live="polite"></div>
+    <section class="affiliate-links">
+      <h2>Chaturbate</h2>
+      <p class="muted">Sponsored link. NightCamFinds may earn a commission if you sign up or spend on Chaturbate. The price you pay does not change. Video plays on Chaturbate, not here.</p>
+      <div class="actions" id="partner-actions"></div>
+    </section>
+    <footer>
+      <span>18+ independent directory. Video plays on the partner site, not here.</span>
+      <a href="/about">About</a>
+      <a href="/affiliate-disclosure">Affiliate disclosure</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/contact">Contact</a>
+    </footer>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

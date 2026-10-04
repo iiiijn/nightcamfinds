@@ -46,7 +46,7 @@ function clientIp(req) {
 }
 
 async function rooms(req) {
-  if (Date.now() - cache.at < 45000 && cache.rooms.length) return cache;
+  if (Date.now() - cache.at < 20000 && cache.rooms.length) return cache;
   try {
     const ip = encodeURIComponent(clientIp(req));
     const data = await fetchJson(`https://chaturbate.com/api/public/affiliates/onlinerooms/?wm=${CAMPAIGN}&client_ip=${ip}&format=json&limit=500`);
