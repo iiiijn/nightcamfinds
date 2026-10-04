@@ -171,11 +171,11 @@ function card(room) {
   const subject = document.createElement("p");
   subject.className = "muted subject";
   subject.textContent = cleanSubject(room.roomSubject || room.gender || "");
-  const enter = document.createElement("button");
+  const enter = document.createElement("a");
   enter.className = "btn";
-  enter.type = "button";
-  enter.textContent = "View model";
-  enter.addEventListener("click", () => openRoom(room));
+  enter.href = "/go/" + encodeURIComponent(room.id);
+  enter.textContent = "Watch free";
+  enter.rel = "sponsored nofollow noopener";
   meta.append(badges, strong, subject, enter);
   el.append(img, meta);
   return el;
@@ -274,10 +274,10 @@ function openRoom(room) {
   dialog.querySelector("#room-panel").innerHTML = `
     <p class="eyebrow">${partner}</p>
     <h2>${name}</h2>
-    <p class="muted">${cleanSubject(room.roomSubject || room.gender || "")}</p>
-    <p class="muted">NightCamFinds does not host this room. Create a free account on ${partner}, or sign in there, to open it. That button uses this model's tracked link, which is how the commission is recorded.</p>
+    <p class="muted">${Number(room.viewerCount || 0).toLocaleString()} watching now</p>
+    <p class="muted">Watch ${name} free on ${partner}. A free account lets you enter the room and chat. Sign-up offers, if any, are shown on ${partner}, not set by NightCamFinds.</p>
     <div class="actions">
-      <a class="btn" href="/go/${encodeURIComponent(room.id)}">Create account and enter</a>
+      <a class="btn" href="/go/${encodeURIComponent(room.id)}">Watch free</a>
       <button class="ghost" type="button" id="close-room">Back</button>
     </div>`;
   dialog.hidden = false;
