@@ -69,7 +69,7 @@ function partners() {
   const src = category === "all" ? "home-footer" : category + "-footer";
   const wrap = document.querySelector("#partner-actions");
   const links = [
-    ["Create a free account", `https://chaturbate.com/in/?tour=LQps&campaign=C6yxN&track=watch-signup`]
+    ["Chat free", `https://chaturbate.com/in/?tour=LQps&campaign=C6yxN&track=watch-signup`]
   ];
   for (const [label, href] of links) {
     const a = document.createElement("a");
