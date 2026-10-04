@@ -171,11 +171,11 @@ function card(room) {
   const subject = document.createElement("p");
   subject.className = "muted subject";
   subject.textContent = cleanSubject(room.roomSubject || room.gender || "");
-  const enter = document.createElement("a");
+  const enter = document.createElement("button");
   enter.className = "btn";
-  enter.href = "/go/" + encodeURIComponent(room.id);
-  enter.textContent = "Enter room";
-  enter.rel = "sponsored nofollow noopener";
+  enter.type = "button";
+  enter.textContent = "View model";
+  enter.addEventListener("click", () => openRoom(room));
   meta.append(badges, strong, subject, enter);
   el.append(img, meta);
   return el;
@@ -243,3 +243,81 @@ loadCountries().finally(() => {
     }
   });
 });
+
+
+const GROUPS = [
+  ["female", "Top female"],
+  ["male", "Top male"],
+  ["trans", "Top trans"],
+  ["couples", "Top couples"]
+];
+
+function providerName(room) {
+  if ((room.provider || room.id || "").includes("bonga")) return "BongaCams";
+  return "Chaturbate";
+}
+
+function openRoom(room) {
+  let dialog = document.querySelector("#room-dialog");
+  if (!dialog) {
+    dialog = document.createElement("div");
+    dialog.id = "room-dialog";
+    dialog.className = "age-gate";
+    dialog.innerHTML = `<div class="panel" id="room-panel"></div>`;
+    document.body.append(dialog);
+    dialog.addEventListener("click", (event) => {
+      if (event.target === dialog) dialog.hidden = true;
+    });
+  }
+  const name = room.displayName || "Live model";
+  const partner = providerName(room);
+  dialog.querySelector("#room-panel").innerHTML = `
+    <p class="eyebrow">${partner}</p>
+    <h2>${name}</h2>
+    <p class="muted">${cleanSubject(room.roomSubject || room.gender || "")}</p>
+    <p class="muted">NightCamFinds does not host this room. Create a free account on ${partner}, or sign in there, to open it. That button uses this model's tracked link, which is how the commission is recorded.</p>
+    <div class="actions">
+      <a class="btn" href="/go/${encodeURIComponent(room.id)}">Create account and enter</a>
+      <button class="ghost" type="button" id="close-room">Back</button>
+    </div>`;
+  dialog.hidden = false;
+  dialog.querySelector("#close-room").addEventListener("click", () => { dialog.hidden = true; });
+}
+
+function renderHome(rooms) {
+  grid.replaceChildren();
+  for (const [key, label] of GROUPS) {
+    const picked = rooms.filter((room) => (room.gender || "").toLowerCase() === key).slice(0, 8);
+    if (!picked.length) continue;
+    const section = document.createElement("section");
+    section.className = "home-group";
+    const heading = document.createElement("h2");
+    heading.textContent = label;
+    const row = document.createElement("div");
+    row.className = "grid";
+    row.append(...picked.map(card));
+    section.append(heading, row);
+    grid.append(section);
+  }
+  const bonga = document.createElement("section");
+  bonga.className = "home-group";
+  bonga.innerHTML = `<h2>BongaCams</h2><p class="muted">Live BongaCams models are not connected yet, so none are invented here. The tracked link is ready for when that feed is verified.</p><a class="btn" href="https://bongacams4.com/track?c=840970&track=home" target="_blank" rel="sponsored nofollow noopener">Browse BongaCams</a>`;
+  grid.append(bonga);
+}
+
+const originalLoad = load;
+load = async function () {
+  const params = new URLSearchParams({ category: category || "all", sort: sort?.value || "recommended", q: q?.value || "" });
+  const country = document.querySelector("#country")?.value || "";
+  if (country) params.set("country", country);
+  const data = await fetch("/api/rooms?" + params).then((r) => r.json());
+  let rooms = data.rooms || [];
+  if (country) rooms = rooms.filter((r) => (r.country || "").toUpperCase() === country.toUpperCase());
+  if ((category === "all" || category === "live") && !q?.value && !country) renderHome(rooms);
+  else grid.replaceChildren(...rooms.map(card));
+  if (countEl) countEl.textContent = rooms.length ? `${rooms.length} live rooms` : "No rooms match that filter.";
+  if (notice) {
+    notice.hidden = !data.notice && rooms.length > 0;
+    notice.textContent = data.notice || (rooms.length ? "" : "No rooms match that filter.");
+  }
+};
