@@ -113,10 +113,14 @@ async function refreshProviders() {
       cache.put("chaturbate", []);
       health.chaturbate = { state: "Unavailable", error: "disabled", at: new Date().toISOString() };
     }
-    const bc = await fetchBongaCashRooms({ apiBase: process.env.BONGACASH_API_BASE || "" });
-    cache.put("bongacash", []);
+  const bc = await fetchBongaCashRooms({ campaign: process.env.BONGACASH_CAMPAIGN || "840970" });
+   cache.put("bongacash", bc.rooms);
     health.bongacash = { state: "Unavailable", status: bc.status, rooms: 0, error: bc.error, postbacks: "REQUIRES_VERIFICATION", at: new Date().toISOString() };
-    health.jobs = "idle";
+   health.bongacash = { state: bc.rooms.length ? "Healthy" : "Degraded", status: bc.status, rooms: bc.rooms.length, error: bc.error || null, postbacks: "REQUIRES_VERIFICATION", at: new Date().toISOString() };
+if (bc.rooms.length && current.providers.bongacash === false) {
+  current.providers.bongacash = true;
+  await repo.setSetting("runtime", current);
+}
     try {
       health.postgres = (await repo.health()) ? "ok" : "failing";
     } catch {
