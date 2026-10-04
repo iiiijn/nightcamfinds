@@ -111,6 +111,14 @@ async function rooms(req) {
   return cache;
 }
 
+function langFor(country) {
+  const iso = String(country || "").toUpperCase();
+  if (["FR", "BE", "LU", "MC"].includes(iso)) return "fr";
+  if (["DE", "AT"].includes(iso)) return "de";
+  if (iso === "CH") return "de";
+  if (iso === "NL") return "nl";
+  return "en";
+}
 function pageOrigin(req) {
   if (ORIGIN) return ORIGIN;
   const proto = req.headers["x-forwarded-proto"] || "https";
@@ -168,6 +176,12 @@ const server = http.createServer(async (req, res) => {
   }
   if (pages[pathname]) return send(res, 200, pages[pathname], "text/html; charset=utf-8");
 
+  if (pathname === "/visits") {
+    if (url.searchParams.get("key") !== STATS_KEY) return send(res, 404, "Not found", "text/plain");
+    const stats = readStats();
+    const rows = Object.entries(stats).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
+    return send(res, 200, `<!doctype html><html><head><meta charset="utf-8"><title>Visits</title></head><body><h1>NightCamFinds counts</h1><p>Page views are visits to this site. Clicks are people who opened a room.</p><table>${rows}</table></body></html>`, "text/html; charset=utf-8");
+  }
   if (pathname === "/api/stats") {
     if (url.searchParams.get("key") !== STATS_KEY) return send(res, 404, "Not found", "text/plain");
     return send(res, 200, JSON.stringify(readStats()), "application/json");
@@ -218,13 +232,15 @@ const server = http.createServer(async (req, res) => {
     let html = fs.readFileSync(path.join(PUBLIC, "index.html"), "utf8")
       .replaceAll("__ORIGIN__", pageOrigin(req))
       .replace("__COUNTRY__", (req.headers["cf-ipcountry"] || "").toUpperCase())
-      .replace("__FORCE__", forced ? forced[1] : "");
+      .replace("__FORCE__", forced ? forced[1] : "")
+      .replace("__LANG__", langFor(forced ? forced[1] : req.headers["cf-ipcountry"]));
     if (forced) {
       html = html
         .replace("Discover live cams right now", `Live cams in ${forced[2]}`)
         .replace("NightCamFinds — Live cam directory", `Live cams in ${forced[2]} — NightCamFinds`)
         .replace("Explore live rooms, compare viewer counts, and open a room on Chaturbate. NightCamFinds does not stream video itself.", `Public rooms that list ${forced[2]} in the Chaturbate feed. Counts change quickly. Video plays on Chaturbate, not on NightCamFinds.`);
     }
+    countClick("page");
     return send(res, 200, html, "text/html; charset=utf-8");
   }
   if (!full.startsWith(PUBLIC) || !fs.existsSync(full) || fs.statSync(full).isDirectory()) {
