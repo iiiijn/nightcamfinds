@@ -72,7 +72,7 @@ async function rooms(req) {
     const list = (data.results || []).map((room) => ({
       id: "chaturbate:" + room.username,
       username: room.username,
-      displayName: room.display_name || room.username,
+      displayName: clean(room.display_name || room.username) || room.username,
       gender: GENDER[room.gender] || "female",
       country: (room.country || "").toUpperCase(),
       location: clean(room.location),
