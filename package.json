@@ -7,7 +7,6 @@
   },
   "engines": { "node": ">=20" },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.8",
     "pg": "^8.23.1"
   }
 }
