@@ -42,10 +42,14 @@ document.querySelectorAll("nav a").forEach((a) => {
 
 const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore", BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela", PH:"Philippines", TH:"Thailand", CN:"China", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain", PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa" };
 const QUICK = ["US","GB","CA","AU","DE","FR","NL"];
-const TIER1 = Object.keys(NAMES);
 
 const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
 const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
+const queryParams = new URLSearchParams(location.search);
+const trafficSource = (queryParams.get("utm_source") || queryParams.get("source") || "direct").slice(0, 30);
+const trafficCampaign = (queryParams.get("utm_campaign") || queryParams.get("campaign") || "organic").slice(0, 40);
+const trafficMedium = (queryParams.get("utm_medium") || "").slice(0, 30);
+
 const quick = document.querySelector("#quick");
 for (const iso of QUICK) {
   const button = document.createElement("button");
@@ -59,33 +63,41 @@ for (const iso of QUICK) {
   quick.append(button);
 }
 
-function track() {
+function placement() {
   const country = countrySelect.value ? "country-" + countrySelect.value.toLowerCase() : "";
   const base = category === "all" ? "home" : category;
   return country || base + "-card";
 }
 
+function trackingQuery(extra = {}) {
+  const params = new URLSearchParams({
+    src: extra.src || placement(),
+    cat: extra.cat || (category === "all" ? "all" : category),
+    source: trafficSource,
+    campaign: trafficCampaign
+  });
+  if (trafficMedium) params.set("utm_medium", trafficMedium);
+  return params.toString();
+}
+
 function partners() {
   const src = category === "all" ? "home-footer" : category + "-footer";
   const wrap = document.querySelector("#partner-actions");
-  const links = [
-    ["Chat free", `https://chaturbate.com/in/?tour=LQps&campaign=C6yxN&track=watch-signup`]
-  ];
-  for (const [label, href] of links) {
-    const a = document.createElement("a");
-    a.className = "btn";
-    a.href = href;
-    a.textContent = label;
-    a.target = "_blank";
-    a.rel = "sponsored nofollow noopener";
-    wrap.append(a);
-  }
+  const a = document.createElement("a");
+  a.className = "btn";
+  a.href = "/go/directory?" + trackingQuery({ src });
+  a.textContent = "Chat free";
+  a.rel = "sponsored nofollow noopener";
+  wrap.append(a);
 }
 
 function card(room) {
   const a = document.createElement("a");
   a.className = "card";
-  a.href = "/go/" + encodeURIComponent(room.id) + "?src=" + encodeURIComponent(track());
+  a.href = "/go/" + encodeURIComponent(room.id) + "?" + trackingQuery({
+    src: placement(),
+    cat: room.gender || (category === "all" ? "all" : category)
+  });
   a.rel = "sponsored nofollow noopener";
   const img = document.createElement(room.image ? "img" : "div");
   img.className = "thumb";
