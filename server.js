@@ -3,6 +3,15 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const { URL } = require("url");
+let pgPool = null;
+try {
+  if (process.env.DATABASE_URL) {
+    const { Pool } = require("pg");
+    pgPool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false }, max: 5 });
+  }
+} catch (err) {
+  console.warn("Postgres tracking unavailable:", err.message);
+}
 
 const PORT = process.env.PORT || 3000;
 const ORIGIN = (process.env.PUBLIC_ORIGIN || "").replace(/\/$/, "");
@@ -62,19 +71,116 @@ function clean(text) {
     .trim();
 }
 
-const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore", BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela", PH:"Philippines", TH:"Thailand", CN:"China", JP:"Japan", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain", PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa" };
-const STATS = path.join(__dirname, "data", "clicks.json");
-const STATS_KEY = process.env.STATS_KEY || "ncf-stats";
+const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore", BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela", PH:"Philippines", TH:"Thailand", CN:"China", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain", PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa" };
+const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, "data");
+const STATS = path.join(DATA_DIR, "clicks.json");
+const STATS_KEY = process.env.STATS_KEY || "";
 
 function readStats() {
-  try { return JSON.parse(fs.readFileSync(STATS, "utf8")); } catch { return {}; }
+  try { return JSON.parse(fs.readFileSync(STATS, "utf8")); } catch { return { total: 0, countries: {}, byCategory: {}, byCountryCategory: {}, bySource: {}, byCampaign: {}, byCountrySource: {}, byCountryCampaign: {}, updatedAt: null }; }
 }
-function countClick(src) {
-  fs.mkdirSync(path.dirname(STATS), { recursive: true });
+
+function cleanLabel(value, fallback = "unknown", max = 40) {
+  const cleaned = String(value || "")
+    .trim()
+    .replace(/[^a-z0-9._-]/gi, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, max);
+  return cleaned || fallback;
+}
+
+function visitorCountry(req) {
+  const candidates = [
+    req.headers["cf-ipcountry"],
+    req.headers["x-vercel-ip-country"],
+    req.headers["cloudfront-viewer-country"],
+    req.headers["x-country-code"]
+  ];
+  for (const value of candidates) {
+    const iso = String(value || "").trim().toUpperCase();
+    if (/^[A-Z]{2}$/.test(iso) && iso !== "XX") return iso;
+  }
+  return "UNKNOWN";
+}
+
+function writeStats(stats) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const tmp = `${STATS}.tmp`;
+  fs.writeFileSync(tmp, JSON.stringify(stats, null, 2));
+  fs.renameSync(tmp, STATS);
+}
+
+let trackingReady = false;
+async function ensureTrackingTable() {
+  if (!pgPool || trackingReady) return;
+  await pgPool.query(`CREATE TABLE IF NOT EXISTS affiliate_clicks (
+    id BIGSERIAL PRIMARY KEY,
+    clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    country VARCHAR(2) NOT NULL,
+    category VARCHAR(40) NOT NULL,
+    source VARCHAR(40) NOT NULL,
+    campaign VARCHAR(80) NOT NULL,
+    placement VARCHAR(80) NOT NULL
+  )`);
+  await pgPool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_country_idx ON affiliate_clicks(country)");
+  await pgPool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_clicked_at_idx ON affiliate_clicks(clicked_at)");
+  trackingReady = true;
+}
+
+async function countClick({ src, country, category = "unknown", source = "direct", campaign = "unknown" }) {
+  if (pgPool) {
+    try {
+      await ensureTrackingTable();
+      await pgPool.query(
+        "INSERT INTO affiliate_clicks (country, category, source, campaign, placement) VALUES ($1,$2,$3,$4,$5)",
+        [country, category, source, campaign, src]
+      );
+      return;
+    } catch (err) {
+      console.error("Postgres click tracking failed; falling back to local storage:", err.message);
+    }
+  }
   const stats = readStats();
-  stats[src] = (stats[src] || 0) + 1;
   stats.total = (stats.total || 0) + 1;
-  fs.writeFileSync(STATS, JSON.stringify(stats));
+  stats.countries = stats.countries || {};
+  stats.countries[country] = (stats.countries[country] || 0) + 1;
+  stats.byCategory = stats.byCategory || {};
+  stats.byCategory[category] = (stats.byCategory[category] || 0) + 1;
+  stats.byCountryCategory = stats.byCountryCategory || {};
+  stats.byCountryCategory[`${country}:${category}`] = (stats.byCountryCategory[`${country}:${category}`] || 0) + 1;
+  stats.bySource = stats.bySource || {};
+  stats.bySource[source] = (stats.bySource[source] || 0) + 1;
+  stats.byCampaign = stats.byCampaign || {};
+  stats.byCampaign[campaign] = (stats.byCampaign[campaign] || 0) + 1;
+  stats.byCountrySource = stats.byCountrySource || {};
+  stats.byCountrySource[`${country}:${source}`] = (stats.byCountrySource[`${country}:${source}`] || 0) + 1;
+  stats.byCountryCampaign = stats.byCountryCampaign || {};
+  stats.byCountryCampaign[`${country}:${campaign}`] = (stats.byCountryCampaign[`${country}:${campaign}`] || 0) + 1;
+  stats.byPlacement = stats.byPlacement || {};
+  stats.byPlacement[`${source}:${src}`] = (stats.byPlacement[`${source}:${src}`] || 0) + 1;
+  stats.updatedAt = new Date().toISOString();
+  writeStats(stats);
+}
+
+async function statsFromDb() {
+  if (!pgPool) return null;
+  try {
+    await ensureTrackingTable();
+    const q = async (sql, params = []) => (await pgPool.query(sql, params)).rows;
+    const countries = {};
+    for (const r of await q("SELECT country, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country ORDER BY count DESC")) countries[r.country] = r.count;
+    const byCountryCategory = {};
+    for (const r of await q("SELECT country, category, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, category ORDER BY count DESC")) byCountryCategory[`${r.country}:${r.category}`] = r.count;
+    const byCountrySource = {};
+    for (const r of await q("SELECT country, source, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, source ORDER BY count DESC")) byCountrySource[`${r.country}:${r.source}`] = r.count;
+    const total = Number((await q("SELECT COUNT(*)::int AS count FROM affiliate_clicks"))[0]?.count || 0);
+    const updated = await q("SELECT MAX(clicked_at) AS updated_at FROM affiliate_clicks");
+    return { total, countries, byCountryCategory, byCountrySource, updatedAt: updated[0]?.updated_at || null, persistent: true };
+  } catch (err) {
+    console.error("Postgres stats read failed:", err.message);
+    return null;
+  }
 }
 
 function clientIp(req) {
@@ -142,7 +248,7 @@ function legal(title, body) {
 const pages = {
   "/about": legal("About NightCamFinds", `<p>NightCamFinds is an independent 18+ directory of public Chaturbate rooms. Video plays on Chaturbate after you click through. This site does not host streams, take payments, or operate broadcaster accounts.</p><p>Room titles, thumbnails, viewer counts, and country codes come from the Chaturbate affiliate feed and can be wrong or out of date. Youth-adjacent words are removed from text shown here.</p><p>Contact: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`),
   "/affiliate-disclosure": legal("Affiliate disclosure", `<p>NightCamFinds participates in the Chaturbate affiliate program. Links to Chaturbate are sponsored.</p><p>If you register or spend on Chaturbate after using a tracked link, NightCamFinds may earn a commission. That does not change the price you pay. Listings are not a review of a specific performer.</p><p>Room cards go through this site’s /go/ redirect so Chaturbate can attribute the click. Each placement uses its own track ID.</p>`),
-  "/privacy": legal("Privacy policy", `<p>Last updated 4 October 2026.</p><p>NightCamFinds stores an age-notice flag in your browser’s localStorage after you confirm you are 18 or older. The server keeps standard logs — IP address, user agent, requested URL, and time — for up to 30 days for security and debugging.</p><p>Clicking a room sends you to the partner platform. Those sites set their own cookies and have their own privacy policies. This site does not sell personal information.</p><p>Privacy questions: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`),
+  "/privacy": legal("Privacy policy", `<p>Last updated 4 October 2026.</p><p>NightCamFinds stores an age-notice flag in your browser’s localStorage after you confirm you are 18 or older. The server keeps standard logs — IP address, user agent, requested URL, and time — for up to 30 days for security and debugging. For affiliate analytics, the site also records aggregate Chaturbate redirect clicks by visitor country, category, and traffic label when a trusted CDN/proxy provides a country code. The site does not need to store a visitor’s name or exact location for this reporting.</p><p>Clicking a room sends you to the partner platform. Those sites set their own cookies and have their own privacy policies. This site does not sell personal information.</p><p>Privacy questions: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`),
   "/terms": legal("Terms", `<p>Last updated 4 October 2026.</p><p>You must be at least 18, or the age of majority where you live, whichever is higher. Do not use the site if adult material is illegal where you are.</p><p>NightCamFinds is a directory. Streams, chat, tips, and accounts belong to the partner platform. Do not scrape the site in a way that overloads it, attempt to access admin tools, or use the directory to find anyone under 18.</p><p>The directory is provided as is. NightCamFinds is not responsible for performer conduct or partner charges.</p>`),
   "/contact": legal("Contact", `<p>Operator email: <a href="mailto:${CONTACT}">${CONTACT}</a></p><p>Use this address for privacy requests, takedown notices, and affiliate questions. For a recording on a partner site, contact that platform. NightCamFinds does not host the video.</p>`)
 };
@@ -177,14 +283,34 @@ const server = http.createServer(async (req, res) => {
   if (pages[pathname]) return send(res, 200, pages[pathname], "text/html; charset=utf-8");
 
   if (pathname === "/visits") {
-    if (url.searchParams.get("key") !== STATS_KEY) return send(res, 404, "Not found", "text/plain");
-    const stats = readStats();
-    const rows = Object.entries(stats).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("");
-    return send(res, 200, `<!doctype html><html><head><meta charset="utf-8"><title>Visits</title></head><body><h1>NightCamFinds counts</h1><p>Page views are visits to this site. Clicks are people who opened a room.</p><table>${rows}</table></body></html>`, "text/html; charset=utf-8");
+    if (!STATS_KEY || url.searchParams.get("key") !== STATS_KEY) return send(res, 404, "Not found", "text/plain");
+    const stats = (await statsFromDb()) || readStats();
+    const countryRows = Object.entries(stats.countries || {})
+      .sort((a, b) => b[1] - a[1])
+      .map(([iso, count]) => `<tr><td>${NAMES[iso] || iso}</td><td>${iso}</td><td>${count}</td></tr>`).join("");
+    const categoryRows = Object.entries(stats.byCountryCategory || {})
+      .sort((a, b) => b[1] - a[1])
+      .map(([key, count]) => { const [iso, category] = key.split(":"); return `<tr><td>${NAMES[iso] || iso}</td><td>${category}</td><td>${count}</td></tr>`; }).join("");
+    const sourceRows = Object.entries(stats.byCountrySource || {})
+      .sort((a, b) => b[1] - a[1])
+      .map(([key, count]) => { const [iso, source] = key.split(":"); return `<tr><td>${NAMES[iso] || iso}</td><td>${source}</td><td>${count}</td></tr>`; }).join("");
+    return send(res, 200, `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>NightCamFinds Click Stats</title><style>body{font-family:system-ui,sans-serif;max-width:1100px;margin:40px auto;padding:0 16px}table{border-collapse:collapse;width:100%;margin:12px 0 32px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f4f4f4}.muted{color:#666}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.kpi{padding:16px;border:1px solid #ddd;border-radius:10px}.kpi strong{font-size:1.7rem;display:block}</style></head><body><h1>NightCamFinds Chaturbate click stats</h1><p class="muted">Aggregate redirect clicks only. Country comes from a trusted CDN/proxy header when available. No names or exact locations are stored.</p><div class="grid"><div class="kpi"><span>Total clicks</span><strong>${stats.total || 0}</strong></div><div class="kpi"><span>Countries seen</span><strong>${Object.keys(stats.countries || {}).filter(k => k !== "UNKNOWN").length}</strong></div><div class="kpi"><span>Last updated</span><strong>${stats.updatedAt ? new Date(stats.updatedAt).toLocaleString() : "Never"}</strong></div></div><h2>Clicks by visitor country</h2><table><thead><tr><th>Country</th><th>ISO</th><th>Clicks</th></tr></thead><tbody>${countryRows || '<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by country and category</h2><table><thead><tr><th>Country</th><th>Category</th><th>Clicks</th></tr></thead><tbody>${categoryRows || '<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by country and traffic source</h2><table><thead><tr><th>Country</th><th>Source</th><th>Clicks</th></tr></thead><tbody>${sourceRows || '<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><p><a href="/api/stats?key=${encodeURIComponent(STATS_KEY)}">JSON export</a> · <a href="/api/stats.csv?key=${encodeURIComponent(STATS_KEY)}">CSV export</a></p></body></html>`, "text/html; charset=utf-8");
   }
   if (pathname === "/api/stats") {
-    if (url.searchParams.get("key") !== STATS_KEY) return send(res, 404, "Not found", "text/plain");
-    return send(res, 200, JSON.stringify(readStats()), "application/json");
+    if (!STATS_KEY || url.searchParams.get("key") !== STATS_KEY) return send(res, 404, "Not found", "text/plain");
+    return send(res, 200, JSON.stringify((await statsFromDb()) || readStats()), "application/json");
+  }
+  if (pathname === "/api/stats.csv") {
+    if (!STATS_KEY || url.searchParams.get("key") !== STATS_KEY) return send(res, 404, "Not found", "text/plain");
+    const stats = (await statsFromDb()) || readStats();
+    const rows = [["country","category","source","clicks"]];
+    for (const [key, count] of Object.entries(stats.byCountryCategory || {})) {
+      const [country, category] = key.split(":");
+      rows.push([country, category, "all", count]);
+    }
+    const csv = rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=nightcamfinds-clicks.csv", "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" });
+    return res.end(csv);
   }
   if (pathname === "/api/rooms") {
     const feed = await rooms(req);
@@ -200,7 +326,7 @@ const server = http.createServer(async (req, res) => {
     if (q) list = list.filter((r) => `${r.displayName} ${r.roomSubject} ${r.country} ${r.location}`.toLowerCase().includes(q));
     list.sort((a, b) => sort === "newest" ? Number(b.isNew) - Number(a.isNew) || b.viewerCount - a.viewerCount : b.viewerCount - a.viewerCount);
     const countries = [...new Set(feed.rooms.map((r) => r.country).filter(Boolean))].sort();
-    return send(res, 200, JSON.stringify({ rooms: list.slice(0, 60), countries, notice: feed.notice, tier1: MARKETS.some(([, iso]) => iso === (req.headers["cf-ipcountry"] || "").toUpperCase()) }), "application/json");
+    return send(res, 200, JSON.stringify({ rooms: list.slice(0, 60), countries, notice: feed.notice, tier1: MARKETS.some(([, iso]) => iso === visitorCountry(req)) }), "application/json");
   }
 
   if (pathname === "/api/surprise") {
@@ -212,10 +338,13 @@ const server = http.createServer(async (req, res) => {
   if (pathname.startsWith("/go/")) {
     const id = decodeURIComponent(pathname.slice(4));
     const username = id.split(":").pop();
-    const src = (url.searchParams.get("src") || "card").replace(/[^a-z0-9-]/gi, "").slice(0, 40) || "card";
-    countClick(src);
-    const feed = await rooms(req);
-    const room = feed.rooms.find((r) => r.username === username);
+    const src = cleanLabel(url.searchParams.get("src"), "card", 40);
+    const category = cleanLabel(url.searchParams.get("cat"), "unknown", 20);
+    const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "direct", 30);
+    const campaign = cleanLabel(url.searchParams.get("utm_campaign") || url.searchParams.get("campaign"), "unknown", 40);
+    const country = visitorCountry(req);
+    await countClick({ src, country, category, source, campaign });
+    const room = cache.rooms.find((r) => r.username === username);
     const target = room?.href
       ? withTrack(room.href, src)
       : `https://chaturbate.com/in/?tour=${TOUR}&campaign=${CAMPAIGN}&track=${encodeURIComponent(src)}&room=${encodeURIComponent(username)}`;
@@ -231,16 +360,15 @@ const server = http.createServer(async (req, res) => {
   if (pathname.endsWith("/") || forced) {
     let html = fs.readFileSync(path.join(PUBLIC, "index.html"), "utf8")
       .replaceAll("__ORIGIN__", pageOrigin(req))
-      .replace("__COUNTRY__", (req.headers["cf-ipcountry"] || "").toUpperCase())
+      .replace("__COUNTRY__", visitorCountry(req))
       .replace("__FORCE__", forced ? forced[1] : "")
-      .replace("__LANG__", langFor(forced ? forced[1] : req.headers["cf-ipcountry"]));
+      .replace("__LANG__", langFor(forced ? forced[1] : visitorCountry(req)));
     if (forced) {
       html = html
         .replace("Discover live cams right now", `Live cams in ${forced[2]}`)
         .replace("NightCamFinds — Live cam directory", `Live cams in ${forced[2]} — NightCamFinds`)
         .replace("Explore live rooms, compare viewer counts, and open a room on Chaturbate. NightCamFinds does not stream video itself.", `Public rooms that list ${forced[2]} in the Chaturbate feed. Counts change quickly. Video plays on Chaturbate, not on NightCamFinds.`);
     }
-    countClick("page");
     return send(res, 200, html, "text/html; charset=utf-8");
   }
   if (!full.startsWith(PUBLIC) || !fs.existsSync(full) || fs.statSync(full).isDirectory()) {
@@ -250,4 +378,4 @@ const server = http.createServer(async (req, res) => {
   send(res, 200, fs.readFileSync(full), types[path.extname(full)] || "application/octet-stream");
 });
 
-server.listen(PORT, () => console.log("NightCamFinds listening on " + PORT));
+server.listen(PORT, () => console.log(`NightCamFinds listening on ${PORT}`));
