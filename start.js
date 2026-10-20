@@ -17,6 +17,91 @@ try {
   console.warn("Chaturbate postback database unavailable:", err.message);
 }
 
+const ADMIN_USER = process.env.ADMIN_USER || "owner";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const SESSION_SECRET = process.env.SESSION_SECRET || "";
+const STATS_KEY = process.env.STATS_KEY || "";
+const SESSION_TTL = 12 * 60 * 60 * 1000;
+const loginAttempts = new Map();
+
+function safeEqual(a, b) {
+  const aa = Buffer.from(String(a || ""));
+  const bb = Buffer.from(String(b || ""));
+  return aa.length === bb.length && crypto.timingSafeEqual(aa, bb);
+}
+
+function clientAddress(req) {
+  return String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown").split(",")[0].trim();
+}
+
+function parseCookies(req) {
+  const out = {};
+  for (const part of String(req.headers.cookie || "").split(";")) {
+    const i = part.indexOf("=");
+    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+
+function sessionCookie(username) {
+  const payload = `${username}.${Date.now()}.${crypto.randomBytes(18).toString("hex")}`;
+  const signature = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
+  return `${payload}.${signature}`;
+}
+
+function validSession(req) {
+  if (!SESSION_SECRET) return false;
+  const token = parseCookies(req).ncf_session;
+  if (!token) return false;
+  const parts = token.split(".");
+  if (parts.length !== 4) return false;
+  const [username, issuedAt, nonce, signature] = parts;
+  const payload = `${username}.${issuedAt}.${nonce}`;
+  const expected = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
+  const issued = Number(issuedAt);
+  if (!safeEqual(signature, expected) || username !== ADMIN_USER || !Number.isFinite(issued) || Date.now() - issued > SESSION_TTL || Date.now() < issued - 60000) return false;
+  return true;
+}
+
+function cookieHeader(value, maxAge = SESSION_TTL / 1000) {
+  return `ncf_session=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${Math.max(0, Math.floor(maxAge))}`;
+}
+
+function json(res, status, body, headers = {}) {
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers });
+  res.end(JSON.stringify(body));
+}
+
+function readBody(req) {
+  return new Promise((resolve) => {
+    let body = "";
+    req.on("data", chunk => { body += chunk; if (body.length > 10000) req.destroy(); });
+    req.on("end", () => resolve(body));
+    req.on("error", () => resolve(""));
+  });
+}
+
+async function handleAuth(req, res, incoming) {
+  if (incoming.pathname === "/api/auth/me") return json(res, 200, { authenticated: validSession(req), username: validSession(req) ? ADMIN_USER : null });
+  if (incoming.pathname === "/api/auth/logout") {
+    res.writeHead(204, { "Set-Cookie": cookieHeader("", 0), "Cache-Control": "no-store" });
+    return res.end();
+  }
+  if (incoming.pathname !== "/api/auth/login" || req.method !== "POST") return false;
+  const ip = clientAddress(req);
+  const now = Date.now();
+  const recent = (loginAttempts.get(ip) || []).filter(t => now - t < 15 * 60 * 1000);
+  if (recent.length >= 8) return json(res, 429, { error: "Too many login attempts. Try again later." }, { "Retry-After": "900" });
+  recent.push(now);
+  loginAttempts.set(ip, recent);
+  let data = {};
+  try { data = JSON.parse(await readBody(req) || "{}"); } catch { return json(res, 400, { error: "Invalid request." }); }
+  if (!ADMIN_PASSWORD || !SESSION_SECRET) return json(res, 503, { error: "Dashboard authentication is not configured on the server." });
+  if (!safeEqual(data.username || "", ADMIN_USER) || !safeEqual(data.password || "", ADMIN_PASSWORD)) return json(res, 401, { error: "Incorrect username or password." });
+  loginAttempts.delete(ip);
+  return json(res, 200, { authenticated: true, username: ADMIN_USER }, { "Set-Cookie": cookieHeader(sessionCookie(ADMIN_USER)) });
+}
+
 async function ensurePostbackTables() {
   if (!pool) return;
   await pool.query(`
@@ -121,6 +206,20 @@ async function saveConversion(params) {
 http.createServer = function wrappedCreateServer(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
+
+    const authHandled = await handleAuth(req, res, incoming);
+    if (authHandled !== false) return;
+
+    if (["/api/stats", "/api/stats.csv", "/visits"].includes(incoming.pathname)) {
+      if (!validSession(req)) {
+        if (incoming.pathname === "/visits") return res.end("Not found");
+        return json(res, 401, { error: "Authentication required." });
+      }
+      if (STATS_KEY) {
+        incoming.searchParams.set("key", STATS_KEY);
+        req.url = incoming.pathname + "?" + incoming.searchParams.toString();
+      }
+    }
 
     if (incoming.pathname === "/cb/postback") {
       await saveConversion(Object.fromEntries(incoming.searchParams.entries()));
