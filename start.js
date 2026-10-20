@@ -203,6 +203,88 @@ async function saveConversion(params) {
   }
 }
 
+async function revshareStats(incoming) {
+  if (!pool) return { persistent: false, clicks: 0, registrations: 0, purchases: 0, earnings: 0, tokenSpend: 0, bySource: [], byCampaign: [], byCountry: [], byTrack: [], recent: [] };
+  await ensurePostbackTables();
+  const range = incoming.searchParams.get("range") || "all";
+  const from = incoming.searchParams.get("from");
+  const to = incoming.searchParams.get("to");
+  const conditions = [];
+  const params = [];
+  if (from) { params.push(`${from}T00:00:00.000Z`); conditions.push(`received_at >= $${params.length}`); }
+  if (to) { params.push(`${to}T23:59:59.999Z`); conditions.push(`received_at <= $${params.length}`); }
+  if (!from && !to && range !== "all") {
+    const days = Math.max(1, Math.min(3650, Number(range) || 7));
+    params.push(days);
+    conditions.push(`received_at >= NOW() - ($${params.length}::int * INTERVAL '1 day')`);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const clickConditions = [];
+  const clickParams = [];
+  if (from) { clickParams.push(`${from}T00:00:00.000Z`); clickConditions.push(`clicked_at >= $${clickParams.length}`); }
+  if (to) { clickParams.push(`${to}T23:59:59.999Z`); clickConditions.push(`clicked_at <= $${clickParams.length}`); }
+  if (!from && !to && range !== "all") {
+    const days = Math.max(1, Math.min(3650, Number(range) || 7));
+    clickParams.push(days);
+    clickConditions.push(`clicked_at >= NOW() - ($${clickParams.length}::int * INTERVAL '1 day')`);
+  }
+  const clickWhere = clickConditions.length ? `WHERE ${clickConditions.join(" AND ")}` : "";
+  const revTypes = `conversion_type IN ('revshare_purchase','revshare_payout-adjustment')`;
+  const signupType = `conversion_type = 'revshare_signup-referral'`;
+  const purchaseType = `conversion_type = 'revshare_purchase'`;
+  const sumRows = await pool.query(`SELECT
+      COUNT(*) FILTER (WHERE ${signupType})::int AS registrations,
+      COUNT(*) FILTER (WHERE ${purchaseType})::int AS purchases,
+      COALESCE(SUM(payout) FILTER (WHERE ${revTypes}),0)::numeric AS earnings,
+      COALESCE(SUM(amount) FILTER (WHERE ${purchaseType}),0)::numeric AS token_spend
+    FROM cb_conversions ${where}`, params);
+  const clickRows = await pool.query(`SELECT COUNT(*)::int AS clicks FROM cb_clicks ${clickWhere}`, clickParams);
+  const grouped = async (field, source = "conversion") => {
+    if (source === "click") {
+      const rows = await pool.query(`SELECT COALESCE(NULLIF(${field},''),'unknown') AS name, COUNT(*)::int AS clicks FROM cb_clicks ${clickWhere} GROUP BY 1 ORDER BY clicks DESC`, clickParams);
+      return rows.rows.map(r => ({ name: r.name, clicks: r.clicks, registrations: 0, purchases: 0, earnings: 0 }));
+    }
+    const rows = await pool.query(`SELECT COALESCE(NULLIF(${field},''),'unknown') AS name,
+        COUNT(*) FILTER (WHERE c.conversion_type = 'revshare_signup-referral')::int AS registrations,
+        COUNT(*) FILTER (WHERE c.conversion_type = 'revshare_purchase')::int AS purchases,
+        COALESCE(SUM(c.payout) FILTER (WHERE c.conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS earnings
+      FROM cb_conversions c ${where} GROUP BY 1 ORDER BY earnings DESC, purchases DESC`, params);
+    return rows.rows.map(r => ({ name: r.name, clicks: 0, registrations: r.registrations, purchases: r.purchases, earnings: Number(r.earnings) || 0 }));
+  };
+  const sourceClicks = await grouped("source", "click");
+  const sourceConv = await grouped("COALESCE(NULLIF(source,''),'direct')", "conversion");
+  const campaignClicks = await grouped("campaign", "click");
+  const campaignConv = await grouped("COALESCE(NULLIF(source,''),'direct')", "conversion");
+  const countryClicks = await grouped("country", "click");
+  const countryConv = await grouped("COALESCE(NULLIF(country,''),'UNKNOWN')", "conversion");
+  const trackClicks = await grouped("placement", "click");
+  const trackConv = await grouped("COALESCE(NULLIF(track,''),'unknown')", "conversion");
+  const merge = (clickRows, convRows) => {
+    const map = new Map();
+    for (const row of clickRows) map.set(row.name, { ...row });
+    for (const row of convRows) {
+      const cur = map.get(row.name) || { name: row.name, clicks: 0, registrations: 0, purchases: 0, earnings: 0 };
+      cur.registrations += row.registrations; cur.purchases += row.purchases; cur.earnings += row.earnings; map.set(row.name, cur);
+    }
+    return [...map.values()].sort((a,b) => b.earnings - a.earnings || b.clicks - a.clicks);
+  };
+  const recent = await pool.query(`SELECT received_at, conversion_type, payout, amount, currency, country, track, source, click_id FROM cb_conversions ${where} ORDER BY received_at DESC LIMIT 100`, params);
+  return {
+    persistent: true,
+    range,
+    clicks: Number(clickRows.rows[0]?.clicks || 0),
+    registrations: Number(sumRows.rows[0]?.registrations || 0),
+    purchases: Number(sumRows.rows[0]?.purchases || 0),
+    earnings: Number(sumRows.rows[0]?.earnings || 0),
+    tokenSpend: Number(sumRows.rows[0]?.token_spend || 0),
+    bySource: merge(sourceClicks, sourceConv),
+    byCampaign: merge(campaignClicks, campaignConv),
+    byCountry: merge(countryClicks, countryConv),
+    byTrack: merge(trackClicks, trackConv),
+    recent: recent.rows
+  };
+}
+
 http.createServer = function wrappedCreateServer(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
@@ -210,14 +292,23 @@ http.createServer = function wrappedCreateServer(handler) {
     const authHandled = await handleAuth(req, res, incoming);
     if (authHandled !== false) return;
 
-    if (["/api/stats", "/api/stats.csv", "/visits"].includes(incoming.pathname)) {
+    if (["/api/stats", "/api/stats.csv", "/api/revshare", "/visits"].includes(incoming.pathname)) {
       if (!validSession(req)) {
         if (incoming.pathname === "/visits") return res.end("Not found");
         return json(res, 401, { error: "Authentication required." });
       }
-      if (STATS_KEY) {
+      if (STATS_KEY && ["/api/stats", "/api/stats.csv", "/visits"].includes(incoming.pathname)) {
         incoming.searchParams.set("key", STATS_KEY);
         req.url = incoming.pathname + "?" + incoming.searchParams.toString();
+      }
+    }
+
+    if (incoming.pathname === "/api/revshare") {
+      try {
+        return json(res, 200, await revshareStats(incoming));
+      } catch (err) {
+        console.error("RevShare stats failed:", err.message);
+        return json(res, 500, { error: "Could not load RevShare analytics." });
       }
     }
 
