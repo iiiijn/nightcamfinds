@@ -14,15 +14,15 @@ document.querySelector("#enter")?.addEventListener("click", () => {
 });
 
 const PAGES = {
-  all: ["Independent discovery", "Discover live cams right now", "Explore live rooms, compare viewer counts, and open a broadcaster on the partner site. NightCamFinds does not stream video itself.", "NightCamFinds — Live cam directory"],
+  all: ["Independent discovery", "Discover live cams right now", "Explore live rooms, compare viewer counts, and open a room on Chaturbate. NightCamFinds does not stream video itself.", "NightCamFinds — Live cam directory"],
   live: ["Live now", "Rooms that are live now", "Currently online rooms from partner platforms. Counts and subjects come from the feed and can change every minute.", "Live cams now — NightCamFinds"],
-  female: ["Female", "Female live cams", "Rooms tagged female in the partner feed. Open a card to continue on the broadcaster’s platform.", "Female live cams — NightCamFinds"],
-  male: ["Male", "Male live cams", "Rooms tagged male in the partner feed. Use search or country to narrow the list.", "Male live cams — NightCamFinds"],
-  trans: ["Trans", "Trans live cams", "Rooms tagged trans in the partner feed. NightCamFinds only lists public rooms supplied by partners.", "Trans live cams — NightCamFinds"],
-  couples: ["Couples", "Couple live cams", "Rooms tagged as couples. Availability depends on who is online.", "Couple live cams — NightCamFinds"],
-  hd: ["HD", "HD live cams", "Rooms the feed marks as HD. Quality still depends on the broadcaster’s connection.", "HD live cams — NightCamFinds"],
-  new: ["New", "New broadcasters", "Rooms marked new in the feed. Newer rooms often have fewer viewers.", "New live cams — NightCamFinds"],
-  popular: ["Popular", "Most watched rooms", "Sorted by viewer count from the current feed.", "Popular live cams — NightCamFinds"],
+  female: ["Female", "Find live female cams", "Browse public female rooms that are live now. Filter by country or viewer count, then continue to the room on Chaturbate.", "Female live cams — NightCamFinds"],
+  male: ["Male", "Find live male cams", "Browse public male rooms that are live now. Filter by country or viewer count, then continue to the room on Chaturbate.", "Male live cams — NightCamFinds"],
+  trans: ["Trans", "Find live trans cams", "Browse public trans rooms that are live now. Filter by country or viewer count, then continue to the room on Chaturbate.", "Trans live cams — NightCamFinds"],
+  couples: ["Couples", "Find live couples cams", "Browse public couples rooms that are live now. Filter by country or viewer count, then continue to the room on Chaturbate.", "Couples live cams — NightCamFinds"],
+  hd: ["HD", "Find HD live cams", "Browse rooms the feed marks as HD. Quality can change with the broadcaster's connection.", "HD live cams — NightCamFinds"],
+  new: ["New", "Find new live broadcasters", "Browse rooms marked new in the live feed. Availability changes as broadcasters come online and offline.", "New live cams — NightCamFinds"],
+  popular: ["Popular", "Find the most watched live rooms", "Browse rooms sorted by current viewer count and continue to the broadcaster's room on Chaturbate.", "Popular live cams — NightCamFinds"],
   countries: ["Countries", "Live cams by country", "Pick a country to filter rooms that publish a country code. Not every room includes one.", "Live cams by country — NightCamFinds"]
 };
 
@@ -49,6 +49,25 @@ const queryParams = new URLSearchParams(location.search);
 const trafficSource = (queryParams.get("utm_source") || queryParams.get("source") || "direct").slice(0, 30);
 const trafficCampaign = (queryParams.get("utm_campaign") || queryParams.get("campaign") || "organic").slice(0, 40);
 const trafficMedium = (queryParams.get("utm_medium") || "").slice(0, 30);
+const trafficContent = (queryParams.get("utm_content") || "").slice(0, 40);
+
+// Paid-traffic landing copy. The URL stays indexable while the campaign label
+// changes the on-page message without changing the canonical URL.
+const paidCampaign = /^(paid|cpc|ppc|ad|ads)$/i.test(trafficMedium);
+if (paidCampaign && category !== "all") {
+  const market = forced || hinted;
+  const marketName = NAMES[market] || "your market";
+  const campaignTitle = {
+    female: `Live female cams in ${marketName}`,
+    male: `Live male cams in ${marketName}`,
+    trans: `Live trans cams in ${marketName}`,
+    couples: `Live couples cams in ${marketName}`
+  }[category];
+  if (campaignTitle) {
+    document.querySelector("#page-title").textContent = campaignTitle;
+    document.querySelector("#page-intro").textContent = `See who is live now, compare viewer counts, and choose a public room. Click a room to continue on Chaturbate.`;
+  }
+}
 
 const quick = document.querySelector("#quick");
 for (const iso of QUICK) {
@@ -77,6 +96,7 @@ function trackingQuery(extra = {}) {
     campaign: trafficCampaign
   });
   if (trafficMedium) params.set("utm_medium", trafficMedium);
+  if (trafficContent) params.set("utm_content", trafficContent);
   return params.toString();
 }
 
