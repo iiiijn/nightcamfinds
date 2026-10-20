@@ -17,8 +17,8 @@ try {
   console.warn("Chaturbate postback database unavailable:", err.message);
 }
 
-const ADMIN_USER = process.env.ADMIN_USER || "owner";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const ADMIN_USER = process.env.ADMIN_USER || "admin";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
 const STATS_KEY = process.env.STATS_KEY || "";
 const SESSION_TTL = 12 * 60 * 60 * 1000;
