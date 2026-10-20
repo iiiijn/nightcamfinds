@@ -1,83 +1,23 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>NightCamFinds Analytics</title>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow,noarchive"><title>NightCamFinds Analytics</title>
   <link rel="stylesheet" href="/styles.css">
   <style>
-    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    .dash{width:min(1200px,calc(100% - 28px));margin:auto;padding:24px 0 60px}
-    .top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px}
-    .top h1{margin:0}.top p{margin:4px 0;color:var(--muted)}
-    .lock{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0}
-    .stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}.stat small{color:var(--muted)}.stat strong{display:block;font-size:30px;margin-top:5px}
-    .cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}
-    .panelx{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;overflow:auto}.panelx h2{margin-top:0}
-    table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-size:13px}
-    .bar{height:9px;background:#2a202c;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
-    .error{color:#ff9bb8;margin-top:10px}.hint{color:var(--muted);font-size:14px}.hidden{display:none}
-    @media(max-width:800px){.cols{grid-template-columns:1fr}}
+    body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.dash{width:min(1200px,calc(100% - 28px));margin:auto;padding:24px 0 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px}.top h1{margin:0}.top p{margin:4px 0;color:var(--muted)}.lock,.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0}.stat{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}.stat small{color:var(--muted)}.stat strong{display:block;font-size:30px;margin-top:5px}.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:14px}.panelx{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;overflow:auto}.panelx h2{margin-top:0}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--muted);font-size:13px}.bar{height:9px;background:#2a202c;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}.error{color:#ff9bb8;margin-top:10px}.hint{color:var(--muted);font-size:14px}.hidden{display:none}.filters{margin:18px 0}.filters input,.filters select{background:var(--panel);border:1px solid var(--line);color:inherit;border-radius:10px;padding:10px}.filters button{padding:10px 14px;border-radius:10px}@media(max-width:800px){.cols{grid-template-columns:1fr}}
   </style>
 </head>
-<body>
-<main class="dash">
-  <div class="top">
-    <div><div class="eyebrow">Private analytics</div><h1>NightCamFinds Dashboard</h1><p>Traffic, room clicks and campaign performance.</p></div>
-    <div class="lock"><input id="key" type="password" placeholder="Stats key" autocomplete="current-password"><button id="load">Unlock dashboard</button><button id="logout" class="ghost">Clear</button></div>
-  </div>
-  <p id="status" class="hint">Your dashboard key is kept only in this browser session.</p>
-  <div id="app" class="hidden">
-    <div class="cards">
-      <div class="stat"><small>Total room clicks</small><strong id="total">0</strong></div>
-      <div class="stat"><small>Countries</small><strong id="countries">0</strong></div>
-      <div class="stat"><small>Top country</small><strong id="topCountry">-</strong></div>
-      <div class="stat"><small>Last click</small><strong id="lastClick">-</strong></div>
-    </div>
-    <div class="cols">
-      <section class="panelx"><h2>Clicks by country</h2><div id="countryTable"></div></section>
-      <section class="panelx"><h2>Clicks by country + category</h2><div id="categoryTable"></div></section>
-      <section class="panelx"><h2>Clicks by traffic source</h2><div id="sourceTable"></div></section>
-      <section class="panelx"><h2>Clicks by campaign</h2><div id="campaignTable"></div></section>
-    </div>
-  </div>
-</main>
-<script>
-const $=id=>document.getElementById(id);
-const saved=sessionStorage.getItem('nightcam_stats_key');
-if(saved) $('key').value=saved;
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function rows(obj){return Object.entries(obj||{}).sort((a,b)=>b[1]-a[1]);}
-function table(items,label){
-  if(!items.length)return '<p class="hint">No data yet.</p>';
-  const max=Math.max(...items.map(x=>x[1]),1);
-  return '<table><thead><tr><th>'+esc(label)+'</th><th>Clicks</th><th>Share</th></tr></thead><tbody>'+items.map(([k,v])=>'<tr><td>'+esc(k)+'</td><td>'+v+'</td><td style="min-width:150px"><div class="bar"><i style="width:'+Math.round(v/max*100)+'%"></i></div></td></tr>').join('')+'</tbody></table>';
-}
-async function load(){
-  const key=$('key').value.trim(); if(!key){$('status').textContent='Enter your private stats key.';return;}
-  $('status').textContent='Loading analytics…';
-  try{
-    const r=await fetch('/api/stats?key='+encodeURIComponent(key),{cache:'no-store',headers:{Accept:'application/json'}});
-    const text=await r.text();
-    if(!r.ok) throw new Error('Invalid key or unavailable analytics ('+r.status+')');
-    let d; try{d=JSON.parse(text);}catch{throw new Error('Analytics server returned an invalid response. Please try again.');}
-    sessionStorage.setItem('nightcam_stats_key',key); $('app').classList.remove('hidden');
-    $('total').textContent=d.total||0;
-    const countries=rows(d.countries); $('countries').textContent=countries.length; $('topCountry').textContent=countries[0]?.[0]||'-';
-    $('lastClick').textContent=d.updatedAt?new Date(d.updatedAt).toLocaleString():'-';
-    $('countryTable').innerHTML=table(countries,'Country');
-    $('categoryTable').innerHTML=table(rows(d.byCountryCategory),'Country: category');
-    $('sourceTable').innerHTML=table(rows(d.byCountrySource),'Country: source');
-    $('campaignTable').innerHTML=table(rows(d.byCampaign||{}),'Campaign');
-    $('status').textContent='Analytics loaded. Refresh to update.';
-  }catch(e){$('app').classList.add('hidden');$('status').innerHTML='<span class="error">'+esc(e.message)+'</span>';}
-}
-$('load').onclick=load;
-$('key').addEventListener('keydown',e=>{if(e.key==='Enter')load()});
-$('logout').onclick=()=>{sessionStorage.removeItem('nightcam_stats_key');$('key').value='';$('app').classList.add('hidden');$('status').textContent='Dashboard locked.'};
-if(saved) load();
-</script>
-</body>
-</html>
+<body><main class="dash">
+<div class="top"><div><div class="eyebrow">Private analytics</div><h1>NightCamFinds Dashboard</h1><p>Traffic, room clicks and campaign performance.</p></div><div class="lock"><input id="key" type="password" placeholder="Stats key" autocomplete="current-password"><button id="load">Unlock dashboard</button><button id="logout" class="ghost">Clear</button></div></div>
+<p id="status" class="hint">Your dashboard key is kept only in this browser session.</p>
+<div id="app" class="hidden">
+<div class="filters"><select id="range"><option value="today">Today</option><option value="yesterday">Yesterday</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="all">All time</option></select><input id="from" type="date"><input id="to" type="date"><button id="apply">Apply filters</button><button id="export">Export CSV</button></div>
+<div class="cards"><div class="stat"><small>Room clicks</small><strong id="total">0</strong></div><div class="stat"><small>Countries</small><strong id="countries">0</strong></div><div class="stat"><small>Top country</small><strong id="topCountry">-</strong></div><div class="stat"><small>Last click</small><strong id="lastClick">-</strong></div></div>
+<div class="cols"><section class="panelx"><h2>Clicks by country</h2><div id="countryTable"></div></section><section class="panelx"><h2>Clicks by country + category</h2><div id="categoryTable"></div></section><section class="panelx"><h2>Clicks by traffic source</h2><div id="sourceTable"></div></section><section class="panelx"><h2>Clicks by campaign</h2><div id="campaignTable"></div></section></div></div>
+</main><script>
+const $=id=>document.getElementById(id);let lastData=null;const saved=sessionStorage.getItem('nightcam_stats_key');if(saved)$('key').value=saved;
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}function rows(obj){return Object.entries(obj||{}).sort((a,b)=>b[1]-a[1]);}function table(items,label){if(!items.length)return '<p class="hint">No data for this period.</p>';const max=Math.max(...items.map(x=>x[1]),1);return '<table><thead><tr><th>'+esc(label)+'</th><th>Clicks</th><th>Share</th></tr></thead><tbody>'+items.map(([k,v])=>'<tr><td>'+esc(k||'unknown')+'</td><td>'+v+'</td><td style="min-width:150px"><div class="bar"><i style="width:'+Math.max(2,Math.round(v/max*100))+'%"></i></div></td></tr>').join('')+'</tbody></table>';}
+function params(){const p=new URLSearchParams();const r=$('range').value;if(r!=='all')p.set('range',r);if($('from').value)p.set('from',$('from').value);if($('to').value)p.set('to',$('to').value);return p;}
+async function load(){const key=$('key').value.trim();if(!key){$('status').textContent='Enter your private stats key.';return}$('status').textContent='Loading analytics…';try{const q=params();q.set('key',key);const r=await fetch('/api/stats?'+q.toString(),{cache:'no-store',headers:{Accept:'application/json'}});const text=await r.text();let d;try{d=JSON.parse(text)}catch{throw new Error('Analytics server returned an invalid response ('+r.status+').')}if(!r.ok||d.error)throw new Error(d.error||('Analytics request failed ('+r.status+')'));lastData=d;sessionStorage.setItem('nightcam_stats_key',key);$('app').classList.remove('hidden');const countries=rows(d.countries||d.byCountry);$('total').textContent=d.total||0;$('countries').textContent=countries.length;$('topCountry').textContent=d.topCountry||countries[0]?.[0]||'-';$('lastClick').textContent=d.lastClick||d.updatedAt?new Date(d.lastClick||d.updatedAt).toLocaleString():'-';$('countryTable').innerHTML=table(countries,'Country');$('categoryTable').innerHTML=table(rows(d.byCountryCategory||d.byCategory),'Country: category');$('sourceTable').innerHTML=table(rows(d.byCountrySource||d.bySource),'Country: source');$('campaignTable').innerHTML=table(rows(d.byCampaign),'Campaign');$('status').textContent='Analytics loaded. Refresh or change the filter to update.';}catch(e){$('app').classList.add('hidden');$('status').innerHTML='<span class="error">'+esc(e.message)+'</span>';}}
+$('load').onclick=load;$('apply').onclick=load;$('key').onkeydown=e=>{if(e.key==='Enter')load()};$('logout').onclick=()=>{sessionStorage.removeItem('nightcam_stats_key');$('key').value='';$('app').classList.add('hidden');$('status').textContent='Dashboard locked.'};$('export').onclick=()=>{if(!lastData)return;let csv='Group,Name,Clicks\n';[['Country',lastData.countries||lastData.byCountry],['Category',lastData.byCountryCategory||lastData.byCategory],['Source',lastData.byCountrySource||lastData.bySource],['Campaign',lastData.byCampaign]].forEach(([g,o])=>Object.entries(o||{}).forEach(([n,v])=>csv+='"'+g+'","'+String(n).replaceAll('"','""')+'",'+v+'\n'));const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='nightcamfinds-analytics.csv';a.click()};if(saved)load();
+</script></body></html>
