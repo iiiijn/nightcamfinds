@@ -11,3 +11,9 @@ services:
         value: bunnybelle188@gmail.com
       - key: STATS_KEY
         generateValue: true
+      - key: ADMIN_USER
+        value: admin
+      - key: DASHBOARD_PASSWORD
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
