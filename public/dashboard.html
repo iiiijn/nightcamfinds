@@ -59,16 +59,17 @@ async function load(){
   const key=$('key').value.trim(); if(!key){$('status').textContent='Enter your private stats key.';return;}
   $('status').textContent='Loading analytics…';
   try{
-    const r=await fetch('/visits?key='+encodeURIComponent(key),{cache:'no-store'});
+    const r=await fetch('/api/stats?key='+encodeURIComponent(key),{cache:'no-store',headers:{Accept:'application/json'}});
+    const text=await r.text();
     if(!r.ok) throw new Error('Invalid key or unavailable analytics ('+r.status+')');
-    const d=await r.json();
+    let d; try{d=JSON.parse(text);}catch{throw new Error('Analytics server returned an invalid response. Please try again.');}
     sessionStorage.setItem('nightcam_stats_key',key); $('app').classList.remove('hidden');
     $('total').textContent=d.total||0;
     const countries=rows(d.countries); $('countries').textContent=countries.length; $('topCountry').textContent=countries[0]?.[0]||'-';
     $('lastClick').textContent=d.updatedAt?new Date(d.updatedAt).toLocaleString():'-';
     $('countryTable').innerHTML=table(countries,'Country');
     $('categoryTable').innerHTML=table(rows(d.byCountryCategory),'Country: category');
-    $('sourceTable').innerHTML=table(rows(d.bySource||d.byCountrySource),'Source');
+    $('sourceTable').innerHTML=table(rows(d.byCountrySource),'Country: source');
     $('campaignTable').innerHTML=table(rows(d.byCampaign||{}),'Campaign');
     $('status').textContent='Analytics loaded. Refresh to update.';
   }catch(e){$('app').classList.add('hidden');$('status').innerHTML='<span class="error">'+esc(e.message)+'</span>';}
