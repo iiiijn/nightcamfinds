@@ -13,7 +13,7 @@ services:
         generateValue: true
       - key: ADMIN_USER
         value: admin
-      - key: DASHBOARD_PASSWORD
+      - key: ADMIN_PASSWORD
         sync: false
       - key: SESSION_SECRET
         generateValue: true
