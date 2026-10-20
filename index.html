@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NightCamFinds — Live cam directory</title>
-  <meta name="description" content="Browse live rooms from partner platforms, filter by country, and open a broadcaster on the partner site. NightCamFinds does not stream video.">
+  <meta name="description" content="Discover live 18+ cam rooms, filter by country, and continue to Chaturbate to watch and chat.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="__ORIGIN__/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <meta property="og:title" content="NightCamFinds — Live cam directory">
-  <meta property="og:description" content="Independent 18+ directory of live rooms. Browse, filter, and open a room on the partner site.">
+  <meta property="og:title" content="NightCamFinds — Live cams now">
+  <meta property="og:description" content="Find live rooms by category and country. Continue to Chaturbate to watch and chat.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="__ORIGIN__/">
   <meta property="og:image" content="__ORIGIN__/og.svg">
@@ -30,6 +30,7 @@
       </div>
     </div>
   </div>
+
   <div class="wrap">
     <header>
       <a class="logo" href="/">NightCam<span>Finds</span></a>
@@ -45,28 +46,49 @@
         <a href="/countries/">Countries</a>
       </nav>
     </header>
+
     <section class="hero">
       <p class="eyebrow" id="kicker">Independent discovery</p>
-      <h1 id="page-title">Discover live cams right now</h1>
-      <p class="muted" id="page-intro">Explore live rooms, compare viewer counts, and open a broadcaster on the partner site. NightCamFinds does not stream video itself.</p>
+      <h1 id="page-title">Find live cams worth clicking</h1>
+      <p class="muted" id="page-intro">Browse live rooms by category and country. Open a room on Chaturbate to watch and chat.</p>
+      <div class="hero-actions actions">
+        <a class="btn" id="hero-cta" href="#rooms">Browse live rooms</a>
+        <span class="intent-note">18+ · Live rooms · Updated frequently</span>
+      </div>
     </section>
-    <div class="quick" id="quick" aria-label="Tier 1 countries"></div>
-      <input id="q" placeholder="Search name or country" aria-label="Search">
+
+    <section class="tier1-box" id="tier1-box" aria-label="Popular countries">
+      <div>
+        <p class="eyebrow">Popular Tier 1 markets</p>
+        <strong>Start with the countries that matter most for buyer quality.</strong>
+        <p class="muted">Use a country filter when testing paid traffic so you can compare buyers, not just cheap clicks.</p>
+      </div>
+      <div class="quick" id="quick"></div>
+    </section>
+
+    <section class="controls" id="rooms" aria-label="Room filters">
+      <input id="q" placeholder="Search name or subject" aria-label="Search">
       <select id="sort" aria-label="Sort">
         <option value="recommended">Recommended</option>
         <option value="viewers">Most viewers</option>
         <option value="newest">Newest</option>
       </select>
       <select id="country" aria-label="Country"><option value="">All countries</option></select>
-    </div>
+    </section>
+
     <div id="notice" class="notice" hidden>Live rooms are temporarily unavailable. Please check again shortly.</div>
     <p id="result-count" class="result-count" aria-live="polite"></p>
     <div id="grid" class="grid" aria-live="polite"></div>
+
     <section class="affiliate-links">
-      <h2>Chaturbate</h2>
-      <p class="muted">Sponsored link. NightCamFinds may earn a commission if you sign up or spend on Chaturbate. The price you pay does not change. Video plays on Chaturbate, not here.</p>
+      <div>
+        <p class="eyebrow">Continue to Chaturbate</p>
+        <h2>Find a room, then watch on the partner site</h2>
+        <p class="muted">NightCamFinds does not host video. Clicking a tracked room sends you to Chaturbate. If you register and later purchase tokens as a new referred user, NightCamFinds may earn affiliate commission.</p>
+      </div>
       <div class="actions" id="partner-actions"></div>
     </section>
+
     <footer>
       <span>18+ independent directory. Video plays on the partner site, not here.</span>
       <a href="/about">About</a>
