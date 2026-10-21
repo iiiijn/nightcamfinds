@@ -108,7 +108,7 @@ async function ensurePostbackTables() {
     CREATE TABLE IF NOT EXISTS cb_clicks (
       click_id VARCHAR(128) PRIMARY KEY,
       clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      country VARCHAR(2) NOT NULL,
+      country VARCHAR(16) NOT NULL,
       category VARCHAR(40) NOT NULL,
       source VARCHAR(40) NOT NULL,
       campaign VARCHAR(80) NOT NULL,
@@ -125,7 +125,7 @@ async function ensurePostbackTables() {
       payout NUMERIC(18,6) DEFAULT 0,
       currency VARCHAR(16),
       amount NUMERIC(18,6),
-      country VARCHAR(2),
+      country VARCHAR(16),
       track VARCHAR(255),
       source VARCHAR(255),
       campaign_id VARCHAR(255),
@@ -136,6 +136,8 @@ async function ensurePostbackTables() {
       UNIQUE(transaction_id)
     )
   `);
+  await pool.query("ALTER TABLE cb_clicks ALTER COLUMN country TYPE VARCHAR(16)");
+  await pool.query("ALTER TABLE cb_conversions ALTER COLUMN country TYPE VARCHAR(16)");
   await pool.query("CREATE INDEX IF NOT EXISTS cb_clicks_clicked_at_idx ON cb_clicks(clicked_at)");
   await pool.query("CREATE INDEX IF NOT EXISTS cb_conversions_click_id_idx ON cb_conversions(click_id)");
 }
@@ -171,7 +173,7 @@ async function saveClick(click) {
 }
 
 async function saveConversion(params) {
-  if (!pool) return;
+  if (!pool) throw new Error("Database unavailable");
   try {
     await ensurePostbackTables();
     const payout = Number.parseFloat(params.payout);
@@ -200,6 +202,7 @@ async function saveConversion(params) {
     );
   } catch (err) {
     console.error("Chaturbate postback save failed:", err.message);
+    throw err;
   }
 }
 
@@ -239,26 +242,35 @@ async function revshareStats(incoming) {
       COALESCE(SUM(amount) FILTER (WHERE ${purchaseType}),0)::numeric AS token_spend
     FROM cb_conversions ${where}`, params);
   const clickRows = await pool.query(`SELECT COUNT(*)::int AS clicks FROM cb_clicks ${clickWhere}`, clickParams);
-  const grouped = async (field, source = "conversion") => {
+  const grouped = async (dimension, source = "conversion") => {
+    const clickFields = { source: "source", campaign: "campaign", country: "country", track: "placement" };
+    const conversionFields = {
+      source: "COALESCE(NULLIF(cc.source,''), NULLIF(c.source,''), 'direct')",
+      campaign: "COALESCE(NULLIF(cc.campaign,''), NULLIF(c.campaign_id,''), 'unknown')",
+      country: "COALESCE(NULLIF(cc.country,''), NULLIF(c.country,''), 'UNKNOWN')",
+      track: "COALESCE(NULLIF(cc.placement,''), NULLIF(c.track,''), 'unknown')"
+    };
     if (source === "click") {
+      const field = clickFields[dimension];
       const rows = await pool.query(`SELECT COALESCE(NULLIF(${field},''),'unknown') AS name, COUNT(*)::int AS clicks FROM cb_clicks ${clickWhere} GROUP BY 1 ORDER BY clicks DESC`, clickParams);
       return rows.rows.map(r => ({ name: r.name, clicks: r.clicks, registrations: 0, purchases: 0, earnings: 0 }));
     }
-    const rows = await pool.query(`SELECT COALESCE(NULLIF(${field},''),'unknown') AS name,
+    const field = conversionFields[dimension];
+    const rows = await pool.query(`SELECT ${field} AS name,
         COUNT(*) FILTER (WHERE c.conversion_type = 'revshare_signup-referral')::int AS registrations,
         COUNT(*) FILTER (WHERE c.conversion_type = 'revshare_purchase')::int AS purchases,
         COALESCE(SUM(c.payout) FILTER (WHERE c.conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS earnings
-      FROM cb_conversions c ${where} GROUP BY 1 ORDER BY earnings DESC, purchases DESC`, params);
+      FROM cb_conversions c LEFT JOIN cb_clicks cc ON cc.click_id = c.click_id ${where} GROUP BY 1 ORDER BY earnings DESC, purchases DESC`, params);
     return rows.rows.map(r => ({ name: r.name, clicks: 0, registrations: r.registrations, purchases: r.purchases, earnings: Number(r.earnings) || 0 }));
   };
   const sourceClicks = await grouped("source", "click");
-  const sourceConv = await grouped("COALESCE(NULLIF(source,''),'direct')", "conversion");
+  const sourceConv = await grouped("source", "conversion");
   const campaignClicks = await grouped("campaign", "click");
-  const campaignConv = await grouped("COALESCE(NULLIF(source,''),'direct')", "conversion");
+  const campaignConv = await grouped("campaign", "conversion");
   const countryClicks = await grouped("country", "click");
-  const countryConv = await grouped("COALESCE(NULLIF(country,''),'UNKNOWN')", "conversion");
-  const trackClicks = await grouped("placement", "click");
-  const trackConv = await grouped("COALESCE(NULLIF(track,''),'unknown')", "conversion");
+  const countryConv = await grouped("country", "conversion");
+  const trackClicks = await grouped("track", "click");
+  const trackConv = await grouped("track", "conversion");
   const merge = (clickRows, convRows) => {
     const map = new Map();
     for (const row of clickRows) map.set(row.name, { ...row });
@@ -313,9 +325,13 @@ http.createServer = function wrappedCreateServer(handler) {
     }
 
     if (incoming.pathname === "/cb/postback") {
-      await saveConversion(Object.fromEntries(incoming.searchParams.entries()));
-      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
-      return res.end("OK");
+      try {
+        await saveConversion(Object.fromEntries(incoming.searchParams.entries()));
+        res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
+        return res.end("OK");
+      } catch (_) {
+        return json(res, 503, { error: "Postback storage unavailable." });
+      }
     }
 
     let click = null;
