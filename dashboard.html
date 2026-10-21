@@ -6,28 +6,43 @@
 <meta name="robots" content="noindex,nofollow,noarchive">
 <title>NightCamFinds Analytics</title>
 <style>
-body{font-family:Inter,system-ui,sans-serif;margin:0;background:#0b1020;color:#f5f7ff}main{max-width:1100px;margin:0 auto;padding:32px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}.card{background:#151b2e;border:1px solid #27304a;border-radius:14px;padding:20px}.muted{color:#9aa5bf;font-size:13px}.value{font-size:30px;font-weight:700;margin-top:8px}.section{margin-top:28px}table{width:100%;border-collapse:collapse}.card table td,.card table th{padding:10px;border-bottom:1px solid #27304a;text-align:left}.error{color:#ff9b9b}.ok{color:#8ee6b1}button{background:#fff;color:#111;border:0;border-radius:8px;padding:9px 14px;cursor:pointer}.linkbox{display:grid;gap:10px}.linkrow{display:grid;grid-template-columns:130px 1fr auto;gap:10px;align-items:center}.linkrow input{width:100%;box-sizing:border-box;background:#0d1426;color:#f5f7ff;border:1px solid #27304a;border-radius:8px;padding:10px}.linkrow button{white-space:nowrap}@media(max-width:700px){.linkrow{grid-template-columns:1fr}.linkrow input{width:100%}}
+body{font-family:Inter,system-ui,sans-serif;margin:0;background:#0b1020;color:#f5f7ff}main{max-width:1100px;margin:0 auto;padding:32px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}.card{background:#151b2e;border:1px solid #27304a;border-radius:14px;padding:20px}.muted{color:#9aa5bf;font-size:13px}.value{font-size:30px;font-weight:700;margin-top:8px}.section{margin-top:28px}table{width:100%;border-collapse:collapse}.card table td,.card table th{padding:10px;border-bottom:1px solid #27304a;text-align:left}.error{color:#ff9b9b}.ok{color:#8ee6b1}button{background:#fff;color:#111;border:0;border-radius:8px;padding:9px 14px;cursor:pointer}.linkbox{display:grid;gap:10px}.linkrow{display:grid;grid-template-columns:230px 1fr auto;gap:10px;align-items:center}.linkrow input{width:100%;box-sizing:border-box;background:#0d1426;color:#f5f7ff;border:1px solid #27304a;border-radius:8px;padding:10px}.linkrow button{white-space:nowrap}@media(max-width:700px){.linkrow{grid-template-columns:1fr}.linkrow input{width:100%}}
 </style></head>
 <body><main>
 <header><h1>NightCamFinds Analytics</h1><p class="muted">Private performance dashboard. Live rooms are intentionally not shown here.</p><button onclick="loadStats()">Refresh</button><span id="status" class="muted"></span></header>
 <section class="grid section" id="cards"></section>
-<section class="section grid"><div class="card"><h2>Platforms</h2><div id="platforms"></div></div><div class="card"><h2>Countries</h2><div id="countries"></div></div><div class="card"><h2>Traffic sources</h2><div id="sources"></div></div></section>
-<section class="card section"><h2>Tracking links</h2><p class="muted">Use the matching link when promoting NightCamFinds. The source is remembered for up to 30 days and is carried through internal navigation before the visitor clicks an affiliate room.</p><div class="linkbox">
-<div class="linkrow"><strong>X</strong><input id="link-x" readonly><button onclick="copyLink('link-x')">Copy</button></div>
-<div class="linkrow"><strong>Telegram</strong><input id="link-telegram" readonly><button onclick="copyLink('link-telegram')">Copy</button></div>
-<div class="linkrow"><strong>ExoClick</strong><input id="link-exoclick" readonly><button onclick="copyLink('link-exoclick')">Copy</button></div>
-<div class="linkrow"><strong>Reddit</strong><input id="link-reddit" readonly><button onclick="copyLink('link-reddit')">Copy</button></div>
-<div class="linkrow"><strong>Google</strong><input id="link-google" readonly><button onclick="copyLink('link-google')">Copy</button></div>
+<section class="section grid"><div class="card"><h2>Platforms</h2><div id="platforms"></div></div><div class="card"><h2>Countries</h2><div id="countries"></div></div><div class="card"><h2>Traffic sources</h2><div id="sources"></div></div><div class="card"><h2>Campaigns</h2><div id="campaigns"></div></div></section>
+<section class="card section"><h2>X tracking links</h2><p class="muted">Use the exact matching link for each X account and intended platform post. The visitor still lands on NightCamFinds and can browse every category. Attribution is carried through internal navigation before the affiliate click.</p><div class="linkbox">
+<div class="linkrow"><strong>NightCamFinds · BongaCams</strong><input id="link-ncf-bonga" readonly><button onclick="copyLink('link-ncf-bonga',this)">Copy</button></div>
+<div class="linkrow"><strong>NightCamFinds · Chaturbate</strong><input id="link-ncf-cb" readonly><button onclick="copyLink('link-ncf-cb',this)">Copy</button></div>
+<div class="linkrow"><strong>CamNightScout · BongaCams</strong><input id="link-cns-bonga" readonly><button onclick="copyLink('link-cns-bonga',this)">Copy</button></div>
+<div class="linkrow"><strong>CamNightScout · Chaturbate</strong><input id="link-cns-cb" readonly><button onclick="copyLink('link-cns-cb',this)">Copy</button></div>
+</div></section>
+<section class="section card"><h2>Other tracking links</h2><div class="linkbox">
+<div class="linkrow"><strong>Telegram</strong><input id="link-telegram" readonly><button onclick="copyLink('link-telegram',this)">Copy</button></div>
+<div class="linkrow"><strong>ExoClick</strong><input id="link-exoclick" readonly><button onclick="copyLink('link-exoclick',this)">Copy</button></div>
+<div class="linkrow"><strong>Reddit</strong><input id="link-reddit" readonly><button onclick="copyLink('link-reddit',this)">Copy</button></div>
+<div class="linkrow"><strong>Google</strong><input id="link-google" readonly><button onclick="copyLink('link-google',this)">Copy</button></div>
 </div></section>
 <section class="card section"><h2>Recent performance</h2><div id="recent"></div></section>
 <script>
 const origin=location.origin;
-const links={x:`${origin}/?utm_source=x&utm_medium=social&utm_campaign=affiliate`,telegram:`${origin}/?utm_source=telegram&utm_medium=social&utm_campaign=affiliate`,exoclick:`${origin}/?utm_source=exoclick&utm_medium=paid&utm_campaign=affiliate`,reddit:`${origin}/?utm_source=reddit&utm_medium=social&utm_campaign=affiliate`,google:`${origin}/?utm_source=google&utm_medium=organic&utm_campaign=affiliate`};
-for(const [name,url] of Object.entries(links)){const el=document.getElementById('link-'+name);if(el)el.value=url}
-async function copyLink(id){const el=document.getElementById(id);try{await navigator.clipboard.writeText(el.value);const old=event?.target?.textContent;if(event?.target){event.target.textContent='Copied';setTimeout(()=>event.target.textContent=old||'Copy',1200)}}catch{el.select();document.execCommand('copy')}}
+const links={
+  ncfBonga:`${origin}/?utm_source=x&utm_medium=social&utm_campaign=nightcamfinds-x-bongacams`,
+  ncfCb:`${origin}/?utm_source=x&utm_medium=social&utm_campaign=nightcamfinds-x-chaturbate`,
+  cnsBonga:`${origin}/?utm_source=x&utm_medium=social&utm_campaign=camnightscout-x-bongacams`,
+  cnsCb:`${origin}/?utm_source=x&utm_medium=social&utm_campaign=camnightscout-x-chaturbate`,
+  telegram:`${origin}/?utm_source=telegram&utm_medium=social&utm_campaign=affiliate`,
+  exoclick:`${origin}/?utm_source=exoclick&utm_medium=paid&utm_campaign=affiliate`,
+  reddit:`${origin}/?utm_source=reddit&utm_medium=social&utm_campaign=affiliate`,
+  google:`${origin}/?utm_source=google&utm_medium=organic&utm_campaign=affiliate`
+};
+const fields={ncfBonga:'link-ncf-bonga',ncfCb:'link-ncf-cb',cnsBonga:'link-cns-bonga',cnsCb:'link-cns-cb',telegram:'link-telegram',exoclick:'link-exoclick',reddit:'link-reddit',google:'link-google'};
+for(const [name,id] of Object.entries(fields)){const el=document.getElementById(id);if(el)el.value=links[name]}
+async function copyLink(id,button){const el=document.getElementById(id);try{await navigator.clipboard.writeText(el.value);const old=button.textContent;button.textContent='Copied';setTimeout(()=>button.textContent=old,1200)}catch{el.select();document.execCommand('copy')}}
 async function loadStats(){const s=document.getElementById('status');s.textContent=' Loading…';try{const r=await fetch('/api/dashboard-stats',{credentials:'same-origin'});if(!r.ok)throw new Error('Dashboard API returned '+r.status);const d=await r.json();
-const cards=[['Affiliate clicks',d.totalClicks],['BongaCams clicks',d.bongacamsClicks],['Chaturbate clicks',d.chaturbateClicks],['Tier-1 clicks',d.tier1Clicks],['Unique visitors',d.uniqueVisitors??'—'],['CTR',d.ctr!=null?d.ctr+'%':'—']];document.getElementById('cards').innerHTML=cards.map(x=>`<div class="card"><div class="muted">${x[0]}</div><div class="value">${x[1]??0}</div></div>`).join('');
-renderMap('platforms',d.platforms);renderMap('countries',d.countries);renderMap('sources',d.sources);document.getElementById('recent').innerHTML=`<div class="muted">Today: ${d.today??0} clicks · 7 days: ${d.week??0} · 30 days: ${d.month??0} clicks</div>`;s.textContent=' Updated';s.className='ok'}catch(e){s.textContent=' '+e.message;s.className='error'}}
-function renderMap(id,obj){if(!obj||!Object.keys(obj).length){document.getElementById(id).innerHTML='<span class="muted">No data yet.</span>';return}document.getElementById(id).innerHTML='<table>'+Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')+'</table>'}
+const cards=[['Affiliate clicks',d.totalClicks],['BongaCams clicks',d.bongacamsClicks],['Chaturbate clicks',d.chaturbateClicks],['Tier-1 clicks',d.tier1Clicks],['BongaCams Tier-1',d.bongaTier1Clicks],['Tier-1 share',d.totalClicks?((d.tier1Clicks/d.totalClicks)*100).toFixed(1)+'%':'0%']];document.getElementById('cards').innerHTML=cards.map(x=>`<div class="card"><div class="muted">${x[0]}</div><div class="value">${x[1]??0}</div></div>`).join('');
+renderMap('platforms',d.platforms);renderMap('countries',d.countries);renderMap('sources',d.sources);renderMap('campaigns',d.campaigns);document.getElementById('recent').innerHTML=`<div class="muted">Today: ${d.today??0} clicks · 7 days: ${d.week??0} · 30 days: ${d.month??0} clicks</div>`;s.textContent=' Updated';s.className='ok'}catch(e){s.textContent=' '+e.message;s.className='error'}}
+function renderMap(id,obj){if(!obj||!Object.keys(obj).length){document.getElementById(id).innerHTML='<span class="muted">No data yet.</span>';return}document.getElementById(id).innerHTML='<table>'+Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,20).map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join('')+'</table>'}
 loadStats();setInterval(loadStats,30000);
 </script></main></body></html>
