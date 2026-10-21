@@ -150,11 +150,26 @@ function card(room) {
   return a;
 }
 
+// Home sections are deliberately balanced between the two partner platforms.
+// Target: 4 rooms per category, ideally 2 BongaCams + 2 Chaturbate.
+// If one platform has fewer live rooms, fill the remaining slots from the other platform.
 function pickHomeRooms(rooms, gender) {
   const matches = rooms.filter((room) => room.gender === gender);
-  const bonga = matches.filter((room) => room.platform === "bongacams").slice(0, 2);
-  const other = matches.filter((room) => room.platform !== "bongacams");
-  return [...bonga, ...other].slice(0, 8);
+  const bonga = matches.filter((room) => room.platform === "bongacams");
+  const chaturbate = matches.filter((room) => room.platform === "chaturbate");
+  const selected = [...bonga.slice(0, 2), ...chaturbate.slice(0, 2)];
+
+  if (selected.length < 4) {
+    const selectedIds = new Set(selected.map((room) => room.id));
+    for (const room of matches) {
+      if (selected.length >= 4) break;
+      if (selectedIds.has(room.id)) continue;
+      selected.push(room);
+      selectedIds.add(room.id);
+    }
+  }
+
+  return selected.slice(0, 4);
 }
 
 let timer;
