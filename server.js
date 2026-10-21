@@ -117,12 +117,13 @@ async function ensureTrackingTable() {
   await pgPool.query(`CREATE TABLE IF NOT EXISTS affiliate_clicks (
     id BIGSERIAL PRIMARY KEY,
     clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    country VARCHAR(2) NOT NULL,
+    country VARCHAR(16) NOT NULL,
     category VARCHAR(40) NOT NULL,
     source VARCHAR(40) NOT NULL,
     campaign VARCHAR(80) NOT NULL,
     placement VARCHAR(80) NOT NULL
   )`);
+  await pgPool.query("ALTER TABLE affiliate_clicks ALTER COLUMN country TYPE VARCHAR(16)");
   await pgPool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_country_idx ON affiliate_clicks(country)");
   await pgPool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_clicked_at_idx ON affiliate_clicks(clicked_at)");
   trackingReady = true;
