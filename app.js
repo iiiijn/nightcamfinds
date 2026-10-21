@@ -26,8 +26,47 @@ const pathName = location.pathname.replaceAll("/", "") || "all";
 const category = PAGES[pathName] ? pathName : "all";
 const page = PAGES[category];
 const incoming = new URLSearchParams(location.search);
-const trafficSource = incoming.get("utm_source") || incoming.get("source") || "direct";
-const trafficCampaign = incoming.get("utm_campaign") || incoming.get("campaign") || "organic";
+
+function cleanTrack(value, fallback) { return String(value || fallback).toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || fallback; }
+
+// Persist the original marketing attribution so it survives navigation from the
+// landing page to /female, /male, /trans, etc. This is important because the
+// UTM query string normally disappears when a visitor follows an internal link.
+function rememberAttribution() {
+  const source = incoming.get("utm_source") || incoming.get("source");
+  const medium = incoming.get("utm_medium") || incoming.get("medium");
+  const campaign = incoming.get("utm_campaign") || incoming.get("campaign");
+  if (source || medium || campaign) {
+    const attribution = {
+      source: cleanTrack(source, "direct"),
+      medium: cleanTrack(medium, "unknown"),
+      campaign: cleanTrack(campaign, "organic"),
+      landingPath: location.pathname,
+      savedAt: Date.now()
+    };
+    try { localStorage.setItem("ncf_attribution", JSON.stringify(attribution)); } catch (_) {}
+  }
+}
+
+function getAttribution() {
+  const currentSource = incoming.get("utm_source") || incoming.get("source");
+  const currentMedium = incoming.get("utm_medium") || incoming.get("medium");
+  const currentCampaign = incoming.get("utm_campaign") || incoming.get("campaign");
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem("ncf_attribution") || "{}"); } catch (_) { saved = {}; }
+  const freshEnough = Number(saved.savedAt || 0) > Date.now() - (30 * 24 * 60 * 60 * 1000);
+  return {
+    source: cleanTrack(currentSource || (freshEnough ? saved.source : "direct"), "direct"),
+    medium: cleanTrack(currentMedium || (freshEnough ? saved.medium : "unknown"), "unknown"),
+    campaign: cleanTrack(currentCampaign || (freshEnough ? saved.campaign : "organic"), "organic")
+  };
+}
+
+rememberAttribution();
+const attribution = getAttribution();
+const trafficSource = attribution.source;
+const trafficMedium = attribution.medium;
+const trafficCampaign = attribution.campaign;
 const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore" };
 const QUICK = ["US","GB","CA","AU","DE","FR","NL"];
 
@@ -48,13 +87,12 @@ for (const iso of QUICK) {
   quick?.append(button);
 }
 
-function cleanTrack(value, fallback) { return String(value || fallback).toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || fallback; }
 function trackingParams(room, placement = "card") {
   const platform = room?.platform || "mixed";
   const country = countrySelect.value ? countrySelect.value.toLowerCase() : "all";
   const base = category === "all" ? "home" : category;
   const src = cleanTrack(`${trafficSource}-${platform}-${base}-${country}-${placement}`, `ncf-${platform}`);
-  return new URLSearchParams({ src, cat: category, source: cleanTrack(trafficSource, "direct"), campaign: cleanTrack(trafficCampaign, "organic") });
+  return new URLSearchParams({ src, cat: category, source: trafficSource, medium: trafficMedium, campaign: trafficCampaign });
 }
 function goUrl(room, placement = "card") {
   const params = trackingParams(room, placement);
