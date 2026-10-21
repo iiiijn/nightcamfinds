@@ -101,12 +101,20 @@ function trackingQuery(extra = {}) {
 function partners() {
   const src = category === "all" ? "home-footer" : category + "-footer";
   const wrap = document.querySelector("#partner-actions");
-  const a = document.createElement("a");
-  a.className = "btn";
-  a.href = "/go/directory?" + trackingQuery({ src });
-  a.textContent = "Chat free";
-  a.rel = "sponsored nofollow noopener";
-  wrap.append(a);
+
+  const cb = document.createElement("a");
+  cb.className = "btn";
+  cb.href = "/go/directory?" + trackingQuery({ src: src + "-chaturbate" });
+  cb.textContent = "Chat on Chaturbate";
+  cb.rel = "sponsored nofollow noopener";
+  wrap.append(cb);
+
+  const bonga = document.createElement("a");
+  bonga.className = "btn ghost";
+  bonga.href = "/bgo/directory?" + trackingQuery({ src: src + "-bongacams" });
+  bonga.textContent = "Browse BongaCams";
+  bonga.rel = "sponsored nofollow noopener";
+  wrap.append(bonga);
 }
 
 function card(room) {
