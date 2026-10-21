@@ -2,9 +2,23 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
+const { Pool } = require("pg");
+const bongacash = require("./bongacash");
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
+const databaseUrl = process.env.DATABASE_URL;
+const pool = databaseUrl ? new Pool({
+  connectionString: databaseUrl,
+  ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false },
+  max: 5
+}) : null;
+
+const ADMIN_USER = process.env.ADMIN_USER || "admin";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
+const SESSION_SECRET = process.env.SESSION_SECRET || "";
+const TIER1 = new Set(["US","CA","GB","IE","AU","NZ","DE","FR","NL","SE","NO","DK","FI","CH","AT","BE"]);
 
 function getJson(url) {
   return new Promise((resolve, reject) => {
@@ -59,18 +73,169 @@ function sendJson(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
+function parseCookies(req) {
+  const out = {};
+  for (const part of String(req.headers.cookie || "").split(";")) {
+    const i = part.indexOf("=");
+    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+
+function safeEqual(a, b) {
+  const aa = Buffer.from(String(a || ""));
+  const bb = Buffer.from(String(b || ""));
+  return aa.length === bb.length && crypto.timingSafeEqual(aa, bb);
+}
+
+function validDashboardSession(req) {
+  if (!SESSION_SECRET) return false;
+  const token = parseCookies(req).ncf_session;
+  if (!token) return false;
+  const parts = token.split(".");
+  if (parts.length !== 4) return false;
+  const [username, issuedAt, nonce, signature] = parts;
+  const payload = `${username}.${issuedAt}.${nonce}`;
+  const expected = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
+  const issued = Number(issuedAt);
+  return safeEqual(signature, expected) && username === ADMIN_USER && Number.isFinite(issued) && Date.now() - issued <= 12 * 60 * 60 * 1000 && Date.now() >= issued - 60000;
+}
+
+function rangeClause(incoming, column = "received_at") {
+  const params = [];
+  const where = [];
+  const from = incoming.searchParams.get("from");
+  const to = incoming.searchParams.get("to");
+  if (from) { params.push(`${from}T00:00:00.000Z`); where.push(`${column} >= $${params.length}`); }
+  if (to) { params.push(`${to}T23:59:59.999Z`); where.push(`${column} <= $${params.length}`); }
+  return { params, where: where.length ? `WHERE ${where.join(" AND ")}` : "" };
+}
+
+async function dashboardStats(incoming) {
+  if (!pool) throw new Error("Database is not configured");
+  const cb = rangeClause(incoming, "clicked_at");
+  const conv = rangeClause(incoming, "received_at");
+  await bongacash.ensureTable(pool);
+
+  let cbClicks = 0;
+  let bongaClicks = 0;
+  try {
+    const r = await pool.query(`SELECT platform, COUNT(*)::int AS clicks FROM affiliate_clicks ${cb.where} GROUP BY platform`, cb.params);
+    for (const row of r.rows) {
+      if (String(row.platform).toLowerCase() === "bongacams") bongaClicks = Number(row.clicks || 0);
+      if (String(row.platform).toLowerCase() === "chaturbate") cbClicks = Number(row.clicks || 0);
+    }
+  } catch {
+    try {
+      const r = await pool.query(`SELECT COUNT(*)::int AS clicks FROM cb_clicks ${cb.where}`, cb.params);
+      cbClicks = Number(r.rows[0]?.clicks || 0);
+    } catch {}
+  }
+
+  const bonga = await bongacash.stats(pool, incoming.searchParams.get("from"), incoming.searchParams.get("to"));
+  let cbRegs = 0, cbPurchases = 0, cbEarnings = 0;
+  try {
+    const r = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS earnings FROM cb_conversions ${conv.where}`, conv.params);
+    cbRegs = Number(r.rows[0]?.registrations || 0); cbPurchases = Number(r.rows[0]?.purchases || 0); cbEarnings = Number(r.rows[0]?.earnings || 0);
+  } catch {}
+
+  let cbTier1 = 0, bongaTier1 = 0;
+  try {
+    const r = await pool.query(`SELECT platform, country, COUNT(*)::int AS clicks FROM affiliate_clicks ${cb.where} GROUP BY platform, country`, cb.params);
+    for (const row of r.rows) {
+      if (!TIER1.has(String(row.country || "").toUpperCase())) continue;
+      if (String(row.platform).toLowerCase() === "bongacams") bongaTier1 += Number(row.clicks || 0);
+      if (String(row.platform).toLowerCase() === "chaturbate") cbTier1 += Number(row.clicks || 0);
+    }
+  } catch {}
+
+  const totalClicks = cbClicks + bongaClicks;
+  const today = rangeClause(new URL(incoming), "clicked_at");
+  const now = new Date();
+  const iso = d => d.toISOString().slice(0,10);
+  const day = new URL(incoming); day.searchParams.set("from", iso(now)); day.searchParams.set("to", iso(now));
+  const seven = new URL(incoming); const d7 = new Date(now); d7.setDate(d7.getDate()-6); seven.searchParams.set("from", iso(d7)); seven.searchParams.set("to", iso(now));
+  const thirty = new URL(incoming); const d30 = new Date(now); d30.setDate(d30.getDate()-29); thirty.searchParams.set("from", iso(d30)); thirty.searchParams.set("to", iso(now));
+  const countClicks = async u => {
+    const x = rangeClause(u, "clicked_at");
+    try { const r = await pool.query(`SELECT COUNT(*)::int AS clicks FROM affiliate_clicks ${x.where}`, x.params); return Number(r.rows[0]?.clicks || 0); } catch { return 0; }
+  };
+
+  const sources = {};
+  const countries = {};
+  try {
+    const r = await pool.query(`SELECT platform, source, country, COUNT(*)::int AS clicks FROM affiliate_clicks ${cb.where} GROUP BY platform, source, country`, cb.params);
+    for (const row of r.rows) {
+      const platform = String(row.platform || "unknown");
+      const source = String(row.source || "direct");
+      const country = String(row.country || "UNKNOWN").toUpperCase();
+      sources[`${platform}:${source}`] = (sources[`${platform}:${source}`] || 0) + Number(row.clicks || 0);
+      countries[country] = (countries[country] || 0) + Number(row.clicks || 0);
+    }
+  } catch {}
+
+  const combinedCountries = { ...countries };
+  for (const row of bonga.byCountry) combinedCountries[row.name] = (combinedCountries[row.name] || 0) + row.conversions;
+  return {
+    totalClicks,
+    chaturbateClicks: cbClicks,
+    bongacamsClicks: bongaClicks,
+    tier1Clicks: cbTier1 + bongaTier1,
+    bongaTier1Clicks: bongaTier1,
+    today: await countClicks(day),
+    week: await countClicks(seven),
+    month: await countClicks(thirty),
+    registrations: cbRegs,
+    purchases: cbPurchases,
+    earnings: cbEarnings,
+    bongacamsRegistrations: bonga.registrations,
+    bongacamsPurchases: bonga.purchases,
+    bongacamsEarnings: bonga.earnings,
+    bongacamsPurchaseSpend: bonga.spend,
+    bongacashConnected: Boolean(process.env.BONGACASH_POSTBACK_SECRET),
+    platforms: {
+      chaturbate: cbClicks,
+      bongacams: bongaClicks
+    },
+    sources,
+    countries: combinedCountries
+  };
+}
+
 http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
+
     if (incoming.pathname === "/dashboard" || incoming.pathname === "/dashboard/") {
       const html = fs.readFileSync(path.join(__dirname, "public", "dashboard.html"), "utf8");
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
       return res.end(html);
     }
+
     if (incoming.pathname === "/api/bonga-rooms") {
       try { return sendJson(res, 200, { rooms: await bongaRooms(), platform: "bongacams" }); }
       catch (err) { console.error("BongaCams feed error:", err.message); return sendJson(res, 502, { rooms: [], platform: "bongacams", error: err.message }); }
     }
+
+    if (incoming.pathname === "/api/bongacash/postback") {
+      const params = new URLSearchParams(incoming.searchParams);
+      if (!bongacash.verifySecret(req, params)) return sendJson(res, 403, { error: "Invalid BongaCash postback secret." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      try {
+        const saved = await bongacash.save(pool, params);
+        return sendJson(res, 200, saved);
+      } catch (err) {
+        console.error("BongaCash postback failed:", err.message);
+        return sendJson(res, 500, { error: "Could not save BongaCash conversion." });
+      }
+    }
+
+    if (incoming.pathname === "/api/dashboard-stats") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      try { return sendJson(res, 200, await dashboardStats(incoming)); }
+      catch (err) { console.error("Dashboard stats failed:", err.message); return sendJson(res, 500, { error: err.message }); }
+    }
+
     return handler(req, res);
   });
 };
