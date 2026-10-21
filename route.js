@@ -236,6 +236,21 @@ http.createServer = function routeDashboard(handler) {
       catch (err) { console.error("Dashboard stats failed:", err.message); return sendJson(res, 500, { error: err.message }); }
     }
 
+    const originalWriteHead = res.writeHead.bind(res);
+    res.writeHead = function affiliateAwareWriteHead(statusCode, headers, ...rest) {
+      if (incoming.pathname.startsWith("/bgo/") && headers && headers.Location) {
+        try {
+          const target = new URL(headers.Location);
+          if (target.hostname === "bongacams4.com" && target.pathname === "/track") {
+            target.searchParams.set("v", "2");
+            target.searchParams.set("c", BONGA_CAMPAIGN);
+            headers = { ...headers, Location: target.toString() };
+          }
+        } catch (_) {}
+      }
+      return originalWriteHead(statusCode, headers, ...rest);
+    };
+
     return handler(req, res);
   });
 };
