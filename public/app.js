@@ -14,15 +14,15 @@ document.querySelector("#enter")?.addEventListener("click", () => {
 });
 
 const PAGES = {
-  all: ["Independent discovery", "Discover live cams right now", "Explore live rooms, compare viewer counts, and open a room on Chaturbate. NightCamFinds does not stream video itself.", "NightCamFinds — Live cam directory"],
+  all: ["Independent discovery", "Discover live cams right now", "Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.", "NightCamFinds — Live cam directory"],
   live: ["Live now", "Rooms that are live now", "Currently online rooms from partner platforms. Counts and subjects come from the feed and can change every minute.", "Live cams now — NightCamFinds"],
-  female: ["Female", "Find live female cams", "Browse public female rooms that are live now. Filter by country or viewer count, then continue to the room on Chaturbate.", "Female live cams — NightCamFinds"],
-  male: ["Male", "Find live male cams", "Browse public male rooms that are live now. Filter by country or viewer count, then continue to the room on Chaturbate.", "Male live cams — NightCamFinds"],
-  trans: ["Trans", "Find live trans cams", "Browse public trans rooms that are live now. Filter by country or viewer count, then continue to the room on Chaturbate.", "Trans live cams — NightCamFinds"],
-  couples: ["Couples", "Find live couples cams", "Browse public couples rooms that are live now. Filter by country or viewer count, then continue to the room on Chaturbate.", "Couples live cams — NightCamFinds"],
+  female: ["Female", "Find live female cams", "Browse public female rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.", "Female live cams — NightCamFinds"],
+  male: ["Male", "Find live male cams", "Browse public male rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.", "Male live cams — NightCamFinds"],
+  trans: ["Trans", "Find live trans cams", "Browse public trans rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.", "Trans live cams — NightCamFinds"],
+  couples: ["Couples", "Find live couples cams", "Browse public couples rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.", "Couples live cams — NightCamFinds"],
   hd: ["HD", "Find HD live cams", "Browse rooms the feed marks as HD. Quality can change with the broadcaster's connection.", "HD live cams — NightCamFinds"],
   new: ["New", "Find new live broadcasters", "Browse rooms marked new in the live feed. Availability changes as broadcasters come online and offline.", "New live cams — NightCamFinds"],
-  popular: ["Popular", "Find the most watched live rooms", "Browse rooms sorted by current viewer count and continue to the broadcaster's room on Chaturbate.", "Popular live cams — NightCamFinds"],
+  popular: ["Popular", "Find the most watched live rooms", "Browse rooms sorted by current viewer count and continue to the broadcaster's room on its partner platform.", "Popular live cams — NightCamFinds"],
   countries: ["Countries", "Live cams by country", "Pick a country to filter rooms that publish a country code. Not every room includes one.", "Live cams by country — NightCamFinds"]
 };
 
@@ -51,8 +51,6 @@ const trafficCampaign = (queryParams.get("utm_campaign") || queryParams.get("cam
 const trafficMedium = (queryParams.get("utm_medium") || "").slice(0, 30);
 const trafficContent = (queryParams.get("utm_content") || "").slice(0, 40);
 
-// Paid-traffic landing copy. The URL stays indexable while the campaign label
-// changes the on-page message without changing the canonical URL.
 const paidCampaign = /^(paid|cpc|ppc|ad|ads)$/i.test(trafficMedium);
 if (paidCampaign && category !== "all") {
   const market = forced || hinted;
@@ -65,7 +63,7 @@ if (paidCampaign && category !== "all") {
   }[category];
   if (campaignTitle) {
     document.querySelector("#page-title").textContent = campaignTitle;
-    document.querySelector("#page-intro").textContent = `See who is live now, compare viewer counts, and choose a public room. Click a room to continue on Chaturbate.`;
+    document.querySelector("#page-intro").textContent = `See who is live now, compare viewer counts, and choose a public room. Click a room to continue on its partner platform.`;
   }
 }
 
@@ -113,8 +111,10 @@ function partners() {
 
 function card(room) {
   const a = document.createElement("a");
+  const isBonga = room.platform === "bongacams";
+  const redirect = isBonga ? "/bgo/" : "/go/";
   a.className = "card";
-  a.href = "/go/" + encodeURIComponent(room.id) + "?" + trackingQuery({
+  a.href = redirect + encodeURIComponent(room.id) + "?" + trackingQuery({
     src: placement(),
     cat: room.gender || (category === "all" ? "all" : category)
   });
@@ -130,7 +130,7 @@ function card(room) {
   meta.className = "meta";
   const badges = document.createElement("div");
   badges.className = "badges";
-  const bits = [["Live", "live"], room.isHd ? ["HD", ""] : null, room.isNew ? ["New", ""] : null, [Number(room.viewerCount || 0).toLocaleString() + " watching", ""], room.country ? [room.countryName || NAMES[room.country] || room.country, ""] : null].filter(Boolean);
+  const bits = [[isBonga ? "BongaCams" : "Chaturbate", "platform"], ["Live", "live"], room.isHd ? ["HD", ""] : null, room.isNew ? ["New", ""] : null, [Number(room.viewerCount || 0).toLocaleString() + " watching", ""], room.country ? [room.countryName || NAMES[room.country] || room.country, ""] : null].filter(Boolean);
   for (const [label, extra] of bits) {
     const span = document.createElement("span");
     span.className = extra ? "badge " + extra : "badge";
@@ -148,6 +148,13 @@ function card(room) {
   meta.append(badges, strong, subject, cta);
   a.append(img, meta);
   return a;
+}
+
+function pickHomeRooms(rooms, gender) {
+  const matches = rooms.filter((room) => room.gender === gender);
+  const bonga = matches.filter((room) => room.platform === "bongacams").slice(0, 2);
+  const other = matches.filter((room) => room.platform !== "bongacams");
+  return [...bonga, ...other].slice(0, 8);
 }
 
 let timer;
@@ -171,7 +178,7 @@ async function load() {
   if ((category === "all" || category === "live") && !q.value && !countrySelect.value) {
     grid.replaceChildren();
     for (const [key, label] of [["female","Top female"],["male","Top male"],["trans","Top trans"],["couples","Top couples"]]) {
-      const picked = rooms.filter((room) => room.gender === key).slice(0, 8);
+      const picked = pickHomeRooms(rooms, key);
       if (!picked.length) continue;
       const section = document.createElement("section");
       section.className = "home-group";
