@@ -17,3 +17,9 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
+      # The application reads the database connection from DATABASE_URL.
+      # Keep the credential in Render, never in GitHub.
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_SSL
+        value: "true"
