@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>NightCamFinds — Live cam directory</title>
   <meta name="description" content="Browse live rooms by country from Chaturbate and BongaCams. NightCamFinds does not stream video.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="__ORIGIN__/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/styles.css" as="style">
   <meta property="og:title" content="NightCamFinds — Live cam directory">
   <meta property="og:description" content="Independent 18+ directory of live rooms from partner cam platforms. Browse, filter, and open a room on the partner site.">
   <meta property="og:type" content="website">
@@ -26,69 +27,38 @@
       <p class="eyebrow">Adults only</p>
       <h2>This site is for people 18 or older.</h2>
       <p class="muted">NightCamFinds is an independent directory. It does not host video. You must be 18 or the age of majority where you live. This notice is not a government age-verification system.</p>
-      <div class="actions">
-        <button id="enter" type="button">I am 18 or older</button>
-        <a class="btn ghost" href="https://www.google.com">Leave</a>
-      </div>
+      <div class="actions"><button id="enter" type="button">I am 18 or older</button><a class="btn ghost" href="https://www.google.com">Leave</a></div>
     </div>
   </div>
   <div class="wrap">
     <header>
       <a class="logo" href="/">NightCam<span>Finds</span></a>
       <nav aria-label="Categories">
-        <a href="/live/">Live Now</a>
-        <a href="/female/">Female</a>
-        <a href="/male/">Male</a>
-        <a href="/trans/">Trans</a>
-        <a href="/couples/">Couples</a>
-        <a href="/hd/">HD</a>
-        <a href="/new/">New</a>
-        <a href="/popular/">Popular</a>
-        <a href="/countries/">Countries</a>
-        <a href="/broadcast">Broadcast</a>
+        <a href="/live/">Live Now</a><a href="/female/">Female</a><a href="/male/">Male</a><a href="/trans/">Trans</a><a href="/couples/">Couples</a><a href="/hd/">HD</a><a href="/new/">New</a><a href="/popular/">Popular</a><a href="/countries/">Countries</a><a href="/broadcast">Broadcast</a>
       </nav>
     </header>
     <section class="hero">
       <p class="eyebrow" id="kicker">Independent discovery</p>
       <h1 id="page-title">Discover live cams right now</h1>
       <p class="muted" id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.</p>
-      <div class="actions">
-        <a class="btn" href="#grid">Watch live rooms</a>
-        <a class="btn ghost" href="/broadcast">Start broadcasting</a>
-      </div>
+      <div class="actions"><a class="btn" href="#grid">Watch live rooms</a><a class="btn ghost" href="/broadcast">Start broadcasting</a></div>
     </section>
     <div class="quick" id="quick" aria-label="Tier 1 countries"></div>
     <div class="toolbar">
-      <input id="q" placeholder="Search name or country" aria-label="Search">
-      <select id="sort" aria-label="Sort">
-        <option value="recommended">Recommended</option>
-        <option value="viewers">Most viewers</option>
-        <option value="newest">Newest</option>
-      </select>
+      <input id="q" placeholder="Search name or country" aria-label="Search" inputmode="search" autocomplete="off">
+      <select id="sort" aria-label="Sort"><option value="recommended">Recommended</option><option value="viewers">Most viewers</option><option value="newest">Newest</option></select>
       <select id="country" aria-label="Country"><option value="">All countries</option></select>
     </div>
     <div id="notice" class="notice" hidden>Live rooms are temporarily unavailable. Please check again shortly.</div>
     <p id="result-count" class="result-count" aria-live="polite"></p>
     <div id="grid" class="grid" aria-live="polite"></div>
     <section class="affiliate-links">
-      <h2>Chat free</h2>
-      <p class="muted">Open a room without an account. Create a free account when you want to chat or follow a model. Sign-up is available on the partner platform.</p>
+      <h2>Chat free</h2><p class="muted">Open a room without an account. Create a free account when you want to chat or follow a model. Sign-up is available on the partner platform.</p>
       <div class="actions" id="partner-actions"></div>
-      <h2>Markets</h2>
-      <p class="muted"><a href="/country/us/">United States</a> · <a href="/country/gb/">United Kingdom</a> · <a href="/country/ca/">Canada</a> · <a href="/country/au/">Australia</a> · <a href="/country/de/">Germany</a> · <a href="/country/fr/">France</a> · <a href="/country/nl/">Netherlands</a></p>
-      <h2>Questions</h2>
-      <p><strong>Does this site play video?</strong> No. Video plays on the partner platform after you click a room.</p>
-      <p><strong>Is an account required to look?</strong> No. An account is required on the partner platform to chat or follow.</p>
-      <p><strong>Who can apply to broadcast?</strong> Adults 18 or older. Approval is decided by the partner platform, not NightCamFinds.</p>
+      <h2>Markets</h2><p class="muted"><a href="/country/us/">United States</a> · <a href="/country/gb/">United Kingdom</a> · <a href="/country/ca/">Canada</a> · <a href="/country/au/">Australia</a> · <a href="/country/de/">Germany</a> · <a href="/country/fr/">France</a> · <a href="/country/nl/">Netherlands</a></p>
+      <h2>Questions</h2><p><strong>Does this site play video?</strong> No. Video plays on the partner platform after you click a room.</p><p><strong>Is an account required to look?</strong> No. An account is required on the partner platform to chat or follow.</p><p><strong>Who can apply to broadcast?</strong> Adults 18 or older. Approval is decided by the partner platform, not NightCamFinds.</p>
     </section>
-    <footer>
-      <span>18+ independent directory. Video plays on the partner site, not here.</span>
-      <a href="/about">About</a>
-      <a href="/affiliate-disclosure">Affiliate disclosure</a>
-      <a href="/privacy">Privacy</a>
-      <a href="/terms">Terms</a>
-      <a href="/contact">Contact</a>
-    </footer>
+    <footer><span>18+ independent directory. Video plays on the partner site, not here.</span><a href="/about">About</a><a href="/affiliate-disclosure">Affiliate disclosure</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/contact">Contact</a></footer>
   </div>
   <script>
   (() => {
@@ -108,23 +78,13 @@
         const bonga = await bongaResponse.json();
         const merged = [...(base.rooms || []), ...(bonga.rooms || [])];
         const seen = new Set();
-        base.rooms = merged.filter(room => {
-          if (!room?.id || seen.has(room.id)) return false;
-          seen.add(room.id);
-          return true;
-        });
+        base.rooms = merged.filter(room => { if(!room?.id || seen.has(room.id)) return false; seen.add(room.id); return true; });
         base.platforms = [...new Set(base.rooms.map(room => room.platform).filter(Boolean))].sort();
-        return new Response(JSON.stringify(base), {
-          status: response.status,
-          statusText: response.statusText,
-          headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
-        });
-      } catch {
-        return response;
-      }
+        return new Response(JSON.stringify(base), { status: response.status, statusText: response.statusText, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
+      } catch { return response; }
     };
   })();
   </script>
-  <script src="/app.js"></script>
+  <script src="/app.js" defer></script>
 </body>
 </html>
