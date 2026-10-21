@@ -71,13 +71,6 @@ http.createServer = function routeDashboard(handler) {
       try { return sendJson(res, 200, { rooms: await bongaRooms(), platform: "bongacams" }); }
       catch (err) { console.error("BongaCams feed error:", err.message); return sendJson(res, 502, { rooms: [], platform: "bongacams", error: err.message }); }
     }
-    if (incoming.pathname.startsWith("/bgo/")) {
-      const id = decodeURIComponent(incoming.pathname.slice(5));
-      const username = id.split(":").pop();
-      const target = `https://bongacams4.com/track?c=${encodeURIComponent(BONGA_CAMPAIGN)}&room=${encodeURIComponent(username)}`;
-      res.writeHead(302, { Location: target, "Cache-Control": "no-store" });
-      return res.end();
-    }
     return handler(req, res);
   });
 };
