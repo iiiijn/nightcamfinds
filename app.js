@@ -7,11 +7,7 @@ const q = document.querySelector("#q");
 const countrySelect = document.querySelector("#country");
 
 if (localStorage.getItem("ncf18") === "1" && gate) gate.hidden = true;
-document.querySelector("#enter")?.addEventListener("click", () => {
-  localStorage.setItem("ncf18", "1");
-  document.documentElement.classList.add("ok");
-  if (gate) gate.hidden = true;
-});
+document.querySelector("#enter")?.addEventListener("click", () => { localStorage.setItem("ncf18", "1"); document.documentElement.classList.add("ok"); if (gate) gate.hidden = true; });
 
 const PAGES = {
   all: ["Independent discovery", "Find live cams worth clicking", "Browse live rooms from Chaturbate and BongaCams. Open a room on the partner site to watch and chat.", "NightCamFinds — Live cams now"],
@@ -32,7 +28,6 @@ const page = PAGES[category];
 const incoming = new URLSearchParams(location.search);
 const trafficSource = incoming.get("utm_source") || incoming.get("source") || "direct";
 const trafficCampaign = incoming.get("utm_campaign") || incoming.get("campaign") || "organic";
-
 const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore" };
 const QUICK = ["US","GB","CA","AU","DE","FR","NL"];
 
@@ -43,169 +38,87 @@ document.title = page[3];
 document.querySelector('meta[name="description"]')?.setAttribute("content", page[2]);
 document.querySelector('link[rel="canonical"]')?.setAttribute("href", location.origin + location.pathname);
 if (category === "popular") sort.value = "viewers";
-document.querySelectorAll("nav a").forEach(a => {
-  if (a.getAttribute("href") === location.pathname) a.setAttribute("aria-current", "page");
-});
+document.querySelectorAll("nav a").forEach(a => { if (a.getAttribute("href") === location.pathname) a.setAttribute("aria-current", "page"); });
 
 const quick = document.querySelector("#quick");
 for (const iso of QUICK) {
   const button = document.createElement("button");
-  button.type = "button";
-  button.className = "ghost";
-  button.textContent = NAMES[iso];
-  button.addEventListener("click", () => {
-    countrySelect.value = iso;
-    load();
-    document.querySelector("#rooms")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  });
+  button.type = "button"; button.className = "ghost"; button.textContent = NAMES[iso];
+  button.addEventListener("click", () => { countrySelect.value = iso; load(); document.querySelector("#rooms")?.scrollIntoView({ behavior: "smooth", block: "start" }); });
   quick?.append(button);
 }
 
-function cleanTrack(value, fallback) {
-  return String(value || fallback).toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || fallback;
-}
-
+function cleanTrack(value, fallback) { return String(value || fallback).toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 50) || fallback; }
 function trackingParams(room, placement = "card") {
   const platform = room?.platform || "mixed";
   const country = countrySelect.value ? countrySelect.value.toLowerCase() : "all";
   const base = category === "all" ? "home" : category;
   const src = cleanTrack(`${trafficSource}-${platform}-${base}-${country}-${placement}`, `ncf-${platform}`);
-  return new URLSearchParams({
-    src,
-    cat: category,
-    source: cleanTrack(trafficSource, "direct"),
-    campaign: cleanTrack(trafficCampaign, "organic")
-  });
+  return new URLSearchParams({ src, cat: category, source: cleanTrack(trafficSource, "direct"), campaign: cleanTrack(trafficCampaign, "organic") });
 }
-
 function goUrl(room, placement = "card") {
   const params = trackingParams(room, placement);
   if (room.platform === "bongacams") return `/bgo/${encodeURIComponent(room.id)}?${params.toString()}`;
   return `/go/${encodeURIComponent(room.id)}?${params.toString()}`;
 }
-
 function partners() {
-  const wrap = document.querySelector("#partner-actions");
-  if (!wrap) return;
-  wrap.innerHTML = "";
-
-  const cb = document.createElement("a");
-  cb.className = "btn";
-  cb.href = goUrl({ id: "chaturbate:featured", platform: "chaturbate" }, "footer");
-  cb.textContent = "Browse Chaturbate";
-  cb.target = "_blank";
-  cb.rel = "sponsored nofollow noopener";
-
-  const bc = document.createElement("a");
-  bc.className = "btn ghost";
-  bc.href = goUrl({ id: "bongacams:featured", platform: "bongacams" }, "footer");
-  bc.textContent = "Browse BongaCams";
-  bc.target = "_blank";
-  bc.rel = "sponsored nofollow noopener";
-
+  const wrap = document.querySelector("#partner-actions"); if (!wrap) return; wrap.innerHTML = "";
+  const cb = document.createElement("a"); cb.className = "btn"; cb.href = goUrl({ id: "chaturbate:featured", platform: "chaturbate" }, "footer"); cb.textContent = "Browse Chaturbate"; cb.target = "_blank"; cb.rel = "sponsored nofollow noopener";
+  const bc = document.createElement("a"); bc.className = "btn ghost"; bc.href = goUrl({ id: "bongacams:featured", platform: "bongacams" }, "footer"); bc.textContent = "Browse BongaCams"; bc.target = "_blank"; bc.rel = "sponsored nofollow noopener";
   wrap.append(cb, bc);
 }
-
-function badge(text, live = false) {
-  const span = document.createElement("span");
-  span.className = `badge${live ? " live" : ""}`;
-  span.textContent = text;
-  return span;
-}
-
+function badge(text, live = false) { const span = document.createElement("span"); span.className = `badge${live ? " live" : ""}`; span.textContent = text; return span; }
 function card(room) {
-  const a = document.createElement("a");
-  a.className = "card";
-  a.href = goUrl(room);
-  a.target = "_blank";
-  a.rel = "sponsored nofollow noopener";
-
-  const img = document.createElement("img");
-  img.className = "thumb";
-  img.loading = "lazy";
-  img.alt = `${room.displayName} live cam`;
-  img.src = room.image || "/og.svg";
-  img.addEventListener("error", () => { img.src = "/og.svg"; }, { once: true });
-
-  const meta = document.createElement("div");
-  meta.className = "meta";
-
-  const badges = document.createElement("div");
-  badges.className = "badges";
-  badges.append(badge("LIVE", true), badge(room.platformName || room.platform));
-  if (room.isHd) badges.append(badge("HD"));
-  if (room.isNew) badges.append(badge("NEW"));
-  if (room.countryName) badges.append(badge(room.countryName));
-
-  const title = document.createElement("strong");
-  title.textContent = room.displayName || room.username;
-
-  const subject = document.createElement("p");
-  subject.className = "subject";
-  subject.textContent = room.roomSubject || "Live now";
-
-  const viewers = document.createElement("span");
-  viewers.className = "muted";
-  viewers.textContent = `${Number(room.viewerCount || 0).toLocaleString()} viewers`;
-
-  meta.append(badges, title, subject, viewers);
-  a.append(img, meta);
-  return a;
+  const a = document.createElement("a"); a.className = "card"; a.href = goUrl(room); a.target = "_blank"; a.rel = "sponsored nofollow noopener";
+  const img = document.createElement("img"); img.className = "thumb"; img.loading = "lazy"; img.alt = `${room.displayName} live cam`; img.src = room.image || "/og.svg"; img.addEventListener("error", () => { img.src = "/og.svg"; }, { once: true });
+  const meta = document.createElement("div"); meta.className = "meta";
+  const badges = document.createElement("div"); badges.className = "badges"; badges.append(badge("LIVE", true), badge(room.platformName || room.platform)); if (room.isHd) badges.append(badge("HD")); if (room.isNew) badges.append(badge("NEW")); if (room.countryName) badges.append(badge(room.countryName));
+  const title = document.createElement("strong"); title.textContent = room.displayName || room.username;
+  const subject = document.createElement("p"); subject.className = "subject"; subject.textContent = room.roomSubject || "Live now";
+  const viewers = document.createElement("span"); viewers.className = "muted"; viewers.textContent = `${Number(room.viewerCount || 0).toLocaleString()} viewers`;
+  meta.append(badges, title, subject, viewers); a.append(img, meta); return a;
 }
-
 function populateCountries(countries) {
-  const current = countrySelect.value;
-  const seen = new Set([...countrySelect.options].map(o => o.value));
-  for (const iso of countries) {
-    if (seen.has(iso)) continue;
-    const option = document.createElement("option");
-    option.value = iso;
-    option.textContent = NAMES[iso] || iso;
-    countrySelect.append(option);
-  }
+  const current = countrySelect.value; const seen = new Set([...countrySelect.options].map(o => o.value));
+  for (const iso of countries) { if (seen.has(iso)) continue; const option = document.createElement("option"); option.value = iso; option.textContent = NAMES[iso] || iso; countrySelect.append(option); }
   if (current) countrySelect.value = current;
 }
 
 let loading = false;
 async function load() {
-  if (loading) return;
-  loading = true;
+  if (loading) return; loading = true;
   try {
-    const params = new URLSearchParams({
-      category,
-      sort: sort.value,
-      q: q.value.trim()
-    });
+    const params = new URLSearchParams({ category, sort: sort.value, q: q.value.trim() });
     if (countrySelect.value) params.set("country", countrySelect.value);
+    const [cbResponse, bongaResponse] = await Promise.all([
+      fetch(`/api/rooms?${params.toString()}`, { headers: { Accept: "application/json" } }),
+      fetch(`/api/bonga-rooms`, { headers: { Accept: "application/json" } }).catch(() => null)
+    ]);
+    if (!cbResponse.ok) throw new Error(`HTTP ${cbResponse.status}`);
+    const data = await cbResponse.json();
+    let bonga = [];
+    if (bongaResponse?.ok) { const bd = await bongaResponse.json(); bonga = Array.isArray(bd.rooms) ? bd.rooms : []; }
 
-    const response = await fetch(`/api/rooms?${params.toString()}`, { headers: { Accept: "application/json" } });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
+    let rooms = [...(data.rooms || []), ...bonga];
+    if (["female","male","trans","couples"].includes(category)) rooms = rooms.filter(r => r.gender === category);
+    if (category === "hd") rooms = rooms.filter(r => r.isHd);
+    if (category === "new") rooms = rooms.filter(r => r.isNew);
+    if (countrySelect.value) rooms = rooms.filter(r => r.country === countrySelect.value);
+    if (q.value.trim()) { const term = q.value.trim().toLowerCase(); rooms = rooms.filter(r => `${r.displayName} ${r.roomSubject} ${r.country} ${r.platformName}`.toLowerCase().includes(term)); }
+    if (sort.value === "viewers" || sort.value === "recommended") rooms.sort((a,b) => Number(b.viewerCount || 0) - Number(a.viewerCount || 0));
+    if (sort.value === "newest") rooms.sort((a,b) => Number(b.isNew) - Number(a.isNew) || Number(b.viewerCount || 0) - Number(a.viewerCount || 0));
 
-    populateCountries(data.countries || []);
+    populateCountries([...(data.countries || []), ...bonga.map(r => r.country).filter(Boolean)]);
     grid.innerHTML = "";
-    for (const room of data.rooms || []) grid.append(card(room));
-
-    countEl.textContent = `${(data.rooms || []).length} live rooms shown${data.platforms?.length ? ` · ${data.platforms.map(p => p === "bongacams" ? "BongaCams" : "Chaturbate").join(" + ")}` : ""}`;
-    notice.hidden = !data.notice;
-    notice.textContent = data.notice || "";
+    for (const room of rooms.slice(0, 60)) grid.append(card(room));
+    const platformText = [...new Set(rooms.map(r => r.platform).filter(Boolean))].map(p => p === "bongacams" ? "BongaCams" : "Chaturbate").join(" + ");
+    countEl.textContent = `${Math.min(60, rooms.length)} live rooms shown${platformText ? ` · ${platformText}` : ""}`;
+    notice.hidden = true;
   } catch (err) {
-    grid.innerHTML = "";
-    notice.hidden = false;
-    notice.textContent = "Live rooms are temporarily unavailable. Please check again shortly.";
-    countEl.textContent = "";
-    console.error(err);
-  } finally {
-    loading = false;
-  }
+    grid.innerHTML = ""; notice.hidden = false; notice.textContent = "Live rooms are temporarily unavailable. Please check again shortly."; countEl.textContent = ""; console.error(err);
+  } finally { loading = false; }
 }
 
-q.addEventListener("input", () => {
-  clearTimeout(window.ncfSearchTimer);
-  window.ncfSearchTimer = setTimeout(load, 250);
-});
-sort.addEventListener("change", load);
-countrySelect.addEventListener("change", load);
-
-partners();
-load();
+q.addEventListener("input", () => { clearTimeout(window.ncfSearchTimer); window.ncfSearchTimer = setTimeout(load, 250); });
+sort.addEventListener("change", load); countrySelect.addEventListener("change", load);
+partners(); load();
