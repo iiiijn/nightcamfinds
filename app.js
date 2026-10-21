@@ -90,16 +90,11 @@ async function load() {
   try {
     const params = new URLSearchParams({ category, sort: sort.value, q: q.value.trim() });
     if (countrySelect.value) params.set("country", countrySelect.value);
-    const [cbResponse, bongaResponse] = await Promise.all([
-      fetch(`/api/rooms?${params.toString()}`, { headers: { Accept: "application/json" } }),
-      fetch(`/api/bonga-rooms`, { headers: { Accept: "application/json" } }).catch(() => null)
-    ]);
-    if (!cbResponse.ok) throw new Error(`HTTP ${cbResponse.status}`);
-    const data = await cbResponse.json();
-    let bonga = [];
-    if (bongaResponse?.ok) { const bd = await bongaResponse.json(); bonga = Array.isArray(bd.rooms) ? bd.rooms : []; }
+    const response = await fetch(`/api/rooms?${params.toString()}`, { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
 
-    let rooms = [...(data.rooms || []), ...bonga];
+    let rooms = Array.isArray(data.rooms) ? data.rooms : [];
     if (["female","male","trans","couples"].includes(category)) rooms = rooms.filter(r => r.gender === category);
     if (category === "hd") rooms = rooms.filter(r => r.isHd);
     if (category === "new") rooms = rooms.filter(r => r.isNew);
@@ -108,7 +103,7 @@ async function load() {
     if (sort.value === "viewers" || sort.value === "recommended") rooms.sort((a,b) => Number(b.viewerCount || 0) - Number(a.viewerCount || 0));
     if (sort.value === "newest") rooms.sort((a,b) => Number(b.isNew) - Number(a.isNew) || Number(b.viewerCount || 0) - Number(a.viewerCount || 0));
 
-    populateCountries([...(data.countries || []), ...bonga.map(r => r.country).filter(Boolean)]);
+    populateCountries(data.countries || []);
     grid.innerHTML = "";
     for (const room of rooms.slice(0, 60)) grid.append(card(room));
     const platformText = [...new Set(rooms.map(r => r.platform).filter(Boolean))].map(p => p === "bongacams" ? "BongaCams" : "Chaturbate").join(" + ");
