@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NightCamFinds — Live cam directory</title>
-  <meta name="description" content="Browse live rooms by country, then open a room on Chaturbate. NightCamFinds does not stream video.">
+  <meta name="description" content="Browse live rooms by country from Chaturbate and BongaCams. NightCamFinds does not stream video.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="__ORIGIN__/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <meta property="og:title" content="NightCamFinds — Live cam directory">
-  <meta property="og:description" content="Independent 18+ directory of live rooms. Browse, filter, and open a room on the partner site.">
+  <meta property="og:description" content="Independent 18+ directory of live rooms from partner cam platforms. Browse, filter, and open a room on the partner site.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="__ORIGIN__/">
   <meta property="og:image" content="__ORIGIN__/og.svg">
@@ -51,7 +51,7 @@
     <section class="hero">
       <p class="eyebrow" id="kicker">Independent discovery</p>
       <h1 id="page-title">Discover live cams right now</h1>
-      <p class="muted" id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate. NightCamFinds does not stream video itself.</p>
+      <p class="muted" id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.</p>
       <div class="actions">
         <a class="btn" href="#grid">Watch live rooms</a>
         <a class="btn ghost" href="/broadcast">Start broadcasting</a>
@@ -72,14 +72,14 @@
     <div id="grid" class="grid" aria-live="polite"></div>
     <section class="affiliate-links">
       <h2>Chat free</h2>
-      <p class="muted">Open a room without an account. Create a free account when you want to chat or follow a model. Sign-up is on Chaturbate.</p>
+      <p class="muted">Open a room without an account. Create a free account when you want to chat or follow a model. Sign-up is available on the partner platform.</p>
       <div class="actions" id="partner-actions"></div>
       <h2>Markets</h2>
       <p class="muted"><a href="/country/us/">United States</a> · <a href="/country/gb/">United Kingdom</a> · <a href="/country/ca/">Canada</a> · <a href="/country/au/">Australia</a> · <a href="/country/de/">Germany</a> · <a href="/country/fr/">France</a> · <a href="/country/nl/">Netherlands</a></p>
       <h2>Questions</h2>
-      <p><strong>Does this site play video?</strong> No. Video plays on Chaturbate after you click a room.</p>
-      <p><strong>Is an account required to look?</strong> No. An account is required on Chaturbate to chat or follow.</p>
-      <p><strong>Who can apply to broadcast?</strong> Adults 18 or older. Approval is decided by Chaturbate, not NightCamFinds.</p>
+      <p><strong>Does this site play video?</strong> No. Video plays on the partner platform after you click a room.</p>
+      <p><strong>Is an account required to look?</strong> No. An account is required on the partner platform to chat or follow.</p>
+      <p><strong>Who can apply to broadcast?</strong> Adults 18 or older. Approval is decided by the partner platform, not NightCamFinds.</p>
     </section>
     <footer>
       <span>18+ independent directory. Video plays on the partner site, not here.</span>
@@ -90,6 +90,41 @@
       <a href="/contact">Contact</a>
     </footer>
   </div>
+  <script>
+  (() => {
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      const requestUrl = typeof input === "string" ? input : input?.url || "";
+      let path = requestUrl;
+      try { path = new URL(requestUrl, location.origin).pathname + new URL(requestUrl, location.origin).search; } catch {}
+      if (!path.startsWith("/api/rooms")) return nativeFetch(input, init);
+      const response = await nativeFetch(input, init);
+      try {
+        const base = await response.clone().json();
+        const u = new URL(path, location.origin);
+        u.searchParams.set("platform", "bongacams");
+        const bongaResponse = await nativeFetch(u.pathname + u.search, init);
+        if (!bongaResponse.ok) return response;
+        const bonga = await bongaResponse.json();
+        const merged = [...(base.rooms || []), ...(bonga.rooms || [])];
+        const seen = new Set();
+        base.rooms = merged.filter(room => {
+          if (!room?.id || seen.has(room.id)) return false;
+          seen.add(room.id);
+          return true;
+        });
+        base.platforms = [...new Set(base.rooms.map(room => room.platform).filter(Boolean))].sort();
+        return new Response(JSON.stringify(base), {
+          status: response.status,
+          statusText: response.statusText,
+          headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
+        });
+      } catch {
+        return response;
+      }
+    };
+  })();
+  </script>
   <script src="/app.js"></script>
 </body>
 </html>
