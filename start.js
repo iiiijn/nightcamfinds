@@ -297,14 +297,39 @@ async function revshareStats(incoming) {
   };
 }
 
+async function dashboardStats(incoming) {
+  if (!pool) return { persistent: false, totalClicks: 0, bongacamsClicks: 0, chaturbateClicks: 0, tier1Clicks: 0, bongaTier1Clicks: 0, today: 0, week: 0, month: 0, platforms: {}, countries: {}, sources: {}, registrations: 0, purchases: 0, earnings: 0 };
+  await pool.query(`CREATE TABLE IF NOT EXISTS affiliate_clicks (id BIGSERIAL PRIMARY KEY, clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), country VARCHAR(16) NOT NULL, category VARCHAR(40) NOT NULL, source VARCHAR(40) NOT NULL, campaign VARCHAR(80) NOT NULL, placement VARCHAR(80) NOT NULL, platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate')`);
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate'");
+  const from = incoming.searchParams.get("from");
+  const to = incoming.searchParams.get("to");
+  const conditions = [];
+  const params = [];
+  if (from) { params.push(`${from}T00:00:00.000Z`); conditions.push(`clicked_at >= $${params.length}`); }
+  if (to) { params.push(`${to}T23:59:59.999Z`); conditions.push(`clicked_at <= $${params.length}`); }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const q = async (sql, p = params) => (await pool.query(sql, p)).rows;
+  const total = Number((await q(`SELECT COUNT(*)::int AS n FROM affiliate_clicks ${where}`))[0]?.n || 0);
+  const platformRows = await q(`SELECT platform, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY platform ORDER BY n DESC`);
+  const countryRows = await q(`SELECT country, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY country ORDER BY n DESC`);
+  const sourceRows = await q(`SELECT source, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY source ORDER BY n DESC`);
+  const tier1 = ['US','CA','GB','AU','NZ','DE','FR','NL','IE','SE','NO','DK','FI','CH','AT','BE','LU','IS'];
+  const tierPlaceholders = tier1.map((_, i) => `$${params.length + i + 1}`).join(",");
+  const tierQuery = await pool.query(`SELECT COUNT(*)::int AS n, COUNT(*) FILTER (WHERE platform='bongacams')::int AS bonga FROM affiliate_clicks ${where ? where + " AND" : "WHERE"} UPPER(country) IN (${tierPlaceholders})`, [...params, ...tier1]);
+  const countSince = async interval => Number((await pool.query(`SELECT COUNT(*)::int AS n FROM affiliate_clicks WHERE clicked_at >= NOW() - INTERVAL '${interval}'`)).rows[0]?.n || 0);
+  const earningsRows = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS earnings FROM cb_conversions`);
+  const platforms = Object.fromEntries(platformRows.map(r => [r.platform || 'unknown', Number(r.n)]));
+  const countries = Object.fromEntries(countryRows.map(r => [r.country || 'UNKNOWN', Number(r.n)]));
+  const sources = Object.fromEntries(sourceRows.map(r => [r.source || 'direct', Number(r.n)]));
+  return { persistent: true, totalClicks: total, bongacamsClicks: platforms.bongacams || 0, chaturbateClicks: platforms.chaturbate || 0, tier1Clicks: Number(tierQuery.rows[0]?.n || 0), bongaTier1Clicks: Number(tierQuery.rows[0]?.bonga || 0), today: await countSince('1 day'), week: await countSince('7 days'), month: await countSince('30 days'), platforms, countries, sources, registrations: Number(earningsRows.rows[0]?.registrations || 0), purchases: Number(earningsRows.rows[0]?.purchases || 0), earnings: Number(earningsRows.rows[0]?.earnings || 0) };
+}
+
 http.createServer = function wrappedCreateServer(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
-
     const authHandled = await handleAuth(req, res, incoming);
     if (authHandled !== false) return;
-
-    if (["/api/stats", "/api/stats.csv", "/api/revshare", "/visits"].includes(incoming.pathname)) {
+    if (["/api/stats", "/api/stats.csv", "/api/revshare", "/api/dashboard-stats", "/visits"].includes(incoming.pathname)) {
       if (!validSession(req)) {
         if (incoming.pathname === "/visits") return res.end("Not found");
         return json(res, 401, { error: "Authentication required." });
@@ -314,39 +339,26 @@ http.createServer = function wrappedCreateServer(handler) {
         req.url = incoming.pathname + "?" + incoming.searchParams.toString();
       }
     }
-
-    if (incoming.pathname === "/api/revshare") {
-      try {
-        return json(res, 200, await revshareStats(incoming));
-      } catch (err) {
-        console.error("RevShare stats failed:", err.message);
-        return json(res, 500, { error: "Could not load RevShare analytics." });
-      }
+    if (incoming.pathname === "/api/dashboard-stats") {
+      try { return json(res, 200, await dashboardStats(incoming)); }
+      catch (err) { console.error("Dashboard stats failed:", err.message); return json(res, 500, { error: "Could not load dashboard analytics." }); }
     }
-
+    if (incoming.pathname === "/api/revshare") {
+      try { return json(res, 200, await revshareStats(incoming)); }
+      catch (err) { console.error("RevShare stats failed:", err.message); return json(res, 500, { error: "Could not load RevShare analytics." }); }
+    }
     if (incoming.pathname === "/cb/postback") {
       try {
         await saveConversion(Object.fromEntries(incoming.searchParams.entries()));
         res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
         return res.end("OK");
-      } catch (_) {
-        return json(res, 503, { error: "Postback storage unavailable." });
-      }
+      } catch (_) { return json(res, 503, { error: "Postback storage unavailable." }); }
     }
-
     let click = null;
     if (incoming.pathname.startsWith("/go/")) {
-      click = {
-        clickId: makeClickId(),
-        country: country(req),
-        category: clean(incoming.searchParams.get("cat"), "unknown", 40),
-        source: clean(incoming.searchParams.get("utm_source") || incoming.searchParams.get("source"), "direct", 40),
-        campaign: clean(incoming.searchParams.get("utm_campaign") || incoming.searchParams.get("campaign"), "unknown", 80),
-        placement: clean(incoming.searchParams.get("src"), "card", 80)
-      };
+      click = { clickId: makeClickId(), country: country(req), category: clean(incoming.searchParams.get("cat"), "unknown", 40), source: clean(incoming.searchParams.get("utm_source") || incoming.searchParams.get("source"), "direct", 40), campaign: clean(incoming.searchParams.get("utm_campaign") || incoming.searchParams.get("campaign"), "unknown", 80), placement: clean(incoming.searchParams.get("src"), "card", 80) };
       await saveClick(click);
     }
-
     const originalWriteHead = res.writeHead.bind(res);
     res.writeHead = function(statusCode, headers, ...rest) {
       if (click && headers && headers.Location) {
@@ -359,7 +371,6 @@ http.createServer = function wrappedCreateServer(handler) {
       }
       return originalWriteHead(statusCode, headers, ...rest);
     };
-
     return handler(req, res);
   });
 };
