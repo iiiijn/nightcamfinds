@@ -46,10 +46,31 @@ const QUICK = ["US","GB","CA","AU","DE","FR","NL"];
 const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
 const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
 const queryParams = new URLSearchParams(location.search);
-const trafficSource = (queryParams.get("utm_source") || queryParams.get("source") || "direct").slice(0, 30);
-const trafficCampaign = (queryParams.get("utm_campaign") || queryParams.get("campaign") || "organic").slice(0, 40);
-const trafficMedium = (queryParams.get("utm_medium") || "").slice(0, 30);
-const trafficContent = (queryParams.get("utm_content") || "").slice(0, 40);
+const incomingAttribution = {
+  source: queryParams.get("utm_source") || queryParams.get("source") || "",
+  medium: queryParams.get("utm_medium") || queryParams.get("medium") || "",
+  campaign: queryParams.get("utm_campaign") || queryParams.get("campaign") || "",
+  content: queryParams.get("utm_content") || queryParams.get("content") || ""
+};
+const hasIncomingAttribution = Object.values(incomingAttribution).some((value) => String(value).trim() !== "");
+let savedAttribution = {};
+try { savedAttribution = JSON.parse(localStorage.getItem("ncf_attribution") || "{}"); } catch (_) { savedAttribution = {}; }
+if (hasIncomingAttribution) {
+  savedAttribution = {
+    source: incomingAttribution.source || "direct",
+    medium: incomingAttribution.medium || "unknown",
+    campaign: incomingAttribution.campaign || "organic",
+    content: incomingAttribution.content || "",
+    landingPath: location.pathname,
+    savedAt: Date.now()
+  };
+  try { localStorage.setItem("ncf_attribution", JSON.stringify(savedAttribution)); } catch (_) {}
+}
+const attributionFresh = Number(savedAttribution.savedAt || 0) > Date.now() - 30 * 24 * 60 * 60 * 1000;
+const trafficSource = String(incomingAttribution.source || (attributionFresh ? savedAttribution.source : "") || "direct").slice(0, 30);
+const trafficCampaign = String(incomingAttribution.campaign || (attributionFresh ? savedAttribution.campaign : "") || "organic").slice(0, 40);
+const trafficMedium = String(incomingAttribution.medium || (attributionFresh ? savedAttribution.medium : "") || "unknown").slice(0, 30);
+const trafficContent = String(incomingAttribution.content || (attributionFresh ? savedAttribution.content : "") || "").slice(0, 40);
 
 const paidCampaign = /^(paid|cpc|ppc|ad|ads)$/i.test(trafficMedium);
 if (paidCampaign && category !== "all") {
