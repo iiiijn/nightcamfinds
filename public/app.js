@@ -87,17 +87,18 @@ function placement() {
 }
 
 function trackingQuery(extra = {}) {
+  const src = extra.src || placement();
   const params = new URLSearchParams({
-    src: extra.src || placement(),
+    src,
     cat: extra.cat || (category === "all" ? "all" : category),
     source: trafficSource,
-    campaign: trafficCampaign
+    medium: trafficMedium || "unknown",
+    campaign: trafficCampaign,
+    content: trafficContent || "",
+    placement: extra.placement || src
   });
-  if (trafficMedium) params.set("utm_medium", trafficMedium);
-  if (trafficContent) params.set("utm_content", trafficContent);
   return params.toString();
 }
-
 function partners() {
   const src = category === "all" ? "home-footer" : category + "-footer";
   const wrap = document.querySelector("#partner-actions");
