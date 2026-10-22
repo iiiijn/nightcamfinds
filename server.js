@@ -309,27 +309,36 @@ function bongaGender(value) {
 }
 
 function normalizeBongaRoom(room) {
-  const images = room.profile_images || {};
+  const username = clean(room.username || room.user_name || room.nickname || room.model || room.id);
+  if (!username) return null;
+  const rawImages = room.profile_images || room.images || {};
+  const images = typeof rawImages === "string" ? {} : rawImages;
   const age = Number(room.display_age || room.age || 0);
   const tags = Array.isArray(room.tags) ? room.tags.join(", ") : String(room.tags || "");
   if (Number.isFinite(age) && age > 0 && age < 18) return null;
+  const country = String(room.homecountry || room.country || room.country_code || "").toUpperCase();
+  const viewers = Number(room.members_count ?? room.num_users ?? room.viewers ?? room.viewer_count ?? 0) || 0;
+  const image = (typeof rawImages === "string" ? rawImages : "") ||
+    images.profile_image || images.thumbnail_image_big || images.thumbnail_image_medium ||
+    images.thumbnail_image_small || images.thumbnail_image_big_live ||
+    images.thumbnail_image_medium_live || room.image_url || room.thumbnail || room.avatar || "";
   return {
-    id: "bongacams:" + room.username,
+    id: "bongacams:" + username,
     platform: "bongacams",
     platformName: "BongaCams",
-    username: room.username,
-    displayName: clean(room.display_name || room.username) || room.username,
-    gender: bongaGender(room.gender),
-    country: String(room.homecountry || room.country || "").toUpperCase().match(/^[A-Z]{2}$/)?.[0] || "",
-    countryName: NAMES[String(room.homecountry || room.country || "").toUpperCase()] || clean(room.homecountry || room.country),
-    location: clean(room.hometown || room.homecountry),
-    viewerCount: Number(room.members_count || room.num_users || 0),
-    isHd: !!room.hd_cam || /\bhd\b/i.test(tags),
-    isNew: !!room.is_new,
-    image: images.profile_image || images.thumbnail_image_big || images.thumbnail_image_medium || images.thumbnail_image_small || images.thumbnail_image_big_live || images.thumbnail_image_medium_live || "",
-    roomSubject: clean(room.chat_topic || room.room_subject || tags),
-    languages: clean([room.primary_language, room.secondary_language].filter(Boolean).join(", ")),
-    href: room.chat_url || room.direct_chat_url || ""
+    username,
+    displayName: clean(room.display_name || room.name || username) || username,
+    gender: bongaGender(room.gender || room.sex),
+    country: country.match(/^[A-Z]{2}$/)?.[0] || "",
+    countryName: NAMES[country] || clean(country),
+    location: clean(room.hometown || room.location || country),
+    viewerCount: viewers,
+    isHd: !!room.hd_cam || !!room.hd || /\\bhd\\b/i.test(tags),
+    isNew: !!room.is_new || !!room.new,
+    image,
+    roomSubject: clean(room.chat_topic || room.room_subject || room.topic || tags),
+    languages: clean([room.primary_language, room.secondary_language, room.language].filter(Boolean).join(", ")),
+    href: room.chat_url || room.direct_chat_url || room.room_url || room.url || ""
   };
 }
 
@@ -349,7 +358,8 @@ async function fetchBongaRooms() {
     api_type: "json"
   });
   const data = await fetchJson(`${BONGA_API_BASE}?${params.toString()}`);
-  const rows = Array.isArray(data) ? data : (data.results || data.rooms || []);
+  const candidateRows = Array.isArray(data) ? data : (data.results || data.rooms || data.data || data.models || []);
+  const rows = Array.isArray(candidateRows) ? candidateRows : [];
   return rows.map(normalizeBongaRoom).filter(Boolean).filter(r => r.href);
 }
 
