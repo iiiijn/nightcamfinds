@@ -14,7 +14,6 @@
       src: `${platform}-${placement}`,
       cat: 'promo',
       source: 'website',
-      medium: 'onsite',
       campaign: `nightcamfinds-${platform}`,
       medium: 'onsite',
       content: placement,
