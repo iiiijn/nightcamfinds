@@ -21,13 +21,14 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DATABASE_SSL: ${{ vars.DATABASE_SSL }}
         run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::warning::DATABASE_URL Actions secret is not set. Skipping migration; set this secret to the Render external database URL if manual migration is needed."
+            exit 0
+          fi
           npm install --no-save pg
           node <<'NODE'
           const { Client } = require('pg');
           (async () => {
-            if (!process.env.DATABASE_URL) {
-              throw new Error('Configure the DATABASE_URL Actions secret before running this migration.');
-            }
             const client = new Client({
               connectionString: process.env.DATABASE_URL,
               ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false }
