@@ -105,6 +105,29 @@ async function handleAuth(req, res, incoming) {
 async function ensurePostbackTables() {
   if (!pool) return;
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS affiliate_clicks (
+      id BIGSERIAL PRIMARY KEY,
+      clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
+      category VARCHAR(40) NOT NULL DEFAULT 'unknown',
+      source VARCHAR(40) NOT NULL DEFAULT 'direct',
+      campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
+      placement VARCHAR(80) NOT NULL DEFAULT 'unknown',
+      platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate'
+    )
+  `);
+  await pool.query("ALTER TABLE affiliate_clicks ALTER COLUMN country TYPE VARCHAR(16)");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate'");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS medium VARCHAR(80) NOT NULL DEFAULT 'unknown'");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
+  await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_click_id_idx ON affiliate_clicks(click_id)");
+  await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_country_idx ON affiliate_clicks(country)");
+  await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_clicked_at_idx ON affiliate_clicks(clicked_at)");
+  await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_platform_idx ON affiliate_clicks(platform)");
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS cb_clicks (
       click_id VARCHAR(128) PRIMARY KEY,
       clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -164,11 +187,16 @@ async function saveClick(click) {
   try {
     await ensurePostbackTables();
     await pool.query(
+      `INSERT INTO affiliate_clicks (click_id,country,category,source,campaign,placement,platform,medium,content,device)
+       VALUES ($1,$2,$3,$4,$5,$6,'chaturbate',$7,$8,$9)`,
+      [click.clickId, click.country, click.category, click.source, click.campaign, click.placement, click.medium || "unknown", click.content || "", click.device || "unknown"]
+    );
+    await pool.query(
       `INSERT INTO cb_clicks (click_id,country,category,source,campaign,placement) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (click_id) DO NOTHING`,
       [click.clickId, click.country, click.category, click.source, click.campaign, click.placement]
     );
   } catch (err) {
-    console.error("Chaturbate click mapping failed:", err.message);
+    console.error("Affiliate click tracking failed:", err.message);
   }
 }
 
@@ -355,8 +383,21 @@ http.createServer = function wrappedCreateServer(handler) {
       } catch (_) { return json(res, 503, { error: "Postback storage unavailable." }); }
     }
     let click = null;
-    if (incoming.pathname.startsWith("/go/")) {
-      click = { clickId: makeClickId(), country: country(req), category: clean(incoming.searchParams.get("cat"), "unknown", 40), source: clean(incoming.searchParams.get("utm_source") || incoming.searchParams.get("source"), "direct", 40), campaign: clean(incoming.searchParams.get("utm_campaign") || incoming.searchParams.get("campaign"), "unknown", 80), placement: clean(incoming.searchParams.get("src"), "card", 80) };
+    if (incoming.pathname.startsWith("/go/") || incoming.pathname.startsWith("/bgo/")) {
+      const platform = incoming.pathname.startsWith("/bgo/") ? "bongacams" : "chaturbate";
+      const agent = String(req.headers["user-agent"] || "").toLowerCase();
+      click = {
+        clickId: makeClickId(),
+        country: country(req),
+        category: clean(incoming.searchParams.get("cat"), "unknown", 40),
+        source: clean(incoming.searchParams.get("utm_source") || incoming.searchParams.get("source"), "direct", 40),
+        campaign: clean(incoming.searchParams.get("utm_campaign") || incoming.searchParams.get("campaign"), "unknown", 80),
+        placement: clean(incoming.searchParams.get("placement") || incoming.searchParams.get("src"), "card", 80),
+        medium: clean(incoming.searchParams.get("utm_medium") || incoming.searchParams.get("medium"), "unknown", 80),
+        content: clean(incoming.searchParams.get("utm_content") || incoming.searchParams.get("content"), "", 120),
+        device: /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop",
+        platform
+      };
       await saveClick(click);
     }
     const originalWriteHead = res.writeHead.bind(res);
@@ -365,7 +406,10 @@ http.createServer = function wrappedCreateServer(handler) {
         try {
           const target = new URL(headers.Location);
           target.searchParams.set("click_id", click.clickId);
-          if (!target.searchParams.get("source") && click.source !== "direct") target.searchParams.set("source", click.source);
+          target.searchParams.set("source", click.source);
+          target.searchParams.set("campaign", click.campaign);
+          target.searchParams.set("track", click.placement);
+          if (click.medium !== "unknown") target.searchParams.set("medium", click.medium);
           headers = { ...headers, Location: target.toString() };
         } catch (_) {}
       }
