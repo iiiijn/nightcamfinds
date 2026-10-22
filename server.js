@@ -153,13 +153,17 @@ async function ensureTrackingTable() {
   trackingReady = true;
 }
 
-async function countClick({ src, country, category = "unknown", source = "direct", campaign = "unknown", platform = "chaturbate" }) {
+async function countClick({ src, country, category = "unknown", source = "direct", campaign = "unknown", medium = "unknown", content = "", device = "unknown", clickId, platform = "chaturbate" }) {
   if (pgPool) {
     try {
       await ensureTrackingTable();
+      await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS medium VARCHAR(80) NOT NULL DEFAULT 'unknown'");
+      await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''");
+      await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
+      await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
       await pgPool.query(
-        "INSERT INTO affiliate_clicks (country, category, source, campaign, placement, platform) VALUES ($1,$2,$3,$4,$5,$6)",
-        [country, category, source, campaign, src, platform]
+        "INSERT INTO affiliate_clicks (country, category, source, campaign, placement, platform, medium, content, device, click_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+        [country, category, source, campaign, src, platform, medium, content, device, clickId || null]
       );
       return;
     } catch (err) {
@@ -187,6 +191,10 @@ async function countClick({ src, country, category = "unknown", source = "direct
   stats.byPlacement[`${platform}:${src}`] = (stats.byPlacement[`${platform}:${src}`] || 0) + 1;
   stats.byPlatform = stats.byPlatform || {};
   stats.byPlatform[platform] = (stats.byPlatform[platform] || 0) + 1;
+  stats.byMedium = stats.byMedium || {};
+  stats.byMedium[medium] = (stats.byMedium[medium] || 0) + 1;
+  stats.byDevice = stats.byDevice || {};
+  stats.byDevice[device] = (stats.byDevice[device] || 0) + 1;
   stats.updatedAt = new Date().toISOString();
   writeStats(stats);
 }
