@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>NightCamFinds Campaign Center</title>
+<link rel="stylesheet" href="/styles.css">
+<style>
+body{background:#0d0b10;color:#f7f4f7}.cc{width:min(900px,calc(100% - 24px));margin:32px auto 70px}.panel{background:#15131a;border:1px solid #2c2732;border-radius:16px;padding:20px;margin:16px 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grid label{display:grid;gap:6px;color:#aaa2ad}.grid input,.grid select{background:#0f0d13;border:1px solid #2c2732;color:inherit;border-radius:10px;padding:11px}.btn{display:inline-block;border:0;border-radius:10px;padding:11px 15px;background:#ff78aa;color:#180b12;font-weight:800;cursor:pointer}.out{display:grid;gap:10px}.out input{width:100%;background:#0f0d13;border:1px solid #2c2732;color:#f7f4f7;border-radius:10px;padding:11px}.hint{color:#aaa2ad}.success{color:#78e6a5}.table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;padding:10px;border-bottom:1px solid #2c2732}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style></head>
+<body><main class="cc">
+<section class="panel"><p class="hint">NIGHTCAMFINDS · CAMPAIGN CENTER</p><h1>Create a clean tracking link</h1><p class="hint">Use one campaign per traffic test. The visitor's source, medium and campaign are remembered for 30 days and carried into affiliate redirects.</p>
+<div class="grid">
+<label>Traffic source<select id="source"><option value="x">X</option><option value="telegram">Telegram</option><option value="reddit">Reddit</option><option value="exoclick">ExoClick</option><option value="trafficjunky">TrafficJunky</option><option value="facebook">Facebook</option><option value="google">Google</option><option value="direct">Direct</option><option value="other">Other</option></select></label>
+<label>Medium<select id="medium"><option value="organic_social">Organic social</option><option value="paid_social">Paid social</option><option value="paid_ads">Paid ads</option><option value="telegram">Telegram</option><option value="referral">Referral</option><option value="email">Email</option></select></label>
+<label>Affiliate platform<select id="platform"><option value="chaturbate">Chaturbate</option><option value="bongacams">BongaCams</option></select></label>
+<label>Target country<select id="country"><option value="us">United States</option><option value="ca">Canada</option><option value="gb">United Kingdom</option><option value="de">Germany</option><option value="fr">France</option><option value="nl">Netherlands</option><option value="pl">Poland</option><option value="au">Australia</option><option value="nz">New Zealand</option><option value="all">All</option></select></label>
+<label>Campaign name<input id="campaign" value="X-US-CHUB-001" placeholder="X-US-CHUB-001"></label>
+<label>Placement<input id="placement" value="profile" placeholder="profile, post, banner, bio"></label>
+</div><p><button class="btn" id="generate">Generate tracking link</button></p>
+<div class="out" id="out" hidden><label>Campaign URL<input id="url" readonly></label><button class="btn" id="copy">Copy link</button><p class="success" id="copied"></p></div>
+</section>
+<section class="panel"><h2>Naming examples</h2><table class="table"><thead><tr><th>Use case</th><th>Campaign</th></tr></thead><tbody><tr><td>X → Chaturbate → US</td><td>X-US-CHUB-001</td></tr><tr><td>X → BongaCams → UK</td><td>X-GB-BONGA-001</td></tr><tr><td>Telegram → Chaturbate → Poland</td><td>TG-PL-CHUB-001</td></tr><tr><td>ExoClick → BongaCams → US</td><td>EXO-US-BONGA-001</td></tr></tbody></table></section>
+<section class="panel"><h2>How it works</h2><p class="hint">Every generated URL points to NightCamFinds first. When someone enters through that URL, the site remembers the attribution and applies it to later Chaturbate or BongaCams clicks. This keeps the affiliate destination clean while preserving the campaign data in your dashboard.</p></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);const clean=v=>String(v||'').toLowerCase().trim().replace(/[^a-z0-9_-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,70)||'unknown';
+function generate(){const source=clean($('source').value),medium=clean($('medium').value),platform=clean($('platform').value),country=clean($('country').value),campaign=clean($('campaign').value),placement=clean($('placement').value);const u=new URL('/',location.origin);u.searchParams.set('utm_source',source);u.searchParams.set('utm_medium',medium);u.searchParams.set('utm_campaign',campaign);u.searchParams.set('ncf_platform',platform);u.searchParams.set('ncf_country',country);u.searchParams.set('ncf_placement',placement);$('url').value=u.toString();$('out').hidden=false;$('copied').textContent='Generated. Save this URL as the official link for this campaign.'}
+$('generate').addEventListener('click',generate);$('copy').addEventListener('click',async()=>{await navigator.clipboard.writeText($('url').value);$('copied').textContent='Copied to clipboard.'});generate();
+</script></body></html>
