@@ -113,6 +113,24 @@ function rangeClause(incoming, column = "received_at") {
 
 async function dashboardStats(incoming) {
   if (!pool) throw new Error("Database is not configured");
+  // Ensure analytics schema exists in the server that actually handles dashboard requests.
+  await pool.query(`CREATE TABLE IF NOT EXISTS affiliate_clicks (
+    id BIGSERIAL PRIMARY KEY,
+    clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
+    category VARCHAR(40) NOT NULL DEFAULT 'unknown',
+    source VARCHAR(40) NOT NULL DEFAULT 'direct',
+    campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
+    placement VARCHAR(80) NOT NULL DEFAULT 'unknown',
+    platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate'
+  )`);
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate'");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS medium VARCHAR(80) NOT NULL DEFAULT 'unknown'");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
+  await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_click_id_idx ON affiliate_clicks(click_id)");
+
   const cb = rangeClause(incoming, "clicked_at");
   const conv = rangeClause(incoming, "received_at");
   await bongacash.ensureTable(pool);
