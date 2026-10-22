@@ -439,35 +439,50 @@ const server = http.createServer(async (req, res) => {
     return send(res, room ? 200 : 503, JSON.stringify({ room }), "application/json");
   }
 
-  if (pathname.startsWith("/bgo/")) {
-    const id = decodeURIComponent(pathname.slice(5));
+  if (pathname.startsWith("/bgo/") || pathname.startsWith("/go/")) {
+    const isBonga = pathname.startsWith("/bgo/");
+    const id = decodeURIComponent(pathname.slice(isBonga ? 5 : 4));
     const username = id.split(":").pop();
-    const src = cleanLabel(url.searchParams.get("src"), "bonga-card", 40);
-    const category = cleanLabel(url.searchParams.get("cat"), "unknown", 20);
-    const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "direct", 30);
-    const campaign = cleanLabel(url.searchParams.get("utm_campaign") || url.searchParams.get("campaign"), "unknown", 40);
+    const platform = isBonga ? "bongacams" : "chaturbate";
+    const src = cleanLabel(url.searchParams.get("src"), isBonga ? "bonga-card" : "cb-card", 80);
+    const category = cleanLabel(url.searchParams.get("cat"), "unknown", 40);
+    const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "direct", 40);
+    const medium = cleanLabel(url.searchParams.get("utm_medium") || url.searchParams.get("medium"), "unknown", 80);
+    const campaign = cleanLabel(url.searchParams.get("utm_campaign") || url.searchParams.get("campaign"), "unknown", 80);
+    const content = cleanLabel(url.searchParams.get("utm_content") || url.searchParams.get("content"), "", 120);
     const country = visitorCountry(req);
-    await countClick({ src, country, category, source, campaign, platform:"bongacams" });
-    const room = cache.rooms.find(r => r.platform === "bongacams" && r.username === username);
-    const target = room?.href || `https://bongacams4.com/track?c=${encodeURIComponent(BONGA_CAMPAIGN)}`;
-    res.writeHead(302, { Location:target, "Cache-Control":"no-store" });
-    return res.end();
-  }
-
-  if (pathname.startsWith("/go/")) {
-    const id = decodeURIComponent(pathname.slice(4));
-    const username = id.split(":").pop();
-    const src = cleanLabel(url.searchParams.get("src"), "card", 40);
-    const category = cleanLabel(url.searchParams.get("cat"), "unknown", 20);
-    const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "direct", 30);
-    const campaign = cleanLabel(url.searchParams.get("utm_campaign") || url.searchParams.get("campaign"), "unknown", 40);
-    const country = visitorCountry(req);
-    await countClick({ src, country, category, source, campaign, platform:"chaturbate" });
-    const room = cache.rooms.find(r => r.platform === "chaturbate" && r.username === username);
-    const target = room?.href
-      ? withTrack(room.href, src)
-      : `https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(src)}&room=${encodeURIComponent(username)}`;
-    res.writeHead(302, { Location:target, "Cache-Control":"no-store" });
+    const agent = String(req.headers["user-agent"] || "").toLowerCase();
+    const device = /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop";
+    const clickId = "ncf_" + Date.now().toString(36) + "_" + require("crypto").randomBytes(8).toString("hex");
+    await countClick({ src, country, category, source, campaign, medium, content, device, clickId, platform });
+    const room = cache.rooms.find(r => r.platform === platform && r.username === username);
+    let target;
+    if (isBonga) {
+      const supplied = room?.href || "";
+      try {
+        const parsed = supplied ? new URL(supplied) : null;
+        if (parsed && /(^|\\.)bongacams4?\\.com$/i.test(parsed.hostname)) {
+          parsed.searchParams.set("click_id", clickId);
+          parsed.searchParams.set("source", source);
+          parsed.searchParams.set("campaign", campaign);
+          parsed.searchParams.set("track", src);
+          target = parsed.toString();
+        }
+      } catch (_) {}
+      if (!target) target = `https://bongacams4.com/track?c=${encodeURIComponent(BONGA_CAMPAIGN)}&click_id=${encodeURIComponent(clickId)}&track=${encodeURIComponent(src)}`;
+    } else {
+      const fallback = `https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(src)}&room=${encodeURIComponent(username)}`;
+      target = room?.href ? withTrack(room.href, src) : fallback;
+      try {
+        const parsed = new URL(target);
+        parsed.searchParams.set("click_id", clickId);
+        parsed.searchParams.set("source", source);
+        parsed.searchParams.set("campaign", campaign);
+        parsed.searchParams.set("medium", medium);
+        target = parsed.toString();
+      } catch (_) { target = fallback; }
+    }
+    res.writeHead(302, { Location:target, "Cache-Control":"no-store", "Referrer-Policy":"no-referrer" });
     return res.end();
   }
 
