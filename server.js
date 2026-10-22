@@ -158,36 +158,62 @@ async function ensureTrackingTable() {
   trackingReady = true;
 }
 
+async function ensureAffiliateLedgers() {
+  if (!pgPool) return;
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS cb_clicks (
+      click_id VARCHAR(128) PRIMARY KEY,
+      clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
+      category VARCHAR(40) NOT NULL DEFAULT 'unknown',
+      source VARCHAR(80) NOT NULL DEFAULT 'direct',
+      campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
+      placement VARCHAR(80) NOT NULL DEFAULT 'unknown'
+    )
+  `);
+  await pgPool.query("ALTER TABLE cb_clicks ALTER COLUMN country TYPE VARCHAR(16)");
+  await pgPool.query("ALTER TABLE cb_clicks ADD COLUMN IF NOT EXISTS category VARCHAR(40) NOT NULL DEFAULT 'unknown'");
+  await pgPool.query("ALTER TABLE cb_clicks ADD COLUMN IF NOT EXISTS source VARCHAR(80) NOT NULL DEFAULT 'direct'");
+  await pgPool.query("ALTER TABLE cb_clicks ADD COLUMN IF NOT EXISTS campaign VARCHAR(80) NOT NULL DEFAULT 'unknown'");
+  await pgPool.query("ALTER TABLE cb_clicks ADD COLUMN IF NOT EXISTS placement VARCHAR(80) NOT NULL DEFAULT 'unknown'");
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS bonga_clicks (
+      id BIGSERIAL PRIMARY KEY,
+      affiliate_click_id BIGINT,
+      click_id VARCHAR(128) UNIQUE,
+      clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
+      category VARCHAR(40) NOT NULL DEFAULT 'unknown',
+      source VARCHAR(80) NOT NULL DEFAULT 'direct',
+      campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
+      placement VARCHAR(80) NOT NULL DEFAULT 'unknown',
+      medium VARCHAR(80) NOT NULL DEFAULT 'unknown',
+      content VARCHAR(120) NOT NULL DEFAULT '',
+      device VARCHAR(32) NOT NULL DEFAULT 'unknown'
+    )
+  `);
+  await pgPool.query("CREATE INDEX IF NOT EXISTS cb_clicks_clicked_at_idx ON cb_clicks(clicked_at)");
+  await pgPool.query("CREATE INDEX IF NOT EXISTS bonga_clicks_clicked_at_idx ON bonga_clicks(clicked_at)");
+}
+
 async function countClick({ src, country, category = "unknown", source = "direct", campaign = "unknown", medium = "unknown", content = "", device = "unknown", clickId, platform = "chaturbate" }) {
   if (pgPool) {
     try {
       await ensureTrackingTable();
-      await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS medium VARCHAR(80) NOT NULL DEFAULT 'unknown'");
-      await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''");
-      await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
-      await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
-      const result = await pgPool.query(
+      await ensureAffiliateLedgers();
+      const inserted = await pgPool.query(
         "INSERT INTO affiliate_clicks (country, category, source, campaign, placement, platform, medium, content, device, click_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
         [country, category, source, campaign, src, platform, medium, content, device, clickId || null]
       );
-      if (platform === "bongacams") {
-        await pgPool.query(`CREATE TABLE IF NOT EXISTS bonga_clicks (
-          id BIGSERIAL PRIMARY KEY,
-          affiliate_click_id BIGINT,
-          click_id VARCHAR(128) UNIQUE,
-          clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-          country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
-          category VARCHAR(40) NOT NULL DEFAULT 'unknown',
-          source VARCHAR(40) NOT NULL DEFAULT 'direct',
-          campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
-          placement VARCHAR(80) NOT NULL DEFAULT 'unknown',
-          medium VARCHAR(80) NOT NULL DEFAULT 'unknown',
-          content VARCHAR(120) NOT NULL DEFAULT '',
-          device VARCHAR(32) NOT NULL DEFAULT 'unknown'
-        )`);
+      if (platform === "chaturbate" && clickId) {
         await pgPool.query(
-          "INSERT INTO bonga_clicks (affiliate_click_id, click_id, country, category, source, campaign, placement, medium, content, device) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (click_id) DO NOTHING",
-          [result.rows[0]?.id || null, clickId || null, country, category, source, campaign, src, medium, content, device]
+          "INSERT INTO cb_clicks (click_id,country,category,source,campaign,placement) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (click_id) DO NOTHING",
+          [clickId, country, category, source, campaign, src]
+        );
+      } else if (platform === "bongacams" && clickId) {
+        await pgPool.query(
+          "INSERT INTO bonga_clicks (affiliate_click_id,click_id,country,category,source,campaign,placement,medium,content,device) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (click_id) DO NOTHING",
+          [inserted.rows[0]?.id || null, clickId, country, category, source, campaign, src, medium, content, device]
         );
       }
       return;

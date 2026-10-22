@@ -382,39 +382,6 @@ http.createServer = function wrappedCreateServer(handler) {
         return res.end("OK");
       } catch (_) { return json(res, 503, { error: "Postback storage unavailable." }); }
     }
-    let click = null;
-    if (incoming.pathname.startsWith("/go/") || incoming.pathname.startsWith("/bgo/")) {
-      const platform = incoming.pathname.startsWith("/bgo/") ? "bongacams" : "chaturbate";
-      const agent = String(req.headers["user-agent"] || "").toLowerCase();
-      click = {
-        clickId: makeClickId(),
-        country: country(req),
-        category: clean(incoming.searchParams.get("cat"), "unknown", 40),
-        source: clean(incoming.searchParams.get("utm_source") || incoming.searchParams.get("source"), "direct", 40),
-        campaign: clean(incoming.searchParams.get("utm_campaign") || incoming.searchParams.get("campaign"), "unknown", 80),
-        placement: clean(incoming.searchParams.get("placement") || incoming.searchParams.get("src"), "card", 80),
-        medium: clean(incoming.searchParams.get("utm_medium") || incoming.searchParams.get("medium"), "unknown", 80),
-        content: clean(incoming.searchParams.get("utm_content") || incoming.searchParams.get("content"), "", 120),
-        device: /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop",
-        platform
-      };
-      await saveClick(click);
-    }
-    const originalWriteHead = res.writeHead.bind(res);
-    res.writeHead = function(statusCode, headers, ...rest) {
-      if (click && headers && headers.Location) {
-        try {
-          const target = new URL(headers.Location);
-          target.searchParams.set("click_id", click.clickId);
-          target.searchParams.set("source", click.source);
-          target.searchParams.set("campaign", click.campaign);
-          target.searchParams.set("track", click.placement);
-          if (click.medium !== "unknown") target.searchParams.set("medium", click.medium);
-          headers = { ...headers, Location: target.toString() };
-        } catch (_) {}
-      }
-      return originalWriteHead(statusCode, headers, ...rest);
-    };
     return handler(req, res);
   });
 };
