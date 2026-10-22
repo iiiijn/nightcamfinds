@@ -1,0 +1,47 @@
+name: NightCamFinds database migration
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  migrate:
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[tracking-db-migrated]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ensure PostgreSQL tracking columns exist
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_SSL: ${{ vars.DATABASE_SSL }}
+        run: |
+          node <<'NODE'
+          const { Client } = require('pg');
+          (async () => {
+            if (!process.env.DATABASE_URL) {
+              console.log('DATABASE_URL GitHub secret is not configured. Skipping migration. Configure it in Settings > Secrets and variables > Actions.');
+              process.exit(0);
+            }
+            const client = new Client({
+              connectionString: process.env.DATABASE_URL,
+              ssl: process.env.DATABASE_SSL === 'false' ? false : { rejectUnauthorized: false }
+            });
+            await client.connect();
+            try {
+              await client.query(`ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS medium VARCHAR(80) NOT NULL DEFAULT 'unknown'`);
+              await client.query(`ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''`);
+              await client.query(`ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'`);
+              await client.query(`ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)`);
+              await client.query(`CREATE INDEX IF NOT EXISTS affiliate_clicks_click_id_idx ON affiliate_clicks(click_id)`);
+              console.log('Affiliate tracking columns migrated successfully.');
+            } finally {
+              await client.end();
+            }
+          })().catch(err => { console.error('Migration failed:', err.message); process.exit(1); });
+          NODE
