@@ -229,6 +229,14 @@ async function dashboardStats(incoming) {
 http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
+    if (incoming.pathname === "/api/health") {
+      return sendJson(res, 200, {
+        ok: true,
+        databaseConfigured: Boolean(databaseUrl),
+        bongaPostbackConfigured: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
+        timestamp: new Date().toISOString()
+      });
+    }
     if (incoming.pathname === "/dashboard" || incoming.pathname === "/dashboard/") {
       const html = fs.readFileSync(path.join(__dirname, "public", "dashboard.html"), "utf8");
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
