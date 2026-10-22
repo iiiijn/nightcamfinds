@@ -27,6 +27,21 @@ h2 { margin:0 0 8px; }
 .tier1-box p { margin:5px 0 0; }
 .quick { display:flex; gap:8px; flex-wrap:wrap; margin:0; }
 .quick button { background:transparent; color:var(--text); }
+.promo-strip { display:grid; gap:12px; padding:14px; margin:0 0 18px; background:linear-gradient(135deg,#24151e,#171118); border:1px solid var(--line); border-radius:18px; }
+.promo-title { display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+.promo-title strong { font-size:18px; }
+.promo-sub { color:var(--muted); font-size:14px; }
+.promo-dot { width:9px; height:9px; border-radius:50%; background:#ff5f7a; box-shadow:0 0 0 4px rgba(255,95,122,.12); display:inline-block; }
+.promo-cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.promo-card { min-width:0; display:flex; gap:10px; align-items:center; padding:8px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.025); text-decoration:none; }
+.promo-card:hover { border-color:#76516a; }
+.promo-card img { width:82px; height:58px; object-fit:cover; border-radius:8px; background:#241824; flex:0 0 auto; }
+.promo-card span { min-width:0; display:grid; gap:2px; }
+.promo-card strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.promo-card small { color:var(--muted); }
+.sticky-promo { position:fixed; left:16px; right:16px; bottom:16px; z-index:4; display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 14px; background:rgba(27,21,32,.96); border:1px solid var(--line); border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.35); backdrop-filter:blur(10px); }
+.sticky-promo > div { display:flex; align-items:center; gap:9px; min-width:0; flex-wrap:wrap; }
+.sticky-promo small { color:var(--muted); }
 .controls { display:grid; grid-template-columns:minmax(220px,1fr) 180px 180px; gap:10px; margin:0 0 14px; }
 input, select { width:100%; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
@@ -48,5 +63,5 @@ html.ok .age-gate { display:none; }
 .legal { padding-top:48px; }
 .home-group { grid-column:1/-1; }
 .home-group h2 { margin:8px 0; }
-@media (max-width:800px) { .tier1-box,.affiliate-links { flex-direction:column; align-items:flex-start; } .controls { grid-template-columns:1fr 1fr; } .controls input { grid-column:1/-1; } }
-@media (max-width:520px) { nav { font-size:14px; } .controls { grid-template-columns:1fr; } .controls input { grid-column:auto; } h1 { font-size:40px; } }
+@media (max-width:800px) { .tier1-box,.affiliate-links { flex-direction:column; align-items:flex-start; } .controls { grid-template-columns:1fr 1fr; } .controls input { grid-column:1/-1; } .promo-cards { grid-template-columns:1fr; } }
+@media (max-width:520px) { nav { font-size:14px; } .controls { grid-template-columns:1fr; } .controls input { grid-column:auto; } h1 { font-size:40px; } .sticky-promo { left:8px; right:8px; bottom:8px; } .sticky-promo .btn { padding:8px 12px; } }
