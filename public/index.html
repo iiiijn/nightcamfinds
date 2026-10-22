@@ -44,6 +44,10 @@
       <div class="actions"><a class="btn" href="#grid">Watch live rooms</a><a class="btn ghost" href="/broadcast">Start broadcasting</a></div>
     </section>
     <div class="quick" id="quick" aria-label="Tier 1 countries"></div>
+
+    <section class="promo-strip" id="chatubate-live-promo" aria-label="Chatubate live promotion"></section>
+    <section class="promo-strip" id="bonga-live-promo" aria-label="BongaCams live promotion"></section>
+
     <div class="toolbar">
       <input id="q" placeholder="Search name or country" aria-label="Search" inputmode="search" autocomplete="off">
       <select id="sort" aria-label="Sort"><option value="recommended">Recommended</option><option value="viewers">Most viewers</option><option value="newest">Newest</option></select>
@@ -60,31 +64,8 @@
     </section>
     <footer><span>18+ independent directory. Video plays on the partner site, not here.</span><a href="/about">About</a><a href="/affiliate-disclosure">Affiliate disclosure</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/contact">Contact</a></footer>
   </div>
-  <script>
-  (() => {
-    const nativeFetch = window.fetch.bind(window);
-    window.fetch = async (input, init) => {
-      const requestUrl = typeof input === "string" ? input : input?.url || "";
-      let path = requestUrl;
-      try { path = new URL(requestUrl, location.origin).pathname + new URL(requestUrl, location.origin).search; } catch {}
-      if (!path.startsWith("/api/rooms")) return nativeFetch(input, init);
-      const response = await nativeFetch(input, init);
-      try {
-        const base = await response.clone().json();
-        const u = new URL(path, location.origin);
-        u.searchParams.set("platform", "bongacams");
-        const bongaResponse = await nativeFetch(u.pathname + u.search, init);
-        if (!bongaResponse.ok) return response;
-        const bonga = await bongaResponse.json();
-        const merged = [...(base.rooms || []), ...(bonga.rooms || [])];
-        const seen = new Set();
-        base.rooms = merged.filter(room => { if(!room?.id || seen.has(room.id)) return false; seen.add(room.id); return true; });
-        base.platforms = [...new Set(base.rooms.map(room => room.platform).filter(Boolean))].sort();
-        return new Response(JSON.stringify(base), { status: response.status, statusText: response.statusText, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
-      } catch { return response; }
-    };
-  })();
-  </script>
+  <aside id="stickyPromo" class="sticky-promo" aria-label="Live promotion" hidden></aside>
   <script src="/app.js" defer></script>
+  <script src="/promo.js" defer></script>
 </body>
 </html>
