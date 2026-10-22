@@ -8,16 +8,31 @@
   const tier1 = new Set(['US','CA','GB','IE','AU','NZ','DE','FR','NL','SE','NO','DK','FI','CH','AT','BE']);
   const names = { US:'the US', CA:'Canada', GB:'the UK', IE:'Ireland', AU:'Australia', NZ:'New Zealand', DE:'Germany', FR:'France', NL:'the Netherlands', SE:'Sweden', NO:'Norway', DK:'Denmark', FI:'Finland', CH:'Switzerland', AT:'Austria', BE:'Belgium' };
 
+  function getMarketingAttribution() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('ncf_attribution') || '{}'); } catch (_) {}
+    const fresh = Number(saved.savedAt || 0) > Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const url = new URLSearchParams(location.search);
+    const clean = (v, fallback) => String(v || fallback).toLowerCase().replace(/[^a-z0-9._-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || fallback;
+    return {
+      source: clean(url.get('utm_source') || url.get('source') || (fresh ? saved.source : ''), 'direct'),
+      medium: clean(url.get('utm_medium') || url.get('medium') || (fresh ? saved.medium : ''), 'unknown'),
+      campaign: clean(url.get('utm_campaign') || url.get('campaign') || (fresh ? saved.campaign : ''), 'organic')
+    };
+  }
+
+  // Keep original visitor attribution on promo clicks instead of overwriting X,
+  // Telegram or paid-ad attribution with the generic label "website".
   function trackUrl(room, placement) {
     const platform = room.platform === 'bongacams' ? 'bongacams' : 'chaturbate';
+    const attr = getMarketingAttribution();
     const params = new URLSearchParams({
       src: `${platform}-${placement}`,
       cat: 'promo',
-      source: 'website',
-      campaign: `nightcamfinds-${platform}`,
-      medium: 'onsite',
-      content: placement,
-      placement
+      source: attr.source,
+      medium: attr.medium,
+      campaign: attr.campaign,
+      content: placement
     });
     return platform === 'bongacams'
       ? `/bgo/${encodeURIComponent(room.id)}?${params.toString()}`
