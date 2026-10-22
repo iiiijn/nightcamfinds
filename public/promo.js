@@ -15,7 +15,10 @@
       cat: 'promo',
       source: 'website',
       medium: 'onsite',
-      campaign: `nightcamfinds-${platform}`
+      campaign: `nightcamfinds-${platform}`,
+      medium: 'onsite',
+      content: placement,
+      placement
     });
     return platform === 'bongacams'
       ? `/bgo/${encodeURIComponent(room.id)}?${params.toString()}`
