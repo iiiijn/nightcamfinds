@@ -166,10 +166,30 @@ async function countClick({ src, country, category = "unknown", source = "direct
       await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''");
       await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
       await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
-      await pgPool.query(
-        "INSERT INTO affiliate_clicks (country, category, source, campaign, placement, platform, medium, content, device, click_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+      const result = await pgPool.query(
+        "INSERT INTO affiliate_clicks (country, category, source, campaign, placement, platform, medium, content, device, click_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
         [country, category, source, campaign, src, platform, medium, content, device, clickId || null]
       );
+      if (platform === "bongacams") {
+        await pgPool.query(`CREATE TABLE IF NOT EXISTS bonga_clicks (
+          id BIGSERIAL PRIMARY KEY,
+          affiliate_click_id BIGINT,
+          click_id VARCHAR(128) UNIQUE,
+          clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
+          category VARCHAR(40) NOT NULL DEFAULT 'unknown',
+          source VARCHAR(40) NOT NULL DEFAULT 'direct',
+          campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
+          placement VARCHAR(80) NOT NULL DEFAULT 'unknown',
+          medium VARCHAR(80) NOT NULL DEFAULT 'unknown',
+          content VARCHAR(120) NOT NULL DEFAULT '',
+          device VARCHAR(32) NOT NULL DEFAULT 'unknown'
+        )`);
+        await pgPool.query(
+          "INSERT INTO bonga_clicks (affiliate_click_id, click_id, country, category, source, campaign, placement, medium, content, device) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (click_id) DO NOTHING",
+          [result.rows[0]?.id || null, clickId || null, country, category, source, campaign, src, medium, content, device]
+        );
+      }
       return;
     } catch (err) {
       console.error("Postgres click tracking failed; falling back to local storage:", err.message);
