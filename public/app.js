@@ -165,7 +165,12 @@ function pickHomeRooms(rooms, gender) {
   const matches = rooms.filter((room) => room.gender === gender);
   const bonga = matches.filter((room) => room.platform === "bongacams");
   const chaturbate = matches.filter((room) => room.platform === "chaturbate");
-  const selected = [...bonga.slice(0, 2), ...chaturbate.slice(0, 2)];
+  const selected = [];
+  const pairs = Math.max(Math.min(bonga.length, 2), Math.min(chaturbate.length, 2));
+  for (let i = 0; i < 2; i++) {
+    if (bonga[i]) selected.push(bonga[i]);
+    if (chaturbate[i]) selected.push(chaturbate[i]);
+  }
 
   if (selected.length < 4) {
     const selectedIds = new Set(selected.map((room) => room.id));
@@ -178,6 +183,20 @@ function pickHomeRooms(rooms, gender) {
   }
 
   return selected.slice(0, 4);
+}
+
+// Category pages also use a balanced first block so one platform cannot occupy
+// the entire visible section simply because it has a larger feed.
+function balanceCategoryRooms(rooms) {
+  const bonga = rooms.filter((room) => room.platform === "bongacams");
+  const chaturbate = rooms.filter((room) => room.platform === "chaturbate");
+  const mixed = [];
+  const maxPairs = Math.max(bonga.length, chaturbate.length);
+  for (let i = 0; i < maxPairs; i++) {
+    if (bonga[i]) mixed.push(bonga[i]);
+    if (chaturbate[i]) mixed.push(chaturbate[i]);
+  }
+  return mixed;
 }
 
 let timer;
@@ -213,7 +232,10 @@ async function load() {
       section.append(heading, row);
       grid.append(section);
     }
-  } else grid.replaceChildren(...rooms.map(card));
+  } else {
+    const displayed = balanceCategoryRooms(rooms);
+    grid.replaceChildren(...displayed.map(card));
+  }
   countEl.textContent = (rooms.length ? rooms.length + " live rooms" : "No rooms match that filter.") + " · updated " + new Date().toLocaleTimeString();
   notice.hidden = !data.notice;
   notice.textContent = data.notice || "";
