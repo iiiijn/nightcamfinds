@@ -162,16 +162,42 @@ async function dashboardStats(incoming) {
 
   const sources = {};
   const countries = {};
+  const placements = {};
+  const devices = {};
   try {
-    const r = await pool.query(`SELECT platform, source, country, COUNT(*)::int AS clicks FROM affiliate_clicks ${cb.where} GROUP BY platform, source, country`, cb.params);
+    const r = await pool.query(`SELECT platform, source, country, placement, device, COUNT(*)::int AS clicks
+      FROM affiliate_clicks ${cb.where}
+      GROUP BY platform, source, country, placement, device`, cb.params);
     for (const row of r.rows) {
       const platform = String(row.platform || "unknown");
       const source = String(row.source || "direct");
       const country = String(row.country || "UNKNOWN").toUpperCase();
-      sources[`${platform}:${source}`] = (sources[`${platform}:${source}`] || 0) + Number(row.clicks || 0);
-      countries[country] = (countries[country] || 0) + Number(row.clicks || 0);
+      const placement = String(row.placement || "unknown");
+      const device = String(row.device || "unknown");
+      const clicks = Number(row.clicks || 0);
+      sources[`${platform}:${source}`] = (sources[`${platform}:${source}`] || 0) + clicks;
+      countries[country] = (countries[country] || 0) + clicks;
+      placements[`${platform}:${placement}`] = (placements[`${platform}:${placement}`] || 0) + clicks;
+      devices[device] = (devices[device] || 0) + clicks;
     }
-  } catch {}
+  } catch (err) {
+    // Keep dashboard operational if expanded metadata has not been migrated yet.
+    try {
+      const r = await pool.query(`SELECT platform, source, country, placement, COUNT(*)::int AS clicks
+        FROM affiliate_clicks ${cb.where}
+        GROUP BY platform, source, country, placement`, cb.params);
+      for (const row of r.rows) {
+        const platform = String(row.platform || "unknown");
+        const source = String(row.source || "direct");
+        const country = String(row.country || "UNKNOWN").toUpperCase();
+        const placement = String(row.placement || "unknown");
+        const clicks = Number(row.clicks || 0);
+        sources[`${platform}:${source}`] = (sources[`${platform}:${source}`] || 0) + clicks;
+        countries[country] = (countries[country] || 0) + clicks;
+        placements[`${platform}:${placement}`] = (placements[`${platform}:${placement}`] || 0) + clicks;
+      }
+    } catch (inner) { console.error("Attribution aggregation unavailable:", inner.message); }
+  }
 
   const combinedCountries = { ...countries };
   for (const row of bonga.byCountry) combinedCountries[row.name] = (combinedCountries[row.name] || 0) + row.conversions;
@@ -194,7 +220,9 @@ async function dashboardStats(incoming) {
     bongacashConnected: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
     platforms: { chaturbate: cbClicks, bongacams: bongaClicks },
     sources,
-    countries: combinedCountries
+    countries: combinedCountries,
+    placements,
+    devices
   };
 }
 
