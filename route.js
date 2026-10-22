@@ -150,7 +150,6 @@ async function dashboardStats(incoming) {
   } catch {}
 
   const totalClicks = cbClicks + bongaClicks;
-  const today = rangeClause(new URL(incoming), "clicked_at");
   const now = new Date();
   const iso = d => d.toISOString().slice(0,10);
   const day = new URL(incoming); day.searchParams.set("from", iso(now)); day.searchParams.set("to", iso(now));
@@ -192,11 +191,8 @@ async function dashboardStats(incoming) {
     bongacamsPurchases: bonga.purchases,
     bongacamsEarnings: bonga.earnings,
     bongacamsPurchaseSpend: bonga.spend,
-    bongacashConnected: Boolean(process.env.BONGACASH_POSTBACK_SECRET),
-    platforms: {
-      chaturbate: cbClicks,
-      bongacams: bongaClicks
-    },
+    bongacashConnected: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
+    platforms: { chaturbate: cbClicks, bongacams: bongaClicks },
     sources,
     countries: combinedCountries
   };
@@ -205,37 +201,27 @@ async function dashboardStats(incoming) {
 http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
-
     if (incoming.pathname === "/dashboard" || incoming.pathname === "/dashboard/") {
       const html = fs.readFileSync(path.join(__dirname, "public", "dashboard.html"), "utf8");
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
       return res.end(html);
     }
-
     if (incoming.pathname === "/api/bonga-rooms") {
       try { return sendJson(res, 200, { rooms: await bongaRooms(), platform: "bongacams" }); }
       catch (err) { console.error("BongaCams feed error:", err.message); return sendJson(res, 502, { rooms: [], platform: "bongacams", error: err.message }); }
     }
-
     if (incoming.pathname === "/api/bongacash/postback") {
       const params = new URLSearchParams(incoming.searchParams);
       if (!bongacash.verifySecret(req, params)) return sendJson(res, 403, { error: "Invalid BongaCash postback secret." });
       if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
-      try {
-        const saved = await bongacash.save(pool, params);
-        return sendJson(res, 200, saved);
-      } catch (err) {
-        console.error("BongaCash postback failed:", err.message);
-        return sendJson(res, 500, { error: "Could not save BongaCash conversion." });
-      }
+      try { return sendJson(res, 200, await bongacash.save(pool, params)); }
+      catch (err) { console.error("BongaCash postback failed:", err.message); return sendJson(res, 500, { error: "Could not save BongaCash conversion." }); }
     }
-
     if (incoming.pathname === "/api/dashboard-stats") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
       try { return sendJson(res, 200, await dashboardStats(incoming)); }
       catch (err) { console.error("Dashboard stats failed:", err.message); return sendJson(res, 500, { error: err.message }); }
     }
-
     const originalWriteHead = res.writeHead.bind(res);
     res.writeHead = function affiliateAwareWriteHead(statusCode, headers, ...rest) {
       if (incoming.pathname.startsWith("/bgo/") && headers && headers.Location) {
@@ -250,7 +236,6 @@ http.createServer = function routeDashboard(handler) {
       }
       return originalWriteHead(statusCode, headers, ...rest);
     };
-
     return handler(req, res);
   });
 };
