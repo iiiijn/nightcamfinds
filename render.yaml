@@ -17,9 +17,17 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
-      # The application reads the database connection from DATABASE_URL.
-      # Keep the credential in Render, never in GitHub.
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: nightcamfinds-db
+          property: connectionString
       - key: DATABASE_SSL
         value: "true"
+      - key: CB_CAMPAIGN
+        sync: false
+      - key: CB_TOUR
+        sync: false
+      - key: BONGACAMS_CAMPAIGN
+        sync: false
+      - key: BONGACASH_POSTBACK_SECRET
+        sync: false
