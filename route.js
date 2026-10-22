@@ -20,6 +20,36 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSW
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
 const TIER1 = new Set(["US","CA","GB","IE","AU","NZ","DE","FR","NL","SE","NO","DK","FI","CH","AT","BE"]);
 
+async function ensureAffiliateSchema() {
+  if (!pool) return;
+  await pool.query(`CREATE TABLE IF NOT EXISTS affiliate_clicks (
+    id BIGSERIAL PRIMARY KEY,
+    clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
+    category VARCHAR(40) NOT NULL DEFAULT 'unknown',
+    source VARCHAR(40) NOT NULL DEFAULT 'direct',
+    campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
+    placement VARCHAR(80) NOT NULL DEFAULT 'unknown',
+    platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate'
+  )`);
+  await pool.query("ALTER TABLE affiliate_clicks ALTER COLUMN country TYPE VARCHAR(16)");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate'");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS medium VARCHAR(80) NOT NULL DEFAULT 'unknown'");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
+  await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
+  await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_click_id_idx ON affiliate_clicks(click_id)");
+  await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_country_idx ON affiliate_clicks(country)");
+  await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_clicked_at_idx ON affiliate_clicks(clicked_at)");
+  await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_platform_idx ON affiliate_clicks(platform)");
+}
+
+// Run safe, additive migrations when the service starts rather than waiting for the first admin login.
+ensureAffiliateSchema()
+  .then(() => { if (pool) console.log("NightCamFinds affiliate attribution schema ready"); })
+  .catch(err => console.error("NightCamFinds affiliate schema migration failed:", err.message));
+
+
 function getJson(url) {
   return new Promise((resolve, reject) => {
     const req = https.get(url, { headers: { "User-Agent": "NightCamFinds/1.0", "Accept": "application/json,text/plain,*/*" } }, res => {
