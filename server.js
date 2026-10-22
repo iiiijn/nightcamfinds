@@ -333,7 +333,7 @@ function normalizeBongaRoom(room) {
     countryName: NAMES[country] || clean(country),
     location: clean(room.hometown || room.location || country),
     viewerCount: viewers,
-    isHd: !!room.hd_cam || !!room.hd || /\\bhd\\b/i.test(tags),
+    isHd: !!room.hd_cam || !!room.hd || /\bhd\b/i.test(tags),
     isNew: !!room.is_new || !!room.new,
     image,
     roomSubject: clean(room.chat_topic || room.room_subject || room.topic || tags),
