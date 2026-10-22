@@ -512,7 +512,7 @@ const server = http.createServer(async (req, res) => {
       const supplied = room?.href || "";
       try {
         const parsed = supplied ? new URL(supplied) : null;
-        if (parsed && /(^|\\.)bongacams4?\\.com$/i.test(parsed.hostname)) {
+        if (parsed && /(^|\.)bongacams4?\.com$/i.test(parsed.hostname)) {
           parsed.searchParams.set("click_id", clickId);
           parsed.searchParams.set("source", source);
           parsed.searchParams.set("campaign", campaign);
