@@ -39,6 +39,9 @@ h2 { margin:0 0 8px; }
 .promo-card span { min-width:0; display:grid; gap:2px; }
 .promo-card strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .promo-card small { color:var(--muted); }
+.promo-banner { overflow:hidden; }
+.promo-banner a { display:block; text-decoration:none; }
+.promo-banner img { display:block; width:100%; max-width:728px; height:auto; margin:0 auto; border-radius:10px; }
 .sticky-promo { position:fixed; left:16px; right:16px; bottom:16px; z-index:4; display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 14px; background:rgba(27,21,32,.96); border:1px solid var(--line); border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.35); backdrop-filter:blur(10px); }
 .sticky-promo > div { display:flex; align-items:center; gap:9px; min-width:0; flex-wrap:wrap; }
 .sticky-promo small { color:var(--muted); }
