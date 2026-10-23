@@ -1,0 +1,10 @@
+{
+  "chaturbate": {
+    "enabled": true,
+    "bannerUrl": "",
+    "bannerAlt": "Chaturbate live cams"
+  },
+  "bongacams": {
+    "enabled": true
+  }
+}
