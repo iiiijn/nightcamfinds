@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promo Lab — NightCamFinds</title>
+  <meta name="description" content="NightCamFinds affiliate promotion and placement test page.">
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .promo-lab{max-width:1100px;margin:0 auto;padding:32px 20px 70px}
+    .promo-lab header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:32px}
+    .promo-lab .back{color:inherit;text-decoration:none;opacity:.8}
+    .lab-hero,.tool-card,.test-card{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(255,255,255,.035);padding:22px}
+    .lab-hero{margin-bottom:18px}
+    .lab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+    .tool-card h3,.test-card h3{margin:0 0 8px}
+    .tool-card p,.test-card p{line-height:1.55}
+    .tool-card a,.test-card a{display:inline-flex;margin-top:12px}
+    .cb-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:14px}
+    .cb-room{display:block;color:inherit;text-decoration:none;border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.16)}
+    .cb-room img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#111}
+    .cb-room span{display:block;padding:10px}
+    .cb-room small{display:block;opacity:.65;margin-top:3px}
+    .banner-mock{min-height:90px;display:grid;place-items:center;text-align:center;border-radius:12px;margin-top:14px;padding:12px;background:linear-gradient(135deg,rgba(255,70,140,.18),rgba(120,80,255,.18));border:1px solid rgba(255,255,255,.12)}
+    .note{font-size:13px;opacity:.68;margin-top:14px}
+    code{font-size:12px}
+  </style>
+</head>
+<body>
+  <main class="promo-lab">
+    <header>
+      <a class="logo" href="/">NightCam<span>Finds</span></a>
+      <a class="back" href="/">Back to directory</a>
+    </header>
+
+    <section class="lab-hero">
+      <p class="eyebrow">Affiliate Promo Lab</p>
+      <h1>Chaturbate promotion layer</h1>
+      <p class="muted">This page is our controlled test area for Chaturbate promotional placements. Every outbound CTA uses the same NightCamFinds redirect and attribution system, so we can compare placements instead of guessing which advert performs.</p>
+    </section>
+
+    <section class="lab-grid">
+      <article class="tool-card">
+        <h3>Text Ads</h3>
+        <p>Use short, high-intent CTAs for visitors who are already browsing live rooms.</p>
+        <a class="btn" data-cb-link="text-top" href="/go/chaturbate:featured?src=promotools-text-top&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=text-top">Watch live rooms</a>
+      </article>
+      <article class="tool-card">
+        <h3>Banner Test</h3>
+        <p>Controlled banner placement. Replace the visual below with an official Chaturbate banner from your Promo Tools account once selected.</p>
+        <div class="banner-mock"><strong>CHaturbate LIVE • Find a room worth watching</strong></div>
+        <a class="btn ghost" data-cb-link="banner-hero" href="/go/chaturbate:featured?src=promotools-banner-hero&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=banner-hero">Open live cams</a>
+      </article>
+      <article class="tool-card">
+        <h3>Footer / Sticky CTA</h3>
+        <p>A persistent low-friction placement for visitors who scroll through the directory before choosing a room.</p>
+        <a class="btn ghost" data-cb-link="sticky" href="/go/chaturbate:featured?src=promotools-sticky&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=sticky">See who's live</a>
+      </article>
+    </section>
+
+    <section class="test-card" style="margin-top:18px">
+      <p class="eyebrow">Cam Listing</p>
+      <h2>Live Chaturbate rooms</h2>
+      <p class="muted">This uses the live Chaturbate feed already connected to NightCamFinds. It gives us a measurable listing placement while we prepare the official Chaturbate iframe/asset version.</p>
+      <div id="cb-list" class="cb-list"><p class="muted">Loading live rooms…</p></div>
+    </section>
+
+    <section class="test-card" style="margin-top:18px">
+      <p class="eyebrow">Official tools</p>
+      <h2>Assets we will plug into this layer</h2>
+      <div class="lab-grid">
+        <article><h3>Users Online API</h3><p class="muted">Room discovery and online-status data.</p><a class="btn ghost" href="https://chaturbate.com/affiliates/promotools/">Open tool</a></article>
+        <article><h3>Postbacks</h3><p class="muted">Server-to-server signup and purchase events. This feeds the money layer later.</p><a class="btn ghost" href="https://chaturbate.com/affiliates/devkit/dynamic_postback/">Configure</a></article>
+        <article><h3>Banners</h3><p class="muted">Official female, male, trans, animated and broadcaster assets.</p><a class="btn ghost" href="https://chaturbate.com/affiliates/promotools/">Choose banners</a></article>
+        <article><h3>Embed Cam</h3><p class="muted">Direct room embedding for pages where an embedded experience makes sense.</p><a class="btn ghost" href="https://chaturbate.com/affiliates/promotools/">Open tool</a></article>
+      </div>
+      <p class="note">We will not fake or scrape official banner/embed code. Once the exact Chaturbate asset/link code is selected, we put it into the corresponding placement and keep the NightCamFinds attribution parameters around the outbound click.</p>
+    </section>
+  </main>
+
+  <script>
+    (async () => {
+      const box = document.querySelector('#cb-list');
+      try {
+        const r = await fetch('/api/rooms?platform=chaturbate&sort=viewers', {headers:{Accept:'application/json'}});
+        if (!r.ok) throw new Error('feed unavailable');
+        const data = await r.json();
+        const rooms = Array.isArray(data.rooms) ? data.rooms.slice(0, 8) : [];
+        if (!rooms.length) { box.innerHTML = '<p class="muted">No Chaturbate rooms are available right now.</p>'; return; }
+        box.innerHTML = '';
+        for (const room of rooms) {
+          const a = document.createElement('a');
+          a.className = 'cb-room';
+          const params = new URLSearchParams({src:'promotools-cam-listing',cat:'promo',source:'website',medium:'promotools',campaign:'cb-promo-lab',content:'cam-listing'});
+          a.href = `/go/${encodeURIComponent(room.id)}?${params.toString()}`;
+          a.target = '_blank';
+          a.rel = 'sponsored nofollow noopener';
+          a.innerHTML = `<img loading="lazy" src="${room.image || '/og.svg'}" alt=""><span><strong>${room.displayName || room.username}</strong><small>${Number(room.viewerCount || 0).toLocaleString()} watching</small></span>`;
+          box.appendChild(a);
+        }
+      } catch (e) {
+        box.innerHTML = '<p class="muted">The live listing is temporarily unavailable.</p>';
+      }
+    })();
+  </script>
+</body>
+</html>
