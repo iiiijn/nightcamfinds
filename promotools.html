@@ -4,26 +4,37 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Promo Lab — NightCamFinds</title>
-  <meta name="description" content="NightCamFinds affiliate promotion and placement test page.">
+  <meta name="description" content="NightCamFinds Chaturbate affiliate promo tools and placement testing lab.">
   <link rel="stylesheet" href="/styles.css">
   <style>
-    .promo-lab{max-width:1100px;margin:0 auto;padding:32px 20px 70px}
+    .promo-lab{max-width:1180px;margin:0 auto;padding:32px 20px 70px}
     .promo-lab header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:32px}
     .promo-lab .back{color:inherit;text-decoration:none;opacity:.8}
-    .lab-hero,.tool-card,.test-card{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(255,255,255,.035);padding:22px}
+    .lab-hero,.tool-card,.test-card,.setup-card{border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(255,255,255,.035);padding:22px}
     .lab-hero{margin-bottom:18px}
     .lab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
-    .tool-card h3,.test-card h3{margin:0 0 8px}
-    .tool-card p,.test-card p{line-height:1.55}
+    .tool-card h3,.test-card h3,.setup-card h3{margin:0 0 8px}
+    .tool-card p,.test-card p,.setup-card p{line-height:1.55}
     .tool-card a,.test-card a{display:inline-flex;margin-top:12px}
+    .tool-tag{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;opacity:.7;margin-bottom:8px}
     .cb-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:14px}
     .cb-room{display:block;color:inherit;text-decoration:none;border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.16)}
     .cb-room img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#111}
     .cb-room span{display:block;padding:10px}
     .cb-room small{display:block;opacity:.65;margin-top:3px}
     .banner-mock{min-height:90px;display:grid;place-items:center;text-align:center;border-radius:12px;margin-top:14px;padding:12px;background:linear-gradient(135deg,rgba(255,70,140,.18),rgba(120,80,255,.18));border:1px solid rgba(255,255,255,.12)}
+    .ad-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-top:14px}
+    .ad-option{border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px;background:rgba(0,0,0,.12)}
+    .ad-option strong{display:block;margin-bottom:7px}
+    .ad-option code{display:block;font-size:12px;line-height:1.5;opacity:.8;word-break:break-word}
+    .tool-link{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+    .tool-link:last-child{border-bottom:0}
+    .tool-link span{display:block;line-height:1.45}
+    .tool-link small{display:block;opacity:.62;margin-top:2px}
     .note{font-size:13px;opacity:.68;margin-top:14px}
+    .status{font-size:13px;margin-top:10px;opacity:.72}
     code{font-size:12px}
+    @media(max-width:650px){.promo-lab header{align-items:flex-start;flex-direction:column}}
   </style>
 </head>
 <body>
@@ -36,51 +47,100 @@
     <section class="lab-hero">
       <p class="eyebrow">Affiliate Promo Lab</p>
       <h1>Chaturbate promotion layer</h1>
-      <p class="muted">This page is our controlled test area for Chaturbate promotional placements. Every outbound CTA uses the same NightCamFinds redirect and attribution system, so we can compare placements instead of guessing which advert performs.</p>
+      <p class="muted">One place for the Chaturbate promo tools you showed me, with every outbound placement routed through the NightCamFinds attribution layer. That lets the money layer later connect earnings back to source, campaign, country, device and placement.</p>
     </section>
 
-    <section class="lab-grid">
-      <article class="tool-card">
-        <h3>Text Ads</h3>
-        <p>Use short, high-intent CTAs for visitors who are already browsing live rooms.</p>
-        <a class="btn" data-cb-link="text-top" href="/go/chaturbate:featured?src=promotools-text-top&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=text-top">Watch live rooms</a>
-      </article>
-      <article class="tool-card">
-        <h3>Banner Test</h3>
-        <p>Controlled banner placement. Replace the visual below with an official Chaturbate banner from your Promo Tools account once selected.</p>
-        <div class="banner-mock"><strong>CHaturbate LIVE • Find a room worth watching</strong></div>
-        <a class="btn ghost" data-cb-link="banner-hero" href="/go/chaturbate:featured?src=promotools-banner-hero&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=banner-hero">Open live cams</a>
-      </article>
-      <article class="tool-card">
-        <h3>Footer / Sticky CTA</h3>
-        <p>A persistent low-friction placement for visitors who scroll through the directory before choosing a room.</p>
-        <a class="btn ghost" data-cb-link="sticky" href="/go/chaturbate:featured?src=promotools-sticky&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=sticky">See who's live</a>
-      </article>
+    <section class="setup-card" style="margin-bottom:18px">
+      <p class="tool-tag">How this layer works</p>
+      <h2>Traffic → tracked click → Chaturbate → postback → earnings</h2>
+      <p class="muted">The website does not invent Chaturbate creative code. Official banners, embeds and text-ad linking codes are kept as the source of truth. Once you generate a linking code in Chaturbate, we attach it to the matching placement and keep our own click ID and campaign metadata around the outbound redirect.</p>
+      <div class="ad-grid">
+        <div class="ad-option"><strong>1. Acquisition</strong><code>X / SEO / paid traffic / direct</code></div>
+        <div class="ad-option"><strong>2. Placement</strong><code>text / banner / cam-listing / footer / embed</code></div>
+        <div class="ad-option"><strong>3. Attribution</strong><code>source + medium + campaign + content + country + device</code></div>
+        <div class="ad-option"><strong>4. Monetization</strong><code>Chaturbate postback → confirmed earnings</code></div>
+      </div>
+    </section>
+
+    <section class="test-card">
+      <p class="tool-tag">Pre-built text ads</p>
+      <h2>Text ad placements</h2>
+      <p class="muted">These match the types visible in your Chaturbate affiliate account. Each button is a separately measurable placement, so we can later see which wording produces the most valuable traffic.</p>
+      <div class="ad-grid">
+        <article class="ad-option"><strong>Chaturbate.com - Free Live Chat!</strong><code>content=cb-free-live-chat</code><a class="btn" data-promo-link="cb-free-live-chat" href="/go/chaturbate:featured?src=cb-text-free-live-chat&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-free-live-chat">Test placement</a></article>
+        <article class="ad-option"><strong>Chaturbate.com - Adult Cams!</strong><code>content=cb-adult-cams</code><a class="btn" data-promo-link="cb-adult-cams" href="/go/chaturbate:featured?src=cb-text-adult-cams&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-adult-cams">Test placement</a></article>
+        <article class="ad-option"><strong>Click Here - Free Live Chat</strong><code>content=cb-click-free-chat</code><a class="btn" data-promo-link="cb-click-free-chat" href="/go/chaturbate:featured?src=cb-text-click-free-chat&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-click-free-chat">Test placement</a></article>
+        <article class="ad-option"><strong>Click Here - Free Live Cams</strong><code>content=cb-click-free-cams</code><a class="btn" data-promo-link="cb-click-free-cams" href="/go/chaturbate:featured?src=cb-text-click-free-cams&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-click-free-cams">Test placement</a></article>
+        <article class="ad-option"><strong>Click Here - Free Adult Chat</strong><code>content=cb-click-adult-chat</code><a class="btn" data-promo-link="cb-click-adult-chat" href="/go/chaturbate:featured?src=cb-text-click-adult-chat&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-click-adult-chat">Test placement</a></article>
+        <article class="ad-option"><strong>Free Live Sex Chat - Chaturbate.com</strong><code>content=cb-free-sex-chat</code><a class="btn" data-promo-link="cb-free-sex-chat" href="/go/chaturbate:featured?src=cb-text-free-sex-chat&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-free-sex-chat">Test placement</a></article>
+        <article class="ad-option"><strong>Free Live Sex Shows</strong><code>content=cb-free-sex-shows</code><a class="btn" data-promo-link="cb-free-sex-shows" href="/go/chaturbate:featured?src=cb-text-free-sex-shows&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-free-sex-shows">Test placement</a></article>
+        <article class="ad-option"><strong>Free Live Chat Feeds</strong><code>content=cb-live-chat-feeds</code><a class="btn" data-promo-link="cb-live-chat-feeds" href="/go/chaturbate:featured?src=cb-text-live-chat-feeds&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-live-chat-feeds">Test placement</a></article>
+        <article class="ad-option"><strong>Free Adult Video Chat</strong><code>content=cb-adult-video-chat</code><a class="btn" data-promo-link="cb-adult-video-chat" href="/go/chaturbate:featured?src=cb-text-adult-video-chat&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-adult-video-chat">Test placement</a></article>
+        <article class="ad-option"><strong>Free Amateur Video Show</strong><code>content=cb-amateur-video-show</code><a class="btn" data-promo-link="cb-amateur-video-show" href="/go/chaturbate:featured?src=cb-text-amateur-video-show&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-amateur-video-show">Test placement</a></article>
+        <article class="ad-option"><strong>Horny Amateurs on Cam</strong><code>content=cb-horny-amateurs</code><a class="btn" data-promo-link="cb-horny-amateurs" href="/go/chaturbate:featured?src=cb-text-horny-amateurs&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-horny-amateurs">Test placement</a></article>
+        <article class="ad-option"><strong>Instant Access - Adult Chat</strong><code>content=cb-instant-adult-chat</code><a class="btn" data-promo-link="cb-instant-adult-chat" href="/go/chaturbate:featured?src=cb-text-instant-adult-chat&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-instant-adult-chat">Test placement</a></article>
+        <article class="ad-option"><strong>Join 100% Free - Webcams/Chat</strong><code>content=cb-join-free-webcams</code><a class="btn" data-promo-link="cb-join-free-webcams" href="/go/chaturbate:featured?src=cb-text-join-free-webcams&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=cb-join-free-webcams">Test placement</a></article>
+      </div>
     </section>
 
     <section class="test-card" style="margin-top:18px">
-      <p class="eyebrow">Cam Listing</p>
+      <p class="tool-tag">Banners</p>
+      <h2>Banner placement system</h2>
+      <p class="muted">The tracking slots are ready for the official Chaturbate animated, broadcaster, broadcaster recruitment, female, male and trans banners. We will not replace these with unofficial creatives.</p>
+      <div class="lab-grid">
+        <article class="tool-card"><h3>Hero banner</h3><div class="banner-mock"><strong>Official Chaturbate banner slot</strong></div><a class="btn" href="/go/chaturbate:featured?src=cb-banner-hero&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=banner-hero">Test hero placement</a></article>
+        <article class="tool-card"><h3>Footer banner</h3><div class="banner-mock"><strong>Official Chaturbate banner slot</strong></div><a class="btn ghost" href="/go/chaturbate:featured?src=cb-banner-footer&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=banner-footer">Test footer placement</a></article>
+      </div>
+    </section>
+
+    <section class="test-card" style="margin-top:18px">
+      <p class="tool-tag">Cam Listing</p>
       <h2>Live Chaturbate rooms</h2>
-      <p class="muted">This uses the live Chaturbate feed already connected to NightCamFinds. It gives us a measurable listing placement while we prepare the official Chaturbate iframe/asset version.</p>
+      <p class="muted">This is already connected to the live room feed. Every room click receives a unique placement label so the dashboard can separate listing traffic from text and banner traffic.</p>
       <div id="cb-list" class="cb-list"><p class="muted">Loading live rooms…</p></div>
     </section>
 
     <section class="test-card" style="margin-top:18px">
-      <p class="eyebrow">Official tools</p>
-      <h2>Assets we will plug into this layer</h2>
-      <div class="lab-grid">
-        <article><h3>Users Online API</h3><p class="muted">Room discovery and online-status data.</p><a class="btn ghost" href="https://chaturbate.com/affiliates/promotools/">Open tool</a></article>
-        <article><h3>Postbacks</h3><p class="muted">Server-to-server signup and purchase events. This feeds the money layer later.</p><a class="btn ghost" href="https://chaturbate.com/affiliates/devkit/dynamic_postback/">Configure</a></article>
-        <article><h3>Banners</h3><p class="muted">Official female, male, trans, animated and broadcaster assets.</p><a class="btn ghost" href="https://chaturbate.com/affiliates/promotools/">Choose banners</a></article>
-        <article><h3>Embed Cam</h3><p class="muted">Direct room embedding for pages where an embedded experience makes sense.</p><a class="btn ghost" href="https://chaturbate.com/affiliates/promotools/">Open tool</a></article>
-      </div>
-      <p class="note">We will not fake or scrape official banner/embed code. Once the exact Chaturbate asset/link code is selected, we put it into the corresponding placement and keep the NightCamFinds attribution parameters around the outbound click.</p>
+      <p class="tool-tag">Embed Cam</p>
+      <h2>Embedded room slot</h2>
+      <p class="muted">The system has a dedicated placement for an official Chaturbate Embed Cam. The final iframe code should come directly from your Chaturbate Promo Tools account rather than being recreated by us.</p>
+      <div class="banner-mock"><strong>Official Embed Cam slot</strong></div>
+      <a class="btn" href="/go/chaturbate:featured?src=cb-embed-cam&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=embed-cam">Test tracked slot</a>
     </section>
+
+    <section class="test-card" style="margin-top:18px">
+      <p class="tool-tag">Instant Messenger Ads</p>
+      <h2>Messenger placements</h2>
+      <div class="lab-grid">
+        <article class="tool-card"><h3>Female</h3><p class="muted">Tracked slot for the official Chaturbate female Instant Messenger creative.</p><a class="btn" href="/go/chaturbate:featured?src=cb-im-female&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=im-female">Test female slot</a></article>
+        <article class="tool-card"><h3>Male</h3><p class="muted">Tracked slot for the official Chaturbate male Instant Messenger creative.</p><a class="btn" href="/go/chaturbate:featured?src=cb-im-male&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=im-male">Test male slot</a></article>
+      </div>
+    </section>
+
+    <section class="test-card" style="margin-top:18px">
+      <p class="tool-tag">Popup + RSS/Atom</p>
+      <h2>Additional distribution tools</h2>
+      <div class="tool-link"><span><strong>Popup Code</strong><small>Reserved for the official Chaturbate popup implementation.</small></span><a class="btn ghost" href="/go/chaturbate:featured?src=cb-popup&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=popup">Test popup destination</a></div>
+      <div class="tool-link"><span><strong>RSS / Atom</strong><small>Reserved for a server-side feed integration without scraping the public site.</small></span><a class="btn ghost" href="/go/chaturbate:featured?src=cb-rss-atom&cat=promo&source=website&medium=promotools&campaign=cb-promo-lab&content=rss-atom">Test feed destination</a></div>
+    </section>
+
+    <section class="test-card" style="margin-top:18px">
+      <p class="tool-tag">Official Chaturbate tools</p>
+      <h2>Source links</h2>
+      <div class="tool-link"><span><strong>Users Online API</strong><small>Room discovery and online-status data.</small></span><a class="btn ghost" href="https://chaturbate.com/affiliates/promotools/" rel="noopener">Open</a></div>
+      <div class="tool-link"><span><strong>Postbacks</strong><small>Server-to-server registration and purchase events. This is the money layer.</small></span><a class="btn ghost" href="https://chaturbate.com/affiliates/devkit/dynamic_postback/" rel="noopener">Configure</a></div>
+      <div class="tool-link"><span><strong>Banners</strong><small>Official animated, broadcaster, recruitment, female, male and trans assets.</small></span><a class="btn ghost" href="https://chaturbate.com/affiliates/promotools/" rel="noopener">Choose</a></div>
+      <div class="tool-link"><span><strong>Embed Cam</strong><small>Official embed implementation.</small></span><a class="btn ghost" href="https://chaturbate.com/affiliates/promotools/" rel="noopener">Open</a></div>
+    </section>
+
+    <p class="note">Important: the page now provides the full tracking architecture and placement inventory. The final Chaturbate creative code must come from your affiliate account. Once you select a banner, text-ad linking code, embed or messenger creative, we can replace the corresponding tracked slot with that official asset without changing the analytics layer.</p>
+    <p id="status" class="status">Attribution tracking is active for this page.</p>
   </main>
 
   <script>
     (async () => {
       const box = document.querySelector('#cb-list');
+      const status = document.querySelector('#status');
       try {
         const r = await fetch('/api/rooms?platform=chaturbate&sort=viewers', {headers:{Accept:'application/json'}});
         if (!r.ok) throw new Error('feed unavailable');
@@ -91,15 +151,17 @@
         for (const room of rooms) {
           const a = document.createElement('a');
           a.className = 'cb-room';
-          const params = new URLSearchParams({src:'promotools-cam-listing',cat:'promo',source:'website',medium:'promotools',campaign:'cb-promo-lab',content:'cam-listing'});
+          const params = new URLSearchParams({src:'cb-cam-listing',cat:'promo',source:'website',medium:'promotools',campaign:'cb-promo-lab',content:'cam-listing'});
           a.href = `/go/${encodeURIComponent(room.id)}?${params.toString()}`;
           a.target = '_blank';
           a.rel = 'sponsored nofollow noopener';
           a.innerHTML = `<img loading="lazy" src="${room.image || '/og.svg'}" alt=""><span><strong>${room.displayName || room.username}</strong><small>${Number(room.viewerCount || 0).toLocaleString()} watching</small></span>`;
           box.appendChild(a);
         }
+        status.textContent = `Tracking active · ${rooms.length} live rooms loaded.`;
       } catch (e) {
         box.innerHTML = '<p class="muted">The live listing is temporarily unavailable.</p>';
+        status.textContent = 'Tracking active · live room feed unavailable.';
       }
     })();
   </script>
