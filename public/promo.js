@@ -1,8 +1,9 @@
 (() => {
-  const cbPromo = document.querySelector('#chatubate-live-promo');
+  const cbPromo = document.querySelector('#chaturbate-live-promo');
   const bcPromo = document.querySelector('#bonga-live-promo');
+  const banner = document.querySelector('#cb-banner-promo');
   const sticky = document.querySelector('#stickyPromo');
-  if (!cbPromo && !bcPromo && !sticky) return;
+  if (!cbPromo && !bcPromo && !banner && !sticky) return;
 
   const metaCountry = String(document.querySelector('meta[name="ncf-country"]')?.content || 'UNKNOWN').toUpperCase();
   const tier1 = new Set(['US','CA','GB','IE','AU','NZ','DE','FR','NL','SE','NO','DK','FI','CH','AT','BE']);
@@ -21,8 +22,6 @@
     };
   }
 
-  // Keep original visitor attribution on promo clicks instead of overwriting X,
-  // Telegram or paid-ad attribution with the generic label "website".
   function trackUrl(room, placement) {
     const platform = room.platform === 'bongacams' ? 'bongacams' : 'chaturbate';
     const attr = getMarketingAttribution();
@@ -69,6 +68,23 @@
     el.append(cards);
   }
 
+  function renderBanner(config) {
+    if (!banner || !config?.bannerUrl) return;
+    banner.hidden = false;
+    banner.innerHTML = '';
+    const a = document.createElement('a');
+    const attr = getMarketingAttribution();
+    a.href = `/go/chaturbate:featured?src=chaturbate-banner&cat=promo&source=${encodeURIComponent(attr.source)}&medium=${encodeURIComponent(attr.medium)}&campaign=${encodeURIComponent(attr.campaign)}&content=banner`;
+    a.target = '_blank';
+    a.rel = 'sponsored nofollow noopener';
+    const img = document.createElement('img');
+    img.src = config.bannerUrl;
+    img.alt = config.bannerAlt || 'Chaturbate live cams';
+    img.loading = 'lazy';
+    a.append(img);
+    banner.append(a);
+  }
+
   async function loadPlatform(platform) {
     const response = await fetch(`/api/rooms?platform=${platform}&sort=viewers`, { headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`${platform} feed unavailable`);
@@ -76,11 +92,22 @@
     return Array.isArray(data.rooms) ? data.rooms : [];
   }
 
-  Promise.allSettled([loadPlatform('chaturbate'), loadPlatform('bongacams')]).then(results => {
+  async function loadConfig() {
+    try {
+      const response = await fetch('/promo-config.json', { cache: 'no-store' });
+      if (!response.ok) return {};
+      return await response.json();
+    } catch (_) { return {}; }
+  }
+
+  Promise.allSettled([loadPlatform('chaturbate'), loadPlatform('bongacams'), loadConfig()]).then(results => {
     const cb = results[0].status === 'fulfilled' ? results[0].value : [];
     const bc = results[1].status === 'fulfilled' ? results[1].value : [];
-    renderStrip(cbPromo, cb, 'Live on Chaturbate', 'Chaturbate');
-    renderStrip(bcPromo, bc, 'Live on BongaCams', 'BongaCams');
+    const config = results[2].status === 'fulfilled' ? results[2].value : {};
+
+    if (config.chaturbate?.enabled !== false) renderStrip(cbPromo, cb, 'Live on Chaturbate', 'Chaturbate');
+    if (config.bongacams?.enabled !== false) renderStrip(bcPromo, bc, 'Live on BongaCams', 'BongaCams');
+    renderBanner(config.chaturbate);
 
     if (sticky) {
       const room = [...cb, ...bc].sort((a, b) => Number(b.viewerCount || 0) - Number(a.viewerCount || 0))[0];
