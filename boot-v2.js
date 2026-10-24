@@ -14,6 +14,7 @@ const pool = Pool && process.env.DATABASE_URL
   : null;
 
 const STATS_KEY = process.env.STATS_KEY || '';
+const CB_POSTBACK_SECRET = process.env.CB_POSTBACK_SECRET || '';
 const originalCreateServer = http.createServer;
 
 function send(res, status, body, type = 'application/json; charset=utf-8') {
@@ -68,6 +69,8 @@ http.createServer = function wrappedCreateServer(requestListener) {
 
     if (url.pathname === '/cb/postback') {
       try {
+        if (CB_POSTBACK_SECRET && url.searchParams.get('secret') !== CB_POSTBACK_SECRET) return send(res, 403, JSON.stringify({ ok: false, error: 'invalid_postback_secret' }));
+        if (!CB_POSTBACK_SECRET && process.env.NODE_ENV === 'production') return send(res, 503, JSON.stringify({ ok: false, error: 'postback_secret_not_configured' }));
         if (!pool) return send(res, 503, JSON.stringify({ ok: false, error: 'database_not_configured' }));
         const result = await revshare.handle(pool, url.searchParams);
         console.log('Chaturbate postback', result);
