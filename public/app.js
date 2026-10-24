@@ -120,9 +120,8 @@ for (const iso of QUICK) {
 }
 
 function placement() {
-  const country = countrySelect.value ? "country-" + countrySelect.value.toLowerCase() : "";
   const base = category === "all" ? "home" : category;
-  return country || base + "-card";
+  return base + (countrySelect.value ? "-country-filter" : "-card");
 }
 
 function trackingQuery(extra = {}) {
@@ -133,7 +132,7 @@ function trackingQuery(extra = {}) {
     utm_source: trafficSource,
     utm_medium: trafficMedium || "unknown",
     utm_campaign: trafficCampaign,
-    utm_content: trafficContent || "",
+    utm_content: [trafficContent, countrySelect.value ? "filter-country-" + countrySelect.value.toLowerCase() : ""].filter(Boolean).join("-").slice(0, 120),
     placement: extra.placement || src
   });
   return params.toString();
