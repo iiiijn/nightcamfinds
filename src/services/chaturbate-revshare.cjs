@@ -26,10 +26,10 @@ const SUPPORTED_TYPES = new Set([
 
 function countryTier(country) {
   const code = String(country || "").trim().toUpperCase();
-  if (TIER1.has(code)) return { tier: 1, signupPayoutUsd: 1 };
-  if (TIER2.has(code)) return { tier: 2, signupPayoutUsd: 0.1 };
-  if (TIER3.has(code)) return { tier: 3, signupPayoutUsd: 0.01 };
-  return { tier: null, signupPayoutUsd: 0 };
+  if (TIER1.has(code)) return { tier: 1 };
+  if (TIER2.has(code)) return { tier: 2 };
+  if (TIER3.has(code)) return { tier: 3 };
+  return { tier: null };
 }
 
 function clean(value, max = 255) {
@@ -111,6 +111,9 @@ function buildChaturbateUrl(options = {}) {
     url.searchParams.set("tour", tour);
   }
 
+  // Keep the selected official linking-code tour even when the feed supplies
+  // a room-specific RevShare URL; the campaign ID remains independent of UTM data.
+  url.searchParams.set("tour", tour);
   url.searchParams.set("campaign", campaign);
   url.searchParams.set("track", clean(options.track || "nightcamfinds", 100));
   url.searchParams.set("click_id", clickId);
