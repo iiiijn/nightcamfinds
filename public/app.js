@@ -112,10 +112,10 @@ function trackingQuery(extra = {}) {
   const params = new URLSearchParams({
     src,
     cat: extra.cat || (category === "all" ? "all" : category),
-    source: trafficSource,
-    medium: trafficMedium || "unknown",
-    campaign: trafficCampaign,
-    content: trafficContent || "",
+    utm_source: trafficSource,
+    utm_medium: trafficMedium || "unknown",
+    utm_campaign: trafficCampaign,
+    utm_content: trafficContent || "",
     placement: extra.placement || src
   });
   return params.toString();
@@ -165,6 +165,14 @@ function card(room) {
     const span = document.createElement("span");
     span.className = extra ? "badge " + extra : "badge";
     span.textContent = label;
+    badges.append(span);
+  }
+  for (const tag of (Array.isArray(room.tags) ? room.tags : []).slice(0, 3)) {
+    const safeTag = String(tag || "").trim().slice(0, 36);
+    if (!safeTag) continue;
+    const span = document.createElement("span");
+    span.className = "badge room-tag";
+    span.textContent = safeTag;
     badges.append(span);
   }
   const strong = document.createElement("strong");
