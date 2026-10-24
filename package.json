@@ -2,7 +2,7 @@
   "name": "nightcamfinds",
   "private": true,
   "scripts": {
-    "start": "node server-v2.js",
+    "start": "node boot-v2.js",
     "test": "node --test tests/*.test.js"
   },
   "engines": { "node": ">=20" },
