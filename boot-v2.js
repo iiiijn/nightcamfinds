@@ -32,60 +32,34 @@ function authorized(url) {
 async function revenueSummary(url) {
   if (!pool) throw new Error('Database is not configured');
   await revshare.ensureTables(pool);
-
-  const from = url.searchParams.get('from');
-  const to = url.searchParams.get('to');
-  const params = [];
-  const where = ["platform = 'chaturbate'", "revenue_class = 'revshare'"];
-  if (from) { params.push(`${from}T00:00:00.000Z`); where.push(`COALESCE(event_timestamp, received_at) >= $${params.length}`); }
-  if (to) { params.push(`${to}T23:59:59.999Z`); where.push(`COALESCE(event_timestamp, received_at) <= $${params.length}`); }
-  const clause = where.join(' AND ');
-
-  const total = await pool.query(`
-    SELECT
-      COUNT(*)::int AS events,
-      COALESCE(SUM(payout),0)::numeric AS revenue,
-      COUNT(DISTINCT click_id)::int AS attributed_clicks,
-      COUNT(*) FILTER (WHERE matched_click)::int AS matched_events
-    FROM affiliate_conversions
-    WHERE ${clause}
-  `, params);
-
-  const byCountry = await pool.query(`
-    SELECT country,
-      COUNT(*)::int AS events,
-      COALESCE(SUM(payout),0)::numeric AS revenue
-    FROM affiliate_conversions
-    WHERE ${clause}
-    GROUP BY country
-    ORDER BY revenue DESC
-  `, params);
-
-  const bySource = await pool.query(`
-    SELECT c.source, c.medium, c.campaign,
-      COUNT(DISTINCT c.click_id)::int AS clicks,
-      COUNT(DISTINCT v.transaction_id)::int AS conversions,
-      COALESCE(SUM(v.payout),0)::numeric AS revenue
-    FROM affiliate_conversions v
-    JOIN affiliate_clicks c ON c.click_id = v.click_id
-    WHERE ${clause}
-    GROUP BY c.source, c.medium, c.campaign
-    ORDER BY revenue DESC
-  `, params);
-
-  const row = total.rows[0] || {};
-  const revenue = Number(row.revenue || 0);
-  const clicks = Number(row.attributed_clicks || 0);
-  return {
-    primaryMetric: 'chaturbate_revshare',
-    events: Number(row.events || 0),
-    revenue,
-    attributedClicks: clicks,
-    matchedEvents: Number(row.matched_events || 0),
-    epc: clicks ? revenue / clicks : 0,
-    byCountry: byCountry.rows.map(r => ({ country: r.country, events: Number(r.events), revenue: Number(r.revenue) })),
-    bySource: bySource.rows.map(r => ({ source: r.source, medium: r.medium, campaign: r.campaign, clicks: Number(r.clicks), conversions: Number(r.conversions), revenue: Number(r.revenue), epc: Number(r.clicks) ? Number(r.revenue) / Number(r.clicks) : 0 }))
-  };
+  const from=url.searchParams.get('from'), to=url.searchParams.get('to'), platform=url.searchParams.get('platform');
+  const params=[], clauses=["platform='chaturbate'"];
+  const add=(v,sql)=>{params.push(v);clauses.push(sql.replace("?", "$"+params.length));};
+  if(from && /^\d{4}-\d{2}-\d{2}$/.test(from)) add(from,"COALESCE(event_timestamp,received_at) >= ?::date");
+  if(to && /^\d{4}-\d{2}-\d{2}$/.test(to)) add(to,"COALESCE(event_timestamp,received_at) < (?::date + INTERVAL '1 day')");
+  if(platform && platform!=="chaturbate") return {primaryMetric:'chaturbate_revshare',events:0,revenue:0,trackedClicks:0,matchedEvents:0,unmatchedEvents:0,epc:0,byCountry:[],bySource:[]};
+  const where=clauses.join(' AND ');
+  const total=await pool.query(\`SELECT COUNT(*)::int events,
+    COALESCE(SUM(payout) FILTER (WHERE revenue_class IN ('revshare','revshare_adjustment')),0)::numeric revenue,
+    COUNT(*) FILTER (WHERE matched_click)::int matched_events
+    FROM affiliate_conversions WHERE \${where}\`,params);
+  const byCountry=await pool.query(\`SELECT country,COUNT(*)::int events,
+    COALESCE(SUM(payout) FILTER (WHERE revenue_class IN ('revshare','revshare_adjustment')),0)::numeric revenue
+    FROM affiliate_conversions WHERE \${where} GROUP BY country ORDER BY revenue DESC\`,params);
+  const bySource=await pool.query(\`SELECT COALESCE(NULLIF(c.source,''),'unknown') source,
+    COUNT(DISTINCT v.transaction_id)::int conversions,COALESCE(SUM(v.payout) FILTER (WHERE v.revenue_class IN ('revshare','revshare_adjustment')),0)::numeric revenue
+    FROM affiliate_conversions v LEFT JOIN affiliate_clicks c ON c.click_id=v.click_id
+    WHERE \${where.replaceAll('platform=', 'v.platform=')} GROUP BY c.source ORDER BY revenue DESC\`,params);
+  const clickParams=[], clickWhere=["platform='chaturbate'"];
+  const cadd=(v,sql)=>{clickParams.push(v);clickWhere.push(sql.replace("?", "$"+clickParams.length));};
+  if(from && /^\d{4}-\d{2}-\d{2}$/.test(from)) cadd(from,"clicked_at >= ?::date");
+  if(to && /^\d{4}-\d{2}-\d{2}$/.test(to)) cadd(to,"clicked_at < (?::date + INTERVAL '1 day')");
+  const clicks=Number((await pool.query(\`SELECT COUNT(*)::int n FROM affiliate_clicks WHERE \${clickWhere.join(' AND ')}\`,clickParams)).rows[0]?.n||0);
+  const row=total.rows[0]||{}, revenue=Number(row.revenue||0);
+  return {primaryMetric:'chaturbate_revshare',events:Number(row.events||0),revenue,trackedClicks:clicks,matchedEvents:Number(row.matched_events||0),
+    unmatchedEvents:Number(row.events||0)-Number(row.matched_events||0),epc:clicks?revenue/clicks:0,
+    byCountry:byCountry.rows.map(r=>({country:r.country,events:Number(r.events),revenue:Number(r.revenue)})),
+    bySource:bySource.rows.map(r=>({source:r.source,conversions:Number(r.conversions),revenue:Number(r.revenue)}))};
 }
 
 http.createServer = function wrappedCreateServer(requestListener) {
