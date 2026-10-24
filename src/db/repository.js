@@ -90,10 +90,15 @@ export function createRepository(db) {
     },
     async insertClick(row) {
       await db.query(
-        `INSERT INTO clicks (click_id, session_id, provider, campaign, program, room_id, page, category, country, device, destination, created_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11, now())`,
-        [row.clickId, row.sessionId || null, row.provider, row.campaign, row.program, row.roomId, row.page || null, row.category || null, row.country || null, row.device || null, row.destination || null]
+        `INSERT INTO clicks (click_id, session_id, provider, campaign, program, room_id, page, category, country, language, traffic_source, traffic_medium, traffic_campaign, device, destination, created_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, now())`,
+        [row.clickId, row.sessionId || null, row.provider, row.campaign, row.program, row.roomId, row.page || null, row.category || null, row.country || null, row.language || null, row.trafficSource || null, row.trafficMedium || null, row.trafficCampaign || null, row.device || null, row.destination || null]
       );
+    },
+    async findClick(clickId) {
+      if (!clickId) return null;
+      const res = await db.query("SELECT * FROM clicks WHERE click_id = $1 LIMIT 1", [clickId]);
+      return res.rows[0] || null;
     },
     async clicks() {
       return (await db.query("SELECT * FROM clicks ORDER BY created_at DESC LIMIT 100")).rows;
