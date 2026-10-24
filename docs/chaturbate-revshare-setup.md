@@ -51,7 +51,7 @@ The category tour defaults below came from the owner's Link Codes screenshot. Th
 
 The partner room URL from the live Users Online feed is preferred when available. The campaign is always preserved as the affiliate campaign ID; marketing attribution is stored separately as UTM data and is never written over the affiliate campaign.
 
-Render environment variables supported by the app are `CHATURBATE_WM`, `CB_CAMPAIGN`, `CB_TOUR_GENERAL`, `CB_TOUR_FEMALE`, `CB_TOUR_MALE`, `CB_TOUR_TRANS`, `CB_TOUR_COUPLES`, `CB_TOUR_BROADCASTER`, and `CB_POSTBACK_SECRET`. Keep all secret values in Render only.
+Render environment variables supported by the app are `CHATURBATE_WM`, `CHATURBATE_API_BASE`, `CHATURBATE_ENABLED`, `CB_CAMPAIGN`, `CB_TOUR_GENERAL`, `CB_TOUR_FEMALE`, `CB_TOUR_MALE`, `CB_TOUR_TRANS`, `CB_TOUR_COUPLES`, `CB_TOUR_BROADCASTER`, and `CB_POSTBACK_SECRET`. Keep all secret values in Render only. `CHATURBATE_WM` is the value copied from the official Users Online API tool; `CB_CAMPAIGN` is the affiliate campaign ID used in outbound links. They may be different and must not be assumed to be interchangeable. The API base defaults to the official HTTPS Chaturbate Users Online endpoint and is restricted to the HTTPS `chaturbate.com` host.
 
 ## Promo-tool choices
 
