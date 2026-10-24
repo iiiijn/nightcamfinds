@@ -32,7 +32,8 @@ const category = PAGES[path] ? path : "all";
 const page = PAGES[category];
 const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
 const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
-const countryPath = location.pathname.match(/^\\/country\\/([a-z]{2})\\/$/);
+const countryParts = location.pathname.split("/").filter(Boolean);
+const countryPath = countryParts.length === 2 && countryParts[0] === "country" && /^[a-z]{2}$/.test(countryParts[1]);
 const countryName = forced ? ({
   US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand",
   DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg",
