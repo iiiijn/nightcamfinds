@@ -5,6 +5,7 @@ const countEl = document.querySelector("#result-count");
 const sort = document.querySelector("#sort");
 const q = document.querySelector("#q");
 const countrySelect = document.querySelector("#country");
+const languageSelect = document.querySelector("#language");
 
 if (localStorage.getItem("ncf18") === "1" && gate) gate.hidden = true;
 document.querySelector("#enter")?.addEventListener("click", () => {
@@ -29,11 +30,29 @@ const PAGES = {
 const path = location.pathname.replaceAll("/", "") || "all";
 const category = PAGES[path] ? path : "all";
 const page = PAGES[category];
-document.querySelector("#kicker").textContent = page[0];
-document.querySelector("#page-title").textContent = page[1];
-document.querySelector("#page-intro").textContent = page[2];
-document.title = page[3];
-document.querySelector('meta[name="description"]').setAttribute("content", page[2]);
+const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
+const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
+const countryPath = location.pathname.match(/^\\/country\\/([a-z]{2})\\/$/);
+const countryName = forced ? ({
+  US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand",
+  DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg",
+  SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore",
+  BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela",
+  PH:"Philippines", TH:"Thailand", CN:"China", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain", PL:"Poland",
+  CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa",
+  PT:"Portugal", AE:"United Arab Emirates", HK:"Hong Kong", TR:"Turkey"
+})[forced] || forced : "";
+const pageTitle = countryPath && countryName ? `Live cams in ${countryName} | NightCamFinds` : page[3];
+const pageDescription = countryPath && countryName
+  ? `Browse current live cam listings tagged for ${countryName}. Filter by language, category and viewer count. Room availability changes as broadcasters go online and offline.`
+  : page[2];
+document.querySelector("#kicker").textContent = countryPath && countryName ? `Live in ${countryName}` : page[0];
+document.querySelector("#page-title").textContent = countryPath && countryName ? `Live cams in ${countryName}` : page[1];
+document.querySelector("#page-intro").textContent = pageDescription;
+document.title = pageTitle;
+document.querySelector('meta[name="description"]').setAttribute("content", pageDescription);
+document.querySelector('meta[property="og:title"]')?.setAttribute("content", pageTitle);
+document.querySelector('meta[property="og:description"]')?.setAttribute("content", pageDescription);
 document.querySelector('link[rel="canonical"]').href = location.origin + location.pathname;
 if (category === "popular") sort.value = "viewers";
 document.querySelectorAll("nav a").forEach((a) => {
@@ -43,8 +62,6 @@ document.querySelectorAll("nav a").forEach((a) => {
 const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore", BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela", PH:"Philippines", TH:"Thailand", CN:"China", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain", PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa", PT:"Portugal", AE:"United Arab Emirates", HK:"Hong Kong", TR:"Turkey" };
 const QUICK = ["US","GB","CA","AU","DE","FR","NL","BR","ES","IT","MX","PL"];
 
-const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
-const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
 const queryParams = new URLSearchParams(location.search);
 const incomingAttribution = {
   source: queryParams.get("utm_source") || queryParams.get("source") || "",
@@ -235,13 +252,21 @@ function schedule() { clearTimeout(timer); timer = setTimeout(load, 250); }
 async function load() {
   const params = new URLSearchParams({ category, sort: sort.value, q: q.value });
   if (countrySelect.value) params.set("country", countrySelect.value);
+  if (languageSelect?.value) params.set("language", languageSelect.value);
   const data = await fetch("/api/rooms?" + params).then((r) => r.json());
-  if (countrySelect.options.length === 1) {
+  if (!window.ncfFacetsReady) {
     for (const iso of data.countries || []) {
       const opt = document.createElement("option");
       opt.value = iso;
       opt.textContent = NAMES[iso] || iso;
       countrySelect.append(opt);
+    }
+    const languageValues = Array.isArray(data.languages) ? data.languages : [];
+    for (const language of languageValues) {
+      const opt = document.createElement("option");
+      opt.value = language;
+      opt.textContent = language;
+      languageSelect?.append(opt);
     }
     const forcedCountry = /^[A-Z]{2}$/.test(forced) ? forced : "";
     const hintedCountry = /^[A-Z]{2}$/.test(hinted) && (data.countries || []).includes(hinted) ? hinted : "";
@@ -253,6 +278,7 @@ async function load() {
       countrySelect.append(opt);
     }
     if (!countrySelect.value && desiredCountry) countrySelect.value = desiredCountry;
+    window.ncfFacetsReady = true;
     if (countrySelect.value) return load();
   }
   const rooms = data.rooms || [];
@@ -282,6 +308,7 @@ async function load() {
 
 sort.addEventListener("change", load);
 countrySelect.addEventListener("change", load);
+languageSelect?.addEventListener("change", load);
 q.addEventListener("input", schedule);
 partners();
 load().catch(() => {
