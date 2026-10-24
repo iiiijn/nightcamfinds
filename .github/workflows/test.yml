@@ -41,21 +41,21 @@ jobs:
           const { spawnSync } = require('node:child_process');
           for (const file of ['public/index.html', 'public/promotools.html', 'public/dashboard.html']) {
             const html = fs.readFileSync(file, 'utf8');
-            const re = /<script\\b([^>]*)>([\\s\\S]*?)<\\/script>/gi;
+            const re = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
             let match, count = 0;
             while ((match = re.exec(html))) {
               const attrs = match[1] || '';
               const code = (match[2] || '').trim();
-              if (!code || /\\bsrc\\s*=/.test(attrs) || /type=["']application\\/ld\\+json["']/.test(attrs)) continue;
-              const filePath = path.join(os.tmpdir(), `ncf-inline-${path.basename(file)}-${count++}.js`);
+              if (!code || /\bsrc\s*=/.test(attrs) || /type=["']application\/ld\+json["']/.test(attrs)) continue;
+              const filePath = path.join(os.tmpdir(), 'ncf-inline-' + path.basename(file) + '-' + count++ + '.js');
               fs.writeFileSync(filePath, code);
               const check = spawnSync(process.execPath, ['--check', filePath], { encoding: 'utf8' });
               if (check.status !== 0) {
-                process.stderr.write(`Syntax error in inline script from ${file}\\n${check.stderr}`);
+                process.stderr.write('Syntax error in inline script from ' + file + '\n' + check.stderr);
                 process.exit(1);
               }
             }
-            console.log(`Checked ${count} inline script(s) in ${file}`);
+            console.log('Checked ' + count + ' inline script(s) in ' + file);
           }
           NODE
       - name: Exercise startup patch scripts on temporary copies
