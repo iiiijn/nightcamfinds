@@ -47,10 +47,11 @@ The category tour defaults below came from the owner's Link Codes screenshot. Th
 - Male: `EyCi`
 - Trans: `2MTk`
 - Couples: `43Qk`
+- Broadcaster signup: `NwNd`
 
 The partner room URL from the live Users Online feed is preferred when available. The campaign is always preserved as the affiliate campaign ID; marketing attribution is stored separately as UTM data and is never written over the affiliate campaign.
 
-Render environment variables supported by the app are `CHATURBATE_WM`, `CB_CAMPAIGN`, `CB_TOUR_GENERAL`, `CB_TOUR_FEMALE`, `CB_TOUR_MALE`, `CB_TOUR_TRANS`, `CB_TOUR_COUPLES`, and `CB_POSTBACK_SECRET`. Keep all secret values in Render only.
+Render environment variables supported by the app are `CHATURBATE_WM`, `CB_CAMPAIGN`, `CB_TOUR_GENERAL`, `CB_TOUR_FEMALE`, `CB_TOUR_MALE`, `CB_TOUR_TRANS`, `CB_TOUR_COUPLES`, `CB_TOUR_BROADCASTER`, and `CB_POSTBACK_SECRET`. Keep all secret values in Render only.
 
 ## Promo-tool choices
 
