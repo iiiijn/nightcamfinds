@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>NightCamFinds Revenue Dashboard</title>
+  <style>
+    :root{color-scheme:dark}body{margin:0;background:#0d1117;color:#e6edf3;font:15px system-ui,sans-serif}main{max-width:1180px;margin:auto;padding:24px}h1{margin:0 0 6px}.muted{color:#9da7b3}.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:18px 0}.bar input,.bar select,.bar button{padding:9px 11px;border:1px solid #30363d;border-radius:8px;background:#161b22;color:#e6edf3}.bar button{cursor:pointer}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}.card,section{border:1px solid #30363d;border-radius:12px;padding:16px;background:#11161d}.label{font-size:12px;color:#9da7b3}.value{font-size:26px;font-weight:700;margin-top:6px}.money{color:#3fb950}.tables{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;margin-top:18px}table{width:100%;border-collapse:collapse;margin-top:10px}td,th{padding:8px 5px;border-bottom:1px solid #30363d;text-align:left;font-size:13px}th{color:#9da7b3}.notice{padding:12px 14px;background:#2a2010;border-radius:8px;margin:12px 0;color:#e3b341}.err{color:#ff7b72}a{color:#58a6ff}small{color:#9da7b3}
+  </style>
+</head>
+<body><main>
+  <h1>NightCamFinds Revenue Dashboard</h1>
+  <p class="muted">RevShare is the primary KPI. Revenue events are reported from accepted postbacks, not estimated visitor value.</p>
+  <div id="login" class="bar"><label>Stats key <input id="key" type="password" autocomplete="current-password" placeholder="Enter STATS_KEY"></label><button id="save">Load dashboard</button></div>
+  <div class="bar"><label>From <input id="from" type="date"></label><label>To <input id="to" type="date"></label><label>Platform <select id="platform"><option value="">All platforms</option><option value="chaturbate">Chaturbate</option><option value="bongacams">BongaCams</option></select></label><button id="refresh">Refresh</button><span id="status" class="muted"></span></div>
+  <div id="notice" class="notice" hidden></div>
+  <div class="grid">
+    <div class="card"><div class="label">RevShare revenue</div><div class="value money" id="revshare">$0.00</div></div>
+    <div class="card"><div class="label">RevShare EPC</div><div class="value" id="epc">$0.000</div><small>RevShare revenue / tracked clicks</small></div>
+    <div class="card"><div class="label">Tracked clicks</div><div class="value" id="clicks">0</div></div>
+    <div class="card"><div class="label">RevShare events</div><div class="value" id="events">0</div></div>
+    <div class="card"><div class="label">Matched events</div><div class="value" id="matched">0</div></div>
+    <div class="card"><div class="label">Unmatched events</div><div class="value" id="unmatched">0</div></div>
+    <div class="card"><div class="label">Other revenue</div><div class="value" id="other">$0.00</div></div>
+  </div>
+  <div class="tables"><section><h2>Revenue by country</h2><table><thead><tr><th>Country</th><th>Events</th><th>RevShare</th></tr></thead><tbody id="countries"></tbody></table></section>
+  <section><h2>Revenue by traffic source</h2><table><thead><tr><th>Source</th><th>Events</th><th>RevShare</th></tr></thead><tbody id="sources"></tbody></table></section></div>
+  <p class="muted"><small>Security: this page never embeds the stats key in its HTML or URL by default. The key is stored only in this tab while open. Use HTTPS and rotate the key if exposed. EPC is a directional metric and depends on accurate click and postback capture.</small></p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+function money(n){return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(n||0));}
+function el(tag,txt){const x=document.createElement(tag);x.textContent=txt;return x;}
+function tableRows(id,rows,kind){const body=$(id);body.replaceChildren();if(!rows||!rows.length){const tr=el("tr","");const td=el("td","No events yet");td.colSpan=3;tr.append(td);body.append(tr);return;}for(const r of rows){const tr=document.createElement("tr");tr.append(el("td",kind==="country"?(r.country||"UNKNOWN"):(r.source||"unknown")),el("td",String(r.events||0)),el("td",money(r.revshareRevenue)));body.append(tr);}}
+async function load(){const key=$("key").value.trim();if(!key){$("status").textContent="Enter your STATS_KEY.";return;}const p=new URLSearchParams({key});if($("from").value)p.set("from",$("from").value);if($("to").value)p.set("to",$("to").value);if($("platform").value)p.set("platform",$("platform").value);$("status").textContent="Loading…";$("notice").hidden=true;try{const res=await fetch("/api/revenue?"+p.toString(),{headers:{Accept:"application/json"},cache:"no-store"});if(!res.ok)throw new Error(res.status===404?"Invalid STATS_KEY.":"Revenue API returned HTTP "+res.status);const d=await res.json();$("revshare").textContent=money(d.revshareRevenue);$("epc").textContent="$"+Number(d.revshareEpc||0).toFixed(3);$("clicks").textContent=Number(d.clicks||0).toLocaleString();$("events").textContent=Number(d.revshareEvents||0).toLocaleString();$("matched").textContent=Number(d.matchedEvents||0).toLocaleString();$("unmatched").textContent=Number(d.unmatchedEvents||0).toLocaleString();$("other").textContent=money(Number(d.totalRevenue||0)-Number(d.revshareRevenue||0));tableRows("countries",d.byCountry,"country");tableRows("sources",d.bySource,"source");$("status").textContent="Updated "+new Date().toLocaleTimeString();try{sessionStorage.setItem("ncf_stats_key",key)}catch(_){}}catch(e){$("notice").textContent=e.message;$("notice").hidden=false;$("status").textContent="Not loaded";}}
+$("save").addEventListener("click",load);$("refresh").addEventListener("click",load);$("from").addEventListener("change",load);$("to").addEventListener("change",load);$("platform").addEventListener("change",load);try{const k=sessionStorage.getItem("ncf_stats_key");if(k)$("key").value=k}catch(_){ }
+</script></body></html>
