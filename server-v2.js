@@ -22,6 +22,7 @@ const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || process.env.BONGACASH_C
 const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
 const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
 const STATS_KEY = process.env.STATS_KEY || "";
+const CB_POSTBACK_SECRET = process.env.CB_POSTBACK_SECRET || "";
 const CONTACT = process.env.CONTACT_EMAIL || "";
 const CACHE = new FeedCache({ ttlMs: 15000, staleMs: 120000 });
 
@@ -273,13 +274,15 @@ const server = http.createServer(async (req, res) => {
 
 
     if (pathname === "/cb/postback" && req.method === "GET") {
+      if (CB_POSTBACK_SECRET && url.searchParams.get("secret") !== CB_POSTBACK_SECRET) return send(res,403,JSON.stringify({error:"Invalid postback secret"}),"application/json");
+      if (!CB_POSTBACK_SECRET && process.env.NODE_ENV === "production") return send(res,503,JSON.stringify({error:"Postback secret is not configured"}),"application/json");
       if (!pgPool) return send(res,503,JSON.stringify({error:"Database is not configured"}),"application/json");
       try { return send(res,200,JSON.stringify(await savePostback(url.searchParams)),"application/json"); }
       catch(err) { const status=Number(err.statusCode)||500; console.error("Postback failed:",err.message); return send(res,status,JSON.stringify({error:status===400?err.message:"Postback could not be saved"}),"application/json"); }
     }
     if (pathname === "/api/revenue") {
-      if (!STATS_KEY || url.searchParams.get("key") !== STATS_KEY) return send(res,404,"Not found","text/plain");
-      try { return send(res,200,JSON.stringify(await revenueStats(url))); }
+      if (!STATS_KEY || req.headers["x-ncf-stats-key"] !== STATS_KEY) return send(res,404,"Not found","text/plain");
+      try { return send(res,200,JSON.stringify(await revenueStats(url)));
       catch(err) { console.error("Revenue query failed:",err.message); return send(res,503,JSON.stringify({error:"Revenue data unavailable"}),"application/json"); }
     }
 
