@@ -82,7 +82,7 @@ http.createServer = function wrappedCreateServer(requestListener) {
     }
 
     if (url.pathname === '/api/revenue') {
-      if (!authorized(url)) return send(res, 404, JSON.stringify({ error: 'not_found' }));
+      if (!STATS_KEY || req.headers['x-ncf-stats-key'] !== STATS_KEY) return send(res, 404, JSON.stringify({ error: 'not_found' }));
       try {
         return send(res, 200, JSON.stringify(await revenueSummary(url)));
       } catch (err) {
