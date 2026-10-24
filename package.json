@@ -8,6 +8,6 @@
   "engines": { "node": ">=20" },
   "dependencies": {
     "pg": "^8.23.1",
-    "@electric-sql/pglite": "^0.3.14"
+    "@electric-sql/pglite": "^0.5.8"
   }
 }
