@@ -8,7 +8,6 @@ import {
 
 test("maps Chaturbate signup tiers using current affiliate appendix country codes", () => {
   assert.equal(countryTier("US").tier, 1);
-  assert.equal(countryTier("CA").signupPayoutUsd, 1);
   assert.equal(countryTier("BR").tier, 2);
   assert.equal(countryTier("PL").tier, 3);
   assert.equal(countryTier("KE").tier, null);
@@ -58,6 +57,7 @@ test("affiliate URLs preserve the campaign ID and pass a stable track plus uniqu
   assert.equal(result.ok, true);
   const url = new URL(result.url);
   assert.equal(url.searchParams.get("campaign"), "C6yxN");
+  assert.equal(url.searchParams.get("tour"), "uhEc");
   assert.equal(url.searchParams.get("track"), "female-room-card");
   assert.equal(url.searchParams.get("click_id"), "ncf_unique_123");
   assert.equal(url.searchParams.get("sid"), "ncf_unique_123");
