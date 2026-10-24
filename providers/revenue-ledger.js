@@ -10,7 +10,8 @@ function normalizeConversion(input = {}) {
   if (!transactionId) { const e = new Error("transaction_id is required"); e.statusCode = 400; throw e; }
   const rawType = clean(input.type || input.conversion_type || input.conversionType, "unknown", 100);
   const payout = numeric(input.payout); const amount = numeric(input.amount);
-  const knownRevshare = /revshare.*(purchase|payout-adjustment)|^(purchase|payout-adjustment)$/i.test(rawType);
+  const knownRevshare = rawType === "revshare_purchase";
+  const isAdjustment = rawType === "revshare_payout-adjustment";
   const broadcasterReferral = /broadcaster|broadcaster-referral/i.test(rawType);
   const affiliateReferral = /affiliate|referral-income/i.test(rawType);
   return {
@@ -21,7 +22,7 @@ function normalizeConversion(input = {}) {
     eventTimestamp: clean(input.timestamp || input.event_timestamp || input.eventTimestamp, "", 100) || null,
     track: clean(input.track, "", 255), source: clean(input.source, "", 255),
     programId: clean(input.program_id || input.programId, "", 255), userId: clean(input.user_id || input.userId, "", 255),
-    revenueClass: knownRevshare ? "revshare" : broadcasterReferral ? "broadcaster_referral" : affiliateReferral ? "affiliate_referral" : "other",
+    revenueClass: knownRevshare ? "revshare" : isAdjustment ? "revshare_adjustment" : broadcasterReferral ? "broadcaster_referral" : affiliateReferral ? "affiliate_referral" : "other",
     rawPayload: input
   };
 }
