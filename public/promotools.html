@@ -81,27 +81,58 @@
   <script>
     (async () => {
       const box = document.querySelector('#cb-list');
+      if (!box) return;
       try {
-        const r = await fetch('/api/rooms?platform=chaturbate&sort=viewers', {headers:{Accept:'application/json'}});
+        const r = await fetch('/api/rooms?platform=chaturbate&sort=viewers', { headers: { Accept: 'application/json' } });
         if (!r.ok) throw new Error('feed unavailable');
         const data = await r.json();
         const rooms = Array.isArray(data.rooms) ? data.rooms.slice(0, 8) : [];
-        if (!rooms.length) { box.innerHTML = '<p class="muted">No Chaturbate rooms are available right now.</p>'; return; }
-        box.innerHTML = '';
+        box.replaceChildren();
+        if (!rooms.length) {
+          const empty = document.createElement('p');
+          empty.className = 'muted';
+          empty.textContent = 'No Chaturbate rooms are available right now.';
+          box.append(empty);
+          return;
+        }
         for (const room of rooms) {
           const a = document.createElement('a');
           a.className = 'cb-room';
-          const params = new URLSearchParams({src:'promotools-cam-listing',cat:'promo',source:'website',medium:'promotools',campaign:'cb-promo-lab',content:'cam-listing'});
+          const params = new URLSearchParams({
+            src: 'promotools-cam-listing',
+            cat: String(room.gender || 'all'),
+            utm_source: 'website',
+            utm_medium: 'promotools',
+            utm_campaign: 'cb-promo-lab',
+            utm_content: 'cam-listing'
+          });
           a.href = `/go/${encodeURIComponent(room.id)}?${params.toString()}`;
           a.target = '_blank';
           a.rel = 'sponsored nofollow noopener';
-          a.innerHTML = `<img loading="lazy" src="${room.image || '/og.svg'}" alt=""><span><strong>${room.displayName || room.username}</strong><small>${Number(room.viewerCount || 0).toLocaleString()} watching</small></span>`;
-          box.appendChild(a);
+
+          const img = document.createElement('img');
+          img.loading = 'lazy';
+          img.alt = '';
+          const imageUrl = String(room.image || '');
+          img.src = /^https:\/\//i.test(imageUrl) ? imageUrl : '/og.svg';
+
+          const label = document.createElement('span');
+          const name = document.createElement('strong');
+          name.textContent = String(room.displayName || room.username || 'Live room').slice(0, 100);
+          const viewers = document.createElement('small');
+          viewers.textContent = `${Number(room.viewerCount || 0).toLocaleString()} watching`;
+          label.append(name, viewers);
+          a.append(img, label);
+          box.append(a);
         }
-      } catch (e) {
-        box.innerHTML = '<p class="muted">The live listing is temporarily unavailable.</p>';
+      } catch (_) {
+        box.replaceChildren();
+        const empty = document.createElement('p');
+        empty.className = 'muted';
+        empty.textContent = 'The live listing is temporarily unavailable.';
+        box.append(empty);
       }
     })();
-  </script>
+  </script>t>
 </body>
 </html>
