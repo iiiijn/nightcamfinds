@@ -15,7 +15,7 @@ Do not infer revenue from a click or signup. Revenue is only recorded after a va
 
 1. A visitor opens a room card or promo link on NightCamFinds.
 2. `server.js` creates one unique `click_id` and records the click in PostgreSQL.
-3. The Chaturbate outbound URL retains the affiliate campaign ID from `CB_CAMPAIGN` / `CHATURBATE_WM`, uses a stable `track` bucket and passes both `click_id` and `sid`.
+3. The Chaturbate outbound URL retains the affiliate campaign ID from `CB_CAMPAIGN`, uses a stable `track` bucket and passes both `click_id` and `sid`. The Users Online API separately uses `CHATURBATE_WM`. Chaturbate advises limiting `track` values to 10,000 per affiliate/campaign and using `sid` for unique click IDs, so arbitrary traffic sources and per-click identifiers must not be encoded into `track`.
 4. Chaturbate's Dynamic Postback sends a signup or purchase event to NightCamFinds.
 5. The server checks the shared secret, checks that the click ID exists, validates the documented event type and payout, then upserts by `transaction_id`. Retries update the same transaction instead of adding duplicates.
 6. The private dashboard sums actual event payouts, including negative payout adjustments. No event is counted when the postback is missing, unauthenticated, unrecognized, or unmatched to a NightCamFinds click.
