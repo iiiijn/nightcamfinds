@@ -357,6 +357,7 @@ function normalizeBongaRoom(room) {
     isNew: !!room.is_new || !!room.new,
     image,
     roomSubject: clean(room.chat_topic || room.room_subject || room.topic || tags),
+    tags: tags.split(/[,;|]/).map(value => clean(value)).filter(Boolean).filter(tag => !new RegExp(BLOCKED.source, "i").test(tag)).slice(0, 8),
     languages: clean([room.primary_language, room.secondary_language, room.language].filter(Boolean).join(", ")),
     href: room.chat_url || room.direct_chat_url || room.room_url || room.url || ""
   };
