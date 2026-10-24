@@ -94,74 +94,59 @@ async function ensureAffiliateSchema() {
   ]) await pgPool.query(sql);
 }
 function normalizePostback(q) {
-  const read = k => String(q.get(k) || "").trim();
+  const read=k=>String(q.get(k)||"").trim();
   const tx=read("transaction_id");
   if(!tx){const e=new Error("transaction_id is required");e.statusCode=400;throw e;}
-  const type=read("type")||"unknown";
-  const amount=read("amount")===""?null:Number(read("amount"));
-  const payout=read("payout")===""?0:Number(read("payout"));
+  const type=read("type")||"unknown",amount=read("amount")===""?null:Number(read("amount")),payout=read("payout")===""?0:Number(read("payout"));
   if(!Number.isFinite(payout)||(amount!==null&&!Number.isFinite(amount))){const e=new Error("Invalid payout or amount");e.statusCode=400;throw e;}
   const ts=read("timestamp"),parsed=ts?new Date(ts):null;
-  const isPurchase=type==="revshare_purchase",isAdjustment=type==="revshare_payout-adjustment";
-  const isBroadcaster=type==="revshare_signup-referral",isAffiliate=/affiliate|referral-income/i.test(type);
-  return {platform:"chaturbate",clickId:read("click_id")||null,transactionId:tx,conversionType:type,payout,
-    currency:read("currency")||"USD",amount,country:(read("country")||"UNKNOWN").toUpperCase(),
-    eventTimestamp:parsed&&!Number.isNaN(parsed.getTime())?parsed.toISOString():null,
-    track:read("track"),source:read("source"),programId:read("program_id"),userId:read("user_id"),
-    revenueClass:isPurchase?"revshare":isAdjustment?"revshare_adjustment":isBroadcaster?"broadcaster_referral":isAffiliate?"affiliate_referral":"other",
-    rawPayload:Object.fromEntries(q.entries())};
+  const isPurchase=type==="revshare_purchase",isAdjustment=type==="revshare_payout-adjustment",isBroadcaster=type==="revshare_signup-referral",isAffiliate=/affiliate|referral-income/i.test(type);
+  return {platform:"chaturbate",clickId:read("click_id")||null,transactionId:tx,conversionType:type,payout,currency:read("currency")||"USD",amount,country:(read("country")||"UNKNOWN").toUpperCase(),
+    eventTimestamp:parsed&&!Number.isNaN(parsed.getTime())?parsed.toISOString():null,track:read("track"),source:read("source"),programId:read("program_id"),userId:read("user_id"),
+    revenueClass:isPurchase?"revshare":isAdjustment?"revshare_adjustment":isBroadcaster?"broadcaster_referral":isAffiliate?"affiliate_referral":"other",rawPayload:Object.fromEntries(q.entries())};
 }
 async function savePostback(q) {
-  if(!pgPool) throw new Error("Database is not configured");
-  await ensureAffiliateSchema();
-  const c=normalizePostback(q);
+  if(!pgPool)throw new Error("Database is not configured");
+  await ensureAffiliateSchema();const c=normalizePostback(q);
   const match=c.clickId?await pgPool.query("SELECT source,medium,campaign FROM affiliate_clicks WHERE click_id=$1 LIMIT 1",[c.clickId]).catch(()=>({rows:[]})):{rows:[]};
-  const matched=match.rows.length>0;
-  const source=String(match.rows[0]?.source||c.source||"unknown");
-  const medium=String(match.rows[0]?.medium||"unknown");
-  const campaign=String(match.rows[0]?.campaign||"unknown");
+  const matched=match.rows.length>0,source=String(match.rows[0]?.source||c.source||"unknown"),medium=String(match.rows[0]?.medium||"unknown"),campaign=String(match.rows[0]?.campaign||"unknown");
+  const payload={...c.rawPayload,nightcamfinds_source:source,nightcamfinds_medium:medium,nightcamfinds_campaign:campaign};
   const result=await pgPool.query(\`INSERT INTO affiliate_conversions
     (platform,click_id,transaction_id,conversion_type,payout,currency,amount,country,event_timestamp,matched_click,revenue_class,track,source,program_id,user_id,raw_payload)
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb)
     ON CONFLICT(platform,transaction_id) DO NOTHING RETURNING id\`,
-    [c.platform,c.clickId,c.transactionId,c.conversionType,c.payout,c.currency,c.amount,c.country,c.eventTimestamp,matched,c.revenueClass,c.track,source,c.programId,c.userId,JSON.stringify({...c.rawPayload,nightcamfinds_medium:medium,nightcamfinds_campaign:campaign})]);
+    [c.platform,c.clickId,c.transactionId,c.conversionType,c.payout,c.currency,c.amount,c.country,c.eventTimestamp,matched,c.revenueClass,c.track,source,c.programId,c.userId,JSON.stringify(payload)]);
   return {ok:true,inserted:result.rowCount>0,duplicate:result.rowCount===0,matched,revenueClass:c.revenueClass};
 }
 async function revenueStats(url) {
-  if(!pgPool) throw new Error("Database is not configured");
-  await ensureAffiliateSchema();
+  if(!pgPool)throw new Error("Database is not configured");await ensureAffiliateSchema();
   const from=url.searchParams.get("from"),to=url.searchParams.get("to"),platform=url.searchParams.get("platform");
-  const eparams=[],efilters=[];
+  const eventsParams=[],eventsFilters=[];
   const add=(params,filters,v,sql)=>{params.push(v);filters.push(sql.replace("?", "$"+params.length));};
-  if(from && /^\d{4}-\d{2}-\d{2}$/.test(from))add(eparams,efilters,from,"received_at >= ?::date");
-  if(to && /^\d{4}-\d{2}-\d{2}$/.test(to))add(eparams,efilters,to,"received_at < (?::date + INTERVAL '1 day')");
-  if(["chaturbate","bongacams"].includes(platform))add(eparams,efilters,platform,"platform = ?");
-  const ew=efilters.length?"WHERE "+efilters.join(" AND "):"";
-  const summary=(await pgPool.query(\`SELECT COUNT(*)::int events,
-    COUNT(*) FILTER(WHERE matched_click)::int matched,
-    COUNT(*) FILTER(WHERE revenue_class='revshare')::int revshare_events,
-    COUNT(*) FILTER(WHERE revenue_class='broadcaster_referral')::int broadcaster_events,
+  if(from&&/^\d{4}-\d{2}-\d{2}$/.test(from))add(eventsParams,eventsFilters,from,"received_at >= ?::date");
+  if(to&&/^\d{4}-\d{2}-\d{2}$/.test(to))add(eventsParams,eventsFilters,to,"received_at < (?::date + INTERVAL '1 day')");
+  if(["chaturbate","bongacams"].includes(platform))add(eventsParams,eventsFilters,platform,"platform = ?");
+  const ew=eventsFilters.length?"WHERE "+eventsFilters.join(" AND "):"";
+  const summary=(await pgPool.query(\`SELECT COUNT(*)::int events,COUNT(*) FILTER(WHERE matched_click)::int matched,
+    COUNT(*) FILTER(WHERE revenue_class='revshare')::int revshare_events,COUNT(*) FILTER(WHERE revenue_class='broadcaster_referral')::int broadcaster_events,
     COUNT(*) FILTER(WHERE revenue_class='affiliate_referral')::int affiliate_events,
     COALESCE(SUM(payout) FILTER(WHERE revenue_class IN ('revshare','revshare_adjustment')),0)::numeric revshare_revenue,
-    COALESCE(SUM(payout),0)::numeric total_revenue FROM affiliate_conversions \${ew}\`,eparams)).rows[0]||{};
-  const byCountry=(await pgPool.query(\`SELECT country,COUNT(*)::int events,
-    COALESCE(SUM(payout) FILTER(WHERE revenue_class IN ('revshare','revshare_adjustment')),0)::numeric revshare_revenue
-    FROM affiliate_conversions \${ew} GROUP BY country ORDER BY SUM(payout) FILTER(WHERE revenue_class IN ('revshare','revshare_adjustment')) DESC NULLS LAST LIMIT 50\`,eparams)).rows;
+    COALESCE(SUM(payout),0)::numeric total_revenue FROM affiliate_conversions \${ew}\`,eventsParams)).rows[0]||{};
+  const byCountry=(await pgPool.query(\`SELECT country,COUNT(*)::int events,COALESCE(SUM(payout) FILTER(WHERE revenue_class IN ('revshare','revshare_adjustment')),0)::numeric revshare_revenue
+    FROM affiliate_conversions \${ew} GROUP BY country ORDER BY SUM(payout) FILTER(WHERE revenue_class IN ('revshare','revshare_adjustment')) DESC NULLS LAST LIMIT 50\`,eventsParams)).rows;
   const bySource=(await pgPool.query(\`SELECT COALESCE(NULLIF(source,''),'unknown') source,COUNT(DISTINCT transaction_id)::int events,
     COALESCE(SUM(payout) FILTER(WHERE revenue_class IN ('revshare','revshare_adjustment')),0)::numeric revshare_revenue
-    FROM affiliate_conversions \${ew} GROUP BY source ORDER BY SUM(payout) FILTER(WHERE revenue_class IN ('revshare','revshare_adjustment')) DESC NULLS LAST LIMIT 50\`,eparams)).rows;
-  const cparams=[],cfilters=[];
-  if(from && /^\d{4}-\d{2}-\d{2}$/.test(from))add(cparams,cfilters,from,"clicked_at >= ?::date");
-  if(to && /^\d{4}-\d{2}-\d{2}$/.test(to))add(cparams,cfilters,to,"clicked_at < (?::date + INTERVAL '1 day')");
-  if(["chaturbate","bongacams"].includes(platform))add(cparams,cfilters,platform,"platform = ?");
-  const cw=cfilters.length?"WHERE "+cfilters.join(" AND "):"";
-  const clicks=Number((await pgPool.query(\`SELECT COUNT(*)::int n FROM affiliate_clicks \${cw}\`,cparams)).rows[0]?.n||0);
+    FROM affiliate_conversions \${ew} GROUP BY source ORDER BY SUM(payout) FILTER(WHERE revenue_class IN ('revshare','revshare_adjustment')) DESC NULLS LAST LIMIT 50\`,eventsParams)).rows;
+  const clicksParams=[],clicksFilters=[];
+  if(from&&/^\d{4}-\d{2}-\d{2}$/.test(from))add(clicksParams,clicksFilters,from,"clicked_at >= ?::date");
+  if(to&&/^\d{4}-\d{2}-\d{2}$/.test(to))add(clicksParams,clicksFilters,to,"clicked_at < (?::date + INTERVAL '1 day')");
+  if(["chaturbate","bongacams"].includes(platform))add(clicksParams,clicksFilters,platform,"platform = ?");
+  const cw=clicksFilters.length?"WHERE "+clicksFilters.join(" AND "):"";
+  const clicks=Number((await pgPool.query(\`SELECT COUNT(*)::int n FROM affiliate_clicks \${cw}\`,clicksParams)).rows[0]?.n||0);
   const revshareRevenue=Number(summary.revshare_revenue||0);
-  return {clicks,events:Number(summary.events||0),matchedEvents:Number(summary.matched||0),unmatchedEvents:Number(summary.events||0)-Number(summary.matched||0),
-    revshareEvents:Number(summary.revshare_events||0),broadcasterReferralEvents:Number(summary.broadcaster_events||0),affiliateReferralEvents:Number(summary.affiliate_events||0),
-    revshareRevenue,totalRevenue:Number(summary.total_revenue||0),revshareEpc:clicks?revshareRevenue/clicks:0,
-    byCountry:byCountry.map(r=>({country:r.country,events:Number(r.events),revshareRevenue:Number(r.revshare_revenue)})),
-    bySource:bySource.map(r=>({source:r.source,events:Number(r.events),revshareRevenue:Number(r.revshare_revenue)}))};
+  return {clicks,events:Number(summary.events||0),matchedEvents:Number(summary.matched||0),unmatchedEvents:Number(summary.events||0)-Number(summary.matched||0),revshareEvents:Number(summary.revshare_events||0),
+    broadcasterReferralEvents:Number(summary.broadcaster_events||0),affiliateReferralEvents:Number(summary.affiliate_events||0),revshareRevenue,totalRevenue:Number(summary.total_revenue||0),revshareEpc:clicks?revshareRevenue/clicks:0,
+    byCountry:byCountry.map(r=>({country:r.country,events:Number(r.events),revshareRevenue:Number(r.revshare_revenue)})),bySource:bySource.map(r=>({source:r.source,events:Number(r.events),revshareRevenue:Number(r.revshare_revenue)}))};
 }
 function readStats() { try { return JSON.parse(fs.readFileSync(STATS, "utf8")); } catch { return { total: 0, countries: {}, byCountryCategory: {}, byCountrySource: {}, byPlatform: {}, updatedAt: null }; } }
 function writeStats(stats) { fs.mkdirSync(DATA_DIR, { recursive: true }); const tmp = `${STATS}.tmp`; fs.writeFileSync(tmp, JSON.stringify(stats, null, 2)); fs.renameSync(tmp, STATS); }
@@ -282,7 +267,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (pathname === "/api/revenue") {
       if (!STATS_KEY || req.headers["x-ncf-stats-key"] !== STATS_KEY) return send(res,404,"Not found","text/plain");
-      try { return send(res,200,JSON.stringify(await revenueStats(url)));
+      try { return send(res,200,JSON.stringify(await revenueStats(url))); }
       catch(err) { console.error("Revenue query failed:",err.message); return send(res,503,JSON.stringify({error:"Revenue data unavailable"}),"application/json"); }
     }
 
