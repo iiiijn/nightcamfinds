@@ -226,7 +226,7 @@ async function dashboardStats(incoming) {
   const campaignRows = await q(`SELECT platform, campaign, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY platform,campaign`);
   const deviceRows = await q(`SELECT device, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY device`);
   const mediums = await q(`SELECT medium, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY medium`);
-  const earningsRows = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS earnings FROM cb_conversions`);
+  const earningsRows = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_broadcaster-referral','revshare_webmaster-commission','revshare_payout-adjustment')),0)::numeric AS earnings FROM cb_conversions`);
   const bongacash = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='registration')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type='purchase'),0)::numeric AS earnings FROM bonga_conversions`).catch(() => ({rows:[{}]}));
   const platforms = Object.fromEntries(platformRows.map(r => [r.platform || "unknown", Number(r.n)]));
   const sources = Object.fromEntries(sourceRows.map(r => [`${r.platform}:${r.source}`, Number(r.n)]));
@@ -289,27 +289,22 @@ http.createServer = function wrappedCreateServer(handler) {
       try{return json(res,200,await dashboardStats(incoming))}catch(err){console.error("Dashboard stats failed:",err.message);return json(res,500,{error:"Could not load dashboard analytics."})}
     }
     if(incoming.pathname === "/cb/postback") {
-      try{await saveConversion(Object.fromEntries(incoming.searchParams.entries()));res.writeHead(200,{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"});return res.end("OK")}catch{return json(res,503,{error:"Postback storage unavailable."})}
+      const expectedSecret = String(process.env.CB_POSTBACK_SECRET || "");
+      const suppliedSecret = String(incoming.searchParams.get("secret") || incoming.searchParams.get("key") || incoming.searchParams.get("token") || "");
+      if (!expectedSecret || !suppliedSecret || !safeEqual(suppliedSecret, expectedSecret)) {
+        return json(res, 403, { error: "Postback authentication failed." });
+      }
+      try {
+        await saveConversion(Object.fromEntries(incoming.searchParams.entries()));
+        res.writeHead(200, {"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"});
+        return res.end("OK");
+      } catch (err) {
+        console.error("Fallback Chaturbate postback rejected:", err.message);
+        return json(res, 400, { error: "Postback rejected." });
+      }
     }
-    const originalWriteHead = res.writeHead.bind(res);
-    const path = incoming.pathname;
-    const platform = path.startsWith("/bgo/") ? "bongacams" : path.startsWith("/go/") ? "chaturbate" : "";
-    if(platform) {
-      const click = parseAttribution(incoming,req,platform);
-      await saveClick(click);
-      res.writeHead = function(statusCode,headers,...rest) {
-        if(headers && headers.Location) {
-          try {
-            const target = new URL(headers.Location);
-            target.searchParams.set("click_id",click.clickId);
-            if(click.source!=="direct" && !target.searchParams.get("source")) target.searchParams.set("source",click.source);
-            target.searchParams.set("track",click.placement);
-            headers = {...headers,Location:target.toString()};
-          } catch {}
-        }
-        return originalWriteHead(statusCode,headers,...rest);
-      };
-    }
+    // Tracking is performed once in server.js, where the final affiliate URL is built.
+    // Do not record or decorate /go/ and /bgo/ requests here or clicks will be double-counted.
     return handler(req,res);
   });
 };
