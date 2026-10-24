@@ -499,6 +499,7 @@ const server = http.createServer(async (req, res) => {
     const category = url.searchParams.get("category") || "all";
     const country = (url.searchParams.get("country") || "").toUpperCase();
     const platform = (url.searchParams.get("platform") || "").toLowerCase();
+    const language = (url.searchParams.get("language") || "").trim().toLowerCase();
     const q = (url.searchParams.get("q") || "").toLowerCase();
     const sort = url.searchParams.get("sort") || "recommended";
     let list = feed.rooms.slice();
@@ -507,14 +508,18 @@ const server = http.createServer(async (req, res) => {
     if (category === "new") list = list.filter(r => r.isNew);
     if (country) list = list.filter(r => r.country === country);
     if (["chaturbate","bongacams"].includes(platform)) list = list.filter(r => r.platform === platform);
-    if (q) list = list.filter(r => `${r.displayName} ${r.roomSubject} ${r.country} ${r.location} ${r.platformName} ${(r.tags || []).join(" ")}`.toLowerCase().includes(q));
+    const languagesFor = room => (Array.isArray(room.languages) ? room.languages : String(room.languages || "").split(/[,;|]/))
+      .map(value => String(value || "").trim().toLowerCase()).filter(Boolean);
+    if (language) list = list.filter(room => languagesFor(room).includes(language));
+    if (q) list = list.filter(r => `${r.displayName} ${r.roomSubject} ${r.country} ${r.location} ${r.platformName} ${(r.tags || []).join(" ")} ${languagesFor(r).join(" ")}`.toLowerCase().includes(q));
     list.sort((a,b) => sort === "newest" ? Number(b.isNew)-Number(a.isNew) || b.viewerCount-a.viewerCount : b.viewerCount-a.viewerCount);
     const countries = [...new Set(feed.rooms.map(r => r.country).filter(Boolean))].sort();
     const platforms = [...new Set(feed.rooms.map(r => r.platform).filter(Boolean))].sort();
+    const languages = [...new Set(feed.rooms.flatMap(languagesFor))].sort();
     const viewerCountry = visitorCountry(req);
     const viewerTier = countryTier(viewerCountry);
     return send(res, 200, JSON.stringify({
-      rooms:list.slice(0,60), countries, platforms, notice:feed.notice,
+      rooms:list.slice(0,60), countries, platforms, languages, notice:feed.notice,
       visitorCountry, countryTier:viewerTier.tier,
       tier1: viewerTier.tier === 1
     }), "application/json");
