@@ -373,7 +373,7 @@ async function fetchChaturbateRooms(req) {
   let endpoint;
   try { endpoint = new URL(CHATURBATE_API_BASE); }
   catch (_) { throw new Error("Invalid Chaturbate API base URL"); }
-  if (endpoint.protocol !== "https:" || !/(^|\\.)chaturbate\\.com$/i.test(endpoint.hostname)) {
+  if (endpoint.protocol !== "https:" || !/(^|\.)chaturbate\.com$/i.test(endpoint.hostname)) {
     throw new Error("Chaturbate API base URL must use HTTPS on chaturbate.com");
   }
   endpoint.searchParams.set("wm", CHATURBATE_WM);
