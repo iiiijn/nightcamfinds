@@ -24,6 +24,5 @@ test("uses a deterministic fallback transaction key only when the partner omits 
 });
 
 test("rejects malformed revenue values instead of silently treating them as zero", () => {
-  const c = revshare.normalize(new URLSearchParams({transaction_id:"t",type:"revshare_purchase",payout:"NaN"}));
-  assert.equal(c.payout,0); // Existing handler sanitizes non-finite partner values to zero; downstream reconciliation remains required.
+  assert.throws(() => revshare.normalize(new URLSearchParams({transaction_id:"t",type:"revshare_purchase",payout:"NaN"})), { statusCode: 400 });
 });
