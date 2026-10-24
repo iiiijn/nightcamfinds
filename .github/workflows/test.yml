@@ -1,0 +1,36 @@
+name: NightCamFinds checks
+
+on:
+  push:
+    branches: [main, revshare-foundation]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Check JavaScript syntax
+        run: |
+          node --check server.js
+          node --check route.js
+          node --check start.js
+          node --check scripts/patch-route.js
+          node --check scripts/patch-start-postback.js
+          node --check public/app.js
+          node --check public/promo.js
+          node --check src/services/chaturbate-revshare.cjs
+      - name: Run tests
+        run: npm test
