@@ -40,8 +40,8 @@ document.querySelectorAll("nav a").forEach((a) => {
   if (a.getAttribute("href") === location.pathname) a.setAttribute("aria-current", "page");
 });
 
-const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore", BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela", PH:"Philippines", TH:"Thailand", CN:"China", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain", PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa" };
-const QUICK = ["US","GB","CA","AU","DE","FR","NL"];
+const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore", BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela", PH:"Philippines", TH:"Thailand", CN:"China", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain", PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa", PT:"Portugal", AE:"United Arab Emirates", HK:"Hong Kong", TR:"Turkey" };
+const QUICK = ["US","GB","CA","AU","DE","FR","NL","BR","ES","IT","MX","PL"];
 
 const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
 const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
@@ -243,7 +243,16 @@ async function load() {
       opt.textContent = NAMES[iso] || iso;
       countrySelect.append(opt);
     }
-    if (!countrySelect.value && (forced || hinted) && (data.countries || []).includes(forced || hinted)) countrySelect.value = forced || hinted;
+    const forcedCountry = /^[A-Z]{2}$/.test(forced) ? forced : "";
+    const hintedCountry = /^[A-Z]{2}$/.test(hinted) && (data.countries || []).includes(hinted) ? hinted : "";
+    const desiredCountry = forcedCountry || hintedCountry;
+    if (desiredCountry && ![...countrySelect.options].some((option) => option.value === desiredCountry)) {
+      const opt = document.createElement("option");
+      opt.value = desiredCountry;
+      opt.textContent = NAMES[desiredCountry] || desiredCountry;
+      countrySelect.append(opt);
+    }
+    if (!countrySelect.value && desiredCountry) countrySelect.value = desiredCountry;
     if (countrySelect.value) return load();
   }
   const rooms = data.rooms || [];
