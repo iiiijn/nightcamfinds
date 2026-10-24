@@ -2,8 +2,15 @@
   "use strict";
 
   const cbSlot = document.querySelector("#chaturbate-live-promo");
+  const cbBanner = document.querySelector("#cb-banner-promo");
   const bongaSlot = document.querySelector("#bonga-live-promo");
   const sticky = document.querySelector("#stickyPromo");
+  const visitorCountry = String(document.querySelector('meta[name="ncf-country"]')?.content || "").toUpperCase();
+
+  const TIER1 = new Set(["AN","AT","AU","BE","CA","CH","DE","DK","FI","FK","FO","FR","GB","GG","GI","GL","IE","IS","JE","JP","LI","LU","NL","NO","NZ","QA","SE","SG","SM","UM","US","VI"]);
+  const TIER2 = new Set(["AE","AW","BN","BR","BS","CY","ES","GQ","GR","HK","IL","IM","IT","KR","KW","KY","MO","PF","PR","PT","SI","VG"]);
+  const TIER3 = new Set(["AG","AI","BB","BH","CK","CL","CZ","EE","GU","HR","HU","KN","LB","LT","LV","MP","MT","MX","NC","OM","PL","RU","SA","SC","SK","TR","TT","TW","UY","VE"]);
+  const tier = TIER1.has(visitorCountry) ? "Tier 1" : TIER2.has(visitorCountry) ? "Tier 2" : TIER3.has(visitorCountry) ? "Tier 3" : "Other";
 
   const esc = value => String(value ?? "").replace(/[&<>\"']/g, char => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;"
@@ -12,7 +19,7 @@
   function trackUrl(room, placement) {
     const platform = room.platform === "bongacams" ? "bongacams" : "chaturbate";
     const params = new URLSearchParams({
-      src: `promo-${platform}-${placement}`,
+      src: `promo-${platform}-${placement}-${tier.toLowerCase().replace(/\s+/g, "-")}`,
       cat: "promo",
       source: "website",
       medium: "promo",
@@ -22,6 +29,19 @@
     return platform === "bongacams"
       ? `/bgo/${encodeURIComponent(room.id)}?${params.toString()}`
       : `/go/${encodeURIComponent(room.id)}?${params.toString()}`;
+  }
+
+  function tierBanner() {
+    if (!cbBanner) return;
+    const copy = tier === "Tier 1"
+      ? "Popular live rooms for premium traffic markets"
+      : tier === "Tier 2"
+        ? "Popular live cams, fresh rooms and easy chat access"
+        : tier === "Tier 3"
+          ? "Live rooms across categories and countries"
+          : "Browse live rooms by category and country";
+    cbBanner.hidden = false;
+    cbBanner.innerHTML = `<div class="promo-title"><span class="promo-dot"></span><strong>${copy}</strong><span class="promo-sub">18+ · updated live</span></div><div class="promo-actions"><a class="btn" href="/go/chaturbate:featured?src=cb-smart-banner&cat=promo&source=website&medium=promo&campaign=tier-smart-banner&content=${encodeURIComponent(tier.toLowerCase().replace(/\s+/g, "-"))}" target="_blank" rel="sponsored nofollow noopener">Browse live rooms</a><span class="promo-sub">${esc(visitorCountry || "Global")} · ${tier}</span></div>`;
   }
 
   function roomCard(room, placement) {
@@ -55,6 +75,7 @@
   }
 
   async function loadPromos() {
+    tierBanner();
     try {
       const response = await fetch("/api/rooms?category=all&sort=viewers&q=", {
         headers: { Accept: "application/json" },
