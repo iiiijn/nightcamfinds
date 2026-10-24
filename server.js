@@ -536,7 +536,7 @@ const server = http.createServer(async (req, res) => {
       const supplied = room?.href || "";
       try {
         const parsed = supplied ? new URL(supplied) : null;
-        if (parsed && /(^|\\.)bongacams4?\\.com$/i.test(parsed.hostname)) {
+        if (parsed && /(^|\.)bongacams4?\.com$/i.test(parsed.hostname)) {
           parsed.searchParams.set("click_id", clickId);
           parsed.searchParams.set("source", source);
           parsed.searchParams.set("track", src);
@@ -578,7 +578,7 @@ const server = http.createServer(async (req, res) => {
       .replace("__COUNTRY__", visitorCountry(req))
       .replace("__FORCE__", forced ? forced[1] : "")
       .replace("__LANG__", langFor(forced ? forced[1] : visitorCountry(req)));
-    const slug = pathname.replace(/^\\/+|\\/+$/g, "") || "home";
+    const slug = pathname.replace(/^\/+|\/+$/g, "") || "home";
     const seo = {
       home: ["Live cams now | NightCamFinds", "Browse live adult cam rooms from Chaturbate and BongaCams. Filter by category, country, language, tags and viewer count, then open a room on its partner platform."],
       live: ["Live Cams Now | NightCamFinds", "Discover current live cam rooms, compare viewer counts and browse broadcasters who are online now."],
@@ -597,7 +597,7 @@ const server = http.createServer(async (req, res) => {
       : (seo[slug] || seo.home);
     const safeMeta = value => String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     html = html
-      .replace(/<title>[\\s\\S]*?<\\/title>/i, `<title>${safeMeta(titleAndDescription[0])}</title>`)
+      .replace(/<title>[\s\S]*?<\/title>/i, `<title>${safeMeta(titleAndDescription[0])}</title>`)
       .replace(/<meta name="description" content="[^"]*">/i, `<meta name="description" content="${safeMeta(titleAndDescription[1])}">`)
       .replace(/<meta property="og:title" content="[^"]*">/i, `<meta property="og:title" content="${safeMeta(titleAndDescription[0])}">`)
       .replace(/<meta property="og:description" content="[^"]*">/i, `<meta property="og:description" content="${safeMeta(titleAndDescription[1])}">`)
