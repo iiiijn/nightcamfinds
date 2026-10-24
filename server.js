@@ -54,7 +54,18 @@ const MARKETS = [
   ["at", "AT", "Austria"],
   ["be", "BE", "Belgium"],
   ["jp", "JP", "Japan"],
-  ["sg", "SG", "Singapore"]
+  ["sg", "SG", "Singapore"],
+  ["br", "BR", "Brazil"],
+  ["es", "ES", "Spain"],
+  ["it", "IT", "Italy"],
+  ["pt", "PT", "Portugal"],
+  ["ae", "AE", "United Arab Emirates"],
+  ["hk", "HK", "Hong Kong"],
+  ["mx", "MX", "Mexico"],
+  ["pl", "PL", "Poland"],
+  ["tr", "TR", "Turkey"],
+  ["ru", "RU", "Russia"],
+  ["cl", "CL", "Chile"]
 ];
 
 const GENDER = { f: "female", m: "male", t: "trans", c: "couples", s: "trans" };
@@ -65,7 +76,8 @@ const NAMES = {
   SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore",
   BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela",
   PH:"Philippines", TH:"Thailand", CN:"China", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain",
-  PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa"
+  PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa",
+  AE:"United Arab Emirates", HK:"Hong Kong", PT:"Portugal", TR:"Turkey", CL:"Chile"
 };
 
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, "data");
@@ -546,7 +558,7 @@ const server = http.createServer(async (req, res) => {
       if (!target) target = `https://bongacams4.com/track?c=${encodeURIComponent(BONGA_CAMPAIGN)}&click_id=${encodeURIComponent(clickId)}&track=${encodeURIComponent(src)}`;
     } else {
       const selectedTour = CATEGORY_TOURS[category] || TOUR;
-      const destination = buildChaturbateUrl({
+      let destination = buildChaturbateUrl({
         roomUrl: room?.href || "",
         campaign: CAMPAIGN,
         tour: selectedTour,
@@ -556,6 +568,19 @@ const server = http.createServer(async (req, res) => {
         medium,
         utmCampaign: campaign
       });
+      if (!destination.ok) {
+        // If the live feed returns an unexpected room URL, fall back safely to the
+        // category's official affiliate tour instead of breaking the visitor's click.
+        destination = buildChaturbateUrl({
+          campaign: CAMPAIGN,
+          tour: selectedTour,
+          track: src,
+          clickId,
+          source,
+          medium,
+          utmCampaign: campaign
+        });
+      }
       if (!destination.ok) {
         console.error("Chaturbate redirect destination rejected:", destination.reason);
         res.writeHead(502, { "Cache-Control": "no-store" });
