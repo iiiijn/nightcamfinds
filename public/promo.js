@@ -28,10 +28,10 @@
     const params = new URLSearchParams({
       src: `${platform}-${placement}`,
       cat: 'promo',
-      source: attr.source,
-      medium: attr.medium,
-      campaign: attr.campaign,
-      content: placement
+      utm_source: attr.source,
+      utm_medium: attr.medium,
+      utm_campaign: attr.campaign,
+      utm_content: placement
     });
     return platform === 'bongacams'
       ? `/bgo/${encodeURIComponent(room.id)}?${params.toString()}`
@@ -44,7 +44,14 @@
     const title = document.createElement('div');
     title.className = 'promo-title';
     const market = tier1.has(metaCountry) ? `Popular with viewers in ${names[metaCountry] || 'your market'}` : 'Fresh rooms online now';
-    title.innerHTML = `<span class="promo-dot"></span><strong>${label}</strong><span class="promo-sub">${market}</span>`;
+    const dot = document.createElement('span');
+    dot.className = 'promo-dot';
+    const titleText = document.createElement('strong');
+    titleText.textContent = label;
+    const subtitle = document.createElement('span');
+    subtitle.className = 'promo-sub';
+    subtitle.textContent = market;
+    title.append(dot, titleText, subtitle);
     el.append(title);
 
     const cards = document.createElement('div');
@@ -61,7 +68,17 @@
       img.src = room.image || '/og.svg';
       const body = document.createElement('span');
       const viewers = Number(room.viewerCount || 0).toLocaleString();
-      body.innerHTML = `<strong>${room.displayName || room.username}</strong><small>${viewers} watching · ${platform}</small>`;
+      const name = document.createElement('strong');
+      name.textContent = String(room.displayName || room.username || 'Live room').slice(0, 100);
+      const count = document.createElement('small');
+      count.textContent = `${viewers} watching · ${platform}`;
+      body.append(name, count);
+      const tags = Array.isArray(room.tags) ? room.tags : [];
+      if (tags.length) {
+        const tagLine = document.createElement('small');
+        tagLine.textContent = tags.slice(0, 2).map(tag => String(tag).slice(0, 32)).join(' · ');
+        body.append(tagLine);
+      }
       a.append(img, body);
       cards.append(a);
     }
@@ -74,7 +91,7 @@
     banner.innerHTML = '';
     const a = document.createElement('a');
     const attr = getMarketingAttribution();
-    a.href = `/go/chaturbate:featured?src=chaturbate-banner&cat=promo&source=${encodeURIComponent(attr.source)}&medium=${encodeURIComponent(attr.medium)}&campaign=${encodeURIComponent(attr.campaign)}&content=banner`;
+    a.href = `/go/chaturbate:featured?src=chaturbate-banner&cat=promo&utm_source=${encodeURIComponent(attr.source)}&utm_medium=${encodeURIComponent(attr.medium)}&utm_campaign=${encodeURIComponent(attr.campaign)}&utm_content=banner`;
     a.target = '_blank';
     a.rel = 'sponsored nofollow noopener';
     const img = document.createElement('img');
@@ -114,7 +131,13 @@
       if (!room) return;
       sticky.innerHTML = '';
       const body = document.createElement('div');
-      body.innerHTML = `<span class="promo-dot"></span><strong>${room.displayName || room.username} is live</strong><small>${Number(room.viewerCount || 0).toLocaleString()} watching on ${room.platformName || room.platform}</small>`;
+      const dot = document.createElement('span');
+      dot.className = 'promo-dot';
+      const name = document.createElement('strong');
+      name.textContent = `${String(room.displayName || room.username || 'Live room').slice(0, 100)} is live`;
+      const count = document.createElement('small');
+      count.textContent = `${Number(room.viewerCount || 0).toLocaleString()} watching on ${String(room.platformName || room.platform || '').slice(0, 40)}`;
+      body.append(dot, name, count);
       const link = document.createElement('a');
       link.className = 'btn';
       link.href = trackUrl(room, 'sticky');
