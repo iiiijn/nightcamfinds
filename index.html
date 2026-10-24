@@ -3,18 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>NightCamFinds — Live cam directory</title>
-  <meta name="description" content="Discover live 18+ cam rooms from Chaturbate and BongaCams, filter by country, and continue to the partner site to watch and chat.">
-  <meta name="robots" content="index,follow">
+  <title>NightCamFinds — Live Cam Directory</title>
+  <meta name="description" content="Discover live 18+ cam rooms from Chaturbate and BongaCams. Browse female, male, trans and couples rooms, filter by country, compare viewers and open a live room on the partner platform.">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta name="theme-color" content="#0b0910">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <link rel="canonical" href="__ORIGIN__/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <meta property="og:title" content="NightCamFinds — Live cams now">
-  <meta property="og:description" content="Find live rooms from Chaturbate and BongaCams by category and country.">
+  <link rel="preconnect" href="https://chaturbate.com">
+  <link rel="preconnect" href="https://bongacams4.com">
+  <meta property="og:site_name" content="NightCamFinds">
+  <meta property="og:title" content="NightCamFinds — Live Cams Now">
+  <meta property="og:description" content="Find live rooms by category, country, viewer count and platform. Continue to the partner site to watch and chat.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="__ORIGIN__/">
   <meta property="og:image" content="__ORIGIN__/og.svg">
+  <meta property="og:image:alt" content="NightCamFinds live cam directory">
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="NightCamFinds — Live Cams Now">
+  <meta name="twitter:description" content="Browse live adult cam rooms by category and country.">
+  <meta name="twitter:image" content="__ORIGIN__/og.svg">
   <meta name="ncf-country" content="__COUNTRY__">
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"WebSite",
+    "name":"NightCamFinds",
+    "url":"__ORIGIN__/",
+    "description":"Independent 18+ live cam directory with public room discovery, category and country filters."
+  }
+  </script>
   <link rel="stylesheet" href="/styles.css">
   <script>if(localStorage.getItem("ncf18")==="1")document.documentElement.classList.add("ok");</script>
 </head>
@@ -50,8 +68,8 @@
 
     <section class="hero">
       <p class="eyebrow" id="kicker">Independent discovery</p>
-      <h1 id="page-title">Find live cams worth clicking</h1>
-      <p class="muted" id="page-intro">Browse live rooms from Chaturbate and BongaCams. Open a room on the partner site to watch and chat.</p>
+      <h1 id="page-title">Discover live cams right now</h1>
+      <p class="muted" id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.</p>
       <div class="hero-actions actions">
         <a class="btn" id="hero-cta" href="#rooms">Browse live rooms</a>
         <span class="intent-note">18+ · Live rooms · Updated frequently</span>
@@ -68,7 +86,7 @@
     </section>
 
     <section class="promo-strip" id="chaturbate-live-promo" aria-label="Chaturbate live promotion"></section>
-    <section class="promo-strip promo-banner" id="cb-banner-promo" aria-label="Chaturbate banner promotion" hidden></section>
+    <section class="promo-strip promo-banner" id="cb-banner-promo" aria-label="Chaturbate smart promotion" hidden></section>
     <section class="promo-strip" id="bonga-live-promo" aria-label="BongaCams live promotion"></section>
 
     <section class="controls" id="rooms" aria-label="Room filters">
