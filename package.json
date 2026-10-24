@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "start": "node boot-v2.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js && node scripts/verify-v2.js"
   },
   "engines": { "node": ">=20" },
   "dependencies": {
