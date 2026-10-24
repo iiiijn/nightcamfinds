@@ -2,7 +2,7 @@
   "name": "nightcamfinds",
   "private": true,
   "scripts": {
-    "start": "node scripts/patch-start-postback.js && node scripts/patch-route.js && node scripts/patch-tier-analytics.js && node scripts/patch-promo-tours.js && node route.js",
+    "start": "node scripts/patch-start-postback.js && node scripts/patch-route.js && node scripts/patch-tier-analytics.js && node route.js",
     "test": "node --test tests/*.test.js"
   },
   "engines": { "node": ">=20" },
