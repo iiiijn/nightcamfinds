@@ -36,7 +36,7 @@ const replacement = `async function saveConversion(params) {
   const amount = number(params.amount);
 
   await pool.query(
-    `INSERT INTO cb_conversions
+    \`INSERT INTO cb_conversions
       (click_id,transaction_id,conversion_type,payout,currency,amount,country,track,source,campaign_id,program_id,user_id,event_timestamp,device,language,matched_click,raw_payload)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb)
      ON CONFLICT (transaction_id) DO UPDATE SET
@@ -55,7 +55,7 @@ const replacement = `async function saveConversion(params) {
        device=EXCLUDED.device,
        language=EXCLUDED.language,
        matched_click=EXCLUDED.matched_click,
-       raw_payload=EXCLUDED.raw_payload`,
+       raw_payload=EXCLUDED.raw_payload\`,
     [
       clickId,
       transactionId,
