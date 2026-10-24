@@ -8,7 +8,7 @@ const dashboard=fs.readFileSync('public/revenue-dashboard.html','utf8');
 assert.equal(pkg.scripts.start,'node boot-v2.js','start command should select V2 bootstrap');
 assert.ok(server.includes('pathname === "/dashboard"') && server.includes('pathname === "/dashboard/"'),'V2 server must serve dashboard route');
 assert.ok(server.includes('pathname === "/cb/postback"') && boot.includes("'/cb/postback'"),'V2 stack must accept Chaturbate postbacks');
-assert.match(server,/pathname === \/api\/revenue/,'V2 server must expose revenue analytics');
+assert.ok(server.includes('pathname === "/api/revenue"') && boot.includes("'/api/revenue'"),'V2 stack must expose revenue analytics');
 assert.match(server,/x-ncf-stats-key/,'revenue API must require the dashboard key header');
 assert.match(dashboard,/X-NCF-Stats-Key/,'dashboard must send the key in a request header');
 assert.match(boot,/CB_POSTBACK_SECRET/,'bootstrap must support configured postback protection');
