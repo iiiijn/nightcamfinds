@@ -258,6 +258,10 @@ const server = http.createServer(async (req, res) => {
     }
 
 
+    if (pathname === "/dashboard" || pathname === "/dashboard/") {
+      const html=fs.readFileSync(path.join(PUBLIC,"revenue-dashboard.html"),"utf8");
+      return send(res,200,html,"text/html; charset=utf-8");
+    }
     if (pathname === "/cb/postback" && req.method === "GET") {
       if (CB_POSTBACK_SECRET && url.searchParams.get("secret") !== CB_POSTBACK_SECRET) return send(res,403,JSON.stringify({error:"Invalid postback secret"}),"application/json");
       if (!CB_POSTBACK_SECRET && process.env.NODE_ENV === "production") return send(res,503,JSON.stringify({error:"Postback secret is not configured"}),"application/json");
