@@ -6,8 +6,13 @@
   if (!cbPromo && !bcPromo && !banner && !sticky) return;
 
   const metaCountry = String(document.querySelector('meta[name="ncf-country"]')?.content || 'UNKNOWN').toUpperCase();
-  const tier1 = new Set(['US','CA','GB','IE','AU','NZ','DE','FR','NL','SE','NO','DK','FI','CH','AT','BE']);
-  const names = { US:'the US', CA:'Canada', GB:'the UK', IE:'Ireland', AU:'Australia', NZ:'New Zealand', DE:'Germany', FR:'France', NL:'the Netherlands', SE:'Sweden', NO:'Norway', DK:'Denmark', FI:'Finland', CH:'Switzerland', AT:'Austria', BE:'Belgium' };
+  const names = {
+    US:'the US', CA:'Canada', GB:'the UK', IE:'Ireland', AU:'Australia', NZ:'New Zealand', DE:'Germany',
+    FR:'France', NL:'the Netherlands', SE:'Sweden', NO:'Norway', DK:'Denmark', FI:'Finland', CH:'Switzerland',
+    AT:'Austria', BE:'Belgium', JP:'Japan', SG:'Singapore', BR:'Brazil', ES:'Spain', IT:'Italy', PT:'Portugal',
+    AE:'the United Arab Emirates', HK:'Hong Kong', MX:'Mexico', PL:'Poland', TR:'Turkey', RU:'Russia', CL:'Chile',
+    CZ:'Czechia', GR:'Greece', IL:'Israel', KR:'South Korea', KW:'Kuwait', CY:'Cyprus', PR:'Puerto Rico'
+  };
 
   function getMarketingAttribution() {
     let saved = {};
@@ -27,7 +32,7 @@
     const attr = getMarketingAttribution();
     const params = new URLSearchParams({
       src: `${platform}-${placement}`,
-      cat: 'promo',
+      cat: String(room.gender || 'all'),
       utm_source: attr.source,
       utm_medium: attr.medium,
       utm_campaign: attr.campaign,
@@ -43,7 +48,9 @@
     el.innerHTML = '';
     const title = document.createElement('div');
     title.className = 'promo-title';
-    const market = tier1.has(metaCountry) ? `Popular with viewers in ${names[metaCountry] || 'your market'}` : 'Fresh rooms online now';
+    const market = names[metaCountry]
+      ? `Browsing from ${names[metaCountry]}? Filter live rooms by category and language.`
+      : 'Fresh rooms online now · Filter by category, country and language';
     const dot = document.createElement('span');
     dot.className = 'promo-dot';
     const titleText = document.createElement('strong');
