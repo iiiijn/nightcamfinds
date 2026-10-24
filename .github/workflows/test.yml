@@ -32,5 +32,16 @@ jobs:
           node --check public/app.js
           node --check public/promo.js
           node --check src/services/chaturbate-revshare.cjs
+      - name: Exercise startup patch scripts on temporary copies
+        run: |
+          tmpdir=$(mktemp -d)
+          mkdir -p "$tmpdir/scripts" "$tmpdir/src/services"
+          cp route.js "$tmpdir/route.js"
+          cp start.js "$tmpdir/start.js"
+          cp scripts/patch-route.js "$tmpdir/scripts/patch-route.js"
+          cp scripts/patch-start-postback.js "$tmpdir/scripts/patch-start-postback.js"
+          cp src/services/chaturbate-revshare.cjs "$tmpdir/src/services/chaturbate-revshare.cjs"
+          (cd "$tmpdir" && node scripts/patch-route.js && node --check route.js && node scripts/patch-route.js)
+          (cd "$tmpdir" && node scripts/patch-start-postback.js && node --check start.js && node scripts/patch-start-postback.js)
       - name: Run tests
         run: npm test
