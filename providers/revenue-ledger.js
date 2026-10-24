@@ -12,7 +12,7 @@ function normalizeConversion(input = {}) {
   const payout = numeric(input.payout); const amount = numeric(input.amount);
   const knownRevshare = rawType === "revshare_purchase";
   const isAdjustment = rawType === "revshare_payout-adjustment";
-  const broadcasterReferral = /broadcaster|broadcaster-referral/i.test(rawType);
+  const broadcasterReferral = rawType === "revshare_signup-referral" || /broadcaster|broadcaster-referral/i.test(rawType);
   const affiliateReferral = /affiliate|referral-income/i.test(rawType);
   return {
     platform: clean(input.platform, "chaturbate", 30).toLowerCase(),
