@@ -282,6 +282,7 @@ http.createServer = function routeDashboard(handler) {
         ok: true,
         databaseConfigured: Boolean(databaseUrl),
         bongaPostbackConfigured: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
+        chaturbatePostbackConfigured: Boolean(String(process.env.CB_POSTBACK_SECRET || "").trim()),
         timestamp: new Date().toISOString()
       });
     }
