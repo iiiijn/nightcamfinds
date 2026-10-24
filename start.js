@@ -288,22 +288,8 @@ http.createServer = function wrappedCreateServer(handler) {
     if(incoming.pathname === "/api/dashboard-stats") {
       try{return json(res,200,await dashboardStats(incoming))}catch(err){console.error("Dashboard stats failed:",err.message);return json(res,500,{error:"Could not load dashboard analytics."})}
     }
-    if(incoming.pathname === "/cb/postback") {
-      const expectedSecret = String(process.env.CB_POSTBACK_SECRET || "");
-      const suppliedSecret = String(incoming.searchParams.get("secret") || incoming.searchParams.get("key") || incoming.searchParams.get("token") || "");
-      if (!expectedSecret || !suppliedSecret || !safeEqual(suppliedSecret, expectedSecret)) {
-        return json(res, 403, { error: "Postback authentication failed." });
-      }
-      try {
-        const cleanParams = Object.fromEntries([...incoming.searchParams.entries()].filter(([key]) => !["secret", "key", "token"].includes(key)));
-        await saveConversion(cleanParams);
-        res.writeHead(200, {"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"});
-        return res.end("OK");
-      } catch (err) {
-        console.error("Fallback Chaturbate postback rejected:", err.message);
-        return json(res, 400, { error: "Postback rejected." });
-      }
-    }
+    // Both /api/chaturbate/postback and /cb/postback are handled by route.js
+    // with the same secret validation, click matching and transaction deduplication.
     // Tracking is performed once in server.js, where the final affiliate URL is built.
     // Do not record or decorate /go/ and /bgo/ requests here or clicks will be double-counted.
     return handler(req,res);
