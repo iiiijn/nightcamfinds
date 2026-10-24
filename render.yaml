@@ -27,6 +27,8 @@ services:
         sync: false
       - key: CB_TOUR
         sync: false
+      - key: CB_POSTBACK_SECRET
+        sync: false
       - key: BONGACAMS_CAMPAIGN
         sync: false
       - key: BONGACASH_POSTBACK_SECRET
