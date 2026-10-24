@@ -23,7 +23,7 @@ h1{font-size:clamp(25px,5vw,40px);line-height:1.08;margin:0 0 7px}
 .quick{display:flex;gap:7px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:5px 0 10px;padding:1px 0 4px}
 .quick::-webkit-scrollbar{display:none}
 .quick button{background:transparent;color:var(--text);white-space:nowrap;min-height:36px;padding:7px 11px}
-.toolbar{display:grid;grid-template-columns:minmax(0,1fr) 150px 170px;gap:8px;margin:0 0 9px}
+.toolbar{display:grid;grid-template-columns:minmax(0,1fr) 150px 150px 170px;gap:8px;margin:0 0 9px}
 input,select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 11px;min-height:42px;min-width:0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 .card{display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;text-decoration:none;content-visibility:auto;contain-intrinsic-size:300px}
@@ -46,7 +46,7 @@ html.ok .age-gate{display:none}
 .home-group{grid-column:1/-1;margin-top:4px}
 .home-group h2{font-size:21px;margin:8px 0}
 .home-group .grid{grid-template-columns:repeat(4,minmax(0,1fr))}
-@media(max-width:900px){.home-group .grid{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar{grid-template-columns:minmax(0,1fr) 145px 155px}}
+@media(max-width:900px){.home-group .grid{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar{grid-template-columns:minmax(0,1fr) 130px 130px 140px}}
 @media(max-width:640px){
   .wrap{width:min(100% - 20px,1120px);padding:10px 0 30px}
   header{gap:8px}
