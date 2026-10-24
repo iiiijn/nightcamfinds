@@ -6,7 +6,7 @@ const server=fs.readFileSync('server-v2.js','utf8');
 const boot=fs.readFileSync('boot-v2.js','utf8');
 const dashboard=fs.readFileSync('public/revenue-dashboard.html','utf8');
 assert.equal(pkg.scripts.start,'node boot-v2.js','start command should select V2 bootstrap');
-assert.match(server,/pathname === \/dashboard\//,'V2 server must serve dashboard route');
+assert.match(server,/pathname === \/dashboard/\s*\|\| pathname === \/dashboard\//,'V2 server must serve dashboard route');
 assert.match(server,/pathname === \/cb\/postback/,'V2 server must accept Chaturbate postbacks');
 assert.match(server,/pathname === \/api\/revenue/,'V2 server must expose revenue analytics');
 assert.match(server,/x-ncf-stats-key/,'revenue API must require the dashboard key header');
