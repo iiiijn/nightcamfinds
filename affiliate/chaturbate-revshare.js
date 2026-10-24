@@ -29,10 +29,10 @@ function normalize(params) {
 async function ensureTables(pool) {
   await pool.query(`CREATE TABLE IF NOT EXISTS affiliate_conversions (
     id BIGSERIAL PRIMARY KEY, received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), platform VARCHAR(30) NOT NULL,
-    click_id VARCHAR(128), transaction_id VARCHAR(255) NOT NULL, conversion_type VARCHAR(100) NOT NULL DEFAULT "unknown",
-    payout NUMERIC(18,6) NOT NULL DEFAULT 0, currency VARCHAR(16) NOT NULL DEFAULT "USD", amount NUMERIC(18,6),
-    country VARCHAR(16) NOT NULL DEFAULT "UNKNOWN", event_timestamp TIMESTAMPTZ, matched_click BOOLEAN NOT NULL DEFAULT FALSE,
-    revenue_class VARCHAR(40) NOT NULL DEFAULT "other", track VARCHAR(120), source VARCHAR(120), medium VARCHAR(80), campaign VARCHAR(120),
+    click_id VARCHAR(128), transaction_id VARCHAR(255) NOT NULL, conversion_type VARCHAR(100) NOT NULL DEFAULT 'unknown',
+    payout NUMERIC(18,6) NOT NULL DEFAULT 0, currency VARCHAR(16) NOT NULL DEFAULT 'USD', amount NUMERIC(18,6),
+    country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN', event_timestamp TIMESTAMPTZ, matched_click BOOLEAN NOT NULL DEFAULT FALSE,
+    revenue_class VARCHAR(40) NOT NULL DEFAULT 'other', track VARCHAR(120), source VARCHAR(120), medium VARCHAR(80), campaign VARCHAR(120),
     program_id VARCHAR(120), user_id VARCHAR(120), raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb, UNIQUE(platform,transaction_id))`);
   await pool.query("ALTER TABLE affiliate_conversions ADD COLUMN IF NOT EXISTS revenue_class VARCHAR(40) NOT NULL DEFAULT 'other'");
   await pool.query("ALTER TABLE affiliate_conversions ADD COLUMN IF NOT EXISTS track VARCHAR(120)");
