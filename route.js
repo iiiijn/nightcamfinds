@@ -5,6 +5,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { Pool } = require("pg");
 const bongacash = require("./bongacash");
+const { countryTier } = require("./src/services/chaturbate-revshare.cjs");
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -18,8 +19,6 @@ const pool = databaseUrl ? new Pool({
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
-const TIER1 = new Set(["US","CA","GB","IE","AU","NZ","DE","FR","NL","SE","NO","DK","FI","CH","AT","BE"]);
-
 async function ensureAffiliateSchema() {
   if (!pool) return;
   await pool.query(`CREATE TABLE IF NOT EXISTS affiliate_clicks (
@@ -187,13 +186,24 @@ async function dashboardStats(incoming) {
     cbRegs = Number(r.rows[0]?.registrations || 0); cbPurchases = Number(r.rows[0]?.purchases || 0); cbEarnings = Number(r.rows[0]?.earnings || 0);
   } catch {}
 
-  let cbTier1 = 0, bongaTier1 = 0;
+  let cbTier1 = 0, cbTier2 = 0, cbTier3 = 0;
+  let bongaTier1 = 0, bongaTier2 = 0, bongaTier3 = 0;
   try {
     const r = await pool.query(`SELECT platform, country, COUNT(*)::int AS clicks FROM affiliate_clicks ${cb.where} GROUP BY platform, country`, cb.params);
     for (const row of r.rows) {
-      if (!TIER1.has(String(row.country || "").toUpperCase())) continue;
-      if (String(row.platform).toLowerCase() === "bongacams") bongaTier1 += Number(row.clicks || 0);
-      if (String(row.platform).toLowerCase() === "chaturbate") cbTier1 += Number(row.clicks || 0);
+      const tier = countryTier(row.country).tier;
+      const clicks = Number(row.clicks || 0);
+      const platform = String(row.platform).toLowerCase();
+      if (platform === "bongacams") {
+        if (tier === 1) bongaTier1 += clicks;
+        if (tier === 2) bongaTier2 += clicks;
+        if (tier === 3) bongaTier3 += clicks;
+      }
+      if (platform === "chaturbate") {
+        if (tier === 1) cbTier1 += clicks;
+        if (tier === 2) cbTier2 += clicks;
+        if (tier === 3) cbTier3 += clicks;
+      }
     }
   } catch {}
 
@@ -254,7 +264,14 @@ async function dashboardStats(incoming) {
     chaturbateClicks: cbClicks,
     bongacamsClicks: bongaClicks,
     tier1Clicks: cbTier1 + bongaTier1,
+    tier2Clicks: cbTier2 + bongaTier2,
+    tier3Clicks: cbTier3 + bongaTier3,
+    chaturbateTier1Clicks: cbTier1,
+    chaturbateTier2Clicks: cbTier2,
+    chaturbateTier3Clicks: cbTier3,
     bongaTier1Clicks: bongaTier1,
+    bongaTier2Clicks: bongaTier2,
+    bongaTier3Clicks: bongaTier3,
     today: await countClicks(day),
     week: await countClicks(seven),
     month: await countClicks(thirty),
