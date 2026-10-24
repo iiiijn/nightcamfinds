@@ -4,7 +4,7 @@ This guide describes the production event flow and the manual affiliate-account 
 
 ## Revenue model
 
-The Chaturbate account screenshot shows the RevShare program. Chaturbate's published affiliate help describes 20% of adjusted gross receipts from referred members, a separate $50 eligible-broadcaster commission, and 5% referred-webmaster commission. Country tiers describe the separate pay-per-signup rates; they do **not** change the 20% RevShare rate. Sources:
+The Chaturbate account screenshot shows the RevShare program. Chaturbate's published affiliate terms describe 20% of adjusted gross receipts from referred members, a separate $50 eligible-broadcaster commission, and 5% referred-webmaster commission. Country tiers are used here to organize the browsing experience and segment traffic. They do **not** change the 20% RevShare rate, and NightCamFinds does not forecast or award a signup payout unless the account is eligible for that separate program and the actual postback reports one. Sources:
 
 - https://support.chaturbate.com/hc/en-us/articles/360035947871-What-is-the-rev-share-program
 - https://chaturbate.com/terms/appendix-b/
