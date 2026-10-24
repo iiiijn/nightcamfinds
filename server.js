@@ -3,6 +3,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const { URL } = require("url");
+const { countryTier, buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
 
 let pgPool = null;
 try {
@@ -21,7 +22,13 @@ try {
 const PORT = process.env.PORT || 3000;
 const ORIGIN = (process.env.PUBLIC_ORIGIN || "").replace(/\/$/, "");
 const CAMPAIGN = process.env.CB_CAMPAIGN || process.env.CHATURBATE_WM || "C6yxN";
-const TOUR = process.env.CB_TOUR || "LQps";
+const TOUR = process.env.CB_TOUR_GENERAL || process.env.CB_TOUR || "hr8m";
+const CATEGORY_TOURS = {
+  female: process.env.CB_TOUR_FEMALE || "uhEc",
+  male: process.env.CB_TOUR_MALE || "EyCi",
+  trans: process.env.CB_TOUR_TRANS || "2MTk",
+  couples: process.env.CB_TOUR_COUPLES || "43Qk"
+};
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || process.env.BONGACASH_CAMPAIGN || "840970";
 const BONGA_API_BASE = process.env.BONGACAMS_API_BASE || "https://bngprm.com/promo.php";
 const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
@@ -295,7 +302,8 @@ function normalizeChaturbateRoom(room) {
     image: room.image_url_360x270 || room.image_url || "",
     roomSubject: clean(room.room_subject),
     languages: room.spoken_languages || "",
-    href: room.chat_room_url_revshare || room.chat_room_url || ""
+    href: room.chat_room_url_revshare || room.chat_room_url || "",
+    tags: (Array.isArray(room.tags) ? room.tags : []).map(tag => clean(tag)).filter(tag => tag && !new RegExp(BLOCKED.source, "i").test(tag)).slice(0, 8)
   };
 }
 
@@ -487,11 +495,17 @@ const server = http.createServer(async (req, res) => {
     if (category === "new") list = list.filter(r => r.isNew);
     if (country) list = list.filter(r => r.country === country);
     if (["chaturbate","bongacams"].includes(platform)) list = list.filter(r => r.platform === platform);
-    if (q) list = list.filter(r => `${r.displayName} ${r.roomSubject} ${r.country} ${r.location} ${r.platformName}`.toLowerCase().includes(q));
+    if (q) list = list.filter(r => `${r.displayName} ${r.roomSubject} ${r.country} ${r.location} ${r.platformName} ${(r.tags || []).join(" ")}`.toLowerCase().includes(q));
     list.sort((a,b) => sort === "newest" ? Number(b.isNew)-Number(a.isNew) || b.viewerCount-a.viewerCount : b.viewerCount-a.viewerCount);
     const countries = [...new Set(feed.rooms.map(r => r.country).filter(Boolean))].sort();
     const platforms = [...new Set(feed.rooms.map(r => r.platform).filter(Boolean))].sort();
-    return send(res, 200, JSON.stringify({ rooms:list.slice(0,60), countries, platforms, notice:feed.notice, tier1:MARKETS.some(([,iso]) => iso === visitorCountry(req)) }), "application/json");
+    const viewerCountry = visitorCountry(req);
+    const viewerTier = countryTier(viewerCountry);
+    return send(res, 200, JSON.stringify({
+      rooms:list.slice(0,60), countries, platforms, notice:feed.notice,
+      visitorCountry, countryTier:viewerTier.tier, ppsSignupPayoutUsd:viewerTier.signupPayoutUsd,
+      tier1: viewerTier.tier === 1
+    }), "application/json");
   }
 
   if (pathname === "/api/surprise") {
@@ -522,26 +536,32 @@ const server = http.createServer(async (req, res) => {
       const supplied = room?.href || "";
       try {
         const parsed = supplied ? new URL(supplied) : null;
-        if (parsed && /(^|\.)bongacams4?\.com$/i.test(parsed.hostname)) {
+        if (parsed && /(^|\\.)bongacams4?\\.com$/i.test(parsed.hostname)) {
           parsed.searchParams.set("click_id", clickId);
           parsed.searchParams.set("source", source);
-          parsed.searchParams.set("campaign", campaign);
           parsed.searchParams.set("track", src);
           target = parsed.toString();
         }
       } catch (_) {}
       if (!target) target = `https://bongacams4.com/track?c=${encodeURIComponent(BONGA_CAMPAIGN)}&click_id=${encodeURIComponent(clickId)}&track=${encodeURIComponent(src)}`;
     } else {
-      const fallback = `https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(src)}&room=${encodeURIComponent(username)}`;
-      target = room?.href ? withTrack(room.href, src) : fallback;
-      try {
-        const parsed = new URL(target);
-        parsed.searchParams.set("click_id", clickId);
-        parsed.searchParams.set("source", source);
-        parsed.searchParams.set("campaign", campaign);
-        parsed.searchParams.set("medium", medium);
-        target = parsed.toString();
-      } catch (_) { target = fallback; }
+      const selectedTour = CATEGORY_TOURS[category] || TOUR;
+      const destination = buildChaturbateUrl({
+        roomUrl: room?.href || "",
+        campaign: CAMPAIGN,
+        tour: selectedTour,
+        track: src,
+        clickId,
+        source,
+        medium,
+        utmCampaign: campaign
+      });
+      if (!destination.ok) {
+        console.error("Chaturbate redirect destination rejected:", destination.reason);
+        res.writeHead(502, { "Cache-Control": "no-store" });
+        return res.end("Affiliate destination unavailable");
+      }
+      target = destination.url;
     }
     res.writeHead(302, { Location:target, "Cache-Control":"no-store", "Referrer-Policy":"no-referrer" });
     return res.end();
@@ -558,11 +578,38 @@ const server = http.createServer(async (req, res) => {
       .replace("__COUNTRY__", visitorCountry(req))
       .replace("__FORCE__", forced ? forced[1] : "")
       .replace("__LANG__", langFor(forced ? forced[1] : visitorCountry(req)));
+    const slug = pathname.replace(/^\\/+|\\/+$/g, "") || "home";
+    const seo = {
+      home: ["Live cams now | NightCamFinds", "Browse live adult cam rooms from Chaturbate and BongaCams. Filter by category, country, language, tags and viewer count, then open a room on its partner platform."],
+      live: ["Live Cams Now | NightCamFinds", "Discover current live cam rooms, compare viewer counts and browse broadcasters who are online now."],
+      female: ["Live Female Cams | NightCamFinds", "Browse live female cam rooms by country, viewer count, language and room tags. Streams open on the partner platform."],
+      male: ["Live Male Cams | NightCamFinds", "Discover live male cam rooms, compare public room details and choose a room on its partner platform."],
+      trans: ["Live Trans Cams | NightCamFinds", "Browse live trans cam rooms by country, language, tags and viewer count. Video plays on the partner platform."],
+      couples: ["Live Couples Cams | NightCamFinds", "Find live couples cam rooms and filter current listings by country, popularity and room details."],
+      hd: ["HD Live Cams | NightCamFinds", "Browse rooms marked HD by the partner feed. Stream quality and availability can change."],
+      new: ["New Live Cams | NightCamFinds", "Find rooms newly marked live by partner feeds and explore current broadcasts."],
+      popular: ["Popular Live Cams | NightCamFinds", "Explore live rooms ranked by current viewer counts. Popularity changes as broadcasters come online and offline."],
+      countries: ["Live Cams by Country | NightCamFinds", "Browse live cam listings by country and compare current public room details."],
+      broadcast: ["Become a Broadcaster | NightCamFinds", "Learn how to apply to broadcast through a partner cam platform. Eligibility and approval are determined by the partner."]
+    };
+    const titleAndDescription = forced
+      ? [`Live cams in ${forced[2]} | NightCamFinds`, `Browse current live cam listings tagged for ${forced[2]}. Room availability and country data come from partner feeds and can change.`]
+      : (seo[slug] || seo.home);
+    const safeMeta = value => String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    html = html
+      .replace(/<title>[\\s\\S]*?<\\/title>/i, `<title>${safeMeta(titleAndDescription[0])}</title>`)
+      .replace(/<meta name="description" content="[^"]*">/i, `<meta name="description" content="${safeMeta(titleAndDescription[1])}">`)
+      .replace(/<meta property="og:title" content="[^"]*">/i, `<meta property="og:title" content="${safeMeta(titleAndDescription[0])}">`)
+      .replace(/<meta property="og:description" content="[^"]*">/i, `<meta property="og:description" content="${safeMeta(titleAndDescription[1])}">`)
+      .replace(/<link rel="canonical" href="[^"]*">/i, `<link rel="canonical" href="${safeMeta(pageOrigin(req) + pathname)}">`);
     if (forced) {
       html = html
         .replace("Discover live cams right now", `Live cams in ${forced[2]}`)
         .replace("NightCamFinds — Live cam directory", `Live cams in ${forced[2]} — NightCamFinds`)
-        .replace("Explore live rooms, compare viewer counts, and open a room on Chaturbate. NightCamFinds does not stream video itself.", `Public rooms that list ${forced[2]} in the partner feeds. Counts change quickly. Video plays on the partner platform, not on NightCamFinds.`);
+        .replace("Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.", `Browse current live cam listings tagged for ${forced[2]}. Room availability and country data come from partner feeds and can change.`);
+    } else if (seo[slug]) {
+      html = html.replace("Discover live cams right now", titleAndDescription[0].replace(" | NightCamFinds", ""));
+      html = html.replace("Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.", titleAndDescription[1]);
     }
     return send(res, 200, html, "text/html; charset=utf-8");
   }
