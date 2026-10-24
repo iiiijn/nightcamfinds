@@ -1,49 +1,26 @@
 const fs = require('fs');
 const path = 'route.js';
 let s = fs.readFileSync(path, 'utf8');
-const marker = 'NIGHTCAMFINDs_CB_POSTBACK_PATCH_V4';
+const marker = 'NIGHTCAMFINDs_CB_POSTBACK_PATCH_V5';
 if (s.includes(marker)) process.exit(0);
 
-const helper = `
-// ${marker}
-async function saveChaturbatePostback(params){
-  if(!pool) throw new Error('Database is not configured');
-  await pool.query("CREATE TABLE IF NOT EXISTS cb_conversions (id BIGSERIAL PRIMARY KEY, received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), click_id VARCHAR(128), transaction_id VARCHAR(255) UNIQUE, conversion_type VARCHAR(100), payout NUMERIC(18,6) DEFAULT 0, currency VARCHAR(16), amount NUMERIC(18,6), country VARCHAR(16), track VARCHAR(255), source VARCHAR(255), campaign_id VARCHAR(255), program_id VARCHAR(255), user_id VARCHAR(255), event_timestamp VARCHAR(100), raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb)");
-  await pool.query("CREATE INDEX IF NOT EXISTS cb_conversions_click_id_idx ON cb_conversions(click_id)");
-  const first=(names,fallback='')=>{for(const n of names){const v=params.get(n);if(v!==null&&String(v).trim()!=='')return String(v).trim()}return fallback};
-  const num=v=>{const n=Number.parseFloat(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
-  const clickId=first(['click_id','clickid','subid','sub_id','sid','s1','ref','track_id']);
-  if(!clickId) throw new Error('missing click_id');
-  const matched=await pool.query('SELECT 1 FROM cb_clicks WHERE click_id=$1 LIMIT 1',[clickId]);
-  if(!matched.rows.length) throw new Error('unmatched click_id');
-
-  const rawType=first(['type','event','conversion_type','action'],'unknown').toLowerCase();
-  const signupTypes=new Set(['revshare_signup-referral','ppr_signup-referral','tokens_signup-referral','signup','registration','register','lead']);
-  const purchaseTypes=new Set(['revshare_purchase','ppr_purchase','purchase','sale','deposit','ftd']);
-  const normalized=signupTypes.has(rawType)
-    ? 'revshare_signup-referral'
-    : purchaseTypes.has(rawType)
-      ? 'revshare_purchase'
-      : rawType.replace(/[^a-z0-9_-]+/g,'_');
-
-  const tx=first(['transaction_id','transactionid','txid','tid','action_id'],Date.now()+'-'+Math.random().toString(16).slice(2));
-  await pool.query("INSERT INTO cb_conversions (click_id,transaction_id,conversion_type,payout,currency,amount,country,track,source,campaign_id,program_id,user_id,event_timestamp,raw_payload) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb) ON CONFLICT(transaction_id) DO UPDATE SET payout=EXCLUDED.payout,conversion_type=EXCLUDED.conversion_type,currency=EXCLUDED.currency,amount=EXCLUDED.amount,country=EXCLUDED.country,track=EXCLUDED.track,source=EXCLUDED.source,raw_payload=EXCLUDED.raw_payload",[clickId,tx,normalized,num(first(['payout','commission','earnings','revenue','profit'])),first(['currency','currency_code'],'USD'),num(first(['amount','purchase_amount','sale_amount','spend'])),first(['country','country_code','geo'],'UNKNOWN').toUpperCase(),first(['track','tracking','placement','subid2']),first(['source','traffic_source','utm_source','subid1']),first(['campaign_id','campaign','subid3']),first(['program_id']),first(['user_id','userid','member_id','customer_id']),first(['timestamp','event_timestamp','date','datetime']),JSON.stringify(Object.fromEntries(params.entries()))]);
-  return {ok:true,type:normalized,transactionId:tx,clickId};
+// Remove the previous generated Chaturbate postback patch so restarts are idempotent.
+const oldMarker = s.indexOf('// NIGHTCAMFINDs_CB_POSTBACK_PATCH_V');
+if (oldMarker >= 0) {
+  const afterOldHelper = s.indexOf('function rangeClause(incoming, column = "received_at") {', oldMarker);
+  if (afterOldHelper < 0) throw new Error('Existing postback patch end anchor not found');
+  s = s.slice(0, oldMarker) + s.slice(afterOldHelper);
 }
-`;
+s = s.replace(/if \(incoming\.pathname === "\\/api\\/chaturbate\\/postback" \|\| incoming\.pathname === "\\/cb\\/postback"\) \{[\s\S]*?\n    \}\n    /, '');
+
+const helper = "\n// NIGHTCAMFINDs_CB_POSTBACK_PATCH_V5\nasync function readChaturbatePostbackParams(req, incoming) {\n  const params = new URLSearchParams(incoming.searchParams.toString());\n  if (req.method !== \"POST\") return params;\n  let body = \"\";\n  for await (const chunk of req) {\n    body += chunk.toString(\"utf8\");\n    if (body.length > 16384) {\n      const error = new Error(\"postback payload too large\");\n      error.statusCode = 413;\n      throw error;\n    }\n  }\n  const contentType = String(req.headers[\"content-type\"] || \"\").split(\";\")[0].trim().toLowerCase();\n  if (contentType === \"application/json\") {\n    let parsed;\n    try { parsed = JSON.parse(body || \"{}\"); }\n    catch (_) { const error = new Error(\"invalid JSON\"); error.statusCode = 400; throw error; }\n    if (!parsed || typeof parsed !== \"object\" || Array.isArray(parsed)) {\n      const error = new Error(\"invalid JSON object\");\n      error.statusCode = 400;\n      throw error;\n    }\n    for (const [key, value] of Object.entries(parsed)) {\n      if (value != null && (typeof value === \"string\" || typeof value === \"number\" || typeof value === \"boolean\")) {\n        params.set(key, String(value));\n      }\n    }\n  } else {\n    const posted = new URLSearchParams(body);\n    for (const [key, value] of posted.entries()) params.set(key, value);\n  }\n  return params;\n}\n\nasync function saveChaturbatePostback(params) {\n  const expectedSecret = String(process.env.CB_POSTBACK_SECRET || \"\");\n  const suppliedSecret = String(params.get(\"secret\") || params.get(\"key\") || params.get(\"token\") || \"\");\n  if (!expectedSecret || !suppliedSecret || !safeEqual(suppliedSecret, expectedSecret)) {\n    const error = new Error(\"postback authentication failed\");\n    error.statusCode = 403;\n    throw error;\n  }\n  const normalized = normalizeChaturbatePostback(Object.fromEntries(params.entries()));\n  if (!normalized.ok) {\n    const error = new Error(normalized.reason);\n    error.statusCode = 400;\n    throw error;\n  }\n  if (!pool) {\n    const error = new Error(\"database is not configured\");\n    error.statusCode = 503;\n    throw error;\n  }\n  const event = normalized.event;\n  await pool.query(\"CREATE TABLE IF NOT EXISTS cb_conversions (id BIGSERIAL PRIMARY KEY, received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), click_id VARCHAR(128) NOT NULL, transaction_id VARCHAR(255) UNIQUE NOT NULL, conversion_type VARCHAR(100) NOT NULL, payout NUMERIC(18,6) NOT NULL DEFAULT 0, currency VARCHAR(16) NOT NULL DEFAULT 'USD', amount NUMERIC(18,6), country VARCHAR(16), track VARCHAR(255), source VARCHAR(255), campaign_id VARCHAR(255), program_id VARCHAR(255), program_name VARCHAR(255), user_id VARCHAR(255), event_timestamp VARCHAR(100), device VARCHAR(32), language VARCHAR(32), region VARCHAR(100), attempt INTEGER, raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb)\");\n  await pool.query(\"ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS program_name VARCHAR(255)\");\n  await pool.query(\"ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS device VARCHAR(32)\");\n  await pool.query(\"ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS language VARCHAR(32)\");\n  await pool.query(\"ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS region VARCHAR(100)\");\n  await pool.query(\"ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS attempt INTEGER\");\n  const matchedClick = await pool.query(\"SELECT click_id FROM cb_clicks WHERE click_id = $1 LIMIT 1\", [event.clickId]);\n  if (!matchedClick.rows.length) {\n    const error = new Error(\"click id was not issued by NightCamFinds\");\n    error.statusCode = 400;\n    throw error;\n  }\n  const attempt = /^\\\\d+$/.test(event.attempt) ? Number(event.attempt) : null;\n  const safePayload = JSON.stringify(event);\n  await pool.query(\n    \"INSERT INTO cb_conversions (click_id,transaction_id,conversion_type,payout,currency,amount,country,track,source,campaign_id,program_id,program_name,user_id,event_timestamp,device,language,region,attempt,raw_payload) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19::jsonb) ON CONFLICT (transaction_id) DO UPDATE SET click_id=EXCLUDED.click_id,conversion_type=EXCLUDED.conversion_type,payout=EXCLUDED.payout,currency=EXCLUDED.currency,amount=EXCLUDED.amount,country=EXCLUDED.country,track=EXCLUDED.track,source=EXCLUDED.source,campaign_id=EXCLUDED.campaign_id,program_id=EXCLUDED.program_id,program_name=EXCLUDED.program_name,user_id=EXCLUDED.user_id,event_timestamp=EXCLUDED.event_timestamp,device=EXCLUDED.device,language=EXCLUDED.language,region=EXCLUDED.region,attempt=EXCLUDED.attempt,raw_payload=EXCLUDED.raw_payload\",\n    [event.clickId,event.transactionId,event.type,event.payout,event.currency,event.amount,event.country,event.track,event.source,event.campaignId,event.programId,event.programName,event.userId,event.timestamp,event.device,event.language,event.region,attempt,safePayload]\n  );\n  return { ok: true, clickId: event.clickId, transactionId: event.transactionId, type: event.type };\n}\n";
 const anchor = 'function rangeClause(incoming, column = "received_at") {';
-if (!s.includes(anchor)) throw new Error('route.js anchor not found');
-s = s.replace(anchor, helper + '\n' + anchor);
+if (!s.includes(anchor)) throw new Error('route.js postback insertion anchor not found');
+s = s.replace(anchor, helper + '\\n' + anchor);
 
 const routeAnchor = 'if (incoming.pathname === "/api/bongacash/postback") {';
-if (!s.includes(routeAnchor)) throw new Error('BongaCash route anchor not found');
-const cbRoute = `if (incoming.pathname === "/api/chaturbate/postback" || incoming.pathname === "/cb/postback") {
-      // Chaturbate sends conversion data server-to-server to the configured URL.
-      // We only accept a conversion when its click_id was issued by NightCamFinds.
-      try { return sendJson(res, 200, await saveChaturbatePostback(incoming.searchParams)); }
-      catch (err) { console.error("Chaturbate postback failed:", err.message); return sendJson(res, 400, { error: "Could not save Chaturbate conversion." }); }
-    }
-    `;
+if (!s.includes(routeAnchor)) throw new Error('BongaCash route insertion anchor not found');
+const cbRoute = "if ((incoming.pathname === \"/api/chaturbate/postback\" || incoming.pathname === \"/cb/postback\") && (req.method === \"GET\" || req.method === \"POST\")) {\n      try {\n        const params = await readChaturbatePostbackParams(req, incoming);\n        return sendJson(res, 200, await saveChaturbatePostback(params));\n      } catch (err) {\n        console.error(\"Chaturbate postback rejected:\", err.message);\n        return sendJson(res, err.statusCode || 400, { error: \"Chaturbate postback rejected.\" });\n      }\n    }\n    ";
 s = s.replace(routeAnchor, cbRoute + routeAnchor);
 fs.writeFileSync(path, s);
 console.log('NightCamFinds Chaturbate postback patch applied');
