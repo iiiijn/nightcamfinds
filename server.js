@@ -21,7 +21,10 @@ try {
 
 const PORT = process.env.PORT || 3000;
 const ORIGIN = (process.env.PUBLIC_ORIGIN || "").replace(/\/$/, "");
-const CAMPAIGN = process.env.CB_CAMPAIGN || process.env.CHATURBATE_WM || "C6yxN";
+const CAMPAIGN = process.env.CB_CAMPAIGN || "C6yxN";
+const CHATURBATE_WM = String(process.env.CHATURBATE_WM || CAMPAIGN).trim();
+const CHATURBATE_API_BASE = process.env.CHATURBATE_API_BASE || "https://chaturbate.com/api/public/affiliates/onlinerooms/";
+const CHATURBATE_ENABLED = process.env.CHATURBATE_ENABLED !== "false";
 const TOUR = process.env.CB_TOUR_GENERAL || process.env.CB_TOUR || "hr8m";
 const CATEGORY_TOURS = {
   female: process.env.CB_TOUR_FEMALE || "uhEc",
@@ -365,8 +368,19 @@ function normalizeBongaRoom(room) {
 }
 
 async function fetchChaturbateRooms(req) {
-  const ip = encodeURIComponent(clientIp(req));
-  const data = await fetchJson(`https://chaturbate.com/api/public/affiliates/onlinerooms/?wm=${encodeURIComponent(CAMPAIGN)}&client_ip=${ip}&format=json&limit=500`);
+  if (!CHATURBATE_ENABLED) return [];
+  if (!CHATURBATE_WM) throw new Error("Chaturbate Users Online wm is not configured");
+  let endpoint;
+  try { endpoint = new URL(CHATURBATE_API_BASE); }
+  catch (_) { throw new Error("Invalid Chaturbate API base URL"); }
+  if (endpoint.protocol !== "https:" || !/(^|\\.)chaturbate\\.com$/i.test(endpoint.hostname)) {
+    throw new Error("Chaturbate API base URL must use HTTPS on chaturbate.com");
+  }
+  endpoint.searchParams.set("wm", CHATURBATE_WM);
+  endpoint.searchParams.set("client_ip", clientIp(req));
+  endpoint.searchParams.set("format", "json");
+  endpoint.searchParams.set("limit", "500");
+  const data = await fetchJson(endpoint.toString());
   return (data.results || []).map(normalizeChaturbateRoom).filter(r => r.href);
 }
 
