@@ -515,7 +515,7 @@ const server = http.createServer(async (req, res) => {
     const viewerTier = countryTier(viewerCountry);
     return send(res, 200, JSON.stringify({
       rooms:list.slice(0,60), countries, platforms, notice:feed.notice,
-      visitorCountry, countryTier:viewerTier.tier, ppsSignupPayoutUsd:viewerTier.signupPayoutUsd,
+      visitorCountry, countryTier:viewerTier.tier,
       tier1: viewerTier.tier === 1
     }), "application/json");
   }
