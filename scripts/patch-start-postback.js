@@ -31,7 +31,7 @@ const replacement = `async function saveConversion(params) {
       ? "revshare_purchase"
       : rawType;
 
-  const transactionId = clean(params.transaction_id, `${Date.now()}-${Math.random().toString(16).slice(2)}`, 255);
+  const transactionId = clean(params.transaction_id, String(Date.now()) + "-" + Math.random().toString(16).slice(2), 255);
   const payout = number(params.payout);
   const amount = number(params.amount);
 
