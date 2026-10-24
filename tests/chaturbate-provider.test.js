@@ -17,7 +17,7 @@ test("builds the Chaturbate Users Online v2 URL with the documented parameters",
     tag: "verified"
   });
 
-  assert.equal(url.origin + url.pathname, DEFAULT_API_BASE.replace(/\/$/, ""));
+  assert.equal(url.origin + url.pathname, DEFAULT_API_BASE);
   assert.equal(url.searchParams.get("wm"), "C6yxN");
   assert.equal(url.searchParams.get("client_ip"), "203.0.113.10");
   assert.equal(url.searchParams.get("format"), "json");
