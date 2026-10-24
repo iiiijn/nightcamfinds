@@ -27,7 +27,8 @@ const CATEGORY_TOURS = {
   female: process.env.CB_TOUR_FEMALE || "uhEc",
   male: process.env.CB_TOUR_MALE || "EyCi",
   trans: process.env.CB_TOUR_TRANS || "2MTk",
-  couples: process.env.CB_TOUR_COUPLES || "43Qk"
+  couples: process.env.CB_TOUR_COUPLES || "43Qk",
+  broadcast: process.env.CB_TOUR_BROADCASTER || "NwNd"
 };
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || process.env.BONGACASH_CAMPAIGN || "840970";
 const BONGA_API_BASE = process.env.BONGACAMS_API_BASE || "https://bngprm.com/promo.php";
