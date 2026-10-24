@@ -295,7 +295,8 @@ http.createServer = function wrappedCreateServer(handler) {
         return json(res, 403, { error: "Postback authentication failed." });
       }
       try {
-        await saveConversion(Object.fromEntries(incoming.searchParams.entries()));
+        const cleanParams = Object.fromEntries([...incoming.searchParams.entries()].filter(([key]) => !["secret", "key", "token"].includes(key)));
+        await saveConversion(cleanParams);
         res.writeHead(200, {"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"});
         return res.end("OK");
       } catch (err) {
