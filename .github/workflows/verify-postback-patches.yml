@@ -47,7 +47,15 @@ jobs:
           node --check start.js
           node --check route.js
 
-      - name: Confirm the strict postback markers were applied
+      - name: Confirm the strict postback handlers were applied
         run: |
-          grep -q "NIGHTCAMFINDS_CB_POSTBACK_RUNTIME_V2" start.js
-          grep -q "NIGHTCAMFINDS_CB_POSTBACK_PATCH_V5" route.js
+          if ! grep -q "NIGHTCAMFINDS_CB_POSTBACK_RUNTIME_V2" start.js; then
+            echo "Missing strict Chaturbate handler marker in start.js"
+            exit 1
+          fi
+          if ! grep -q "NIGHTCAMFINDS_CB_POSTBACK_PATCH_V5" route.js; then
+            echo "Missing strict Chaturbate route marker in route.js"
+            exit 1
+          fi
+          grep -n "NIGHTCAMFINDS_CB_POSTBACK_PATCH_V5" route.js
+          grep -n "async function saveChaturbatePostback" route.js
