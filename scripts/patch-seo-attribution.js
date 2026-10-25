@@ -31,7 +31,7 @@ const statsInsert = `  const seoRows = [];
   const seoPages = {};
   const seoRevenue = [];`;
 if (!s.includes(statsAnchor)) throw new Error('SEO attribution stats anchor not found');
-s = s.replace(statsAnchor, statsAnchor + '\\n' + statsInsert);
+s = s.replace(statsAnchor, statsAnchor + '\n' + statsInsert);
 const returnAnchor = '    platforms, countries, sources, placements, campaigns, devices, mediums';
 const returnReplacement = '    platforms, countries, sources, placements, campaigns, devices, mediums, seoPages, seoRevenue';
 if (!s.includes(returnAnchor)) throw new Error('SEO attribution return anchor not found');
