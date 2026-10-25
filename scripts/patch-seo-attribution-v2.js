@@ -75,4 +75,5 @@ patchFile('public/dashboard.html', 'NIGHTCAMFINDS_DASHBOARD_SEO_ATTRIBUTION_V2',
   return s + '\n<!-- NIGHTCAMFINDS_DASHBOARD_SEO_ATTRIBUTION_V2 -->\n';
 });
 
+require('./patch-seo-attribution-v3');
 console.log('NightCamFinds SEO attribution v2 patch complete');
