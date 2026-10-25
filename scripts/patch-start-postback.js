@@ -73,7 +73,7 @@ const re = /async function saveConversion\(params\) \{[\s\S]*?\n\}\n\nasync func
 if (!re.test(s)) throw new Error('start.js saveConversion anchor not found');
 s = s.replace(re, replacement + '\nasync function dashboardStats');
 const routeMarker = 'NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V4';
-const routeOld = 'if(incoming.pathname === "/api/chaturbate/postback" || incoming.pathname === "/cb/postback") {\n      try {\n        const params = Object.fromEntries(incoming.searchParams.entries());\n        const configuredSecret = String(process.env.CB_POSTBACK_SECRET || "").trim();\n        if (!configuredSecret || !safeEqual(params.secret || "", configuredSecret)) {\n          console.warn("Chaturbate postback rejected: invalid secret");\n          return json(res, 403, { error: "Invalid postback secret." });\n        }\n        const event = await saveConversion(params);\n        console.log("Chaturbate postback accepted", JSON.stringify({ type: event?.type || params.type || "", clickIdPresent: Boolean(params.click_id) }));\n        res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });\n        return res.end("OK");\n      } catch (err) {\n        console.error("Chaturbate postback rejected:", err.message);\n        return json(res, 400, { error: "Postback event rejected." });\n      }\n    }';
+const routeOld = 'if(incoming.pathname === "/cb/postback") {\\n      try{await saveConversion(Object.fromEntries(incoming.searchParams.entries()));res.writeHead(200,{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"});return res.end("OK")}catch{return json(res,503,{error:"Postback storage unavailable."})}\\n    }';
 const routeNew = `// ${routeMarker}
     if (incoming.pathname === "/api/chaturbate/postback" || incoming.pathname === "/cb/postback") {
       try {
@@ -93,8 +93,16 @@ const routeNew = `// ${routeMarker}
       }
     }`;
 if (!s.includes(routeMarker)) {
-  if (!s.includes(routeOld)) throw new Error("start.js Chaturbate postback route anchor not found");
-  s = s.replace(routeOld, routeNew);
+  // The handler may already have been updated directly; mark it and avoid a startup crash.
+  const alreadyPatched = s.includes('incoming.pathname === "/api/chaturbate/postback"') &&
+    s.includes('process.env.CB_POSTBACK_SECRET') &&
+    s.includes('safeEqual(params.secret || "", configuredSecret)');
+  if (alreadyPatched) {
+    s = s.replace('if (incoming.pathname === "/api/chaturbate/postback"', '// ' + routeMarker + '\\n    if (incoming.pathname === "/api/chaturbate/postback"');
+  } else {
+    if (!s.includes(routeOld)) throw new Error("start.js Chaturbate postback route anchor not found");
+    s = s.replace(routeOld, routeNew);
+  }
 }
 fs.writeFileSync(path, s);
 console.log('NightCamFinds Chaturbate postback runtime patch applied');
