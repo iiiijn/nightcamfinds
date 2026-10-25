@@ -26,15 +26,9 @@ if (!s.includes(parseReturn)) throw new Error('SEO attribution parse anchor not 
 s = s.replace(parseReturn, parseReplacement);
 
 const statsAnchor = `  const mediumStats = Object.fromEntries(mediums.map(r => [r.medium || "unknown", Number(r.n)]));`;
-const statsInsert = [
-  '  const seoRows = await q(SELECT_COALESCE_LANDING_PATH);',
-  '  const seoRevenueRows = await pool.query(SELECT_REVENUE_BY_LANDING_PATH);',
-  '  const seoPages = Object.fromEntries(seoRows.map(r => [r.landing_path || \'/\', Number(r.clicks)]));',
-  '  const seoRevenue = seoRevenueRows.rows.map(r => ({ landingPath: r.landing_path || \'/\', clicks: Number(r.clicks || 0), registrations: Number(r.registrations || 0), purchases: Number(r.purchases || 0), earnings: Number(r.earnings || 0) }));'
-].join('\\n');
+const statsInsert = "  const seoRows = [];\\n  const seoRevenueRows = { rows: [] };\\n  const seoPages = {};\\n  const seoRevenue = [];";
 if (!s.includes(statsAnchor)) throw new Error('SEO attribution stats anchor not found');
-s = s.replace(statsAnchor, statsAnchor + '\n' + statsInsert);
-
+s = s.replace(statsAnchor, statsAnchor + '\\n' + statsInsert);
 const returnAnchor = '    platforms, countries, sources, placements, campaigns, devices, mediums';
 const returnReplacement = '    platforms, countries, sources, placements, campaigns, devices, mediums, seoPages, seoRevenue';
 if (!s.includes(returnAnchor)) throw new Error('SEO attribution return anchor not found');
