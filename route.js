@@ -324,4 +324,5 @@ http.createServer = function routeDashboard(handler) {
   });
 };
 
+/* NIGHTCAMFINDS_CB_POSTBACK_PATCH_V6 */
 require("./start.js");
