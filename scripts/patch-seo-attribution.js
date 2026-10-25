@@ -28,7 +28,7 @@ s = s.replace(parseReturn, parseReplacement);
 const statsAnchor = `  const mediumStats = Object.fromEntries(mediums.map(r => [r.medium || "unknown", Number(r.n)]));`;
 const statsInsert = String.raw`
   const seoRows = await q(\`SELECT COALESCE(landing_path, '/') AS landing_path, COUNT(*)::int AS clicks
-    FROM affiliate_clicks \${where} GROUP BY COALESCE(landing_path, '/') ORDER BY clicks DESC LIMIT 50\`);
+    FROM affiliate_clicks ${where} GROUP BY COALESCE(landing_path, '/') ORDER BY clicks DESC LIMIT 50\`);
   const seoRevenueRows = await pool.query(\`SELECT COALESCE(ac.landing_path, '/') AS landing_path,
       COUNT(DISTINCT ac.click_id)::int AS clicks,
       COUNT(DISTINCT c.id) FILTER (WHERE c.conversion_type='revshare_signup-referral')::int AS registrations,
@@ -36,7 +36,7 @@ const statsInsert = String.raw`
       COALESCE(SUM(c.payout) FILTER (WHERE c.conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS earnings
     FROM affiliate_clicks ac
     LEFT JOIN cb_conversions c ON c.click_id = ac.click_id
-    \${where.replaceAll('clicked_at','ac.clicked_at')}
+    ${where.replaceAll('clicked_at','ac.clicked_at')}
     GROUP BY COALESCE(ac.landing_path, '/') ORDER BY earnings DESC, clicks DESC LIMIT 50\`, params);
   const seoPages = Object.fromEntries(seoRows.map(r => [r.landing_path || '/', Number(r.clicks)]));
   const seoRevenue = seoRevenueRows.rows.map(r => ({ landingPath: r.landing_path || '/', clicks: Number(r.clicks || 0), registrations: Number(r.registrations || 0), purchases: Number(r.purchases || 0), earnings: Number(r.earnings || 0) }));
