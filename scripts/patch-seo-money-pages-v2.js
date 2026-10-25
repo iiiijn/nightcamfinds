@@ -4,8 +4,8 @@ const marker = 'NIGHTCAMFINDS_SEO_MONEY_PAGES_V2';
 const file = path.join(__dirname, '..', 'public', 'app.js');
 let s = fs.readFileSync(file, 'utf8');
 if (s.includes(marker)) process.exit(0);
-const anchor = 'const NCF_SEO_MONEY_PAGES = {';
-if (!s.includes(anchor)) throw new Error('SEO money-page map not found');
+const anchor = '// NIGHTCAMFINDS_SEO_MONEY_PAGES_V1';
+if (!s.includes(anchor)) throw new Error('SEO money-page v1 marker not found');
 const extra = {
   '/canada-male-live-cams/': ['CA','male','Canada Male Live Cams'],
   '/germany-male-live-cams/': ['DE','male','Germany Male Live Cams'],
@@ -22,6 +22,6 @@ const extra = {
   '/netherlands-trans-live-cams/': ['NL','trans','Netherlands Trans Live Cams']
 };
 const insertion = `Object.assign(NCF_SEO_MONEY_PAGES, ${JSON.stringify(extra)});\nconst ncfMoneySchema = document.createElement('script');\nncfMoneySchema.type = 'application/ld+json';\nncfMoneySchema.textContent = JSON.stringify({ '@context':'https://schema.org', '@type':'CollectionPage', name: document.title, description: document.querySelector('meta[name="description"]')?.content || '', url: location.href });\ndocument.head.appendChild(ncfMoneySchema);\n// ${marker}\n`;
-s = s.replace(anchor, insertion + anchor);
+s = s.replace(anchor, anchor + '\n' + insertion);
 fs.writeFileSync(file, s);
 console.log('Applied ' + marker + ' to public/app.js');
