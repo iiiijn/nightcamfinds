@@ -98,7 +98,7 @@ if (!s.includes(routeMarker)) {
     s.includes('process.env.CB_POSTBACK_SECRET') &&
     s.includes('safeEqual(params.secret || "", configuredSecret)');
   if (alreadyPatched) {
-    s = s.replace('if (incoming.pathname === "/api/chaturbate/postback"', '// ' + routeMarker + '\\n    if (incoming.pathname === "/api/chaturbate/postback"');
+    s = s.replace('if (incoming.pathname === "/api/chaturbate/postback"', '// ' + routeMarker + '\n    if (incoming.pathname === "/api/chaturbate/postback"');
   } else {
     if (!s.includes(routeOld)) throw new Error("start.js Chaturbate postback route anchor not found");
     s = s.replace(routeOld, routeNew);
