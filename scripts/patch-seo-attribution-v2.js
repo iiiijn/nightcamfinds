@@ -48,9 +48,9 @@ patchFile('route.js', 'NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2', s => {
   const returnReplacement = '    placements,\n    devices,\n    seoRevenue\n  };';
   if (!s.includes(returnAnchor)) throw new Error('route return anchor missing');
   s = s.replace(returnAnchor, returnReplacement);
-  const marker = '\n  }\n}\n\nhttp.createServer = function routeDashboard';
+  const marker = '\n}\n\nhttp.createServer = function routeDashboard';
   if (!s.includes(marker)) throw new Error('route dashboard ending anchor missing');
-  return s.replace(marker, '\n    // NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2\n  }\n}\n\nhttp.createServer = function routeDashboard');
+  return s.replace(marker, '\n  // NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2\n}\n\nhttp.createServer = function routeDashboard');
 });
 
 patchFile('public/app.js', 'NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V2', s => {
