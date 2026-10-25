@@ -36,6 +36,19 @@
     if (paragraphs[0]) paragraphs[0].textContent = page.copy;
   }
 
+  const links = [
+    ["US live cams", "/us-live-cams/"], ["UK live cams", "/uk-live-cams/"], ["Canada live cams", "/canada-live-cams/"],
+    ["Australia live cams", "/australia-live-cams/"], ["Germany live cams", "/germany-live-cams/"], ["France live cams", "/france-live-cams/"], ["Netherlands live cams", "/netherlands-live-cams/"]
+  ];
+  const quick = document.querySelector("#quick");
+  if (quick && !quick.querySelector(".seo-country-links")) {
+    const nav = document.createElement("div");
+    nav.className = "seo-country-links";
+    nav.setAttribute("aria-label", "Country live cam pages");
+    nav.innerHTML = `<span class="muted">Country pages:</span> ${links.map(([label, href]) => `<a href="${href}">${label}</a>`).join(" · ")}`;
+    quick.parentElement?.appendChild(nav);
+  }
+
   if (page.country) {
     const select = document.querySelector("#country");
     const setCountry = () => {
