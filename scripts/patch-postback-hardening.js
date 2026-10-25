@@ -62,7 +62,7 @@ const newHandler = `async function saveConversion(params) {
        user_id=EXCLUDED.user_id, event_timestamp=EXCLUDED.event_timestamp,
        device=EXCLUDED.device, language=EXCLUDED.language,
        matched_click=EXCLUDED.matched_click, raw_payload=EXCLUDED.raw_payload
-     WHERE cb_conversions.click_id = EXCLUDED.click_id\`,
+     WHERE cb_conversions.click_id = EXCLUDED.click_id`,
     values
   );
   return { ok: true, transactionId, clickId, type: normalizedType, matched: true };
@@ -74,10 +74,10 @@ const end = s.indexOf("\nasync function dashboardStats", start);
 if (start < 0 || end < 0) throw new Error("Could not locate saveConversion function boundaries.");
 s = s.slice(0, start) + newHandler + s.slice(end);
 
-const routeOld = \`if(incoming.pathname === "/cb/postback") {
+const routeOld = `if(incoming.pathname === "/cb/postback") {
       try{await saveConversion(Object.fromEntries(incoming.searchParams.entries()));res.writeHead(200,{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"});return res.end("OK")}catch{return json(res,503,{error:"Postback storage unavailable."})}
-    }\`;
-const routeNew = \`// \${marker}
+    }`;
+const routeNew = `// ${marker}
     if (incoming.pathname === "/cb/postback") {
       try {
         const event = await saveConversion(Object.fromEntries(incoming.searchParams.entries()));
@@ -86,7 +86,7 @@ const routeNew = \`// \${marker}
         console.error("Chaturbate postback rejected:", err.message);
         return json(res, 400, { ok: false, error: "Postback event rejected." });
       }
-    }\`;
+    }`;
 if (!s.includes(routeOld)) throw new Error("Could not locate /cb/postback route.");
 s = s.replace(routeOld, routeNew);
 fs.writeFileSync(path, s);
