@@ -71,11 +71,9 @@ s = s.replace(anchor, helper + '\n' + anchor);
 
 const routeAnchor = 'if (incoming.pathname === "/api/bongacash/postback") {';
 if (!s.includes(routeAnchor)) throw new Error('BongaCash route anchor not found');
-const cbRoute = `if (incoming.pathname === "/api/chaturbate/postback" || incoming.pathname === "/cb/postback") {
-      // Chaturbate sends conversion data server-to-server to the configured URL.
-      // We only accept a conversion when its click_id was issued by NightCamFinds.
+const cbRoute = `if (incoming.pathname === "/api/chaturbate/postback") {
       try { return sendJson(res, 200, await saveChaturbatePostback(incoming.searchParams)); }
-      catch (err) { console.error("Chaturbate postback failed:", err.message); return sendJson(res, 400, { error: "Could not save Chaturbate conversion." }); }
+      catch (err) { console.error("Chaturbate postback failed:", err.message); return sendJson(res, 400, { error: "Postback event rejected." }); }
     }
     `;
 s = s.replace(routeAnchor, cbRoute + routeAnchor);
