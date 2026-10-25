@@ -49,6 +49,20 @@
     quick.parentElement?.appendChild(nav);
   }
 
+  const categoryLinks = [
+    ["Female live cams", "/female/"], ["Male live cams", "/male/"], ["Trans live cams", "/trans/"],
+    ["Couple live cams", "/couples/"], ["HD live cams", "/hd/"], ["New broadcasters", "/new/"], ["Popular live cams", "/popular/"]
+  ];
+  const addRelated = () => {
+    const seoContent = document.querySelector(".seo-content");
+    if (!seoContent || seoContent.querySelector(".seo-related-links")) return;
+    const section = document.createElement("div");
+    section.className = "seo-related-links";
+    section.innerHTML = `<h2>Explore more live cam categories</h2><p>${categoryLinks.map(([label, href]) => `<a href="${href}">${label}</a>`).join(" · ")}</p>`;
+    seoContent.appendChild(section);
+  };
+  addRelated();
+
   if (page.country) {
     const select = document.querySelector("#country");
     const setCountry = () => {
