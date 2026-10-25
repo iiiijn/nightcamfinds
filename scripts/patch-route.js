@@ -48,7 +48,7 @@ async function saveChaturbatePostback(params){
     JSON.stringify(Object.fromEntries(params.entries()))
   ];
   await pool.query(
-    `INSERT INTO cb_conversions
+    \`INSERT INTO cb_conversions
       (click_id,transaction_id,conversion_type,payout,currency,amount,country,track,source,campaign_id,program_id,user_id,event_timestamp,device,language,matched_click,raw_payload)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb)
      ON CONFLICT (transaction_id) DO UPDATE SET
@@ -59,7 +59,7 @@ async function saveChaturbatePostback(params){
        event_timestamp=EXCLUDED.event_timestamp, device=EXCLUDED.device,
        language=EXCLUDED.language, matched_click=EXCLUDED.matched_click,
        raw_payload=EXCLUDED.raw_payload
-     WHERE cb_conversions.click_id = EXCLUDED.click_id`,
+     WHERE cb_conversions.click_id = EXCLUDED.click_id\`,
     values
   );
   return {ok:true,type:normalized,transactionId:tx,clickId,matched:true};
