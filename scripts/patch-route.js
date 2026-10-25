@@ -65,6 +65,7 @@ async function saveChaturbatePostback(params){
   );
   return {ok:true,type:normalized,transactionId:tx,clickId,matched:true};
 }
+`;
 
 const anchor = 'function rangeClause(incoming, column = "received_at") {';
 if (!s.includes(anchor)) throw new Error('route.js anchor not found');
