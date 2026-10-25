@@ -45,7 +45,7 @@ const conversionInsert = `  const mediumStats = Object.fromEntries(mediums.map(r
   const conversionCountryRows = await pool.query(\`SELECT country,
     COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS registrations,
     COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS purchases,
-    COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS earnings
+    COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_broadcaster-referral','revshare_webmaster-commission','revshare_payout-adjustment')),0)::numeric AS earnings
     FROM cb_conversions
     GROUP BY country\`);
   const conversionTiers = {\"Tier 1\":{registrations:0,purchases:0,earnings:0},\"Tier 2\":{registrations:0,purchases:0,earnings:0},\"Tier 3\":{registrations:0,purchases:0,earnings:0},\"Unclassified\":{registrations:0,purchases:0,earnings:0}};
