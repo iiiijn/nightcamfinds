@@ -15,7 +15,7 @@ async function saveChaturbatePostback(params){
   const strictNumber = v => {
     if (v === "" || v == null) return null;
     const n = Number(String(v).trim());
-    return Number.isFinite(n) && n >= 0 ? n : null;
+    return Number.isFinite(n) ? n : null;
   };
   const clickId = first(["click_id"]);
   const tx = first(["transaction_id"]);
@@ -27,19 +27,19 @@ async function saveChaturbatePostback(params){
   if (!/^ncf_[a-z0-9_-]{8,120}$/i.test(clickId)) throw new Error("invalid click_id");
   if (!tx || /^\{.*\}$/.test(tx)) throw new Error("missing transaction_id");
   if (!rawType || /^\{.*\}$/.test(rawType)) throw new Error("missing type");
-  if (payout === null || amount === null) throw new Error("invalid payout or amount");
+  if (payout === null || amount === null || amount < 0) throw new Error("invalid payout or amount");
   if (!/^[A-Z]{3}$/.test(currency)) throw new Error("invalid currency");
   const matched = await pool.query("SELECT click_id FROM cb_clicks WHERE click_id=$1 LIMIT 1",[clickId]);
   if (!matched.rows.length) throw new Error("unmatched click_id");
-  const typeMap = new Map([
-    ["revshare_signup-referral","revshare_signup-referral"],
-    ["ppr_signup-referral","revshare_signup-referral"],
-    ["tokens_signup-referral","revshare_signup-referral"],
-    ["revshare_purchase","revshare_purchase"],
-    ["revshare_payout-adjustment","revshare_payout-adjustment"]
+  const allowedTypes = new Set([
+    "revshare_signup-referral",
+    "revshare_broadcaster-referral",
+    "revshare_purchase",
+    "revshare_webmaster-commission",
+    "revshare_payout-adjustment"
   ]);
-  if (!typeMap.has(rawType)) throw new Error("unsupported conversion type");
-  const normalized = typeMap.get(rawType);
+  if (!allowedTypes.has(rawType)) throw new Error("unsupported conversion type");
+  const normalized = rawType;
   const values = [
     clickId, tx, normalized, payout, currency, amount,
     /^[A-Z]{2}$/.test(country) ? country : "UNKNOWN",
