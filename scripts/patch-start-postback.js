@@ -72,34 +72,12 @@ const replacement = `async function saveConversion(params) {
 const re = /async function saveConversion\(params\) \{[\s\S]*?\n\}\n\nasync function dashboardStats/;
 if (!re.test(s)) throw new Error('start.js saveConversion anchor not found');
 s = s.replace(re, replacement + '\nasync function dashboardStats');
-const routeMarker = 'NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V4';
-const currentRoute = 'if (incoming.pathname === "/api/chaturbate/postback" || incoming.pathname === "/cb/postback")';
-const routeOld = 'if(incoming.pathname === "/cb/postback") {\\n      try{await saveConversion(Object.fromEntries(incoming.searchParams.entries()));res.writeHead(200,{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"});return res.end("OK")}catch{return json(res,503,{error:"Postback storage unavailable."})}\\n    }';
-const routeNew = `// ${routeMarker}
-    if (incoming.pathname === "/api/chaturbate/postback" || incoming.pathname === "/cb/postback") {
-      try {
-        const params = Object.fromEntries(incoming.searchParams.entries());
-        const configuredSecret = String(process.env.CB_POSTBACK_SECRET || "").trim();
-        if (!configuredSecret || !safeEqual(params.secret || "", configuredSecret)) {
-          console.warn("Chaturbate postback rejected: invalid secret");
-          return json(res, 403, { error: "Invalid postback secret." });
-        }
-        await saveConversion(params);
-        console.log("Chaturbate postback received", JSON.stringify({ type: params.type || "", clickIdPresent: Boolean(params.click_id) }));
-        res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
-        return res.end("OK");
-      } catch (err) {
-        console.error("Chaturbate postback rejected:", err.message);
-        return json(res, 400, { error: "Postback event rejected." });
-      }
-    }`;
+// The Chaturbate route is patched directly in start.js. Do not rewrite that route here.
+const routeMarker = 'NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V5';
 if (!s.includes(routeMarker)) {
-  if (s.includes(currentRoute)) {
-    s = s.replace(currentRoute, '// ' + routeMarker + '\\n    ' + currentRoute);
-  } else if (s.includes(routeOld)) {
-    s = s.replace(routeOld, routeNew);
-  } else {
-    throw new Error("start.js Chaturbate postback route anchor not found");
+  const routeStart = s.indexOf('if (incoming.pathname === "/api/chaturbate/postback"');
+  if (routeStart >= 0) {
+    s = s.slice(0, routeStart) + '// ' + routeMarker + '\n    ' + s.slice(routeStart);
   }
 }
 fs.writeFileSync(path, s);
