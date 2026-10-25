@@ -74,6 +74,8 @@ jobs:
           grep -q "landing_path" start.js
           grep -q "NIGHTCAMFINDS_DASHBOARD_SEO_ATTRIBUTION_V1" public/dashboard.html
 
+      - name: Install all production and test dependencies
+        run: npm install
+
       - name: Run application tests
-        run: |
-          npm test
+        run: npm test
