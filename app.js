@@ -36,16 +36,27 @@ function rememberAttribution() {
   const source = incoming.get("utm_source") || incoming.get("source");
   const medium = incoming.get("utm_medium") || incoming.get("medium");
   const campaign = incoming.get("utm_campaign") || incoming.get("campaign");
-  if (source || medium || campaign) {
-    const attribution = {
-      source: cleanTrack(source, "direct"),
-      medium: cleanTrack(medium, "unknown"),
-      campaign: cleanTrack(campaign, "organic"),
-      landingPath: location.pathname,
-      savedAt: Date.now()
-    };
-    try { localStorage.setItem("ncf_attribution", JSON.stringify(attribution)); } catch (_) {}
-  }
+  const hasCampaignAttribution = source || medium || campaign;
+  try {
+    const existing = JSON.parse(localStorage.getItem("ncf_attribution") || "{}");
+    if (hasCampaignAttribution) {
+      localStorage.setItem("ncf_attribution", JSON.stringify({
+        source: cleanTrack(source, "direct"),
+        medium: cleanTrack(medium, "unknown"),
+        campaign: cleanTrack(campaign, "organic"),
+        landingPath: location.pathname,
+        savedAt: Date.now()
+      }));
+    } else if (!existing.landingPath) {
+      localStorage.setItem("ncf_attribution", JSON.stringify({
+        source: existing.source || "direct",
+        medium: existing.medium || "unknown",
+        campaign: existing.campaign || "organic",
+        landingPath: location.pathname,
+        savedAt: existing.savedAt || Date.now()
+      }));
+    }
+  } catch (_) {}
 }
 
 function getAttribution() {
@@ -58,7 +69,8 @@ function getAttribution() {
   return {
     source: cleanTrack(currentSource || (freshEnough ? saved.source : "direct"), "direct"),
     medium: cleanTrack(currentMedium || (freshEnough ? saved.medium : "unknown"), "unknown"),
-    campaign: cleanTrack(currentCampaign || (freshEnough ? saved.campaign : "organic"), "organic")
+    campaign: cleanTrack(currentCampaign || (freshEnough ? saved.campaign : "organic"), "organic"),
+    landingPath: String(freshEnough ? (saved.landingPath || location.pathname) : location.pathname).slice(0, 255)
   };
 }
 
@@ -67,6 +79,7 @@ const attribution = getAttribution();
 const trafficSource = attribution.source;
 const trafficMedium = attribution.medium;
 const trafficCampaign = attribution.campaign;
+const landingPath = attribution.landingPath;
 const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore" };
 const QUICK = ["US","GB","CA","AU","DE","FR","NL"];
 
@@ -92,7 +105,7 @@ function trackingParams(room, placement = "card") {
   const country = countrySelect.value ? countrySelect.value.toLowerCase() : "all";
   const base = category === "all" ? "home" : category;
   const src = cleanTrack(`${trafficSource}-${platform}-${base}-${country}-${placement}`, `ncf-${platform}`);
-  return new URLSearchParams({ src, cat: category, source: trafficSource, medium: trafficMedium, campaign: trafficCampaign });
+  return new URLSearchParams({ src, cat: category, source: trafficSource, medium: trafficMedium, campaign: trafficCampaign, landing_path: landingPath });
 }
 function goUrl(room, placement = "card") {
   const params = trackingParams(room, placement);
