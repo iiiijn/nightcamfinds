@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = 'start.js';
 let s = fs.readFileSync(path, 'utf8');
-const marker = 'NIGHTCAMFINDS_CB_POSTBACK_RUNTIME_V3';
+const marker = 'NIGHTCAMFINDS_CB_POSTBACK_RUNTIME_V4';
 if (s.includes(marker)) process.exit(0);
 
 const replacement = `async function saveConversion(params) {
@@ -50,7 +50,10 @@ const replacement = `async function saveConversion(params) {
   if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Missing or invalid currency");
 
   const click = await pool.query("SELECT click_id FROM cb_clicks WHERE click_id = $1 LIMIT 1", [clickId]);
-  if (!click.rows.length) throw new Error("Unmatched click_id");
+  if (!click.rows.length) {
+    console.warn("Chaturbate postback acknowledged without attribution: unmatched click_id");
+    return { ok: true, matched: false, attributed: false };
+  }
 
   const allowedTypes = new Set([
     "revshare_signup-referral",
@@ -90,7 +93,7 @@ const re = /async function saveConversion\(params\) \{[\s\S]*?\n\}\n\nasync func
 if (!re.test(s)) throw new Error('start.js saveConversion anchor not found');
 s = s.replace(re, replacement + '\nasync function dashboardStats');
 // The Chaturbate route is patched directly in start.js. Do not rewrite that route here.
-const routeMarker = 'NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V6';
+const routeMarker = 'NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V7';
 if (!s.includes(routeMarker)) {
   const routeStart = s.indexOf('if (incoming.pathname === "/api/chaturbate/postback"');
   if (routeStart >= 0) {
