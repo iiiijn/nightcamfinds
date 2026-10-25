@@ -38,7 +38,8 @@ async function saveChaturbatePostback(params){
     ["revshare_purchase","revshare_purchase"],
     ["revshare_payout-adjustment","revshare_payout-adjustment"]
   ]);
-  const normalized = typeMap.get(rawType) || rawType;
+  if (!typeMap.has(rawType)) throw new Error("unsupported conversion type");
+  const normalized = typeMap.get(rawType);
   const values = [
     clickId, tx, normalized, payout, currency, amount,
     /^[A-Z]{2}$/.test(country) ? country : "UNKNOWN",
