@@ -21,6 +21,7 @@ const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
 const STATS_KEY = process.env.STATS_KEY || "";
+const POSTBACK_SECRET = process.env.CB_POSTBACK_SECRET || ""; // NIGHTCAMFINDS_CB_POSTBACK_SECRET_V5
 const SESSION_TTL = 12 * 60 * 60 * 1000;
 const loginAttempts = new Map();
 
