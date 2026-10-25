@@ -4,7 +4,7 @@ let s = fs.readFileSync(path, "utf8");
 const marker = "NIGHTCAMFINDS_CB_POSTBACK_HARDENING_V1";
 if (s.includes(marker)) process.exit(0);
 
-const newHandler = String.raw`async function saveConversion(params) {
+const newHandler = `async function saveConversion(params) {
   if (!pool) throw new Error("Database unavailable");
   await ensurePostbackTables();
   await pool.query("ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS matched_click BOOLEAN NOT NULL DEFAULT false");
@@ -67,7 +67,7 @@ const newHandler = String.raw`async function saveConversion(params) {
   );
   return { ok: true, transactionId, clickId, type: normalizedType, matched: true };
 }
-\`;
+`;
 
 const start = s.indexOf("async function saveConversion(params) {");
 const end = s.indexOf("\nasync function dashboardStats", start);
