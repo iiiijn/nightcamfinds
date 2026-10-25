@@ -1,0 +1,49 @@
+name: Verify SEO attribution v2
+
+on:
+  push:
+    paths:
+      - "scripts/patch-seo-attribution-v2.js"
+      - "server.js"
+      - "route.js"
+      - "public/app.js"
+      - "public/dashboard.html"
+      - "package.json"
+  pull_request:
+    paths:
+      - "scripts/patch-seo-attribution-v2.js"
+      - "server.js"
+      - "route.js"
+      - "public/app.js"
+      - "public/dashboard.html"
+      - "package.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  patch-and-syntax-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check patch script
+        run: node --check scripts/patch-seo-attribution-v2.js
+      - name: Apply patch in CI workspace
+        run: node scripts/patch-seo-attribution-v2.js
+      - name: Check generated JavaScript
+        run: |
+          node --check server.js
+          node --check route.js
+          node --check public/app.js
+      - name: Check package startup references the safe patch
+        run: grep -q "patch-seo-attribution-v2.js" package.json
+      - name: Check attribution markers
+        run: |
+          grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_SERVER_V2" server.js
+          grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2" route.js
+          grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V2" public/app.js
+          grep -q "NIGHTCAMFINDS_DASHBOARD_SEO_ATTRIBUTION_V2" public/dashboard.html
