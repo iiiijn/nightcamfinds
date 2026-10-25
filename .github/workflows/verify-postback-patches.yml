@@ -1,0 +1,53 @@
+name: Verify affiliate postback patches
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/patch-start-postback.js"
+      - "scripts/patch-route.js"
+      - "scripts/patch-tier-analytics.js"
+      - "start.js"
+      - "route.js"
+      - ".github/workflows/verify-postback-patches.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax-and-patch-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check source syntax
+        run: |
+          node --check scripts/patch-start-postback.js
+          node --check scripts/patch-route.js
+          node --check scripts/patch-tier-analytics.js
+          node --check start.js
+          node --check route.js
+          node --check server.js
+
+      - name: Apply startup patches in the CI workspace
+        run: |
+          node scripts/patch-start-postback.js
+          node scripts/patch-tier-analytics.js
+          node scripts/patch-route.js
+
+      - name: Check patched runtime syntax
+        run: |
+          node --check start.js
+          node --check route.js
+
+      - name: Confirm the strict postback markers were applied
+        run: |
+          grep -q "NIGHTCAMFINDS_CB_POSTBACK_RUNTIME_V2" start.js
+          grep -q "NIGHTCAMFINDS_CB_POSTBACK_PATCH_V5" route.js
