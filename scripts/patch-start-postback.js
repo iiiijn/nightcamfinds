@@ -72,5 +72,21 @@ const replacement = `async function saveConversion(params) {
 const re = /async function saveConversion\(params\) \{[\s\S]*?\n\}\n\nasync function dashboardStats/;
 if (!re.test(s)) throw new Error('start.js saveConversion anchor not found');
 s = s.replace(re, replacement + '\nasync function dashboardStats');
+const routeMarker = 'NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V3';
+const routeOld = 'if(incoming.pathname === "/cb/postback") {\n      try{await saveConversion(Object.fromEntries(incoming.searchParams.entries()));res.writeHead(200,{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"});return res.end("OK")}catch{return json(res,503,{error:"Postback storage unavailable."})}\n    }';
+const routeNew = `// ${routeMarker}
+    if (incoming.pathname === "/cb/postback") {
+      try {
+        const event = await saveConversion(Object.fromEntries(incoming.searchParams.entries()));
+        return json(res, 200, event);
+      } catch (err) {
+        console.error("Chaturbate postback rejected:", err.message);
+        return json(res, 400, { error: "Postback event rejected." });
+      }
+    }`;
+if (!s.includes(routeMarker)) {
+  if (!s.includes(routeOld)) throw new Error("start.js Chaturbate postback route anchor not found");
+  s = s.replace(routeOld, routeNew);
+}
 fs.writeFileSync(path, s);
 console.log('NightCamFinds Chaturbate postback runtime patch applied');
