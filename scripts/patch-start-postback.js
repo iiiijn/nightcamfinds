@@ -92,16 +92,6 @@ const routeNew = `// ${routeMarker}
         return json(res, 400, { error: "Postback event rejected." });
       }
     }`;
-const routeNew = `// ${routeMarker}
-    if (incoming.pathname === "/cb/postback") {
-      try {
-        const event = await saveConversion(Object.fromEntries(incoming.searchParams.entries()));
-        return json(res, 200, event);
-      } catch (err) {
-        console.error("Chaturbate postback rejected:", err.message);
-        return json(res, 400, { error: "Postback event rejected." });
-      }
-    }`;
 if (!s.includes(routeMarker)) {
   if (!s.includes(routeOld)) throw new Error("start.js Chaturbate postback route anchor not found");
   s = s.replace(routeOld, routeNew);
