@@ -39,8 +39,8 @@ jobs:
       - name: Apply startup patches in the CI workspace
         run: |
           node scripts/patch-start-postback.js
-          node scripts/patch-tier-analytics.js
           node scripts/patch-route.js
+          node scripts/patch-tier-analytics.js
 
       - name: Check patched runtime syntax
         run: |
