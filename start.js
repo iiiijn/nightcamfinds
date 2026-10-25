@@ -298,7 +298,14 @@ http.createServer = function wrappedCreateServer(handler) {
           return json(res, 403, { error: "Invalid postback secret." });
         }
         const event = await saveConversion(params);
-        console.log("Chaturbate postback accepted", JSON.stringify({ type: event?.type || params.type || "", clickIdPresent: Boolean(params.click_id) }));
+        const logContext = JSON.stringify({ clickIdPresent: Boolean(params.click_id), matched: event?.matched === true });
+        if (event?.test) {
+          console.log("Chaturbate postback test acknowledged; no conversion recorded", logContext);
+        } else if (event?.matched === false) {
+          console.log("Chaturbate postback acknowledged without attribution; no conversion recorded", logContext);
+        } else {
+          console.log("Chaturbate postback conversion recorded", JSON.stringify({ type: event?.type || params.type || "", clickIdPresent: Boolean(params.click_id), matched: event?.matched === true }));
+        }
         res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
         return res.end("OK");
       } catch (err) {
