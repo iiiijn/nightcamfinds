@@ -58,4 +58,5 @@ jobs:
             exit 1
           fi
           grep -n "NIGHTCAMFINDS_CB_POSTBACK_PATCH_V5" route.js
+          grep -n "NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V3" start.js
           grep -n "async function saveChaturbatePostback" route.js
