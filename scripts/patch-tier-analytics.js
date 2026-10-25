@@ -59,6 +59,11 @@ const conversionInsert = `  const mediumStats = Object.fromEntries(mediums.map(r
 if (!s.includes(conversionAnchor)) throw new Error("start.js mediumStats anchor not found");
 s = s.replace(conversionAnchor, conversionInsert);
 
+const earningsOld = "  const earningsRows = await pool.query(\`SELECT COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS earnings FROM cb_conversions\`);";
+const earningsNew = "  const earningsRows = await pool.query(\`SELECT COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS purchases, COUNT(*) FILTER (WHERE conversion_type='revshare_broadcaster-referral')::int AS broadcaster_referrals, COUNT(*) FILTER (WHERE conversion_type='revshare_webmaster-commission')::int AS webmaster_commissions, COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_broadcaster-referral','revshare_webmaster-commission','revshare_payout-adjustment')),0)::numeric AS earnings FROM cb_conversions\`);";
+if (!s.includes(earningsOld)) throw new Error("Dashboard earnings SQL anchor not found");
+s = s.replace(earningsOld, earningsNew);
+
 const returnAnchor = "    platforms, countries, sources, placements, campaigns, devices, mediums";
 const returnReplacement = "    platforms, countries, sources, placements, campaigns, devices, mediums, tierClicks, conversionTiers, tierDefinition: { tier1: tier1.length, tier2: tier2.length, tier3: tier3.length }";
 if (!s.includes(returnAnchor)) throw new Error("start.js dashboard return anchor not found");
