@@ -40,7 +40,7 @@ const statsInsert = [
   '    GROUP BY COALESCE(ac.landing_path, \'/\') ORDER BY earnings DESC, clicks DESC LIMIT 50`, params);',
   '  const seoPages = Object.fromEntries(seoRows.map(r => [r.landing_path || \'/\', Number(r.clicks)]));',
   '  const seoRevenue = seoRevenueRows.rows.map(r => ({ landingPath: r.landing_path || \'/\', clicks: Number(r.clicks || 0), registrations: Number(r.registrations || 0), purchases: Number(r.purchases || 0), earnings: Number(r.earnings || 0) }));'
-].join('\\n')
+].join('\\n');
 if (!s.includes(statsAnchor)) throw new Error('SEO attribution stats anchor not found');
 s = s.replace(statsAnchor, statsAnchor + '\n' + statsInsert);
 
