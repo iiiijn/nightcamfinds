@@ -17,7 +17,7 @@
     "australia-live-cams": { title: "Australia live cams — NightCamFinds", description: "Browse live cam rooms associated with Australia and compare current viewer activity.", heading: "Australia live cams", copy: "Discover rooms associated with Australia and compare current viewer activity before opening a room on the partner site.", country: "AU" },
     "germany-live-cams": { title: "Germany live cams — NightCamFinds", description: "Browse live cam rooms associated with Germany and compare current viewer activity.", heading: "Germany live cams", copy: "Browse rooms associated with Germany and compare current activity, category and platform before opening a live room.", country: "DE" },
     "france-live-cams": { title: "France live cams — NightCamFinds", description: "Browse live cam rooms associated with France and compare current viewer activity.", heading: "France live cams", copy: "Discover rooms associated with France and compare current activity before continuing to the partner platform.", country: "FR" },
-    "netherlands-live-cams": { title: "Netherlands live cams — NightCamFinds", description: "Browse live cam rooms associated with the Netherlands and compare current viewer activity.", heading: "Netherlands live cams", copy: "Browse rooms associated with the Netherlands and compare current activity, category and platform before opening a room.", country: "NL" }
+    "netherlands-live-cams": { title: "Netherlands live cams — NightCamFinds", description: "Browse live cam rooms associated with the Netherlands and compare current activity.", heading: "Netherlands live cams", copy: "Browse rooms associated with the Netherlands and compare current activity, category and platform before opening a room.", country: "NL" }
   };
 
   const page = pages[path] || pages.home;
@@ -53,12 +53,20 @@
     ["Female live cams", "/female/"], ["Male live cams", "/male/"], ["Trans live cams", "/trans/"],
     ["Couple live cams", "/couples/"], ["HD live cams", "/hd/"], ["New broadcasters", "/new/"], ["Popular live cams", "/popular/"]
   ];
+  const guideLinks = [
+    ["Best live cam sites", "/guides/best-live-cam-sites.html"],
+    ["Chaturbate vs BongaCams", "/guides/chaturbate-vs-bongacams.html"],
+    ["How live cam sites work", "/guides/how-live-cam-sites-work.html"],
+    ["Live cams by country guide", "/guides/find-live-cams-by-country.html"],
+    ["Privacy and safety guide", "/guides/live-cam-privacy-and-safety.html"],
+    ["How to choose a live cam room", "/guides/how-to-choose-a-live-cam-room.html"]
+  ];
   const addRelated = () => {
     const seoContent = document.querySelector(".seo-content");
     if (!seoContent || seoContent.querySelector(".seo-related-links")) return;
     const section = document.createElement("div");
     section.className = "seo-related-links";
-    section.innerHTML = `<h2>Explore more live cam categories</h2><p>${categoryLinks.map(([label, href]) => `<a href="${href}">${label}</a>`).join(" · ")}</p>`;
+    section.innerHTML = `<h2>Explore more live cam categories</h2><p>${categoryLinks.map(([label, href]) => `<a href="${href}">${label}</a>`).join(" · ")}</p><h2>Helpful live cam guides</h2><p>${guideLinks.map(([label, href]) => `<a href="${href}">${label}</a>`).join(" · ")}</p>`;
     seoContent.appendChild(section);
   };
   addRelated();
