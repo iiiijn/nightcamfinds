@@ -11,7 +11,7 @@
     new: { title: "New live cam broadcasters — NightCamFinds", description: "Discover new live cam broadcasters and browse rooms marked new by partner feeds.", heading: "Discover new broadcasters", copy: "The new section helps you discover broadcasters marked as new by the partner feed. Listings change as new rooms appear and broadcasters go offline." },
     popular: { title: "Popular live cams — NightCamFinds", description: "Discover popular live cam rooms and compare current viewer activity on NightCamFinds.", heading: "Popular live cam rooms", copy: "Start with rooms currently attracting more viewers. Popularity changes throughout the day as broadcasters and audiences move between rooms." },
     countries: { title: "Live cams by country — NightCamFinds", description: "Browse live cam rooms by country and compare current viewer activity on NightCamFinds.", heading: "Live cams by country", copy: "Country browsing lets you focus discovery on broadcasters associated with a particular country. It is also useful when comparing international traffic markets." },
-    "us-live-cams": { title: "US live cams — NightCamFinds", description: "Browse live cam rooms associated with the United States and compare current viewer activity.", heading: "US live cams", copy: "Browse rooms associated with the United States and compare current activity before opening a live room. Availability changes throughout the day.", country: "US" },
+    "us-live-cams": { title: "US live cams — NightCamFinds", description: "Browse live cam rooms associated with the United States and compare current viewer activity.", heading: "US live cams", copy: "Browse rooms associated with the United States and compare current activity before opening a live room.", country: "US" },
     "uk-live-cams": { title: "UK live cams — NightCamFinds", description: "Browse live cam rooms associated with the United Kingdom and compare current viewer activity.", heading: "UK live cams", copy: "Discover rooms associated with the United Kingdom and compare current viewer activity before continuing to a partner platform.", country: "GB" },
     "canada-live-cams": { title: "Canada live cams — NightCamFinds", description: "Browse live cam rooms associated with Canada and compare current viewer activity.", heading: "Canada live cams", copy: "Browse rooms associated with Canada and use the live directory to compare current activity, categories and platforms.", country: "CA" },
     "australia-live-cams": { title: "Australia live cams — NightCamFinds", description: "Browse live cam rooms associated with Australia and compare current viewer activity.", heading: "Australia live cams", copy: "Discover rooms associated with Australia and compare current viewer activity before opening a room on the partner site.", country: "AU" },
@@ -20,10 +20,45 @@
     "netherlands-live-cams": { title: "Netherlands live cams — NightCamFinds", description: "Browse live cam rooms associated with the Netherlands and compare current activity.", heading: "Netherlands live cams", copy: "Browse rooms associated with the Netherlands and compare current activity, category and platform before opening a room.", country: "NL" }
   };
 
-  const page = pages[path] || pages.home;
+  const moneyPages = {
+    "us-female-live-cams": ["US", "female", "US Female Live Cams"],
+    "uk-female-live-cams": ["GB", "female", "UK Female Live Cams"],
+    "canada-female-live-cams": ["CA", "female", "Canada Female Live Cams"],
+    "germany-female-live-cams": ["DE", "female", "Germany Female Live Cams"],
+    "france-female-live-cams": ["FR", "female", "France Female Live Cams"],
+    "australia-female-live-cams": ["AU", "female", "Australia Female Live Cams"],
+    "netherlands-female-live-cams": ["NL", "female", "Netherlands Female Live Cams"],
+    "us-male-live-cams": ["US", "male", "US Male Live Cams"],
+    "uk-male-live-cams": ["GB", "male", "UK Male Live Cams"],
+    "canada-male-live-cams": ["CA", "male", "Canada Male Live Cams"],
+    "germany-male-live-cams": ["DE", "male", "Germany Male Live Cams"],
+    "france-male-live-cams": ["FR", "male", "France Male Live Cams"],
+    "australia-male-live-cams": ["AU", "male", "Australia Male Live Cams"],
+    "netherlands-male-live-cams": ["NL", "male", "Netherlands Male Live Cams"],
+    "us-trans-live-cams": ["US", "trans", "US Trans Live Cams"],
+    "uk-trans-live-cams": ["GB", "trans", "UK Trans Live Cams"],
+    "canada-trans-live-cams": ["CA", "trans", "Canada Trans Live Cams"],
+    "germany-trans-live-cams": ["DE", "trans", "Germany Trans Live Cams"],
+    "france-trans-live-cams": ["FR", "trans", "France Trans Live Cams"],
+    "australia-trans-live-cams": ["AU", "trans", "Australia Trans Live Cams"],
+    "netherlands-trans-live-cams": ["NL", "trans", "Netherlands Trans Live Cams"]
+  };
+
+  const money = moneyPages[path];
+  const page = money ? {
+    title: `${money[2]} — NightCamFinds`,
+    description: `Browse ${money[2].toLowerCase()} and compare current rooms, viewer activity and live availability on NightCamFinds.`,
+    heading: money[2],
+    copy: `Discover ${money[2].toLowerCase()} through an independent live-room directory. Listings, viewer counts and availability can change throughout the day.`,
+    country: money[0],
+    category: money[1]
+  } : (pages[path] || pages.home);
+
   document.title = page.title;
   const meta = document.querySelector('meta[name="description"]');
   if (meta) meta.setAttribute("content", page.description);
+  const canonical = document.querySelector('link[rel="canonical"]');
+  if (canonical) canonical.href = location.origin + location.pathname;
   const h1 = document.querySelector("#page-title");
   if (h1) h1.textContent = page.heading;
   const intro = document.querySelector("#page-intro");
@@ -34,9 +69,16 @@
     if (h2) h2.textContent = page.heading;
     const paragraphs = seo.querySelectorAll("p:not(.eyebrow)");
     if (paragraphs[0]) paragraphs[0].textContent = page.copy;
+    if (money && !seo.querySelector(".seo-money-links")) {
+      const section = document.createElement("section");
+      section.className = "seo-money-links";
+      const countryName = {US:"United States",GB:"United Kingdom",CA:"Canada",DE:"Germany",FR:"France",AU:"Australia",NL:"Netherlands"}[money[0]] || money[0];
+      section.innerHTML = `<h2>Explore ${money[2].toLowerCase()}</h2><p>Compare current ${money[1]} rooms associated with ${countryName}. Room availability can change quickly, so use the live directory to choose a room that interests you.</p><p><a href="/${money[1]}/">Browse all ${money[1]} live cams</a> · <a href="/countries/">Browse by country</a> · <a href="/live/">See all live cams</a></p>`;
+      seo.appendChild(section);
+    }
   }
 
-  const links = [
+  const countryLinks = [
     ["US live cams", "/us-live-cams/"], ["UK live cams", "/uk-live-cams/"], ["Canada live cams", "/canada-live-cams/"],
     ["Australia live cams", "/australia-live-cams/"], ["Germany live cams", "/germany-live-cams/"], ["France live cams", "/france-live-cams/"], ["Netherlands live cams", "/netherlands-live-cams/"]
   ];
@@ -45,7 +87,7 @@
     const nav = document.createElement("div");
     nav.className = "seo-country-links";
     nav.setAttribute("aria-label", "Country live cam pages");
-    nav.innerHTML = `<span class="muted">Country pages:</span> ${links.map(([label, href]) => `<a href="${href}">${label}</a>`).join(" · ")}`;
+    nav.innerHTML = `<span class="muted">Country pages:</span> ${countryLinks.map(([label, href]) => `<a href="${href}">${label}</a>`).join(" · ")}`;
     quick.parentElement?.appendChild(nav);
   }
 
