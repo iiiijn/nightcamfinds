@@ -26,7 +26,10 @@ if (!s.includes(parseReturn)) throw new Error('SEO attribution parse anchor not 
 s = s.replace(parseReturn, parseReplacement);
 
 const statsAnchor = `  const mediumStats = Object.fromEntries(mediums.map(r => [r.medium || "unknown", Number(r.n)]));`;
-const statsInsert = "  const seoRows = [];\\n  const seoRevenueRows = { rows: [] };\\n  const seoPages = {};\\n  const seoRevenue = [];";
+const statsInsert = `  const seoRows = [];
+  const seoRevenueRows = { rows: [] };
+  const seoPages = {};
+  const seoRevenue = [];`;
 if (!s.includes(statsAnchor)) throw new Error('SEO attribution stats anchor not found');
 s = s.replace(statsAnchor, statsAnchor + '\\n' + statsInsert);
 const returnAnchor = '    platforms, countries, sources, placements, campaigns, devices, mediums';
