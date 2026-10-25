@@ -30,9 +30,9 @@ patchFile('server.js', 'NIGHTCAMFINDS_SEO_ATTRIBUTION_SERVER_V2', s => {
   const call2 = '    const landingPath = String(url.searchParams.get("lp") || "/").slice(0, 255);\n    await countClick({ src, country, category, source, campaign, medium, content, device, clickId, platform, landingPath: landingPath.startsWith("/") ? landingPath : "/" });';
   if (!s.includes(call)) throw new Error('countClick call anchor missing');
   s = s.replace(call, call2);
-  const marker = '\n});\n\nserver.listen(PORT, () => console.log(`NightCamFinds listening on ${PORT}`));';
+  const marker = '\nserver.listen(PORT, () => console.log(`NightCamFinds listening on ${PORT}`));';
   if (!s.includes(marker)) throw new Error('server ending anchor missing');
-  return s.replace(marker, '\n});\n\n// NIGHTCAMFINDS_SEO_ATTRIBUTION_SERVER_V2\nserver.listen(PORT, () => console.log(`NightCamFinds listening on ${PORT}`));');
+  return s.replace(marker, '\n// NIGHTCAMFINDS_SEO_ATTRIBUTION_SERVER_V2' + marker);
 });
 
 patchFile('route.js', 'NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2', s => {
@@ -48,9 +48,9 @@ patchFile('route.js', 'NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2', s => {
   const returnReplacement = '    placements,\n    devices,\n    seoRevenue\n  };';
   if (!s.includes(returnAnchor)) throw new Error('route return anchor missing');
   s = s.replace(returnAnchor, returnReplacement);
-  const marker = '\n}\n\nhttp.createServer = function routeDashboard';
+  const marker = '\nhttp.createServer = function routeDashboard';
   if (!s.includes(marker)) throw new Error('route dashboard ending anchor missing');
-  return s.replace(marker, '\n  // NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2\n}\n\nhttp.createServer = function routeDashboard');
+  return s.replace(marker, '\n  // NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2' + marker);
 });
 
 patchFile('public/app.js', 'NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V2', s => {
