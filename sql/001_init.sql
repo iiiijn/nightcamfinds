@@ -76,6 +76,8 @@ CREATE TABLE IF NOT EXISTS clicks (
   country TEXT,
   language TEXT,
   traffic_source TEXT,
+  traffic_medium TEXT,
+  traffic_campaign TEXT,
   device TEXT,
   destination TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()

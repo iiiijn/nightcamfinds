@@ -5,8 +5,13 @@
     "start": "node scripts/patch-start-postback.js && node scripts/patch-route.js && node scripts/patch-tier-analytics.js && node scripts/patch-seo-attribution-v2.js && node route.js",
     "test": "node --test tests/*.test.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
   }
 }
