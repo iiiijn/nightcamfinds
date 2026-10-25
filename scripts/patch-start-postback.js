@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = 'start.js';
 let s = fs.readFileSync(path, 'utf8');
-const marker = 'NIGHTCAMFINDS_CB_POSTBACK_RUNTIME_V2';
+const marker = 'NIGHTCAMFINDS_CB_POSTBACK_RUNTIME_V3';
 if (s.includes(marker)) process.exit(0);
 
 const replacement = `async function saveConversion(params) {
@@ -17,6 +17,10 @@ const replacement = `async function saveConversion(params) {
     const n = Number(String(value).trim());
     return Number.isFinite(n) ? n : null;
   };
+  const placeholder = value => {
+    const v = String(value ?? "").trim();
+    return !v || /^\\{[^}]+\\}$/.test(v) || /^(test|testing|example|placeholder)$/i.test(v);
+  };
 
   const clickId = clean(params.click_id, "", 128);
   const transactionId = clean(params.transaction_id, "", 255);
@@ -25,6 +29,19 @@ const replacement = `async function saveConversion(params) {
   const amount = strictNumber(params.amount);
   const currency = clean(params.currency, "", 16).toUpperCase();
   const country = clean(params.country, "UNKNOWN", 16).toUpperCase();
+
+  // Chaturbate's dashboard test can send placeholder/unresolved macros or values
+  // that cannot correspond to a real click. Return a successful test response,
+  // but never write that request into the conversion ledger.
+  const testRequest = placeholder(clickId) || placeholder(transactionId) || placeholder(rawType) ||
+    payout === null || amount === null || !/^[A-Z]{3}$/.test(currency);
+  if (testRequest) {
+    console.log("Chaturbate postback test accepted", JSON.stringify({
+      clickIdPresent: Boolean(clickId),
+      matched: false
+    }));
+    return { ok: true, test: true, matched: false };
+  }
 
   if (!/^ncf_[a-z0-9_-]{8,120}$/i.test(clickId)) throw new Error("Invalid click_id");
   if (!transactionId || /^\\{.*\\}$/.test(transactionId)) throw new Error("Missing or unresolved transaction_id");
@@ -73,7 +90,7 @@ const re = /async function saveConversion\(params\) \{[\s\S]*?\n\}\n\nasync func
 if (!re.test(s)) throw new Error('start.js saveConversion anchor not found');
 s = s.replace(re, replacement + '\nasync function dashboardStats');
 // The Chaturbate route is patched directly in start.js. Do not rewrite that route here.
-const routeMarker = 'NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V5';
+const routeMarker = 'NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V6';
 if (!s.includes(routeMarker)) {
   const routeStart = s.indexOf('if (incoming.pathname === "/api/chaturbate/postback"');
   if (routeStart >= 0) {
