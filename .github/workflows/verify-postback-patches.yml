@@ -66,12 +66,14 @@ jobs:
           node --check start.js
           node --check route.js
 
-      - name: Confirm attribution handlers were applied
+      - name: Confirm active postback runtime was applied
         run: |
           grep -q "allowedTypes.has(normalizedType)" start.js
-          grep -q "NIGHTCAMFINDS_CB_POSTBACK_PATCH_V5" route.js
+          grep -q "NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V7" start.js
+          grep -q "NIGHTCAMFINDS_CB_POSTBACK_PATCH_V6" route.js
           grep -q "landing_path" start.js
-          grep -q "seoRevenue" start.js
           grep -q "NIGHTCAMFINDS_DASHBOARD_SEO_ATTRIBUTION_V1" public/dashboard.html
-          grep -n "landing_path" start.js
-          grep -n "seoRevenue" start.js
+
+      - name: Run application tests
+        run: |
+          npm test
