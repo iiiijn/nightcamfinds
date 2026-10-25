@@ -62,7 +62,7 @@ const newHandler = `async function saveConversion(params) {
        user_id=EXCLUDED.user_id, event_timestamp=EXCLUDED.event_timestamp,
        device=EXCLUDED.device, language=EXCLUDED.language,
        matched_click=EXCLUDED.matched_click, raw_payload=EXCLUDED.raw_payload
-     WHERE cb_conversions.click_id = EXCLUDED.click_id`,
+     WHERE cb_conversions.click_id = EXCLUDED.click_id\\`,
     values
   );
   return { ok: true, transactionId, clickId, type: normalizedType, matched: true };
