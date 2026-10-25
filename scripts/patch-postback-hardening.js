@@ -51,7 +51,7 @@ const newHandler = `async function saveConversion(params) {
     clean(params.device, 32), clean(params.language, 32), true, JSON.stringify(params)
   ];
   await pool.query(
-    `INSERT INTO cb_conversions
+    \`INSERT INTO cb_conversions
       (click_id,transaction_id,conversion_type,payout,currency,amount,country,track,source,campaign_id,program_id,user_id,event_timestamp,device,language,matched_click,raw_payload)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb)
      ON CONFLICT (transaction_id) DO UPDATE SET
