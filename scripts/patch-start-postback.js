@@ -15,7 +15,7 @@ const replacement = `async function saveConversion(params) {
   const strictNumber = value => {
     if (value == null || String(value).trim() === "") return null;
     const n = Number(String(value).trim());
-    return Number.isFinite(n) && n >= 0 ? n : null;
+    return Number.isFinite(n) ? n : null;
   };
 
   const clickId = clean(params.click_id, "", 128);
@@ -29,15 +29,20 @@ const replacement = `async function saveConversion(params) {
   if (!/^ncf_[a-z0-9_-]{8,120}$/i.test(clickId)) throw new Error("Invalid click_id");
   if (!transactionId || /^\\{.*\\}$/.test(transactionId)) throw new Error("Missing or unresolved transaction_id");
   if (!rawType || /^\\{.*\\}$/.test(rawType)) throw new Error("Missing or unresolved conversion type");
-  if (payout === null || amount === null) throw new Error("Missing or invalid payout/amount");
+  if (payout === null || amount === null || amount < 0) throw new Error("Missing payout or invalid amount");
   if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Missing or invalid currency");
 
   const click = await pool.query("SELECT click_id FROM cb_clicks WHERE click_id = $1 LIMIT 1", [clickId]);
   if (!click.rows.length) throw new Error("Unmatched click_id");
 
-  const signupTypes = new Set(["revshare_signup-referral", "ppr_signup-referral", "tokens_signup-referral"]);
-  const allowedTypes = new Set(["revshare_purchase", "revshare_payout-adjustment", ...signupTypes]);
-  const normalizedType = signupTypes.has(rawType) ? "revshare_signup-referral" : rawType;
+  const allowedTypes = new Set([
+    "revshare_signup-referral",
+    "revshare_broadcaster-referral",
+    "revshare_purchase",
+    "revshare_webmaster-commission",
+    "revshare_payout-adjustment"
+  ]);
+  const normalizedType = rawType;
   if (!allowedTypes.has(normalizedType)) throw new Error("Unsupported conversion type");
 
   await pool.query(
