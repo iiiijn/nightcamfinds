@@ -14,13 +14,9 @@ const helper = `function renderSeoAttribution(rows){const el=$('seoAttribution')
 if (!s.includes(scriptAnchor)) throw new Error('Dashboard JS helper anchor not found');
 s = s.replace(scriptAnchor, helper + scriptAnchor);
 
-const loadAnchor = "$('status').textContent='Loading...';try{";
-if (!s.includes(loadAnchor)) throw new Error('Dashboard load anchor not found');
-s = s.replace(loadAnchor, loadAnchor);
-
-const renderAnchor = "$('status').textContent='Loaded '+new Date().toLocaleTimeString();";
-if (!s.includes(renderAnchor)) throw new Error('Dashboard final render anchor not found');
-s = s.replace(renderAnchor, "renderSeoAttribution(j.seoRevenue||[]);" + renderAnchor);
+const loadAnchor = 'const j=await r.json();';
+if (!s.includes(loadAnchor)) throw new Error('Dashboard JSON load anchor not found');
+s = s.replace(loadAnchor, loadAnchor + 'renderSeoAttribution(j.seoRevenue||[]);');
 
 fs.writeFileSync(path, s);
 console.log('NightCamFinds dashboard SEO attribution patch applied');
