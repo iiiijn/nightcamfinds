@@ -1,28 +1,42 @@
 const fs = require("fs");
 
-function patchFile(file, marker, apply) {
-  let s = fs.readFileSync(file, "utf8");
-  if (s.includes(marker)) return;
-  const next = apply(s);
-  if (!next || next === s) throw new Error(`SEO canonical anchor not found in ${file}`);
-  fs.writeFileSync(file, next);
-  console.log(`Applied ${marker} to ${file}`);
+const TEMPLATE_MARKER = "NIGHTCAMFINDS_SEO_CANONICAL_TEMPLATE_V1";
+const SERVER_MARKER = "NIGHTCAMFINDS_SEO_CANONICAL_SERVER_V1";
+
+function patchFile(file, apply) {
+  const current = fs.readFileSync(file, "utf8");
+  const next = apply(current);
+  if (next !== current) {
+    fs.writeFileSync(file, next);
+    console.log(`Applied SEO canonical patch to ${file}`);
+  } else {
+    console.log(`SEO canonical patch already applied to ${file}`);
+  }
 }
 
-patchFile("public/index.html", "NIGHTCAMFINDS_SEO_CANONICAL_TEMPLATE_V1", s => {
-  const next = s
-    .replaceAll('href="__ORIGIN__/"', 'href="__CANONICAL__"')
-    .replaceAll('content="__ORIGIN__/"', 'content="__CANONICAL__"')
-    .replaceAll('"url":"__ORIGIN__/"', '"url":"__CANONICAL__"');
-  if (next === s) throw new Error("public/index.html canonical anchors missing");
-  return next + "\n<!-- NIGHTCAMFINDS_SEO_CANONICAL_TEMPLATE_V1 -->\n";
+// public/index.html is already using the __CANONICAL__ placeholder in the repository.
+// Accept that state instead of looking for the old __ORIGIN__/ anchors.
+patchFile("public/index.html", s => {
+  if (!s.includes("__CANONICAL__")) {
+    throw new Error("public/index.html is missing the __CANONICAL__ placeholder");
+  }
+  if (s.includes(TEMPLATE_MARKER)) return s;
+  return s + `\n<!-- ${TEMPLATE_MARKER} -->\n`;
 });
 
-patchFile("server.js", "NIGHTCAMFINDS_SEO_CANONICAL_SERVER_V1", s => {
-  const anchor = '.replace("__LANG__", langFor(forced ? forced[1] : visitorCountry(req)));';
-  const replacement = '.replace("__LANG__", langFor(forced ? forced[1] : visitorCountry(req)))\n      .replaceAll("__CANONICAL__", pageOrigin(req) + (pathname === "/" ? "/" : pathname));';
-  if (!s.includes(anchor)) throw new Error("server index template anchor missing");
-  return s.replace(anchor, replacement) + "\n// NIGHTCAMFINDS_SEO_CANONICAL_SERVER_V1\n";
+// Replace the canonical placeholder at request time so every trailing-slash
+// landing page gets its own self-referencing canonical URL.
+patchFile("server.js", s => {
+  if (s.includes(SERVER_MARKER)) return s;
+
+  const anchor = /\.replace\("__LANG__",\s*langFor\(forced \? forced\[1\] : visitorCountry\(req\)\)\);/;
+  if (!anchor.test(s)) {
+    throw new Error("server.js canonical replacement anchor missing");
+  }
+
+  const replacement = `.replace("__LANG__", langFor(forced ? forced[1] : visitorCountry(req)))\n      .replaceAll("__CANONICAL__", pageOrigin(req) + (pathname === "/" ? "/" : pathname));`;
+
+  return s.replace(anchor, replacement) + `\n// ${SERVER_MARKER}\n`;
 });
 
 console.log("NightCamFinds SEO canonical patch complete");
