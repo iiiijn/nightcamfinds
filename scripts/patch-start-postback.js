@@ -91,14 +91,14 @@ const replacement = `async function saveConversion(params) {
   return { ok: true, transactionId, clickId, type: normalizedType, matched: true };
 }`;
 
-const re = /async function saveConversion\\(params\\) \\{[\\s\\S]*?\\n\\}\\n\\nasync function dashboardStats/;
+const re = /async function saveConversion\(params\) \{[\s\S]*?\n\}\n\nasync function dashboardStats/;
 if (!re.test(s)) throw new Error('start.js saveConversion anchor not found');
-s = s.replace(re, replacement + '\\nasync function dashboardStats');
+s = s.replace(re, replacement + '\nasync function dashboardStats');
 const routeMarker = 'NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V7';
 if (!s.includes(routeMarker)) {
   const routeStart = s.indexOf('if (incoming.pathname === "/api/chaturbate/postback"');
   if (routeStart >= 0) {
-    s = s.slice(0, routeStart) + '// ' + routeMarker + '\\n    ' + s.slice(routeStart);
+    s = s.slice(0, routeStart) + '// ' + routeMarker + '\n    ' + s.slice(routeStart);
   }
 }
 fs.writeFileSync(path, s);
