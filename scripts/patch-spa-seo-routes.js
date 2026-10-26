@@ -1,7 +1,7 @@
 const fs = require("fs");
 
 const FILE = "route.js";
-const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V1";
+const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V2";
 let s = fs.readFileSync(FILE, "utf8");
 
 if (s.includes(MARKER)) {
@@ -9,9 +9,9 @@ if (s.includes(MARKER)) {
   process.exit(0);
 }
 
-const anchor = "const originalCreateServer = http.createServer;";
+const anchor = 'http.createServer = function routeDashboard(handler) {';
 if (!s.includes(anchor)) {
-  throw new Error("route.js createServer anchor not found");
+  throw new Error("route.js routeDashboard anchor not found");
 }
 
 const helper = `
@@ -38,26 +38,17 @@ function rewriteSeoSpaRequest(req) {
   req.url = "/" + current.search;
 }
 
-function createSeoAwareServer(...args) {
-  if (typeof args[0] !== "function") return originalCreateServer(...args);
-  const listener = args[0];
-  args[0] = (req, res) => {
-    rewriteSeoSpaRequest(req);
-    return listener(req, res);
-  };
-  return originalCreateServer(...args);
-}
 `;
 
-s = s.replace(anchor, anchor + helper);
+s = s.replace('const originalCreateServer = http.createServer;\n', 'const originalCreateServer = http.createServer;\n' + helper);
 
-// Wrap every application call to originalCreateServer, while leaving the wrapper's
-// own calls pointed at the real Node constructor.
-s = s.replace(/\\boriginalCreateServer\\(/g, "createSeoAwareServer(");
-s = s.replace(/function createSeoAwareServer\\(\.\.\.args\\) \\{([\\s\\S]*?)\\n\\}/, (match, body) => {
-  const fixed = body.replace(/createSeoAwareServer\\(\.\.\.args\\)/g, "originalCreateServer(...args)");
-  return `function createSeoAwareServer(...args) {${fixed}\n}`;
-});
+const listenerAnchor = '  return originalCreateServer.call(http, async (req, res) => {';
+if (!s.includes(listenerAnchor)) {
+  throw new Error("route.js server listener anchor not found");
+}
+
+s = s.replace(listenerAnchor, `  return originalCreateServer.call(http, async (req, res) => {
+    rewriteSeoSpaRequest(req);`);
 
 fs.writeFileSync(FILE, s);
-console.log("Applied SEO SPA route patch");
+console.log("Applied SEO SPA route patch V2");
