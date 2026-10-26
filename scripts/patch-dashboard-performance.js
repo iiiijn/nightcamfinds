@@ -73,8 +73,8 @@ const script = `<script>
 })();
 </script>`;
 
-const scriptAnchor = '</script>\n</body>';
-if (!s.includes(scriptAnchor)) throw new Error("dashboard script closing anchor not found");
+const scriptAnchor = '</body>';
+if (!s.includes(scriptAnchor)) throw new Error("dashboard body closing anchor not found");
 s = s.replace(scriptAnchor, script + "\n" + scriptAnchor);
 
 fs.writeFileSync(path, s);
