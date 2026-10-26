@@ -69,6 +69,6 @@ function createRateLimitedServer(handler, options) {
 `;
 
 s = s.replace(anchor, anchor + "\n" + limiter);
-s = s.replace(/originalCreateServer\\(\\s*\\(req\\s*,\\s*res\\)\\s*=>\\s*\\{/g, "createRateLimitedServer((req, res) => {");
+s = s.replace(/originalCreateServer\(options,\s*\(req\s*,\s*res\)\s*=>\s*\{/g, "createRateLimitedServer((req, res) => {");
 fs.writeFileSync(path, s);
 console.log("NightCamFinds production rate limiting patch applied");
