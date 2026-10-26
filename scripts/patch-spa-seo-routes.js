@@ -50,19 +50,19 @@ function rewriteSeoSpaRequest(req) {
 
 `;
 
-const originalAnchor = 'const originalCreateServer = http.createServer;\\n';
+const originalAnchor = 'const originalCreateServer = http.createServer;\n';
 if (!s.includes(originalAnchor)) {
   throw new Error("route.js createServer anchor not found");
 }
 
 s = s.replace(originalAnchor, originalAnchor + helper);
 
-const listenerAnchor = '  return originalCreateServer.call(http, async (req, res) => {\\n';
+const listenerAnchor = '  return originalCreateServer.call(http, async (req, res) => {\n';
 if (!s.includes(listenerAnchor)) {
   throw new Error("route.js server listener anchor not found");
 }
 
-s = s.replace(listenerAnchor, listenerAnchor + '    if (redirectSeoNoSlash(req, res)) return;\\n    rewriteSeoSpaRequest(req);\\n');
+s = s.replace(listenerAnchor, listenerAnchor + '    if (redirectSeoNoSlash(req, res)) return;\n    rewriteSeoSpaRequest(req);\n');
 
 fs.writeFileSync(FILE, s);
 console.log("Applied SEO SPA route patch V4");
