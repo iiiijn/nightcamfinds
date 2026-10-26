@@ -46,8 +46,8 @@ const limiter = [
   "  return { limit, remaining, retryAfter: 0 };",
   "}",
   "",
-  "function createRateLimitedServer(handler, options) {",
-  "  return originalCreateServer(options, (req, res) => {",
+  "function createRateLimitedServer(handler) {",
+  "  return originalCreateServer((req, res) => {",
   "    const rate = rateLimitCheck(req);",
   "    if (rate && rate.remaining === 0) {",
   "      res.writeHead(429, {",
@@ -74,6 +74,6 @@ const limiter = [
 ].join("\n");
 
 s = s.replace(anchor, anchor + "\n" + limiter);
-s = s.replace(/originalCreateServer\\(options,\\s*\\(req\\s*,\\s*res\\)\\s*=>\\s*\\{/g, "createRateLimitedServer((req, res) => {");
+s = s.replace("originalCreateServer(options, (req, res) => {", "createRateLimitedServer((req, res) => {");
 fs.writeFileSync(path, s);
 console.log("NightCamFinds production rate limiting patch applied");
