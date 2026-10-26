@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = 'start.js';
 let s = fs.readFileSync(path, 'utf8');
-const marker = 'NIGHTCAMFINDS_CB_POSTBACK_RUNTIME_V4';
+const marker = 'NIGHTCAMFINDS_CB_POSTBACK_RUNTIME_V5';
 if (s.includes(marker)) process.exit(0);
 
 const replacement = `async function saveConversion(params) {
@@ -25,8 +25,10 @@ const replacement = `async function saveConversion(params) {
   const clickId = clean(params.click_id, "", 128);
   const transactionId = clean(params.transaction_id, "", 255);
   const rawType = clean(params.type, "", 100).toLowerCase();
-  const payout = strictNumber(params.payout);
-  const amount = strictNumber(params.amount);
+  const payoutValue = strictNumber(params.payout);
+  const amountValue = strictNumber(params.amount);
+  const payout = payoutValue === null ? 0 : payoutValue;
+  const amount = amountValue;
   const currency = clean(params.currency, "", 16).toUpperCase();
   const country = clean(params.country, "UNKNOWN", 16).toUpperCase();
 
@@ -34,7 +36,7 @@ const replacement = `async function saveConversion(params) {
   // that cannot correspond to a real click. Return a successful test response,
   // but never write that request into the conversion ledger.
   const testRequest = placeholder(clickId) || placeholder(transactionId) || placeholder(rawType) ||
-    payout === null || amount === null || !/^[A-Z]{3}$/.test(currency);
+    placeholder(currency);
   if (testRequest) {
     console.log("Chaturbate postback test accepted", JSON.stringify({
       clickIdPresent: Boolean(clickId),
@@ -46,7 +48,7 @@ const replacement = `async function saveConversion(params) {
   if (!/^ncf_[a-z0-9_-]{8,120}$/i.test(clickId)) throw new Error("Invalid click_id");
   if (!transactionId || /^\\{.*\\}$/.test(transactionId)) throw new Error("Missing or unresolved transaction_id");
   if (!rawType || /^\\{.*\\}$/.test(rawType)) throw new Error("Missing or unresolved conversion type");
-  if (payout === null || amount === null || amount < 0) throw new Error("Missing payout or invalid amount");
+  if (payout < 0 || (amount !== null && amount < 0)) throw new Error("Invalid payout or amount");
   if (!/^[A-Z]{3}$/.test(currency)) throw new Error("Missing or invalid currency");
 
   const click = await pool.query("SELECT click_id FROM cb_clicks WHERE click_id = $1 LIMIT 1", [clickId]);
@@ -89,16 +91,15 @@ const replacement = `async function saveConversion(params) {
   return { ok: true, transactionId, clickId, type: normalizedType, matched: true };
 }`;
 
-const re = /async function saveConversion\(params\) \{[\s\S]*?\n\}\n\nasync function dashboardStats/;
+const re = /async function saveConversion\\(params\\) \\{[\\s\\S]*?\\n\\}\\n\\nasync function dashboardStats/;
 if (!re.test(s)) throw new Error('start.js saveConversion anchor not found');
-s = s.replace(re, replacement + '\nasync function dashboardStats');
-// The Chaturbate route is patched directly in start.js. Do not rewrite that route here.
+s = s.replace(re, replacement + '\\nasync function dashboardStats');
 const routeMarker = 'NIGHTCAMFINDS_CB_POSTBACK_ROUTE_V7';
 if (!s.includes(routeMarker)) {
   const routeStart = s.indexOf('if (incoming.pathname === "/api/chaturbate/postback"');
   if (routeStart >= 0) {
-    s = s.slice(0, routeStart) + '// ' + routeMarker + '\n    ' + s.slice(routeStart);
+    s = s.slice(0, routeStart) + '// ' + routeMarker + '\\n    ' + s.slice(routeStart);
   }
 }
 fs.writeFileSync(path, s);
-console.log('NightCamFinds Chaturbate postback runtime patch applied');
+console.log('NightCamFinds Chaturbate postback runtime patch V5 applied');
