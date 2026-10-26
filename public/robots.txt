@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /dashboard.html
+Disallow: /dashboard-v2.html
+Disallow: /dashboard-ui.html
+Disallow: /analytics-dashboard.html
+Disallow: /campaign-center.html
+Disallow: /promotools.html
+Disallow: /revenue.html
+Disallow: /broadcast.html
+
+Sitemap: https://nightcamfinds.com/sitemap.xml
