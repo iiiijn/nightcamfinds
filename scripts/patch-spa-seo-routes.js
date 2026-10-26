@@ -1,7 +1,7 @@
 const fs = require("fs");
 
 const FILE = "route.js";
-const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V3";
+const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V4";
 let s = fs.readFileSync(FILE, "utf8");
 
 if (s.includes(MARKER)) {
@@ -11,6 +11,12 @@ if (s.includes(MARKER)) {
 
 const helper = `
 // ${MARKER}
+const SEO_SPA_PATHS = new Set([
+  "/", "/live/", "/female/", "/male/", "/trans/", "/couples/",
+  "/hd/", "/new/", "/popular/", "/countries/",
+  "/about", "/privacy", "/terms", "/contact", "/affiliate-disclosure", "/broadcast"
+]);
+
 function redirectSeoNoSlash(req, res) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
@@ -32,21 +38,31 @@ function redirectSeoNoSlash(req, res) {
   }
 }
 
+function rewriteSeoSpaRequest(req) {
+  try {
+    const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
+    const pathname = current.pathname;
+    if (SEO_SPA_PATHS.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
+      req.url = "/" + current.search;
+    }
+  } catch {}
+}
+
 `;
 
-const originalAnchor = 'const originalCreateServer = http.createServer;\n';
+const originalAnchor = 'const originalCreateServer = http.createServer;\\n';
 if (!s.includes(originalAnchor)) {
   throw new Error("route.js createServer anchor not found");
 }
 
 s = s.replace(originalAnchor, originalAnchor + helper);
 
-const listenerCall = '    rewriteSeoSpaRequest(req);';
-if (!s.includes(listenerCall)) {
-  throw new Error("existing SEO SPA route call not found");
+const listenerAnchor = '  return originalCreateServer.call(http, async (req, res) => {\\n';
+if (!s.includes(listenerAnchor)) {
+  throw new Error("route.js server listener anchor not found");
 }
 
-s = s.replace(listenerCall, '    if (redirectSeoNoSlash(req, res)) return;\n    rewriteSeoSpaRequest(req);');
+s = s.replace(listenerAnchor, listenerAnchor + '    if (redirectSeoNoSlash(req, res)) return;\\n    rewriteSeoSpaRequest(req);\\n');
 
 fs.writeFileSync(FILE, s);
-console.log("Applied SEO SPA route patch V3");
+console.log("Applied SEO SPA route patch V4");
