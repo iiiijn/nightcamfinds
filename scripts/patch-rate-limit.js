@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = "route.js";
 let s = fs.readFileSync(path, "utf8");
-const marker = "NIGHTCAMFINDS_RATE_LIMIT_V1";
+const marker = "NIGHTCAMFINDS_RATE_LIMIT_V2";
 if (s.includes(marker)) process.exit(0);
 
 const anchor = "const originalCreateServer = http.createServer;";
@@ -44,7 +44,7 @@ function rateLimitCheck(req) {
 }
 
 function createRateLimitedServer(handler, options) {
-  return originalCreateServer(options, (req, res) => {
+  return __NCF_ORIGINAL_CREATE_SERVER__(options, (req, res) => {
     const rate = rateLimitCheck(req);
     if (rate && rate.remaining === 0) {
       res.writeHead(429, {
@@ -69,6 +69,7 @@ function createRateLimitedServer(handler, options) {
 `;
 
 s = s.replace(anchor, anchor + "\n" + limiter);
+s = s.replace(/__NCF_ORIGINAL_CREATE_SERVER__/g, "originalCreateServer");
 s = s.replace(/originalCreateServer\(options,\s*\(req\s*,\s*res\)\s*=>\s*\{/g, "createRateLimitedServer((req, res) => {");
 fs.writeFileSync(path, s);
 console.log("NightCamFinds production rate limiting patch applied");
