@@ -2,8 +2,9 @@
   "name": "nightcamfinds",
   "private": true,
   "scripts": {
-    "start": "node scripts/run-production-migrations.js && node scripts/patch-start-postback.js && node scripts/patch-route.js && node scripts/patch-health.js && node scripts/patch-security.js && node scripts/patch-rate-limit.js && node scripts/patch-tier-analytics.js && node scripts/patch-seo-attribution-v2.js && node scripts/patch-dashboard-performance.js && node scripts/patch-seo-canonical.js && node scripts/patch-spa-seo-routes.js && node route.js",
-    "test": "node --test tests/*.test.js"
+    "start": "node scripts/run-production-migrations.js && node scripts/patch-health.js && node scripts/patch-security.js && node scripts/patch-rate-limit.js && node scripts/patch-tier-analytics.js && node scripts/patch-seo-attribution-v2.js && node scripts/patch-dashboard-performance.js && node scripts/patch-seo-canonical.js && node scripts/patch-spa-seo-routes.js && node route.js",
+    "test": "node --test tests/*.test.js",
+    "verify": "node scripts/verify-production.js"
   },
   "engines": {
     "node": ">=20"
