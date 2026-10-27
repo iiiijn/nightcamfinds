@@ -1,18 +1,63 @@
 const fs = require("fs");
 
 const FILE = "route.js";
-const OLD_MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V6";
-const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V7";
+const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V8";
 let s = fs.readFileSync(FILE, "utf8");
 
 if (s.includes(MARKER)) {
-  console.log("SEO SPA route V7 patch already applied");
+  console.log("SEO SPA route V8 patch already applied");
   process.exit(0);
 }
 
 const helper = `
 // ${MARKER}
-function applySeoRouteMetadataBuffered(req, res) {
+const NCF_SEO_PATHS_V8 = new Set([
+  "/",
+  "/live/",
+  "/female/",
+  "/male/",
+  "/trans/",
+  "/couples/",
+  "/hd/",
+  "/new/",
+  "/popular/",
+  "/countries/",
+  "/broadcast"
+]);
+
+function ncfRedirectSeoNoSlashV8(req, res) {
+  try {
+    const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
+    const pathname = current.pathname;
+    const needsSlash =
+      /^\\/(live|female|male|trans|couples|hd|new|popular|countries)$/.test(pathname) ||
+      /^\\/country\\/[a-z]{2}$/i.test(pathname);
+    if (!needsSlash) return false;
+    current.pathname = pathname + "/";
+    res.writeHead(301, {
+      Location: current.pathname + current.search,
+      "Cache-Control": "public, max-age=3600",
+      "X-Content-Type-Options": "nosniff"
+    });
+    res.end();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function ncfRewriteSeoRequestV8(req) {
+  try {
+    const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
+    const pathname = current.pathname;
+    if (NCF_SEO_PATHS_V8.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
+      req.seoOriginalPathname = pathname;
+      req.url = "/" + current.search;
+    }
+  } catch {}
+}
+
+function ncfApplySeoRouteMetadataV8(req, res) {
   const pathname = String(req.seoOriginalPathname || "");
   if (!pathname) return;
 
@@ -63,7 +108,6 @@ function applySeoRouteMetadataBuffered(req, res) {
     return originalEnd.call(this, Buffer.concat(chunks), callback);
   };
 
-  // Keep the original write reference available for diagnostics and avoid an unused-variable warning.
   void originalWrite;
 }
 
@@ -74,18 +118,20 @@ if (!s.includes(listenerAnchor)) {
   throw new Error("route.js server listener anchor not found");
 }
 
-if (!s.includes("function applySeoRouteMetadataBuffered(req, res)")) {
-  s = s.replace(listenerAnchor, helper + listenerAnchor);
-}
+s = s.replace(listenerAnchor, helper + listenerAnchor);
 
-const callAnchor = "    applySeoRouteMetadata(req, res);\n";
-if (s.includes(callAnchor) && !s.includes("applySeoRouteMetadataBuffered(req, res);")) {
-  s = s.replace(callAnchor, callAnchor + "    applySeoRouteMetadataBuffered(req, res);\n");
-} else if (!s.includes("applySeoRouteMetadataBuffered(req, res);")) {
-  const rewriteAnchor = "    rewriteSeoSpaRequest(req);\n";
-  if (!s.includes(rewriteAnchor)) throw new Error("route.js SEO rewrite anchor not found");
-  s = s.replace(rewriteAnchor, rewriteAnchor + "    applySeoRouteMetadataBuffered(req, res);\n");
+const listenerBodyAnchor = listenerAnchor +
+  '    if (ncfRedirectSeoNoSlashV8(req, res)) return;\n' +
+  '    ncfRewriteSeoRequestV8(req);\n' +
+  '    ncfApplySeoRouteMetadataV8(req, res);\n';
+
+if (!s.includes(listenerBodyAnchor)) {
+  const insertion =
+    '    if (ncfRedirectSeoNoSlashV8(req, res)) return;\n' +
+    '    ncfRewriteSeoRequestV8(req);\n' +
+    '    ncfApplySeoRouteMetadataV8(req, res);\n';
+  s = s.replace(listenerAnchor, listenerAnchor + insertion);
 }
 
 fs.writeFileSync(FILE, s);
-console.log("Applied SEO SPA route patch V7 with response buffering");
+console.log("Applied SEO SPA route patch V8 with route rewriting and buffered metadata");
