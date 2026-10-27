@@ -130,11 +130,15 @@ function ncfApplySeoRouteMetadataV13(req, res) {
             html = html.replace(/<head([^>]*)>/i, '<head$1><meta name="description" content="' + meta.description + '">');
           }
 
+          const replaceOrInsertMeta = (pattern, tag) => {
+            if (pattern.test(html)) html = html.replace(pattern, tag);
+            else html = html.replace(/<head([^>]*)>/i, '<head$1>' + tag);
+          };
           if (meta.ogTitle) {
-            html = html.replace(/<meta\\s+property=["']og:title["'][^>]*>/i, '<meta property="og:title" content="' + meta.ogTitle + '">');
+            replaceOrInsertMeta(/<meta\\s+property=["']og:title["'][^>]*>/i, '<meta property="og:title" content="' + meta.ogTitle + '">');
           }
           if (meta.ogDescription) {
-            html = html.replace(/<meta\\s+property=["']og:description["'][^>]*>/i, '<meta property="og:description" content="' + meta.ogDescription + '">');
+            replaceOrInsertMeta(/<meta\\s+property=["']og:description["'][^>]*>/i, '<meta property="og:description" content="' + meta.ogDescription + '">');
           }
         }
 
