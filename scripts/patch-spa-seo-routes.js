@@ -116,6 +116,9 @@ function ncfApplySeoRouteMetadataV13(req, res) {
           /(<meta\\s+property=["']og:url["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
           '$1' + canonical + '$2'
         );
+        if (!/<meta\\s+property=["']og:url["']/i.test(html)) {
+          html = html.replace(/<head([^>]*)>/i, '<head$1><meta property="og:url" content="' + canonical + '">');
+        }
 
         if (meta) {
           const escapeAttr = value => String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
