@@ -1,7 +1,7 @@
 const fs = require("fs");
 
-const TEMPLATE_MARKER = "NIGHTCAMFINDS_SEO_CANONICAL_TEMPLATE_V4";
-const SERVER_MARKER = "NIGHTCAMFINDS_SEO_CANONICAL_SERVER_V4";
+const TEMPLATE_MARKER = "NIGHTCAMFINDS_SEO_CANONICAL_TEMPLATE_V5";
+const SERVER_MARKER = "NIGHTCAMFINDS_SEO_CANONICAL_SERVER_V5";
 
 function patchFile(file, apply) {
   const current = fs.readFileSync(file, "utf8");
@@ -51,7 +51,8 @@ patchFile("server.js", s => {
     const originAnchor = '.replaceAll("__ORIGIN__", pageOrigin(req))';
     s = s.replace(originAnchor, originAnchor + '\n      .replaceAll("__OG_URL__", canonical)');
   }
-  return s.includes(SERVER_MARKER) ? s : s + `\n// ${SERVER_MARKER}\n`;
+  if (s.includes(SERVER_MARKER)) return s;
+  return s + `\n// ${SERVER_MARKER}\n`;
 });
 
 console.log("NightCamFinds SEO canonical patch V4 complete");
