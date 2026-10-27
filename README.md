@@ -1,23 +1,51 @@
-# NightCamFinds fix
+# NightCamFinds
 
-This replaces the current Render service. It is Chaturbate-only and keeps campaign `C6yxN` and tour `LQps`.
+NightCamFinds is an independent live-cam discovery and affiliate directory. The production service is a Node.js application that serves the site from `public/`, fetches partner room data, creates tracked outbound links, and records affiliate attribution in PostgreSQL.
 
-What changed:
-- Age gate is stored once and hidden before paint.
-- Privacy and terms no longer say they are drafts.
-- Room text is cleaned before it is sent to the browser.
-- Cards use partner thumbnails and a Watch live link.
-- Country filter is built from rooms that actually have a country code.
-- Tier-1 visitors are pre-filtered when Cloudflare sends `CF-IPCountry`.
-- Each placement has its own track id.
-- Every room link goes to Chaturbate with a placement track id.
-- Sitemap, robots.txt, and a share image are included.
-- The last good feed is kept if Chaturbate times out.
+## Current production architecture
 
-Deploy:
-1. In Render, open the NightCamFinds service and replace the repo with this folder, or upload these files over the old ones.
-2. Start command: `node server.js`
-3. Set `PUBLIC_ORIGIN` to the public URL, ideally your own domain.
-4. Point a custom domain at the service. The onrender.com URL can stay as a redirect.
+- Render service: `nightcamfinds`
+- Runtime: Node.js 20+
+- Production entrypoint: `route.js`
+- Startup command: `npm start`
+- Static/public assets: `public/`
+- Database: PostgreSQL via `DATABASE_URL`
+- Partner integrations: Chaturbate and BongaCams/BongaCash
+- Production verification: `npm run verify`
+- Automated tests: `npm test`
 
-This chat cannot push to the existing Render account. The live site will not change until these files are deployed there.
+The startup command applies the required database migrations and production patches before starting `route.js`. The SPA SEO patch is intentionally applied exactly once at startup.
+
+## Verification
+
+Run locally:
+
+```bash
+npm ci
+npm test
+npm run verify
+```
+
+The GitHub Actions production verification workflow runs the same checks on pushes and pull requests.
+
+## Render configuration
+
+`render.yaml` is the source of truth for the service configuration. Required runtime secrets and partner campaign/postback values are supplied through Render environment variables.
+
+## Project structure
+
+- `route.js` - production HTTP server, room feeds, redirects, tracking and dashboard APIs
+- `bongacash.js` - BongaCash attribution and reporting support
+- `public/` - production browser assets and public pages
+- `scripts/` - startup patches, migrations and verification
+- `src/` - reusable service, adapter, database, security and MFA modules used by the test/readiness layer and retained for the application architecture
+- `sql/` - database migrations
+- `tests/` - automated tests
+- `docs/` - operational documentation
+- `vendor/` - vendored MFA/QR dependencies required by `src/mfa.js`
+
+## Deployment
+
+Push to `main` and Render auto-deploys the updated service. Do not manually trigger a second deployment when an auto-deploy is already running.
+
+The public site does not host video. Room cards link visitors to the partner platform where the room is hosted.
