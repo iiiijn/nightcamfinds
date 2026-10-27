@@ -93,9 +93,9 @@ function ncfApplySeoRouteMetadataV8(req, res) {
 
         html = html
           .replace(/<link\\s+rel=["']canonical["']\\s+href=["'][^"']*["'][^>]*>/i,
-            "<link rel=\"canonical\" href=\"" + canonical + "\">")
+            '<link rel="canonical" href="' + canonical + '">')
           .replace(/(<meta\\s+property=["']og:url["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
-            "$1" + canonical + "$2")
+            '$1' + canonical + '$2')
           .replace(/__CANONICAL__/g, canonical)
           .replace(/__OG_URL__/g, canonical);
 
