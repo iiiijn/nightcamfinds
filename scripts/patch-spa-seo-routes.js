@@ -165,6 +165,4 @@ if (!s.includes(insertion)) {
 }
 
 fs.writeFileSync(FILE, s);
-const generated = s;
-require("vm").runInThisContext(generated, { filename: "route.js" });
 console.log("Applied SEO SPA route patch V13");
