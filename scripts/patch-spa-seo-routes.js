@@ -118,27 +118,18 @@ function ncfApplySeoRouteMetadataV13(req, res) {
         );
 
         if (meta) {
-          const beforeTitle = html;
-          html = html.replace(/<title(?:\\s[^>]*)?>[\\s\\S]*?<\\/title>/i, '<title>' + meta.title + '</title>');
-          if (html === beforeTitle) {
-            html = html.replace(/<head([^>]*)>/i, '<head$1><title>' + meta.title + '</title>');
-          }
-
-          const beforeDescription = html;
-          html = html.replace(/<meta\\s+name=["']description["'][^>]*>/i, '<meta name="description" content="' + meta.description + '">');
-          if (html === beforeDescription) {
-            html = html.replace(/<head([^>]*)>/i, '<head$1><meta name="description" content="' + meta.description + '">');
-          }
-
-          const replaceOrInsertMeta = (pattern, tag) => {
+          const escapeAttr = value => String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const replaceOrInsert = (pattern, tag) => {
             if (pattern.test(html)) html = html.replace(pattern, tag);
             else html = html.replace(/<head([^>]*)>/i, '<head$1>' + tag);
           };
+          replaceOrInsert(/<title(?:\\s[^>]*)?>[\\s\\S]*?<\\/title>/i, '<title>' + escapeAttr(meta.title) + '</title>');
+          replaceOrInsert(/<meta\\s+name=["']description["'][^>]*>/i, '<meta name="description" content="' + escapeAttr(meta.description) + '">');
           if (meta.ogTitle) {
-            replaceOrInsertMeta(/<meta\\s+property=["']og:title["'][^>]*>/i, '<meta property="og:title" content="' + meta.ogTitle + '">');
+            replaceOrInsert(/<meta\\s+property=["']og:title["'][^>]*>/i, '<meta property="og:title" content="' + escapeAttr(meta.ogTitle) + '">');
           }
           if (meta.ogDescription) {
-            replaceOrInsertMeta(/<meta\\s+property=["']og:description["'][^>]*>/i, '<meta property="og:description" content="' + meta.ogDescription + '">');
+            replaceOrInsert(/<meta\\s+property=["']og:description["'][^>]*>/i, '<meta property="og:description" content="' + escapeAttr(meta.ogDescription) + '">');
           }
         }
 
