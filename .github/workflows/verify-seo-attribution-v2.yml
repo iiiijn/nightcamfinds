@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - "scripts/patch-seo-attribution-v2.js"
+      - "scripts/patch-seo-attribution-v3.js"
+      - "scripts/fix-server-syntax.js"
       - "server.js"
       - "route.js"
       - "public/app.js"
@@ -12,6 +14,8 @@ on:
   pull_request:
     paths:
       - "scripts/patch-seo-attribution-v2.js"
+      - "scripts/patch-seo-attribution-v3.js"
+      - "scripts/fix-server-syntax.js"
       - "server.js"
       - "route.js"
       - "public/app.js"
@@ -30,20 +34,33 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Check patch script
-        run: node --check scripts/patch-seo-attribution-v2.js
-      - name: Apply patch in CI workspace
-        run: node scripts/patch-seo-attribution-v2.js
-      - name: Check generated JavaScript
+
+      - name: Check patch scripts
         run: |
-          node --check server.js
+          node --check scripts/patch-seo-attribution-v2.js
+          node --check scripts/patch-seo-attribution-v3.js
+          node --check scripts/fix-server-syntax.js
+
+      - name: Apply SEO attribution patch in CI workspace
+        run: node scripts/patch-seo-attribution-v2.js
+
+      # Render runs this cleanup before starting the production route. Mirror
+      # that behavior here so CI validates the same source state Render uses.
+      - name: Apply production server syntax cleanup
+        run: node scripts/fix-server-syntax.js
+
+      - name: Check production JavaScript
+        run: |
           node --check route.js
           node --check public/app.js
-      - name: Check package startup references the safe patch
-        run: grep -q "patch-seo-attribution-v2.js" package.json
+          node --check server.js
+
+      - name: Check package startup references the production route
+        run: |
+          grep -q '"start": "node scripts/run-production-migrations.js && node scripts/fix-server-syntax.js && node route.js"' package.json
+
       - name: Check attribution markers
         run: |
-          grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_SERVER_V2" server.js
           grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2" route.js
           grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V2" public/app.js
           grep -q "NIGHTCAMFINDS_DASHBOARD_SEO_ATTRIBUTION_V2" public/dashboard.html
