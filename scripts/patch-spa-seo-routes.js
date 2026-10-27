@@ -129,6 +129,13 @@ function ncfApplySeoRouteMetadataV13(req, res) {
           if (html === beforeDescription) {
             html = html.replace(/<head([^>]*)>/i, '<head$1><meta name="description" content="' + meta.description + '">');
           }
+
+          if (meta.ogTitle) {
+            html = html.replace(/(<meta\\s+property=["']og:title["']\\s+content=["'])[^"']*(["'][^>]*>)/i, '$1' + meta.ogTitle + '$2');
+          }
+          if (meta.ogDescription) {
+            html = html.replace(/(<meta\\s+property=["']og:description["']\\s+content=["'])[^"']*(["'][^>]*>)/i, '$1' + meta.ogDescription + '$2');
+          }
         }
 
         return originalEnd.call(this, html, "utf8", done);
