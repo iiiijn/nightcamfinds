@@ -34,7 +34,7 @@ function patchServer() {
 
 function verifyRoutePatch() {
   const s = fs.readFileSync(ROUTE, "utf8");
-  const hasSeoRouter = s.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V6") || s.includes("NIGHTCAMFINDS_SEO_FINAL_V2");
+  const hasSeoRouter = s.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V8") || s.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V6") || s.includes("NIGHTCAMFINDS_SEO_FINAL_V2");
   const hasOriginalPath = s.includes("req.seoOriginalPathname");
   if (!hasSeoRouter || !hasOriginalPath) {
     throw new Error("route.js is missing the route-aware SEO rewrite; patch-spa-seo-routes.js must run before patch-seo-final.js");
