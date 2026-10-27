@@ -131,10 +131,20 @@ function ncfApplySeoRouteMetadataV13(req, res) {
           }
 
           if (meta.ogTitle) {
-            html = html.replace(/(<meta\\s+property=["']og:title["']\\s+content=["'])[^"']*(["'][^>]*>)/i, '$1' + meta.ogTitle + '$2');
+            const tag = '<meta property="og:title" content="' + meta.ogTitle + '">';
+            if (/<meta\\s+property=["']og:title["']/i.test(html)) {
+              html = html.replace(/<meta\\s+property=["']og:title["'][^>]*>/i, tag);
+            } else {
+              html = html.replace(/<head([^>]*)>/i, '<head$1>' + tag);
+            }
           }
           if (meta.ogDescription) {
-            html = html.replace(/(<meta\\s+property=["']og:description["']\\s+content=["'])[^"']*(["'][^>]*>)/i, '$1' + meta.ogDescription + '$2');
+            const tag = '<meta property="og:description" content="' + meta.ogDescription + '">';
+            if (/<meta\\s+property=["']og:description["']/i.test(html)) {
+              html = html.replace(/<meta\\s+property=["']og:description["'][^>]*>/i, tag);
+            } else {
+              html = html.replace(/<head([^>]*)>/i, '<head$1>' + tag);
+            }
           }
         }
 
