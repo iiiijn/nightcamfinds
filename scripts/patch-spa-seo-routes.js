@@ -42,15 +42,15 @@ function applySeoRouteMetadataBuffered(req, res) {
       if (!contentType || contentType.includes("text/html")) {
         const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
         const host = String(req.headers["x-forwarded-host"] || req.headers.host || "nightcamfinds.com").split(",")[0].trim();
-        const origin = `${proto}://${host}`.replace(/\\/$/, "");
-        const canonical = origin + (pathname.startsWith("/") ? pathname : `/${pathname}`);
+        const origin = proto + "://" + host;
+        const canonical = origin + (pathname.startsWith("/") ? pathname : "/" + pathname);
         let html = Buffer.concat(chunks).toString("utf8");
 
         html = html
           .replace(/<link\\s+rel=["']canonical["']\\s+href=["'][^"']*["'][^>]*>/i,
-            `<link rel="canonical" href="${canonical}">`)
+            "<link rel=\"canonical\" href=\"" + canonical + "\">")
           .replace(/(<meta\\s+property=["']og:url["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
-            `$1${canonical}$2`)
+            "$1" + canonical + "$2")
           .replace(/__CANONICAL__/g, canonical)
           .replace(/__OG_URL__/g, canonical);
 
@@ -69,7 +69,7 @@ function applySeoRouteMetadataBuffered(req, res) {
 
 `;
 
-const listenerAnchor = '  return originalCreateServer.call(http, async (req, res) => {\\n';
+const listenerAnchor = '  return originalCreateServer.call(http, async (req, res) => {\n';
 if (!s.includes(listenerAnchor)) {
   throw new Error("route.js server listener anchor not found");
 }
