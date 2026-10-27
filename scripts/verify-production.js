@@ -4,11 +4,12 @@ const { spawnSync } = require("child_process");
 const root = process.cwd();
 const requiredFiles = [
   "route.js",
-  "start.js",
-  "server.js",
   "scripts/patch-seo-attribution-v2.js",
   "scripts/patch-spa-seo-routes.js",
   ".github/workflows/verify-production.yml",
+  "render.yaml",
+  "public/index.html",
+  "public/styles.css",
   "package.json"
 ];
 
@@ -38,6 +39,7 @@ if (!start.includes(patchSpa)) fail("production start command is missing the SPA
 if ((start.match(new RegExp(patchSpa.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&"), "g")) || []).length !== 1) {
   fail("SPA SEO patch must be invoked exactly once at startup");
 }
+if (!start.trim().endsWith("node route.js")) fail("production start command must launch route.js");
 
 const route = fs.readFileSync("route.js", "utf8");
 if (!route.includes("NIGHTCAMFINDS_CB_POSTBACK_PATCH_V6")) fail("route.js is missing the Chaturbate route marker");
@@ -52,4 +54,4 @@ if (failed) {
   process.exit(1);
 }
 
-console.log("Production verification passed: syntax, required files, startup patch wiring, and SEO patch markers are intact.");
+console.log("Production verification passed: syntax, required files, Render configuration, startup wiring, and SEO patch markers are intact.");
