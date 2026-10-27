@@ -1,17 +1,17 @@
 const fs = require("fs");
 
 const FILE = "route.js";
-const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V9";
+const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V10";
 let s = fs.readFileSync(FILE, "utf8");
 
 if (s.includes(MARKER)) {
-  console.log("SEO SPA route V9 patch already applied");
+  console.log("SEO SPA route V10 patch already applied");
   process.exit(0);
 }
 
 const helper = `
 // ${MARKER}
-const NCF_SEO_PATHS_V9 = new Set([
+const NCF_SEO_PATHS_V10 = new Set([
   "/",
   "/live/",
   "/female/",
@@ -25,7 +25,7 @@ const NCF_SEO_PATHS_V9 = new Set([
   "/broadcast"
 ]);
 
-function ncfRedirectSeoNoSlashV9(req, res) {
+function ncfRedirectSeoNoSlashV10(req, res) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
@@ -46,27 +46,26 @@ function ncfRedirectSeoNoSlashV9(req, res) {
   }
 }
 
-function ncfRewriteSeoRequestV9(req) {
+function ncfRewriteSeoRequestV10(req) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
-    if (NCF_SEO_PATHS_V9.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
+    if (NCF_SEO_PATHS_V10.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
       req.seoOriginalPathname = pathname;
       req.url = "/" + current.search;
     }
   } catch {}
 }
 
-function ncfApplySeoRouteMetadataV9(req, res) {
+function ncfApplySeoRouteMetadataV10(req, res) {
   const pathname = String(req.seoOriginalPathname || "");
   if (!pathname) return;
 
-  const originalWrite = res.write;
   const originalEnd = res.end;
   const chunks = [];
   let ended = false;
 
-  res.write = function seoBufferedWrite(chunk, encoding, callback) {
+  res.write = function seoBufferedWriteV10(chunk, encoding) {
     if (ended) return false;
     if (chunk !== undefined && chunk !== null) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), encoding));
@@ -74,7 +73,7 @@ function ncfApplySeoRouteMetadataV9(req, res) {
     return true;
   };
 
-  res.end = function seoBufferedEnd(chunk, encoding, callback) {
+  res.end = function seoBufferedEndV10(chunk, encoding) {
     if (ended) return res;
     ended = true;
 
@@ -103,26 +102,19 @@ function ncfApplySeoRouteMetadataV9(req, res) {
             '<link rel="canonical" href="' + canonical + '">')
           .replace(/(<meta\\s+property=["']og:url["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
             '$1' + canonical + '$2')
-          .replace(/__CANONICAL__/g, canonical)
-          .replace(/__OG_URL__/g, canonical);
+          .replace(/<title>[\\s\\S]*?<\\/title>/i,
+            '<title>' + (routeMeta ? routeMeta.title : "") + '</title>')
+          .replace(/(<meta\\s+name=["']description["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
+            '$1' + (routeMeta ? routeMeta.description : "") + '$2');
 
-        if (routeMeta) {
-          html = html
-            .replace(/<title>[^<]*<\\/title>/i, '<title>' + routeMeta.title + '</title>')
-            .replace(/(<meta\\s+name=["']description["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
-              '$1' + routeMeta.description + '$2');
-        }
-
-        return originalEnd.call(this, html, callback);
+        return originalEnd.call(this, html, callback => callback && callback());
       }
     } catch (err) {
       console.error("SEO buffered route metadata rewrite failed:", err.message);
     }
 
-    return originalEnd.call(this, Buffer.concat(chunks), callback);
+    return originalEnd.call(this, Buffer.concat(chunks), encoding);
   };
-
-  void originalWrite;
 }
 
 `;
@@ -134,18 +126,14 @@ if (!s.includes(listenerAnchor)) {
 
 s = s.replace(listenerAnchor, helper + listenerAnchor);
 
-const listenerBodyAnchor = listenerAnchor +
-  '    if (ncfRedirectSeoNoSlashV9(req, res)) return;\n' +
-  '    ncfRewriteSeoRequestV9(req);\n' +
-  '    ncfApplySeoRouteMetadataV9(req, res);\n';
+const insertion =
+  '    if (ncfRedirectSeoNoSlashV10(req, res)) return;\n' +
+  '    ncfRewriteSeoRequestV10(req);\n' +
+  '    ncfApplySeoRouteMetadataV10(req, res);\n';
 
-if (!s.includes(listenerBodyAnchor)) {
-  const insertion =
-    '    if (ncfRedirectSeoNoSlashV9(req, res)) return;\n' +
-    '    ncfRewriteSeoRequestV9(req);\n' +
-    '    ncfApplySeoRouteMetadataV9(req, res);\n';
+if (!s.includes(insertion)) {
   s = s.replace(listenerAnchor, listenerAnchor + insertion);
 }
 
 fs.writeFileSync(FILE, s);
-console.log("Applied SEO SPA route patch V9 with female route metadata");
+console.log("Applied SEO SPA route patch V10 with female route metadata");
