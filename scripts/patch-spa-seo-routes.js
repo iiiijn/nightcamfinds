@@ -1,17 +1,17 @@
 const fs = require("fs");
 
 const FILE = "route.js";
-const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V8";
+const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V9";
 let s = fs.readFileSync(FILE, "utf8");
 
 if (s.includes(MARKER)) {
-  console.log("SEO SPA route V8 patch already applied");
+  console.log("SEO SPA route V9 patch already applied");
   process.exit(0);
 }
 
 const helper = `
 // ${MARKER}
-const NCF_SEO_PATHS_V8 = new Set([
+const NCF_SEO_PATHS_V9 = new Set([
   "/",
   "/live/",
   "/female/",
@@ -25,7 +25,7 @@ const NCF_SEO_PATHS_V8 = new Set([
   "/broadcast"
 ]);
 
-function ncfRedirectSeoNoSlashV8(req, res) {
+function ncfRedirectSeoNoSlashV9(req, res) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
@@ -46,18 +46,18 @@ function ncfRedirectSeoNoSlashV8(req, res) {
   }
 }
 
-function ncfRewriteSeoRequestV8(req) {
+function ncfRewriteSeoRequestV9(req) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
-    if (NCF_SEO_PATHS_V8.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
+    if (NCF_SEO_PATHS_V9.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
       req.seoOriginalPathname = pathname;
       req.url = "/" + current.search;
     }
   } catch {}
 }
 
-function ncfApplySeoRouteMetadataV8(req, res) {
+function ncfApplySeoRouteMetadataV9(req, res) {
   const pathname = String(req.seoOriginalPathname || "");
   if (!pathname) return;
 
@@ -91,6 +91,13 @@ function ncfApplySeoRouteMetadataV8(req, res) {
         const canonical = origin + (pathname.startsWith("/") ? pathname : "/" + pathname);
         let html = Buffer.concat(chunks).toString("utf8");
 
+        const routeMeta = pathname === "/female/"
+          ? {
+              title: "Female Live Cams | Browse Live Webcam Rooms | NightCamFinds",
+              description: "Browse female live cam rooms on NightCamFinds. Discover live webcam models, compare rooms and viewer activity, and open rooms on Chaturbate or BongaCams."
+            }
+          : null;
+
         html = html
           .replace(/<link\\s+rel=["']canonical["']\\s+href=["'][^"']*["'][^>]*>/i,
             '<link rel="canonical" href="' + canonical + '">')
@@ -98,6 +105,13 @@ function ncfApplySeoRouteMetadataV8(req, res) {
             '$1' + canonical + '$2')
           .replace(/__CANONICAL__/g, canonical)
           .replace(/__OG_URL__/g, canonical);
+
+        if (routeMeta) {
+          html = html
+            .replace(/<title>[^<]*<\\/title>/i, '<title>' + routeMeta.title + '</title>')
+            .replace(/(<meta\\s+name=["']description["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
+              '$1' + routeMeta.description + '$2');
+        }
 
         return originalEnd.call(this, html, callback);
       }
@@ -121,17 +135,17 @@ if (!s.includes(listenerAnchor)) {
 s = s.replace(listenerAnchor, helper + listenerAnchor);
 
 const listenerBodyAnchor = listenerAnchor +
-  '    if (ncfRedirectSeoNoSlashV8(req, res)) return;\n' +
-  '    ncfRewriteSeoRequestV8(req);\n' +
-  '    ncfApplySeoRouteMetadataV8(req, res);\n';
+  '    if (ncfRedirectSeoNoSlashV9(req, res)) return;\n' +
+  '    ncfRewriteSeoRequestV9(req);\n' +
+  '    ncfApplySeoRouteMetadataV9(req, res);\n';
 
 if (!s.includes(listenerBodyAnchor)) {
   const insertion =
-    '    if (ncfRedirectSeoNoSlashV8(req, res)) return;\n' +
-    '    ncfRewriteSeoRequestV8(req);\n' +
-    '    ncfApplySeoRouteMetadataV8(req, res);\n';
+    '    if (ncfRedirectSeoNoSlashV9(req, res)) return;\n' +
+    '    ncfRewriteSeoRequestV9(req);\n' +
+    '    ncfApplySeoRouteMetadataV9(req, res);\n';
   s = s.replace(listenerAnchor, listenerAnchor + insertion);
 }
 
 fs.writeFileSync(FILE, s);
-console.log("Applied SEO SPA route patch V8 with route rewriting and buffered metadata");
+console.log("Applied SEO SPA route patch V9 with female route metadata");
