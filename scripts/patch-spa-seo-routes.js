@@ -123,7 +123,8 @@ function ncfApplySeoRouteMetadataV13(req, res) {
         if (meta) {
           const escapeAttr = value => String(value).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
           const replaceOrInsert = (pattern, tag) => {
-            if (pattern.test(html)) html = html.replace(pattern, tag);
+            const re = new RegExp(pattern.source, pattern.flags);
+            if (re.test(html)) html = html.replace(re, tag);
             else html = html.replace(/<head([^>]*)>/i, '<head$1>' + tag);
           };
           replaceOrInsert(/<title(?:\\s[^>]*)?>[\\s\\S]*?<\\/title>/i, '<title>' + escapeAttr(meta.title) + '</title>');
