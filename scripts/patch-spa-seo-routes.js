@@ -28,7 +28,15 @@ const NCF_SEO_PATHS_V13 = new Set([
 const NCF_ROUTE_META_V13 = {
   "/female/": {
     title: "Female Live Cams | Browse Live Webcam Rooms | NightCamFinds",
-    description: "Browse female live cam rooms on NightCamFinds. Discover live webcam models, compare rooms and viewer activity, and open rooms on Chaturbate or BongaCams."
+    description: "Browse female live cam rooms on NightCamFinds. Discover live webcam models, compare rooms and viewer activity, and open rooms on Chaturbate or BongaCams.",
+    ogTitle: "Female Live Cams | NightCamFinds",
+    ogDescription: "Discover female live cam rooms, compare room activity, and open rooms on Chaturbate or BongaCams."
+  },
+  "/male/": {
+    title: "Male Live Cams | Browse Live Rooms | NightCamFinds",
+    description: "Browse male live cam rooms on NightCamFinds. Discover live webcam models, compare rooms and viewer activity, and find rooms that match your interests.",
+    ogTitle: "Male Live Cams | NightCamFinds",
+    ogDescription: "Browse male live cam rooms on NightCamFinds and discover live webcam models and rooms."
   }
 };
 
