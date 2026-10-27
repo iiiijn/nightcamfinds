@@ -43,7 +43,7 @@ patchFile("server.js", s => {
   if (!s.includes(canonicalReplacement)) {
     const anchor = '.replaceAll("__ORIGIN__", pageOrigin(req))';
     if (!s.includes(anchor)) throw new Error("server.js origin replacement anchor missing");
-    s = s.replace(anchor, anchor + '\n      .replaceAll("__CANONICAL__", canonicalUrl(req, pathname))');
+    s = s.replace(anchor, anchor + '\\n      .replaceAll("__CANONICAL__", canonicalUrl(req, pathname))');
   }
 
   return s + `\n// ${SERVER_MARKER}\n`;
