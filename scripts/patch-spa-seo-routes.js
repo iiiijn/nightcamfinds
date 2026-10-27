@@ -1,7 +1,7 @@
 const fs = require("fs");
 
 const FILE = "route.js";
-const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V4";
+const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V5";
 let s = fs.readFileSync(FILE, "utf8");
 
 if (s.includes(MARKER)) {
@@ -43,6 +43,7 @@ function rewriteSeoSpaRequest(req) {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
     if (SEO_SPA_PATHS.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
+      req.seoOriginalPathname = pathname;
       req.url = "/" + current.search;
     }
   } catch {}
@@ -65,4 +66,4 @@ if (!s.includes(listenerAnchor)) {
 s = s.replace(listenerAnchor, listenerAnchor + '    if (redirectSeoNoSlash(req, res)) return;\n    rewriteSeoSpaRequest(req);\n');
 
 fs.writeFileSync(FILE, s);
-console.log("Applied SEO SPA route patch V4");
+console.log("Applied SEO SPA route patch V5");
