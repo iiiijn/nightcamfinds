@@ -1,0 +1,33 @@
+const fs = require("fs");
+const path = require("path");
+
+const file = path.join(__dirname, "..", "server.js");
+let source = fs.readFileSync(file, "utf8");
+
+const startMarker = '  if(pathname==="/visits"){';
+const endMarker = '  if(pathname==="/api/stats"){';
+const start = source.indexOf(startMarker);
+const end = source.indexOf(endMarker, start + startMarker.length);
+
+if (start === -1 || end === -1) {
+  console.log("server.js visits route already clean or not present");
+  process.exit(0);
+}
+
+const replacement = `  if(pathname==="/visits"){
+    if(!STATS_KEY || url.searchParams.get("key") !== STATS_KEY) return send(res,404,"Not found","text/plain");
+    const stats = (await statsFromDb()) || readStats();
+    return send(res,200,JSON.stringify({
+      total: stats.total || 0,
+      countries: stats.countries || {},
+      byCountryCategory: stats.byCountryCategory || {},
+      byCountrySource: stats.byCountrySource || {},
+      byPlatform: stats.byPlatform || {},
+      updatedAt: stats.updatedAt || null
+    }),"application/json");
+  }
+`;
+
+source = source.slice(0, start) + replacement + source.slice(end);
+fs.writeFileSync(file, source);
+console.log("NightCamFinds server.js syntax cleanup applied");
