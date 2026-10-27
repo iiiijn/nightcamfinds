@@ -1,17 +1,17 @@
 const fs = require("fs");
 
 const FILE = "route.js";
-const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V10";
+const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V11";
 let s = fs.readFileSync(FILE, "utf8");
 
 if (s.includes(MARKER)) {
-  console.log("SEO SPA route V10 patch already applied");
+  console.log("SEO SPA route V11 patch already applied");
   process.exit(0);
 }
 
 const helper = `
 // ${MARKER}
-const NCF_SEO_PATHS_V10 = new Set([
+const NCF_SEO_PATHS_V11 = new Set([
   "/",
   "/live/",
   "/female/",
@@ -25,7 +25,14 @@ const NCF_SEO_PATHS_V10 = new Set([
   "/broadcast"
 ]);
 
-function ncfRedirectSeoNoSlashV10(req, res) {
+const NCF_ROUTE_META_V11 = {
+  "/female/": {
+    title: "Female Live Cams | Browse Live Webcam Rooms | NightCamFinds",
+    description: "Browse female live cam rooms on NightCamFinds. Discover live webcam models, compare rooms and viewer activity, and open rooms on Chaturbate or BongaCams."
+  }
+};
+
+function ncfRedirectSeoNoSlashV11(req, res) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
@@ -46,18 +53,18 @@ function ncfRedirectSeoNoSlashV10(req, res) {
   }
 }
 
-function ncfRewriteSeoRequestV10(req) {
+function ncfRewriteSeoRequestV11(req) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
-    if (NCF_SEO_PATHS_V10.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
+    if (NCF_SEO_PATHS_V11.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
       req.seoOriginalPathname = pathname;
       req.url = "/" + current.search;
     }
   } catch {}
 }
 
-function ncfApplySeoRouteMetadataV10(req, res) {
+function ncfApplySeoRouteMetadataV11(req, res) {
   const pathname = String(req.seoOriginalPathname || "");
   if (!pathname) return;
 
@@ -65,7 +72,7 @@ function ncfApplySeoRouteMetadataV10(req, res) {
   const chunks = [];
   let ended = false;
 
-  res.write = function seoBufferedWriteV10(chunk, encoding) {
+  res.write = function seoBufferedWriteV11(chunk, encoding) {
     if (ended) return false;
     if (chunk !== undefined && chunk !== null) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), encoding));
@@ -73,13 +80,15 @@ function ncfApplySeoRouteMetadataV10(req, res) {
     return true;
   };
 
-  res.end = function seoBufferedEndV10(chunk, encoding) {
+  res.end = function seoBufferedEndV11(chunk, encoding, callback) {
     if (ended) return res;
     ended = true;
 
     if (chunk !== undefined && chunk !== null) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), encoding));
     }
+
+    const done = typeof encoding === "function" ? encoding : callback;
 
     try {
       const contentType = String(res.getHeader("content-type") || "").toLowerCase();
@@ -88,32 +97,30 @@ function ncfApplySeoRouteMetadataV10(req, res) {
         const host = String(req.headers["x-forwarded-host"] || req.headers.host || "nightcamfinds.com").split(",")[0].trim();
         const origin = proto + "://" + host;
         const canonical = origin + (pathname.startsWith("/") ? pathname : "/" + pathname);
+        const meta = NCF_ROUTE_META_V11[pathname];
         let html = Buffer.concat(chunks).toString("utf8");
-
-        const routeMeta = pathname === "/female/"
-          ? {
-              title: "Female Live Cams | Browse Live Webcam Rooms | NightCamFinds",
-              description: "Browse female live cam rooms on NightCamFinds. Discover live webcam models, compare rooms and viewer activity, and open rooms on Chaturbate or BongaCams."
-            }
-          : null;
 
         html = html
           .replace(/<link\\s+rel=["']canonical["']\\s+href=["'][^"']*["'][^>]*>/i,
             '<link rel="canonical" href="' + canonical + '">')
           .replace(/(<meta\\s+property=["']og:url["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
-            '$1' + canonical + '$2')
-          .replace(/<title>[\\s\\S]*?<\\/title>/i,
-            '<title>' + (routeMeta ? routeMeta.title : "") + '</title>')
-          .replace(/(<meta\\s+name=["']description["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
-            '$1' + (routeMeta ? routeMeta.description : "") + '$2');
+            '$1' + canonical + '$2');
 
-        return originalEnd.call(this, html, callback => callback && callback());
+        if (meta) {
+          html = html
+            .replace(/<title>[\\s\\S]*?<\\/title>/i,
+              '<title>' + meta.title + '</title>')
+            .replace(/(<meta\\s+name=["']description["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
+              '$1' + meta.description + '$2');
+        }
+
+        return originalEnd.call(this, html, "utf8", done);
       }
     } catch (err) {
       console.error("SEO buffered route metadata rewrite failed:", err.message);
     }
 
-    return originalEnd.call(this, Buffer.concat(chunks), encoding);
+    return originalEnd.call(this, Buffer.concat(chunks), done);
   };
 }
 
@@ -127,13 +134,13 @@ if (!s.includes(listenerAnchor)) {
 s = s.replace(listenerAnchor, helper + listenerAnchor);
 
 const insertion =
-  '    if (ncfRedirectSeoNoSlashV10(req, res)) return;\n' +
-  '    ncfRewriteSeoRequestV10(req);\n' +
-  '    ncfApplySeoRouteMetadataV10(req, res);\n';
+  '    if (ncfRedirectSeoNoSlashV11(req, res)) return;\n' +
+  '    ncfRewriteSeoRequestV11(req);\n' +
+  '    ncfApplySeoRouteMetadataV11(req, res);\n';
 
 if (!s.includes(insertion)) {
   s = s.replace(listenerAnchor, listenerAnchor + insertion);
 }
 
 fs.writeFileSync(FILE, s);
-console.log("Applied SEO SPA route patch V10 with female route metadata");
+console.log("Applied SEO SPA route patch V11");
