@@ -1,17 +1,17 @@
 const fs = require("fs");
 
 const FILE = "route.js";
-const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V11";
+const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V12";
 let s = fs.readFileSync(FILE, "utf8");
 
 if (s.includes(MARKER)) {
-  console.log("SEO SPA route V11 patch already applied");
+  console.log("SEO SPA route V12 patch already applied");
   process.exit(0);
 }
 
 const helper = `
 // ${MARKER}
-const NCF_SEO_PATHS_V11 = new Set([
+const NCF_SEO_PATHS_V12 = new Set([
   "/",
   "/live/",
   "/female/",
@@ -25,14 +25,14 @@ const NCF_SEO_PATHS_V11 = new Set([
   "/broadcast"
 ]);
 
-const NCF_ROUTE_META_V11 = {
+const NCF_ROUTE_META_V12 = {
   "/female/": {
     title: "Female Live Cams | Browse Live Webcam Rooms | NightCamFinds",
     description: "Browse female live cam rooms on NightCamFinds. Discover live webcam models, compare rooms and viewer activity, and open rooms on Chaturbate or BongaCams."
   }
 };
 
-function ncfRedirectSeoNoSlashV11(req, res) {
+function ncfRedirectSeoNoSlashV12(req, res) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
@@ -53,18 +53,18 @@ function ncfRedirectSeoNoSlashV11(req, res) {
   }
 }
 
-function ncfRewriteSeoRequestV11(req) {
+function ncfRewriteSeoRequestV12(req) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
-    if (NCF_SEO_PATHS_V11.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
+    if (NCF_SEO_PATHS_V12.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
       req.seoOriginalPathname = pathname;
       req.url = "/" + current.search;
     }
   } catch {}
 }
 
-function ncfApplySeoRouteMetadataV11(req, res) {
+function ncfApplySeoRouteMetadataV12(req, res) {
   const pathname = String(req.seoOriginalPathname || "");
   if (!pathname) return;
 
@@ -72,46 +72,58 @@ function ncfApplySeoRouteMetadataV11(req, res) {
   const chunks = [];
   let ended = false;
 
-  res.write = function seoBufferedWriteV11(chunk, encoding) {
+  res.write = function seoBufferedWriteV12(chunk, encoding) {
     if (ended) return false;
     if (chunk !== undefined && chunk !== null) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), encoding));
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), typeof encoding === "string" ? encoding : "utf8"));
     }
     return true;
   };
 
-  res.end = function seoBufferedEndV11(chunk, encoding, callback) {
+  res.end = function seoBufferedEndV12(chunk, encoding, callback) {
     if (ended) return res;
     ended = true;
 
     if (chunk !== undefined && chunk !== null) {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), encoding));
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk), typeof encoding === "string" ? encoding : "utf8"));
     }
 
     const done = typeof encoding === "function" ? encoding : callback;
 
     try {
       const contentType = String(res.getHeader("content-type") || "").toLowerCase();
-      if (!contentType || contentType.includes("text/html")) {
+      if (contentType.includes("text/html") || !contentType) {
         const proto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
         const host = String(req.headers["x-forwarded-host"] || req.headers.host || "nightcamfinds.com").split(",")[0].trim();
         const origin = proto + "://" + host;
         const canonical = origin + (pathname.startsWith("/") ? pathname : "/" + pathname);
-        const meta = NCF_ROUTE_META_V11[pathname];
+        const meta = NCF_ROUTE_META_V12[pathname];
         let html = Buffer.concat(chunks).toString("utf8");
 
-        html = html
-          .replace(/<link\\s+rel=["']canonical["']\\s+href=["'][^"']*["'][^>]*>/i,
-            '<link rel="canonical" href="' + canonical + '">')
-          .replace(/(<meta\\s+property=["']og:url["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
-            '$1' + canonical + '$2');
+        html = html.replace(
+          /<link\\s+rel=["']canonical["']\\s+href=["'][^"']*["'][^>]*>/i,
+          '<link rel="canonical" href="' + canonical + '">'
+        );
+        html = html.replace(
+          /(<meta\\s+property=["']og:url["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
+          '$1' + canonical + '$2'
+        );
 
         if (meta) {
-          html = html
-            .replace(/<title>[\\s\\S]*?<\\/title>/i,
-              '<title>' + meta.title + '</title>')
-            .replace(/(<meta\\s+name=["']description["']\\s+content=["'])[^"']*(["'][^>]*>)/i,
-              '$1' + meta.description + '$2');
+          const escapedTitle = meta.title.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+          const escapedDescription = meta.description.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+
+          const beforeTitle = html;
+          html = html.replace(/<title(?:\\s[^>]*)?>[\\s\\S]*?<\\/title>/i, '<title>' + escapedTitle + '</title>');
+          if (html === beforeTitle) {
+            html = html.replace(/<head([^>]*)>/i, '<head$1><title>' + escapedTitle + '</title>');
+          }
+
+          const beforeDescription = html;
+          html = html.replace(/<meta\\s+name=["']description["'][^>]*>/i, '<meta name="description" content="' + escapedDescription + '">');
+          if (html === beforeDescription) {
+            html = html.replace(/<head([^>]*)>/i, '<head$1><meta name="description" content="' + escapedDescription + '">');
+          }
         }
 
         return originalEnd.call(this, html, "utf8", done);
@@ -120,7 +132,7 @@ function ncfApplySeoRouteMetadataV11(req, res) {
       console.error("SEO buffered route metadata rewrite failed:", err.message);
     }
 
-    return originalEnd.call(this, Buffer.concat(chunks), done);
+    return originalEnd.call(this, Buffer.concat(chunks), typeof encoding === "string" ? encoding : done);
   };
 }
 
@@ -134,13 +146,13 @@ if (!s.includes(listenerAnchor)) {
 s = s.replace(listenerAnchor, helper + listenerAnchor);
 
 const insertion =
-  '    if (ncfRedirectSeoNoSlashV11(req, res)) return;\n' +
-  '    ncfRewriteSeoRequestV11(req);\n' +
-  '    ncfApplySeoRouteMetadataV11(req, res);\n';
+  '    if (ncfRedirectSeoNoSlashV12(req, res)) return;\n' +
+  '    ncfRewriteSeoRequestV12(req);\n' +
+  '    ncfApplySeoRouteMetadataV12(req, res);\n';
 
 if (!s.includes(insertion)) {
   s = s.replace(listenerAnchor, listenerAnchor + insertion);
 }
 
 fs.writeFileSync(FILE, s);
-console.log("Applied SEO SPA route patch V11");
+console.log("Applied SEO SPA route patch V12");
