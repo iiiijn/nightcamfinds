@@ -8,6 +8,7 @@ const requiredFiles = [
   "server.js",
   "scripts/patch-seo-attribution-v2.js",
   "scripts/patch-spa-seo-routes.js",
+  ".github/workflows/verify-production.yml",
   "package.json"
 ];
 
