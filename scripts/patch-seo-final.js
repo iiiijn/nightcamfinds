@@ -35,6 +35,10 @@ function patchServer() {
 function verifyRoutePatch() {
   const s = fs.readFileSync(ROUTE, "utf8");
   const hasSeoRouter =
+    s.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V9") ||
+    s.includes("ncfRedirectSeoNoSlashV9") ||
+    s.includes("ncfRewriteSeoRequestV9") ||
+    s.includes("ncfApplySeoRouteMetadataV9") ||
     s.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V8") ||
     s.includes("ncfRewriteSeoRequestV8") ||
     s.includes("ncfApplySeoRouteMetadataV8") ||
