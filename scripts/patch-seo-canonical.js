@@ -1,7 +1,7 @@
 const fs = require("fs");
 
-const TEMPLATE_MARKER = "NIGHTCAMFINDS_SEO_CANONICAL_TEMPLATE_V5";
-const SERVER_MARKER = "NIGHTCAMFINDS_SEO_CANONICAL_SERVER_V5";
+const TEMPLATE_MARKER = "NIGHTCAMFINDS_SEO_CANONICAL_TEMPLATE_V6";
+const SERVER_MARKER = "NIGHTCAMFINDS_SEO_CANONICAL_SERVER_V6";
 
 function patchFile(file, apply) {
   const current = fs.readFileSync(file, "utf8");
@@ -26,7 +26,8 @@ patchFile("server.js", s => {
   const forwardedProto = String(req.headers["x-forwarded-proto"] || "https").split(",")[0].trim();
   const forwardedHost = String(req.headers["x-forwarded-host"] || req.headers.host || "").split(",")[0].trim();
   const origin = configuredOrigin || (forwardedHost ? forwardedProto + "://" + forwardedHost : ORIGIN);
-  return origin + (pathname === "/" ? "/" : pathname);
+  const originalPath = String(req.seoOriginalPathname || pathname || "/");
+  return origin + (originalPath.startsWith("/") ? originalPath : "/" + originalPath);
 }
 
 `;
@@ -55,4 +56,4 @@ patchFile("server.js", s => {
   return s + `\n// ${SERVER_MARKER}\n`;
 });
 
-console.log("NightCamFinds SEO canonical patch V4 complete");
+console.log("NightCamFinds SEO canonical patch V6 complete");
