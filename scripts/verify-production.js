@@ -43,6 +43,8 @@ if (!start.trim().endsWith("node route.js")) fail("production start command must
 
 const route = fs.readFileSync("route.js", "utf8");
 if (!route.includes("NIGHTCAMFINDS_CB_POSTBACK_PATCH_V6")) fail("route.js is missing the Chaturbate route marker");
+if (!route.includes("NIGHTCAMFINDS_BONGA_REVSHARE_V1")) fail("route.js is missing BongaCash RevShare routing");
+if (!route.includes('target.searchParams.set("c", BONGA_CAMPAIGN)')) fail("BongaCash campaign routing is missing");
 
 const seoPatch = fs.readFileSync(patchSpa, "utf8");
 if (!seoPatch.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V13")) fail("SPA SEO patch marker V13 is missing");
