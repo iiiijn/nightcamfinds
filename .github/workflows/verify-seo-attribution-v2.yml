@@ -6,21 +6,23 @@ on:
       - "scripts/patch-seo-attribution-v2.js"
       - "scripts/patch-seo-attribution-v3.js"
       - "scripts/fix-server-syntax.js"
-      - "server.js"
+      - "scripts/patch-spa-seo-routes.js"
       - "route.js"
       - "public/app.js"
       - "public/dashboard.html"
       - "package.json"
+      - ".github/workflows/verify-seo-attribution-v2.yml"
   pull_request:
     paths:
       - "scripts/patch-seo-attribution-v2.js"
       - "scripts/patch-seo-attribution-v3.js"
       - "scripts/fix-server-syntax.js"
-      - "server.js"
+      - "scripts/patch-spa-seo-routes.js"
       - "route.js"
       - "public/app.js"
       - "public/dashboard.html"
       - "package.json"
+      - ".github/workflows/verify-seo-attribution-v2.yml"
   workflow_dispatch:
 
 permissions:
@@ -34,23 +36,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
       - name: Check patch scripts
         run: |
           node --check scripts/patch-seo-attribution-v2.js
           node --check scripts/patch-seo-attribution-v3.js
           node --check scripts/fix-server-syntax.js
+          node --check scripts/patch-spa-seo-routes.js
 
-      - name: Apply SEO attribution patch in CI workspace
-        run: node scripts/patch-seo-attribution-v2.js
-
-      # Render runs this cleanup before starting the production route. Mirror
-      # that behavior here so CI validates the same source state Render uses.
-      - name: Apply production server syntax cleanup
-        run: node scripts/fix-server-syntax.js
-
-      - name: Apply SPA SEO route patch used by production startup
-        run: node scripts/patch-spa-seo-routes.js
+      - name: Apply production startup patches in CI workspace
+        run: |
+          node scripts/patch-seo-attribution-v2.js
+          node scripts/fix-server-syntax.js
+          node scripts/patch-spa-seo-routes.js
 
       - name: Check production JavaScript
         run: |
@@ -58,12 +57,18 @@ jobs:
           node --check public/app.js
           node --check server.js
 
-      - name: Check package startup references the production route
+      - name: Check production startup command
         run: |
           grep -q '"start": "node scripts/run-production-migrations.js && node scripts/fix-server-syntax.js && node scripts/patch-spa-seo-routes.js && node route.js"' package.json
 
-      - name: Check attribution markers
+      - name: Check attribution and SEO markers
         run: |
           grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2" route.js
           grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V2" public/app.js
           grep -q "NIGHTCAMFINDS_DASHBOARD_SEO_ATTRIBUTION_V2" public/dashboard.html
+          grep -q "NIGHTCAMFINDS_SPA_SEO_ROUTES_V13" route.js
+
+      - name: Install dependencies and run tests
+        run: |
+          npm ci
+          npm test
