@@ -31,8 +31,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install dev dependencies and run tests
+      - name: Install isolated test dependencies and run tests
         run: |
-          npm install --omit=prod --ignore-scripts --registry=https://registry.yarnpkg.com/
+          cp package.json /tmp/nightcamfinds-package.json
+          node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("package.json","utf8")); p.dependencies={}; p.devDependencies={"@electric-sql/pglite":"0.5.8"}; fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n")'
+          npm install --ignore-scripts --registry=https://registry.yarnpkg.com/
+          mv /tmp/nightcamfinds-package.json package.json
           npm test
       - run: npm run verify
