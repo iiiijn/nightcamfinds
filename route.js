@@ -280,7 +280,7 @@ http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
 
-    // /* NIGHTCAMFINDS_BONGA_REVSHARE_V1 */
+    // NIGHTCAMFINDS_BONGA_REVSHARE_V1
     // All Bonga cards use the configured BongaCash RevShare campaign. Preserve
     // click attribution on NightCamFinds, while keeping Chaturbate routing separate.
     if (incoming.pathname.startsWith("/bgo/")) {
