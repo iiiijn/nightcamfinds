@@ -78,7 +78,11 @@ jobs:
       - name: Install isolated test dependencies and run tests
         run: |
           cp package.json /tmp/nightcamfinds-package.json
+          cp package-lock.json /tmp/nightcamfinds-package-lock.json
           node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("package.json","utf8")); p.dependencies={}; p.devDependencies={"@electric-sql/pglite":"0.5.8"}; fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n")'
+          rm package-lock.json
           npm install --ignore-scripts --registry=https://registry.yarnpkg.com/
+          rm -f package-lock.json
           mv /tmp/nightcamfinds-package.json package.json
+          mv /tmp/nightcamfinds-package-lock.json package-lock.json
           npm test
