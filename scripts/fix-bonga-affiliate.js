@@ -25,7 +25,3 @@ const replacement = `if(pathname.startsWith("/bgo/")||pathname.startsWith("/go/"
 source = source.replace(routePattern, replacement);
 fs.writeFileSync(file, source);
 console.log("Applied BongaCams affiliate BCS redirect patch");
-`;
-
-fs.writeFileSync(file, source);
-console.log("Applied BongaCams affiliate BCS redirect patch");
