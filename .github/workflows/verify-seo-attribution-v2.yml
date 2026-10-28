@@ -42,7 +42,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
 
       - name: Check patch scripts
         run: |
@@ -77,4 +76,8 @@ jobs:
           grep -q "NIGHTCAMFINDS_SPA_SEO_ROUTES_V13" route.js
 
       - name: Install dependencies and run tests
-        run: npm ci && npm test
+        run: |
+          npm config set registry https://registry.npmjs.org/
+          npm cache clean --force
+          npm install --prefer-online --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+          npm test
