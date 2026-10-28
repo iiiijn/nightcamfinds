@@ -134,6 +134,7 @@ async function ensurePostbackTables() {
   await pool.query("ALTER TABLE cb_clicks ALTER COLUMN country TYPE VARCHAR(16)");
   await pool.query("ALTER TABLE cb_conversions ALTER COLUMN country TYPE VARCHAR(16)");
   await pool.query("CREATE INDEX IF NOT EXISTS cb_clicks_clicked_at_idx ON cb_clicks(clicked_at)");
+  await pool.query("ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS matched_click BOOLEAN NOT NULL DEFAULT FALSE");
   await pool.query("CREATE INDEX IF NOT EXISTS cb_conversions_click_id_idx ON cb_conversions(click_id)");
 }
 
@@ -188,8 +189,8 @@ async function saveConversion(params) {
   const amount = Number.parseFloat(params.amount);
   await pool.query(
     `INSERT INTO cb_conversions
-     (click_id,transaction_id,conversion_type,payout,currency,amount,country,track,source,campaign_id,program_id,user_id,event_timestamp,raw_payload)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb)
+     (click_id,transaction_id,conversion_type,payout,currency,amount,country,track,source,campaign_id,program_id,user_id,event_timestamp,raw_payload,matched_click)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,EXISTS(SELECT 1 FROM cb_clicks WHERE click_id=$1))
      ON CONFLICT (transaction_id) DO NOTHING`,
     [
       clean(params.click_id, "", 128), clean(params.transaction_id, "", 255), clean(params.type, "unknown", 100),
