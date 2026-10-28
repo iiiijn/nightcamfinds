@@ -58,7 +58,6 @@ jobs:
         run: |
           node --check route.js
           node --check public/app.js
-          node --check public/dashboard.html 2>/dev/null || true
 
       - name: Confirm active affiliate and SEO runtime markers
         run: |
