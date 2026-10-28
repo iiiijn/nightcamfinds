@@ -51,9 +51,9 @@ if (!route.includes("NIGHTCAMFINDS_BONGA_REVSHARE_V1")) fail("route.js is missin
 if (!route.includes('target.searchParams.set("c", BONGA_CAMPAIGN)')) fail("BongaCash campaign routing is missing");
 
 const seoPatch = fs.readFileSync("scripts/patch-spa-seo-routes.js", "utf8");
-if (!seoPatch.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V13")) fail("SPA SEO patch marker V13 is missing");
-if (!seoPatch.includes("ncfRedirectSeoNoSlashV13")) fail("SEO no-slash redirect helper is missing");
-if (!seoPatch.includes("ncfApplySeoRouteMetadataV13")) fail("SEO metadata helper is missing");
+if (!seoPatch.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V14")) fail("SPA SEO patch marker V13 is missing");
+if (!seoPatch.includes("ncfRedirectSeoNoSlashV14")) fail("SEO no-slash redirect helper is missing");
+if (!seoPatch.includes("ncfApplySeoRouteMetadataV14")) fail("SEO metadata helper is missing");
 
 if (failed) {
   console.error("Production verification failed.");
