@@ -329,6 +329,7 @@ http.createServer = function routeDashboard(handler) {
       const target = new URL("https://bongacams4.com/track");
       target.searchParams.set("c", BONGA_CAMPAIGN);
       target.searchParams.set("click_id", clickId);
+      target.searchParams.set("v", "2");
       target.searchParams.set("track", src);
       target.searchParams.set("source", source);
       target.searchParams.set("campaign", campaign);
