@@ -4,26 +4,24 @@ on:
   push:
     branches: [main]
     paths:
-      - "scripts/patch-start-postback.js"
-      - "scripts/patch-route.js"
-      - "scripts/patch-tier-analytics.js"
-      - "scripts/patch-seo-attribution.js"
-      - "scripts/patch-dashboard-seo-attribution.js"
-      - "start.js"
+      - "scripts/patch-spa-seo-routes.js"
+      - "scripts/patch-seo-attribution-v2.js"
+      - "scripts/fix-server-syntax.js"
       - "route.js"
+      - "public/app.js"
       - "public/dashboard.html"
+      - "package.json"
       - ".github/workflows/verify-postback-patches.yml"
   pull_request:
     branches: [main]
     paths:
-      - "scripts/patch-start-postback.js"
-      - "scripts/patch-route.js"
-      - "scripts/patch-tier-analytics.js"
-      - "scripts/patch-seo-attribution.js"
-      - "scripts/patch-dashboard-seo-attribution.js"
-      - "start.js"
+      - "scripts/patch-spa-seo-routes.js"
+      - "scripts/patch-seo-attribution-v2.js"
+      - "scripts/fix-server-syntax.js"
       - "route.js"
+      - "public/app.js"
       - "public/dashboard.html"
+      - "package.json"
       - ".github/workflows/verify-postback-patches.yml"
   workflow_dispatch:
 
@@ -41,29 +39,38 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
-      - name: Check source syntax
+      - name: Check active source syntax
         run: |
-          node --check start.js
           node --check route.js
           node --check scripts/patch-spa-seo-routes.js
+          node --check scripts/patch-seo-attribution-v2.js
+          node --check scripts/fix-server-syntax.js
 
-      - name: Apply startup patches in the CI workspace
+      - name: Apply production startup patches in CI workspace
         run: |
+          node scripts/patch-seo-attribution-v2.js
+          node scripts/fix-server-syntax.js
           node scripts/patch-spa-seo-routes.js
 
       - name: Check patched runtime syntax
         run: |
-          node --check start.js
           node --check route.js
+          node --check public/app.js
+          node --check public/dashboard.html 2>/dev/null || true
 
-      - name: Confirm active postback runtime was applied
+      - name: Confirm active affiliate and SEO runtime markers
         run: |
           grep -q "NIGHTCAMFINDS_BONGA_REVSHARE_V1" route.js
           grep -q 'target.searchParams.set("c", BONGA_CAMPAIGN)' route.js
+          grep -q "NIGHTCAMFINDS_SPA_SEO_ROUTES_V13" route.js
+          grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2" route.js
+          grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V2" public/app.js
+          grep -q "NIGHTCAMFINDS_DASHBOARD_SEO_ATTRIBUTION_V2" public/dashboard.html
 
-      - name: Install all production and test dependencies
-        run: npm install
+      - name: Install dependencies
+        run: npm ci
 
       - name: Run application tests
         run: npm test
