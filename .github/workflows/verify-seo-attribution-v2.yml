@@ -76,5 +76,6 @@ jobs:
         run: |
           npm config set registry https://registry.npmjs.org/
           npm cache clean --force
+          rm -f package-lock.json
           npm install --prefer-online --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
           npm test
