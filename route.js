@@ -278,6 +278,64 @@ async function dashboardStats(incoming) {
 http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
+
+    // /* NIGHTCAMFINDS_BONGA_REVSHARE_V1 */
+    // All Bonga cards use the configured BongaCash RevShare campaign. Preserve
+    // click attribution on NightCamFinds, while keeping Chaturbate routing separate.
+    if (incoming.pathname.startsWith("/bgo/")) {
+      const parts = incoming.pathname.slice(5).split(":");
+      const username = decodeURIComponent(parts[parts.length - 1] || "").trim();
+      const clickId = `ncf_bonga_${Date.now().toString(36)}_${crypto.randomBytes(8).toString("hex")}`;
+      const src = String(incoming.searchParams.get("src") || "bonga-card").slice(0, 80);
+      const category = String(incoming.searchParams.get("cat") || "unknown").slice(0, 40);
+      const source = String(incoming.searchParams.get("source") || incoming.searchParams.get("utm_source") || "direct").slice(0, 80);
+      const medium = String(incoming.searchParams.get("medium") || incoming.searchParams.get("utm_medium") || "unknown").slice(0, 80);
+      const campaign = String(incoming.searchParams.get("campaign") || incoming.searchParams.get("utm_campaign") || "organic").slice(0, 80);
+      const content = String(incoming.searchParams.get("content") || incoming.searchParams.get("utm_content") || "").slice(0, 120);
+      const agent = String(req.headers["user-agent"] || "").toLowerCase();
+      const device = /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop";
+      const country = String(req.headers["cf-ipcountry"] || req.headers["x-vercel-ip-country"] || req.headers["cloudfront-viewer-country"] || req.headers["x-country-code"] || "UNKNOWN").toUpperCase().slice(0, 16);
+      try {
+        if (pool) {
+          await pool.query(`CREATE TABLE IF NOT EXISTS affiliate_clicks (
+            id BIGSERIAL PRIMARY KEY, clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN', category VARCHAR(40) NOT NULL DEFAULT 'unknown',
+            source VARCHAR(80) NOT NULL DEFAULT 'direct', campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
+            placement VARCHAR(80) NOT NULL DEFAULT 'unknown', platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate',
+            medium VARCHAR(80) NOT NULL DEFAULT 'unknown', content VARCHAR(120) NOT NULL DEFAULT '',
+            device VARCHAR(32) NOT NULL DEFAULT 'unknown', click_id VARCHAR(128)
+          )`);
+          await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS medium VARCHAR(80) NOT NULL DEFAULT 'unknown'");
+          await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''");
+          await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
+          await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
+          const ins = await pool.query(
+            "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id) VALUES ($1,$2,$3,$4,$5,'bongacams',$6,$7,$8,$9) RETURNING id",
+            [country, category, source, campaign, src, medium, content, device, clickId]
+          );
+          await pool.query(`CREATE TABLE IF NOT EXISTS bonga_clicks (
+            id BIGSERIAL PRIMARY KEY, affiliate_click_id BIGINT, click_id VARCHAR(128) UNIQUE,
+            clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
+            category VARCHAR(40) NOT NULL DEFAULT 'unknown', source VARCHAR(80) NOT NULL DEFAULT 'direct',
+            campaign VARCHAR(80) NOT NULL DEFAULT 'unknown', placement VARCHAR(80) NOT NULL DEFAULT 'unknown',
+            medium VARCHAR(80) NOT NULL DEFAULT 'unknown', content VARCHAR(120) NOT NULL DEFAULT '',
+            device VARCHAR(32) NOT NULL DEFAULT 'unknown'
+          )`);
+          await pool.query("INSERT INTO bonga_clicks (affiliate_click_id,click_id,country,category,source,campaign,placement,medium,content,device) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (click_id) DO NOTHING",
+            [ins.rows[0]?.id || null, clickId, country, category, source, campaign, src, medium, content, device]);
+        }
+      } catch (err) { console.error("Bonga click attribution logging failed:", err.message); }
+      const target = new URL("https://bongacams4.com/track");
+      target.searchParams.set("c", BONGA_CAMPAIGN);
+      target.searchParams.set("click_id", clickId);
+      target.searchParams.set("track", src);
+      target.searchParams.set("source", source);
+      target.searchParams.set("campaign", campaign);
+      // Redirect only to the provider tracking endpoint. Never accept a user-supplied URL.
+      res.writeHead(302, { Location: target.toString(), "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" });
+      return res.end();
+    }
+
     if (incoming.pathname === "/api/health") {
       return sendJson(res, 200, {
         ok: true,
