@@ -37,6 +37,17 @@ function money(value) {
 }
 
 function eventFrom(raw) {
+  const clickId = clean(raw.click_id || raw.clickid || raw.subid || raw.sub_id || raw.sid, 128);
+  const transactionId = clean(raw.transaction_id || raw.transactionid || raw.txid || raw.tid, 255);
+  const payout = money(raw.payout);
+  const amount = money(raw.amount);
+
+  // Chaturbate's "Test this URL" probe can omit conversion-only fields.
+  // Treat an incomplete probe as a connectivity test and never write revenue.
+  if (!transactionId || payout == null) {
+    return { ok: true, probe: true, event: { clickId, type: clean(raw.type || "test", 80).toLowerCase(), transactionId, payout } };
+  }
+
   let type = clean(raw.type, 80).toLowerCase();
   const aliases = {
     signup: "revshare_signup-referral",
@@ -56,15 +67,10 @@ function eventFrom(raw) {
     "revshare_webmaster-commission",
     "revshare_payout-adjustment"
   ]);
-  const clickId = clean(raw.click_id || raw.clickid || raw.subid || raw.sub_id || raw.sid, 128);
-  const transactionId = clean(raw.transaction_id || raw.transactionid || raw.txid || raw.tid, 255);
-  const payout = money(raw.payout);
-  const amount = money(raw.amount);
+
   if (!clickId) return { ok: false, status: 400, reason: "missing_click_id" };
   if (!allowed.has(type)) return { ok: false, status: 400, reason: "unsupported_event_type" };
-  if (!transactionId || payout == null) {
-    return { ok: true, probe: true, event: { clickId, type: type || "test", transactionId: transactionId || "", payout } };
-  }
+
   const currency = clean(raw.currency || "USD", 8).toUpperCase();
   if (!/^[A-Z]{3,8}$/.test(currency)) return { ok: false, status: 400, reason: "invalid_currency" };
   return {
