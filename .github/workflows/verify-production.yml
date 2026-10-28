@@ -33,7 +33,7 @@ jobs:
           node-version: "22"
       - name: Install dependencies and run tests
         run: |
-          npm config set registry https://registry.npmjs.org/
+          npm config set registry https://registry.yarnpkg.com/
           npm cache clean --force
           npm install --prefer-online --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
           npm test
