@@ -4,12 +4,9 @@ const path = require("path");
 const file = path.join(__dirname, "..", "server.js");
 let source = fs.readFileSync(file, "utf8");
 
-const startMarker = '  if(pathname==="/visits"){';
-const endMarker = '  if(pathname==="/api/stats"){';
-const start = source.indexOf(startMarker);
-const end = source.indexOf(endMarker, start + startMarker.length);
+const brokenVisitsRoute = /  if\(pathname===\"\/visits\"\)\{[\s\S]*?  if\(pathname===\"\/api\/stats\"\)\{/;
 
-if (start === -1 || end === -1) {
+if (!brokenVisitsRoute.test(source)) {
   console.log("server.js visits route already clean or not present");
   process.exit(0);
 }
@@ -26,8 +23,8 @@ const replacement = `  if(pathname==="/visits"){
       updatedAt: stats.updatedAt || null
     }),"application/json");
   }
-`;
+  if(pathname==="/api/stats"){`;
 
-source = source.slice(0, start) + replacement + source.slice(end);
+source = source.replace(brokenVisitsRoute, replacement);
 fs.writeFileSync(file, source);
 console.log("NightCamFinds server.js syntax cleanup applied");
