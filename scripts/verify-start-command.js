@@ -2,9 +2,6 @@ const pkg = require("../package.json");
 
 const expected = [
   "node scripts/run-production-migrations.js",
-  "node scripts/fix-server-syntax.js",
-  "node scripts/patch-spa-seo-routes.js",
-  "node scripts/fix-bonga-affiliate.js",
   "node route.js",
 ];
 
@@ -21,4 +18,4 @@ if (JSON.stringify(start) !== JSON.stringify(expected)) {
   process.exit(1);
 }
 
-console.log("Production start command is valid.");
+console.log("Production start command is valid and contains no build-time patching.");
