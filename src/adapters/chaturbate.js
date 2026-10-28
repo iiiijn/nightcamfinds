@@ -1,4 +1,5 @@
 const ALLOWED = new Set(["chaturbate.com", "www.chaturbate.com"]);
+const DEFAULT_REVSHARE_URL = "https://chaturbate.com/in/?tour=LQps&campaign=C6yxN&track=default&room=masterteja";
 
 export function normalizeGender(value) {
   const v = String(value || "").toLowerCase();
@@ -90,15 +91,22 @@ export async function fetchChaturbateRooms({ wm, clientIp, limit = 50, offset = 
 }
 
 export function chaturbateDestination(room, clickId) {
-  if (!room?.roomUrl) return { ok: false, reason: "missing room_url from provider" };
-  let host;
+  const configured = String(process.env.CHATURBATE_REVSHARE_URL || DEFAULT_REVSHARE_URL).trim();
+  let url;
   try {
-    host = new URL(room.roomUrl).hostname;
+    url = new URL(configured);
   } catch {
-    return { ok: false, reason: "invalid room url" };
+    return { ok: false, reason: "invalid Chaturbate RevShare destination" };
   }
-  if (!ALLOWED.has(host)) return { ok: false, reason: "domain not allowlisted" };
-  const url = new URL(room.roomUrl);
+  if (url.protocol !== "https:" || !ALLOWED.has(url.hostname)) {
+    return { ok: false, reason: "Chaturbate destination domain not allowlisted" };
+  }
+  if (url.pathname !== "/in/") {
+    return { ok: false, reason: "Chaturbate destination path not allowlisted" };
+  }
+  if (!url.searchParams.get("tour") || !url.searchParams.get("campaign") || !url.searchParams.get("room")) {
+    return { ok: false, reason: "Chaturbate RevShare destination is missing required affiliate parameters" };
+  }
   if (clickId) url.searchParams.set("click_id", clickId);
-  return { ok: true, url: url.toString(), domain: host };
+  return { ok: true, url: url.toString(), domain: url.hostname };
 }
