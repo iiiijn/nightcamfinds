@@ -8,6 +8,7 @@ on:
       - "scripts/fix-server-syntax.js"
       - "scripts/patch-spa-seo-routes.js"
       - "scripts/fix-bonga-affiliate.js"
+      - "scripts/verify-start-command.js"
       - "route.js"
       - "public/app.js"
       - "public/dashboard.html"
@@ -20,6 +21,7 @@ on:
       - "scripts/fix-server-syntax.js"
       - "scripts/patch-spa-seo-routes.js"
       - "scripts/fix-bonga-affiliate.js"
+      - "scripts/verify-start-command.js"
       - "route.js"
       - "public/app.js"
       - "public/dashboard.html"
@@ -47,6 +49,7 @@ jobs:
           node --check scripts/fix-server-syntax.js
           node --check scripts/patch-spa-seo-routes.js
           node --check scripts/fix-bonga-affiliate.js
+          node --check scripts/verify-start-command.js
 
       - name: Apply production startup patches in CI workspace
         run: |
@@ -61,8 +64,7 @@ jobs:
           node --check server.js
 
       - name: Check production startup command
-        run: |
-          node -e 'const p=require("./package.json"); const expected="node scripts/run-production-migrations.js && node scripts/fix-server-syntax.js && node scripts/patch-spa-seo-routes.js && node scripts/fix-bonga-affiliate.js && node route.js"; if (p.scripts?.start !== expected) { console.error("Unexpected package.json start script:", p.scripts?.start); process.exit(1); }'
+        run: node scripts/verify-start-command.js
 
       - name: Check attribution and SEO markers
         run: |
