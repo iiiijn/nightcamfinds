@@ -31,8 +31,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install test-only dependency and run tests
+      - name: Install dev dependencies and run tests
         run: |
-          npm install --no-save --ignore-scripts --registry=https://registry.yarnpkg.com/ @electric-sql/pglite@0.5.8
+          npm install --omit=prod --ignore-scripts --registry=https://registry.yarnpkg.com/
           npm test
       - run: npm run verify
