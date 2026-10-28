@@ -31,10 +31,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install dependencies and run tests
+      - name: Install test-only dependency and run tests
         run: |
-          npm config set registry https://registry.yarnpkg.com/
-          npm cache clean --force
-          npm install --prefer-online --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
+          npm install --no-save --ignore-scripts --registry=https://registry.yarnpkg.com/ @electric-sql/pglite@0.5.8
           npm test
       - run: npm run verify
