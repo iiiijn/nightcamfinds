@@ -37,7 +37,14 @@ function money(value) {
 }
 
 function eventFrom(raw) {
-  const type = clean(raw.type, 80).toLowerCase();
+  let type = clean(raw.type, 80).toLowerCase();
+  const aliases = {
+    signup: "revshare_signup-referral",
+    purchase: "revshare_purchase",
+    "revshare_signup": "revshare_signup-referral",
+    "revshare_purchase": "revshare_purchase"
+  };
+  type = aliases[type] || type;
   const allowed = new Set([
     "tokens_signup-referral",
     "tokens_broadcaster-referral",
@@ -53,10 +60,11 @@ function eventFrom(raw) {
   const transactionId = clean(raw.transaction_id || raw.transactionid || raw.txid || raw.tid, 255);
   const payout = money(raw.payout);
   const amount = money(raw.amount);
-  if (!allowed.has(type)) return { ok: false, status: 400, reason: "unsupported_event_type" };
   if (!clickId) return { ok: false, status: 400, reason: "missing_click_id" };
-  if (!transactionId) return { ok: false, status: 400, reason: "missing_transaction_id" };
-  if (payout == null) return { ok: false, status: 400, reason: "missing_or_invalid_payout" };
+  if (!allowed.has(type)) return { ok: false, status: 400, reason: "unsupported_event_type" };
+  if (!transactionId || payout == null) {
+    return { ok: true, probe: true, event: { clickId, type: type || "test", transactionId: transactionId || "", payout } };
+  }
   const currency = clean(raw.currency || "USD", 8).toUpperCase();
   if (!/^[A-Z]{3,8}$/.test(currency)) return { ok: false, status: 400, reason: "invalid_currency" };
   return {
@@ -148,6 +156,7 @@ async function handlePostback(req, res, raw) {
 
   const parsed = eventFrom(raw);
   if (!parsed.ok) return send(res, parsed.status, parsed);
+  if (parsed.probe) return send(res, 200, { ok: true, state: "test" });
   if (!pool) return send(res, 503, { ok: false, reason: "database_unavailable" });
 
   await ensureTables();
@@ -157,7 +166,7 @@ async function handlePostback(req, res, raw) {
 
   const matched = await clickExists(e.clickId);
   if (!matched) {
-    return send(res, 202, { ok: false, state: "unmatched", reason: "unmatched_click", click_id: e.clickId });
+    return send(res, 200, { ok: true, state: "unmatched", click_id: e.clickId });
   }
 
   await pool.query(`INSERT INTO cb_conversions
