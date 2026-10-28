@@ -2,6 +2,7 @@ const pkg = require("../package.json");
 
 const expected = [
   "node scripts/run-production-migrations.js",
+  "node scripts/patch-spa-seo-routes.js",
   "node route.js",
 ];
 
@@ -18,4 +19,4 @@ if (JSON.stringify(start) !== JSON.stringify(expected)) {
   process.exit(1);
 }
 
-console.log("Production start command is valid and contains no build-time patching.");
+console.log("Production start command is valid; only the required idempotent SPA SEO patch runs at startup.");
