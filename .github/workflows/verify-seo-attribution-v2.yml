@@ -57,7 +57,7 @@ jobs:
 
       - name: Check package startup references the production route
         run: |
-          grep -q '"start": "node scripts/run-production-migrations.js && node scripts/fix-server-syntax.js && node route.js"' package.json
+          grep -q '"start": "node scripts/run-production-migrations.js && node scripts/fix-server-syntax.js && node scripts/patch-spa-seo-routes.js && node route.js"' package.json
 
       - name: Check attribution markers
         run: |
