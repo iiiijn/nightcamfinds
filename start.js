@@ -21,7 +21,7 @@ const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
 const STATS_KEY = process.env.STATS_KEY || "";
-const POSTBACK_SECRET = process.env.CB_POSTBACK_SECRET || ""; // NIGHTCAMFINDS_CB_POSTBACK_SECRET_V5
+const POSTBACK_SECRET = process.env.CB_POSTBACK_SECRET || "";
 const SESSION_TTL = 12 * 60 * 60 * 1000;
 const loginAttempts = new Map();
 
@@ -293,18 +293,23 @@ http.createServer = function wrappedCreateServer(handler) {
       try {
         const params = Object.fromEntries(incoming.searchParams.entries());
         const configuredSecret = String(process.env.CB_POSTBACK_SECRET || "").trim();
-        if (!configuredSecret || !safeEqual(params.secret || "", configuredSecret)) {
-          console.warn("Chaturbate postback rejected: invalid secret");
+        // Chaturbate Dynamic Postbacks do not send a generic `secret` macro.
+        // Keep legacy secret support only when Chaturbate actually supplies one.
+        if (configuredSecret && params.secret && !safeEqual(params.secret, configuredSecret)) {
+          console.warn("Chaturbate postback rejected: invalid optional secret");
           return json(res, 403, { error: "Invalid postback secret." });
         }
+        // Require the identifiers needed for safe attribution and idempotency.
+        if (!params.click_id || !params.transaction_id) {
+          console.warn("Chaturbate postback rejected: missing click_id or transaction_id");
+          return json(res, 400, { error: "Missing click_id or transaction_id." });
+        }
         const event = await saveConversion(params);
-        const logContext = JSON.stringify({ clickIdPresent: Boolean(params.click_id), matched: event?.matched === true });
+        const logContext = JSON.stringify({ clickIdPresent: Boolean(params.click_id), transactionIdPresent: Boolean(params.transaction_id) });
         if (event?.test) {
           console.log("Chaturbate postback test acknowledged; no conversion recorded", logContext);
-        } else if (event?.matched === false) {
-          console.log("Chaturbate postback acknowledged without attribution; no conversion recorded", logContext);
         } else {
-          console.log("Chaturbate postback conversion recorded", JSON.stringify({ type: event?.type || params.type || "", clickIdPresent: Boolean(params.click_id), matched: event?.matched === true }));
+          console.log("Chaturbate postback conversion recorded", JSON.stringify({ type: params.type || "", clickIdPresent: Boolean(params.click_id), transactionIdPresent: Boolean(params.transaction_id) }));
         }
         res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
         return res.end("OK");
