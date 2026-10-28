@@ -2,7 +2,7 @@ services:
   - type: web
     name: nightcamfinds
     runtime: node
-    buildCommand: npm install
+    buildCommand: npm ci && node scripts/patch-seo-attribution-v2.js && node scripts/fix-server-syntax.js && node scripts/patch-spa-seo-routes.js && node scripts/fix-bonga-affiliate.js
     startCommand: npm start
     envVars:
       - key: PUBLIC_ORIGIN
