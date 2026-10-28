@@ -1,17 +1,17 @@
 const fs = require("fs");
 
 const FILE = "route.js";
-const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V13";
+const MARKER = "NIGHTCAMFINDS_SPA_SEO_ROUTES_V14";
 let s = fs.readFileSync(FILE, "utf8");
 
 if (s.includes(MARKER)) {
-  console.log("SEO SPA route V13 patch already applied");
+  console.log("SEO SPA route V14 patch already applied");
   process.exit(0);
 }
 
 const helper = `
 // ${MARKER}
-const NCF_SEO_PATHS_V13 = new Set([
+const NCF_SEO_PATHS_V14 = new Set([
   "/",
   "/live/",
   "/female/",
@@ -25,7 +25,19 @@ const NCF_SEO_PATHS_V13 = new Set([
   "/broadcast"
 ]);
 
-const NCF_ROUTE_META_V13 = {
+const NCF_ROUTE_META_V14 = {
+  "/": {
+    title: "NightCamFinds | Discover Live Cam Rooms",
+    description: "Discover public live cam rooms on Chaturbate and BongaCams. Compare live rooms, viewer activity, and categories, then continue to the partner platform.",
+    ogTitle: "NightCamFinds | Discover Live Cam Rooms",
+    ogDescription: "Explore live rooms across Chaturbate and BongaCams with NightCamFinds."
+  },
+  "/live/": {
+    title: "Live Cams Now | Browse Live Rooms | NightCamFinds",
+    description: "Browse live webcam rooms currently available on Chaturbate and BongaCams. Compare viewer activity and open rooms on the partner platform.",
+    ogTitle: "Live Cams Now | NightCamFinds",
+    ogDescription: "Discover live rooms and compare current viewer activity across partner platforms."
+  },
   "/female/": {
     title: "Female Live Cams | Browse Live Webcam Rooms | NightCamFinds",
     description: "Browse female live cam rooms on NightCamFinds. Discover live webcam models, compare rooms and viewer activity, and open rooms on Chaturbate or BongaCams.",
@@ -37,10 +49,46 @@ const NCF_ROUTE_META_V13 = {
     description: "Browse male live cam rooms on NightCamFinds. Discover live webcam models, compare rooms and viewer activity, and find rooms that match your interests.",
     ogTitle: "Male Live Cams | NightCamFinds",
     ogDescription: "Browse male live cam rooms on NightCamFinds and discover live webcam models and rooms."
+  },
+  "/trans/": {
+    title: "Trans Live Cams | Browse Live Rooms | NightCamFinds",
+    description: "Browse trans live cam rooms on NightCamFinds. Explore public rooms, compare viewer activity, and continue to Chaturbate or BongaCams.",
+    ogTitle: "Trans Live Cams | NightCamFinds",
+    ogDescription: "Discover public trans live cam rooms and compare live room activity."
+  },
+  "/couples/": {
+    title: "Couples Live Cams | Browse Live Rooms | NightCamFinds",
+    description: "Browse couples live cam rooms on NightCamFinds. Compare live room activity and continue to the partner platform.",
+    ogTitle: "Couples Live Cams | NightCamFinds",
+    ogDescription: "Explore couples live cam rooms on Chaturbate and BongaCams."
+  },
+  "/hd/": {
+    title: "HD Live Cams | Browse HD Rooms | NightCamFinds",
+    description: "Browse live rooms marked as HD on NightCamFinds. Compare room activity and visit the room on its partner platform.",
+    ogTitle: "HD Live Cams | NightCamFinds",
+    ogDescription: "Find live rooms marked as HD across partner platforms."
+  },
+  "/new/": {
+    title: "New Live Cams | Discover New Broadcasters | NightCamFinds",
+    description: "Discover live rooms marked as new in the partner feeds. Browse current activity and open rooms on Chaturbate or BongaCams.",
+    ogTitle: "New Live Cams | NightCamFinds",
+    ogDescription: "Discover new broadcasters and live rooms on NightCamFinds."
+  },
+  "/popular/": {
+    title: "Popular Live Cams | Most-Watched Rooms | NightCamFinds",
+    description: "Browse popular live rooms sorted by current viewer activity. Discover public rooms on Chaturbate and BongaCams.",
+    ogTitle: "Popular Live Cams | NightCamFinds",
+    ogDescription: "Explore popular live rooms by current viewer activity."
+  },
+  "/countries/": {
+    title: "Live Cams by Country | Browse Countries | NightCamFinds",
+    description: "Browse live cam rooms by country when broadcaster country information is available. Explore rooms across partner platforms.",
+    ogTitle: "Live Cams by Country | NightCamFinds",
+    ogDescription: "Find live cam rooms by country on NightCamFinds."
   }
 };
 
-function ncfRedirectSeoNoSlashV13(req, res) {
+function ncfRedirectSeoNoSlashV14(req, res) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
@@ -61,18 +109,18 @@ function ncfRedirectSeoNoSlashV13(req, res) {
   }
 }
 
-function ncfRewriteSeoRequestV13(req) {
+function ncfRewriteSeoRequestV14(req) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
-    if (NCF_SEO_PATHS_V13.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
+    if (NCF_SEO_PATHS_V14.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
       req.seoOriginalPathname = pathname;
       req.url = "/" + current.search;
     }
   } catch {}
 }
 
-function ncfApplySeoRouteMetadataV13(req, res) {
+function ncfApplySeoRouteMetadataV14(req, res) {
   const pathname = String(req.seoOriginalPathname || "");
   if (!pathname) return;
 
@@ -105,7 +153,16 @@ function ncfApplySeoRouteMetadataV13(req, res) {
         const host = String(req.headers["x-forwarded-host"] || req.headers.host || "nightcamfinds.com").split(",")[0].trim();
         const origin = proto + "://" + host;
         const canonical = origin + (pathname.startsWith("/") ? pathname : "/" + pathname);
-        const meta = NCF_ROUTE_META_V13[pathname];
+        const countryNames = { us: "United States", gb: "United Kingdom", ca: "Canada", au: "Australia", de: "Germany", fr: "France", nl: "Netherlands" };
+        const countryMatch = pathname.match(/^\\/country\\/([a-z]{2})\\/$/i);
+        const countryCode = countryMatch ? countryMatch[1].toLowerCase() : "";
+        const countryName = countryNames[countryCode] || (countryCode ? countryCode.toUpperCase() : "");
+        const meta = NCF_ROUTE_META_V14[pathname] || (countryName ? {
+          title: "Live Cams in " + countryName + " | NightCamFinds",
+          description: "Browse live cam rooms associated with " + countryName + " on NightCamFinds. Explore available public rooms and continue to Chaturbate or BongaCams.",
+          ogTitle: "Live Cams in " + countryName + " | NightCamFinds",
+          ogDescription: "Discover available live cam rooms associated with " + countryName + "."
+        } : null);
         let html = Buffer.concat(chunks).toString("utf8");
 
         html = html.replace(
@@ -157,13 +214,13 @@ if (!s.includes(listenerAnchor)) {
 s = s.replace(listenerAnchor, helper + listenerAnchor);
 
 const insertion =
-  '    if (ncfRedirectSeoNoSlashV13(req, res)) return;\n' +
-  '    ncfRewriteSeoRequestV13(req);\n' +
-  '    ncfApplySeoRouteMetadataV13(req, res);\n';
+  '    if (ncfRedirectSeoNoSlashV14(req, res)) return;\n' +
+  '    ncfRewriteSeoRequestV14(req);\n' +
+  '    ncfApplySeoRouteMetadataV14(req, res);\n';
 
 if (!s.includes(insertion)) {
   s = s.replace(listenerAnchor, listenerAnchor + insertion);
 }
 
 fs.writeFileSync(FILE, s);
-console.log("Applied SEO SPA route patch V13");
+console.log("Applied SEO SPA route patch V14");
