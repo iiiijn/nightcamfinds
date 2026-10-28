@@ -4,6 +4,7 @@ const { spawnSync } = require("child_process");
 const requiredFiles = [
   "route.js",
   "scripts/run-production-migrations.js",
+  "scripts/fix-server-syntax.js",
   "scripts/patch-spa-seo-routes.js",
   ".github/workflows/verify-production.yml",
   "render.yaml",
@@ -33,9 +34,9 @@ for (const file of requiredFiles.filter(file => file.endsWith(".js"))) {
 
 const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
 const start = String(pkg.scripts?.start || "");
-const expectedStart = "node scripts/run-production-migrations.js && node scripts/patch-spa-seo-routes.js && node route.js";
+const expectedStart = "node scripts/run-production-migrations.js && node scripts/fix-server-syntax.js && node scripts/patch-spa-seo-routes.js && node route.js";
 if (start !== expectedStart) fail(`production start command must be exactly: ${expectedStart}`);
-if (/fix-server-syntax|fix-bonga-affiliate|patch-seo-attribution-v2/.test(start)) fail("retired build-time patch scripts must not run at startup");
+if (/fix-bonga-affiliate|patch-seo-attribution-v2/.test(start)) fail("non-runtime build patches must not run at startup");
 
 const render = fs.readFileSync("render.yaml", "utf8");
 if (!render.includes("buildCommand: npm ci")) fail("Render build configuration must use npm ci");
@@ -59,4 +60,4 @@ if (failed) {
   process.exit(1);
 }
 
-console.log("Production verification passed: syntax, required files, deterministic install configuration, minimal startup wiring, affiliate routing, and SEO patch markers are intact.");
+console.log("Production verification passed: syntax, required files, deterministic install configuration, minimal runtime startup, affiliate routing, and SEO patch markers are intact.");
