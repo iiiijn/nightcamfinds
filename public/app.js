@@ -116,7 +116,8 @@ function trackingQuery(extra = {}) {
     medium: trafficMedium || "unknown",
     campaign: trafficCampaign,
     content: trafficContent || "",
-    placement: extra.placement || src
+    placement: extra.placement || src,
+    lp: String((attributionFresh ? savedAttribution.landingPath : "") || location.pathname || "/").slice(0, 255)
   });
   return params.toString();
 }
@@ -275,3 +276,5 @@ setInterval(() => {
   if (document.hidden || q.value) return;
   load().catch(() => {});
 }, 30000);
+// NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V2
+// NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V3
