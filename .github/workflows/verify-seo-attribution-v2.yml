@@ -13,6 +13,7 @@ on:
       - "public/app.js"
       - "public/dashboard.html"
       - "package.json"
+      - "render.yaml"
       - ".github/workflows/verify-seo-attribution-v2.yml"
   pull_request:
     paths:
@@ -26,6 +27,7 @@ on:
       - "public/app.js"
       - "public/dashboard.html"
       - "package.json"
+      - "render.yaml"
       - ".github/workflows/verify-seo-attribution-v2.yml"
   workflow_dispatch:
 
@@ -40,6 +42,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
       - name: Check patch scripts
         run: |
@@ -50,11 +53,12 @@ jobs:
           node --check scripts/fix-bonga-affiliate.js
           node --check scripts/verify-start-command.js
 
-      - name: Apply production startup patches in CI workspace
+      - name: Apply production build patches in CI workspace
         run: |
           node scripts/patch-seo-attribution-v2.js
           node scripts/fix-server-syntax.js
           node scripts/patch-spa-seo-routes.js
+          node scripts/fix-bonga-affiliate.js
 
       - name: Check production JavaScript
         run: |
@@ -73,9 +77,4 @@ jobs:
           grep -q "NIGHTCAMFINDS_SPA_SEO_ROUTES_V13" route.js
 
       - name: Install dependencies and run tests
-        run: |
-          npm config set registry https://registry.npmjs.org/
-          npm cache clean --force
-          rm -f package-lock.json
-          npm install --prefer-online --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
-          npm test
+        run: npm ci && npm test
