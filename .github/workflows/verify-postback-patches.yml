@@ -60,6 +60,7 @@ jobs:
           node scripts/patch-tier-analytics.js
           node scripts/patch-seo-attribution.js
           node scripts/patch-dashboard-seo-attribution.js
+          node scripts/patch-spa-seo-routes.js
 
       - name: Check patched runtime syntax
         run: |
@@ -73,6 +74,8 @@ jobs:
           grep -q "NIGHTCAMFINDS_CB_POSTBACK_PATCH_V6" route.js
           grep -q "landing_path" start.js
           grep -q "NIGHTCAMFINDS_DASHBOARD_SEO_ATTRIBUTION_V1" public/dashboard.html
+          grep -q "NIGHTCAMFINDS_BONGA_REVSHARE_V1" route.js
+          grep -q 'target.searchParams.set("c", BONGA_CAMPAIGN)' route.js
 
       - name: Install all production and test dependencies
         run: npm install
