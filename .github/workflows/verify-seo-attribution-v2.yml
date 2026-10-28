@@ -49,6 +49,9 @@ jobs:
       - name: Apply production server syntax cleanup
         run: node scripts/fix-server-syntax.js
 
+      - name: Apply SPA SEO route patch used by production startup
+        run: node scripts/patch-spa-seo-routes.js
+
       - name: Check production JavaScript
         run: |
           node --check route.js
