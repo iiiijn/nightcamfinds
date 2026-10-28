@@ -40,7 +40,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
 
       - name: Check patch scripts
         run: |
@@ -75,5 +74,6 @@ jobs:
 
       - name: Install dependencies and run tests
         run: |
-          npm ci
+          npm cache clean --force
+          npm ci --prefer-online
           npm test
