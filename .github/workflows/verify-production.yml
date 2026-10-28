@@ -5,14 +5,18 @@ on:
     branches: [main]
     paths:
       - "**.js"
+      - "public/**"
       - "package.json"
       - "package-lock.json"
+      - "render.yaml"
       - ".github/workflows/verify-production.yml"
   pull_request:
     paths:
       - "**.js"
+      - "public/**"
       - "package.json"
       - "package-lock.json"
+      - "render.yaml"
       - ".github/workflows/verify-production.yml"
   workflow_dispatch:
 
