@@ -295,12 +295,14 @@ http.createServer = function routeDashboard(handler) {
       const agent = String(req.headers["user-agent"] || "").toLowerCase();
       const device = /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop";
       const country = String(req.headers["cf-ipcountry"] || req.headers["x-vercel-ip-country"] || req.headers["cloudfront-viewer-country"] || req.headers["x-country-code"] || "UNKNOWN").toUpperCase().slice(0, 16);
+
+      // Record our own click independently; provider redirect must still work if analytics are unavailable.
       try {
         if (pool) {
           await pool.query(`CREATE TABLE IF NOT EXISTS affiliate_clicks (
             id BIGSERIAL PRIMARY KEY, clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN', category VARCHAR(40) NOT NULL DEFAULT 'unknown',
-            source VARCHAR(80) NOT NULL DEFAULT 'direct', campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
+            source VARCHAR(40) NOT NULL DEFAULT 'direct', campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
             placement VARCHAR(80) NOT NULL DEFAULT 'unknown', platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate',
             medium VARCHAR(80) NOT NULL DEFAULT 'unknown', content VARCHAR(120) NOT NULL DEFAULT '',
             device VARCHAR(32) NOT NULL DEFAULT 'unknown', click_id VARCHAR(128)
@@ -325,16 +327,14 @@ http.createServer = function routeDashboard(handler) {
             [ins.rows[0]?.id || null, clickId, country, category, source, campaign, src, medium, content, device]);
         }
       } catch (err) { console.error("Bonga click attribution logging failed:", err.message); }
-      const target = new URL("https://bongacams4.com/track");
-      target.searchParams.set("c", BONGA_CAMPAIGN);
-      target.searchParams.set("click_id", clickId);
-      target.searchParams.set("v", "2");
-      target.searchParams.set("track", src);
-      target.searchParams.set("source", source);
-      target.searchParams.set("campaign", campaign);
-      // Redirect only to the provider tracking endpoint. Never accept a user-supplied URL.
-      res.writeHead(302, { Location: target.toString(), "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" });
-      return res.end();
+
+      // Continue to the existing room handler. It uses the provider's official API-provided
+      // room href when available; the outgoing-response wrapper below forces campaign 840970
+      // on BongaCash /track URLs. This preserves specific room destinations rather than sending
+      // every visitor to the generic homepage.
+      req.ncfBongaClickId = clickId;
+      req.ncfBongaSource = source;
+      req.ncfBongaCampaign = campaign;
     }
 
     if (incoming.pathname === "/api/health") {
