@@ -314,7 +314,15 @@ http.createServer = function routeDashboard(handler) {
         }
         if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
         const origin = req.headers.origin;
-        if (origin && new URL(origin).host !== req.headers.host) return sendJson(res, 403, { error: "Origin check failed." });
+        const fetchSite = String(req.headers["sec-fetch-site"] || "").toLowerCase();
+        if (!origin) return sendJson(res, 403, { error: "Origin header required." });
+        if (fetchSite === "cross-site") return sendJson(res, 403, { error: "Cross-site requests are not allowed." });
+        let originUrl;
+        try { originUrl = new URL(origin); } catch { return sendJson(res, 403, { error: "Invalid origin." }); }
+        const requestHost = String(req.headers.host || "").toLowerCase();
+        if (!requestHost || originUrl.host.toLowerCase() !== requestHost || !["http:", "https:"].includes(originUrl.protocol) || originUrl.origin === "null") {
+          return sendJson(res, 403, { error: "Origin check failed." });
+        }
         if (!String(req.headers["content-type"] || "").toLowerCase().includes("application/json")) return sendJson(res, 415, { error: "Use application/json." });
         let body = "";
         for await (const chunk of req) { body += chunk; if (body.length > 12000) return sendJson(res, 413, { error: "Request too large." }); }
