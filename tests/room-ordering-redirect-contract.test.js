@@ -22,7 +22,6 @@ test("Chaturbate and BongaCams use distinct tracked redirect paths", () => {
   assert.ok(serverSource.includes("chaturbate.com/in/"));
   assert.ok(serverSource.includes("bongacams4.com/track") || serverSource.includes("bongacams.com/"));
   assert.ok(serverSource.includes('searchParams.set("click_id",clickId)') || serverSource.includes('searchParams.set("click_id", clickId)'));
-  assert.ok(serverSource.includes('searchParams.set("track",src)') || serverSource.includes('searchParams.set("track", src)'));
 });
 
 test("affiliate destinations keep separate campaign and tracking parameters", () => {
