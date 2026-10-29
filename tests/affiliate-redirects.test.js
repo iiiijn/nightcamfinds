@@ -35,11 +35,16 @@ async function waitForServer(baseUrl, child) {
 test("affiliate redirect endpoints return tracked provider URLs and record click attribution", async t => {
   const port = await freePort();
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-stats-"));
+  const stubRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-modules-"));
+  const pgStub = path.join(stubRoot, "pg");
+  fs.mkdirSync(pgStub, { recursive: true });
+  fs.writeFileSync(path.join(pgStub, "index.js"), "class Pool { constructor() { throw new Error('Unexpected database pool creation in redirect test'); } } module.exports = { Pool };");
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["-e", "require('./route.js')"], {
     cwd: process.cwd(),
     env: {
       ...process.env,
+      NODE_PATH: [stubRoot, process.env.NODE_PATH || ""].filter(Boolean).join(path.delimiter),
       PORT: String(port),
       DATA_DIR: dataDir,
       DATABASE_URL: "",
@@ -56,6 +61,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   t.after(() => {
     if (child.exitCode === null) child.kill("SIGTERM");
     fs.rmSync(dataDir, { recursive: true, force: true });
+    fs.rmSync(stubRoot, { recursive: true, force: true });
   });
 
   await waitForServer(baseUrl, child);
