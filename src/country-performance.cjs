@@ -15,6 +15,27 @@ function finiteAmount(value) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
+function buildDateRange(from, to, column = "received_at") {
+  const allowedColumns = new Set(["clicked_at", "received_at"]);
+  if (!allowedColumns.has(column)) throw new Error("Unsupported date-range column");
+  const validDate = value => {
+    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(value || ""))) return false;
+    const date = new Date(String(value) + "T00:00:00.000Z");
+    return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  };
+  const params = [];
+  const where = [];
+  if (validDate(from)) {
+    params.push(`${from}T00:00:00.000Z`);
+    where.push(`${column} >= ${params.length}`);
+  }
+  if (validDate(to)) {
+    params.push(`${to}T23:59:59.999Z`);
+    where.push(`${column} <= ${params.length}`);
+  }
+  return { params, where: where.length ? `WHERE ${where.join(" AND ")}` : "" };
+}
+
 function summarizeCountryPerformance(clickRows = [], conversionRows = []) {
   const groups = new Map();
   const getGroup = (country, platform) => {
@@ -106,4 +127,4 @@ function summarizeCountryPerformance(clickRows = [], conversionRows = []) {
   }).sort((a, b) => a.country.localeCompare(b.country) || a.platform.localeCompare(b.platform));
 }
 
-module.exports = { summarizeCountryPerformance };
+module.exports = { summarizeCountryPerformance, buildDateRange };
