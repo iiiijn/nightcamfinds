@@ -263,6 +263,59 @@ async function dashboardStats(incoming) {
   const devices = Object.fromEntries(deviceRows.map(r => [r.device || "unknown", Number(r.n)]));
   const countries = Object.fromEntries(countryRows.map(r => [r.country || "UNKNOWN", Number(r.n)]));
   const mediumStats = Object.fromEntries(mediums.map(r => [r.medium || "unknown", Number(r.n)]));
+  // Country/platform detail is derived from stored click IDs. Conversion counts
+  // are reported only where a conversion can be matched to a tracked click.
+  // BongaCams per-country conversion attribution remains unavailable unless its
+  // postback data includes a reliable matching click ID.
+  let countryPlatformMetrics = [];
+  let countryPlatformMetricsAvailable = false;
+  try {
+    const metricRows = await pool.query(
+      `SELECT UPPER(ac.country) AS country, LOWER(ac.platform) AS platform,
+        COUNT(DISTINCT ac.id)::int AS clicks,
+        COUNT(DISTINCT ac.id) FILTER (WHERE ac.engaged_at IS NOT NULL)::int AS engaged_clicks,
+        COUNT(DISTINCT cc.id) FILTER (WHERE cc.conversion_type IN ('revshare_signup-referral','registration','signup'))::int AS verified_signups,
+        COUNT(DISTINCT cc.id) FILTER (WHERE cc.conversion_type IN ('revshare_purchase','purchase'))::int AS verified_payers,
+        COALESCE(SUM(cc.payout) FILTER (WHERE cc.conversion_type IN ('revshare_purchase','revshare_payout-adjustment','purchase')),0)::numeric AS revenue
+       FROM affiliate_clicks ac
+       LEFT JOIN cb_conversions cc ON cc.click_id = ac.click_id AND ac.platform = 'chaturbate'
+       ${where}
+       GROUP BY UPPER(ac.country), LOWER(ac.platform)
+       ORDER BY UPPER(ac.country), LOWER(ac.platform)`,
+      params
+    );
+    countryPlatformMetrics = metricRows.rows.map(row => {
+      const clicks = Number(row.clicks || 0);
+      const engagedClicks = Number(row.engaged_clicks || 0);
+      const verifiedSignups = Number(row.verified_signups || 0);
+      const verifiedPayers = Number(row.verified_payers || 0);
+      const revenue = Number(row.revenue || 0);
+      return {
+        country: row.country || "UNKNOWN", platform: row.platform || "unknown",
+        clicks, engagedClicks, verifiedSignups, verifiedPayers, revenue,
+        epc: clicks > 0 ? revenue / clicks : null,
+        conversionAttribution: row.platform === "chaturbate" ? "matched_click_ids" : "unavailable",
+        evidenceEligible: clicks >= 100 && engagedClicks >= 20 && verifiedSignups >= 5
+      };
+    });
+    countryPlatformMetricsAvailable = true;
+  } catch (metricError) {
+    // The additive attribution migration is not applied automatically to production.
+    // Fall back to a truthful click-only report using the legacy columns.
+    const metricRows = await pool.query(
+      `SELECT UPPER(country) AS country, LOWER(platform) AS platform, COUNT(*)::int AS clicks
+       FROM affiliate_clicks ${where}
+       GROUP BY UPPER(country), LOWER(platform)
+       ORDER BY UPPER(country), LOWER(platform)`,
+      params
+    );
+    countryPlatformMetrics = metricRows.rows.map(row => ({
+      country: row.country || "UNKNOWN", platform: row.platform || "unknown",
+      clicks: Number(row.clicks || 0), engagedClicks: null, verifiedSignups: null,
+      verifiedPayers: null, revenue: null, epc: null, evidenceEligible: false,
+      conversionAttribution: "unavailable_until_schema_and_postbacks_are_verified"
+    }));
+  }
   const countSince = async days => Number((await pool.query("SELECT COUNT(*)::int AS n FROM affiliate_clicks WHERE clicked_at >= NOW() - ($1::int * INTERVAL '1 day')", [days])).rows[0]?.n || 0);
   const cbClicks = platforms.chaturbate || 0;
   const bcClicks = platforms.bongacams || 0;
@@ -275,7 +328,8 @@ async function dashboardStats(incoming) {
     earnings: Number(earningsRows.rows[0]?.earnings || 0), bongacamsRegistrations: Number(bongacash.rows[0]?.registrations || 0),
     bongacamsPurchases: Number(bongacash.rows[0]?.purchases || 0), bongacamsEarnings: Number(bongacash.rows[0]?.earnings || 0),
     bongacashConnected: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
-    platforms, countries, sources, placements, campaigns, devices, mediums
+    platforms, countries, sources, placements, campaigns, devices, mediums,
+    countryPlatformMetrics, countryPlatformMetricsAvailable
   };
 }
 
