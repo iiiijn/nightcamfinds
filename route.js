@@ -198,6 +198,50 @@ async function dashboardStats(incoming) {
   } catch {}
 
   const totalClicks = cbClicks + bongaClicks;
+
+  // Country/platform report: click counts use the selected click-date range;
+  // conversions use the same selected date range on received_at and are attributed
+  // to the originating click country only when the click ID can be matched.
+  const countryClickRows = await pool.query(
+    `SELECT UPPER(COALESCE(NULLIF(country,''),'UNKNOWN')) AS country,
+            LOWER(COALESCE(NULLIF(platform,''),'unknown')) AS platform,
+            COUNT(*)::int AS clicks
+       FROM affiliate_clicks ${cb.where}
+      GROUP BY 1,2`,
+    cb.params
+  );
+  const conversionEvents = [];
+  try {
+    const rows = await pool.query(
+      `SELECT c.conversion_type, c.payout, c.currency, c.country AS reported_country,
+              c.user_id, cc.country AS click_country,
+              (cc.click_id IS NOT NULL) AS matched_click
+         FROM cb_conversions c
+         LEFT JOIN cb_clicks cc ON cc.click_id = c.click_id
+         ${conv.where}`,
+      conv.params
+    );
+    for (const row of rows.rows) conversionEvents.push({ ...row, platform: "chaturbate" });
+  } catch (err) {
+    console.warn("Chaturbate country attribution unavailable:", err.message);
+  }
+  try {
+    const rows = await pool.query(
+      `SELECT c.conversion_type, c.payout, c.currency, c.country AS reported_country,
+              c.user_id, bc.country AS click_country,
+              (bc.click_id IS NOT NULL) AS matched_click
+         FROM bonga_conversions c
+         LEFT JOIN bonga_clicks bc ON bc.click_id = c.click_id
+         ${conv.where}`,
+      conv.params
+    );
+    for (const row of rows.rows) conversionEvents.push({ ...row, platform: "bongacams" });
+  } catch (err) {
+    console.warn("BongaCams country attribution unavailable:", err.message);
+  }
+  const { summarizeCountryPerformance } = require("./src/country-performance.cjs");
+  const countryPlatformPerformance = summarizeCountryPerformance(countryClickRows.rows, conversionEvents);
+
   const now = new Date();
   const iso = d => d.toISOString().slice(0,10);
   const day = new URL(incoming); day.searchParams.set("from", iso(now)); day.searchParams.set("to", iso(now));
@@ -268,6 +312,7 @@ async function dashboardStats(incoming) {
     bongacashPostbackConfigured: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
     bongacashTrackingVerified: false,
     platforms: { chaturbate: cbClicks, bongacams: bongaClicks },
+    countryPlatformPerformance,
     sources,
     countries: combinedCountries,
     placements,
