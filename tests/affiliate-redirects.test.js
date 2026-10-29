@@ -96,12 +96,11 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   );
   assert.equal(bongaResponse.status, 302);
   const bongaTarget = new URL(bongaResponse.headers.get("location"));
-  assert.equal(bongaTarget.hostname, "bongacams.com");
-  assert.equal(bongaTarget.pathname, "/testbongamodel");
-  assert.equal(bongaTarget.searchParams.get("ncf_source"), "redirect-test");
-  assert.equal(bongaTarget.searchParams.get("ncf_campaign"), "bonga-check");
-  assert.equal(bongaTarget.searchParams.get("ncf_placement"), "bonga-test-card");
-  assert.match(bongaTarget.searchParams.get("ncf_click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
+  assert.equal(bongaTarget.hostname, "bongacams4.com");
+  assert.equal(bongaTarget.pathname, "/track");
+  assert.equal(bongaTarget.searchParams.get("c"), "testBongaCampaign");
+  assert.equal(bongaTarget.searchParams.get("track"), "bonga-test-card");
+  assert.match(bongaTarget.searchParams.get("click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
 
   const statsPath = path.join(dataDir, "clicks.json");
   const stats = JSON.parse(fs.readFileSync(statsPath, "utf8"));
