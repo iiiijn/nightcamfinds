@@ -264,8 +264,54 @@ async function dashboardStats(incoming) {
   const cbClicks = platforms.chaturbate || 0;
   const bcClicks = platforms.bongacams || 0;
   const cbTier = Number(tierRows.rows[0]?.n || 0) - Number(tierRows.rows[0]?.bonga || 0);
+  const performance = new Map();
+  for (const row of await q(`SELECT country, platform, COUNT(*)::int AS clicks FROM affiliate_clicks ${where} GROUP BY country, platform`)) {
+    const countryCode = String(row.country || "UNKNOWN").toUpperCase();
+    const platform = String(row.platform || "unknown").toLowerCase();
+    performance.set(countryCode + ":" + platform, {
+      country: countryCode, platform, clicks: Number(row.clicks || 0),
+      engagedClicks: null, signups: 0, payers: 0, revenue: 0, epc: null,
+      engagementDataAvailable: false
+    });
+  }
+  const addConversions = (rows, platform) => {
+    for (const row of rows) {
+      const countryCode = String(row.country || "UNKNOWN").toUpperCase();
+      const key = countryCode + ":" + platform;
+      const item = performance.get(key) || {
+        country: countryCode, platform, clicks: 0, engagedClicks: null,
+        signups: 0, payers: 0, revenue: 0, epc: null, engagementDataAvailable: false
+      };
+      item.signups += Number(row.signups || 0);
+      item.payers += Number(row.payers || 0);
+      item.revenue += Number(row.revenue || 0);
+      performance.set(key, item);
+    }
+  };
+  try {
+    const rows = await pool.query(`SELECT country,
+      COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS signups,
+      COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS payers,
+      COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS revenue
+      FROM cb_conversions GROUP BY country`);
+    addConversions(rows.rows, "chaturbate");
+  } catch {}
+  try {
+    const rows = await pool.query(`SELECT country,
+      COUNT(*) FILTER (WHERE conversion_type='registration')::int AS signups,
+      COUNT(*) FILTER (WHERE conversion_type='purchase')::int AS payers,
+      COALESCE(SUM(payout) FILTER (WHERE conversion_type='purchase'),0)::numeric AS revenue
+      FROM bonga_conversions GROUP BY country`);
+    addConversions(rows.rows, "bongacams");
+  } catch {}
+  const countryPlatformPerformance = [...performance.values()].map(item => ({
+    ...item,
+    revenue: Number(item.revenue.toFixed(4)),
+    epc: item.clicks > 0 ? Number((item.revenue / item.clicks).toFixed(6)) : null
+  })).sort((a,b) => a.country.localeCompare(b.country) || a.platform.localeCompare(b.platform));
   return {
     persistent: true, totalClicks: total, chaturbateClicks: cbClicks, bongacamsClicks: bcClicks,
+    countryPlatformPerformance,
     tier1Clicks: Number(tierRows.rows[0]?.n || 0), bongaTier1Clicks: Number(tierRows.rows[0]?.bonga || 0),
     today: await countSince(1), week: await countSince(7), month: await countSince(30),
     registrations: Number(earningsRows.rows[0]?.registrations || 0), purchases: Number(earningsRows.rows[0]?.purchases || 0),
