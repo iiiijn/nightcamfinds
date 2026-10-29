@@ -5,7 +5,8 @@ import {
   isEligibleForRoutingEvidence,
   normalizeCountryCode,
   normalizePlatform,
-  resolveCountryPlatform
+  resolveCountryPlatform,
+  summarizeCountryPlatformMetrics
 } from "../src/services/country-routing.js";
 
 test("normalizes supported country codes and rejects unknown codes", () => {
@@ -69,4 +70,34 @@ test("EPC is revenue per eligible click and undefined for no clicks or invalid v
   assert.equal(calculateEpc({ revenue: 12, eligibleClicks: 4 }), 3);
   assert.equal(calculateEpc({ revenue: 12, eligibleClicks: 0 }), null);
   assert.equal(calculateEpc({ revenue: "not-a-number", eligibleClicks: 4 }), null);
+});
+
+test("country-platform summary aggregates metrics and computes EPC without inventing missing values", () => {
+  const result = summarizeCountryPlatformMetrics([
+    { country: "US", platform: "chaturbate", clicks: 50, engagedClicks: 10, verifiedSignups: 2, verifiedPayers: 1, revenue: 8 },
+    { country: "us", platform: "CHaturbate", clicks: 50, engagedClicks: 10, verifiedSignups: 3, verifiedPayers: 1, revenue: 12 },
+    { country: "DE", platform: "bongacams", clicks: 0, engagedClicks: null, verifiedSignups: 0, verifiedPayers: 0, revenue: null },
+    { country: "KE", platform: "bongacams", clicks: 99, revenue: 99 },
+    { country: "GB", platform: "unsupported", clicks: 99, revenue: 99 }
+  ]);
+  assert.equal(result.length, 2);
+  assert.deepEqual(result[0], {
+    country: "DE", platform: "bongacams", clicks: 0, engagedClicks: 0,
+    verifiedSignups: 0, verifiedPayers: 0, revenue: 0, epc: null, evidenceEligible: false
+  });
+  assert.deepEqual(result[1], {
+    country: "US", platform: "chaturbate", clicks: 100, engagedClicks: 20,
+    verifiedSignups: 5, verifiedPayers: 2, revenue: 20, epc: 0.2, evidenceEligible: true
+  });
+});
+
+test("country-platform summary treats invalid and negative metrics as zero", () => {
+  const [result] = summarizeCountryPlatformMetrics([
+    { country: "GB", platform: "chaturbate", clicks: -3, engagedClicks: "invalid", revenue: -5 }
+  ]);
+  assert.equal(result.clicks, 0);
+  assert.equal(result.engagedClicks, 0);
+  assert.equal(result.revenue, 0);
+  assert.equal(result.epc, null);
+  assert.equal(result.evidenceEligible, false);
 });
