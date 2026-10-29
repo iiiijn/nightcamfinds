@@ -291,7 +291,7 @@ async function dashboardStats(incoming) {
   try {
     const rows = await pool.query(`SELECT country,
       COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS signups,
-      COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS payers,
+      COUNT(DISTINCT user_id) FILTER (WHERE conversion_type='revshare_purchase' AND user_id IS NOT NULL AND user_id <> '')::int AS payers,
       COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS revenue
       FROM cb_conversions GROUP BY country`);
     addConversions(rows.rows, "chaturbate");
@@ -299,7 +299,7 @@ async function dashboardStats(incoming) {
   try {
     const rows = await pool.query(`SELECT country,
       COUNT(*) FILTER (WHERE conversion_type='registration')::int AS signups,
-      COUNT(*) FILTER (WHERE conversion_type='purchase')::int AS payers,
+      COUNT(DISTINCT user_id) FILTER (WHERE conversion_type='purchase' AND user_id IS NOT NULL AND user_id <> '')::int AS payers,
       COALESCE(SUM(payout) FILTER (WHERE conversion_type='purchase'),0)::numeric AS revenue
       FROM bonga_conversions GROUP BY country`);
     addConversions(rows.rows, "bongacams");
