@@ -1,6 +1,20 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { summarizeCountryPerformance } = require("../src/country-performance.cjs");
+const { summarizeCountryPerformance, buildDateRange } = require("../src/country-performance.cjs");
+
+test("applies selected date bounds to click and conversion timestamps with parameterized SQL", () => {
+  const clicks = buildDateRange("2026-10-01", "2026-10-28", "clicked_at");
+  assert.equal(clicks.where, "WHERE clicked_at >= $1 AND clicked_at <= $2");
+  assert.deepEqual(clicks.params, ["2026-10-01T00:00:00.000Z", "2026-10-28T23:59:59.999Z"]);
+  const conversions = buildDateRange("2026-10-01", "2026-10-28", "received_at");
+  assert.equal(conversions.where, "WHERE received_at >= $1 AND received_at <= $2");
+  assert.deepEqual(conversions.params, clicks.params);
+});
+
+test("ignores invalid dates and rejects unapproved SQL column names", () => {
+  assert.deepEqual(buildDateRange("2026-02-30", "not-a-date", "received_at"), { params: [], where: "" });
+  assert.throws(() => buildDateRange("2026-10-01", null, "country"), /Unsupported date-range column/);
+});
 
 test("uses the originating click country when a conversion click ID matches", () => {
   const rows = summarizeCountryPerformance(
