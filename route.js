@@ -307,6 +307,19 @@ http.createServer = function routeDashboard(handler) {
     }
     if (incoming.pathname === "/api/country-platform-settings") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET" && req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
+      if (req.method === "POST") {
+        if (!isSameOriginRequest(req.headers)) return sendJson(res, 403, { error: "Origin check failed." });
+        if (!String(req.headers["content-type"] || "").toLowerCase().includes("application/json")) return sendJson(res, 415, { error: "Use application/json." });
+      }
+      let payload;
+      if (req.method === "POST") {
+        let body = "";
+        for await (const chunk of req) { body += chunk; if (body.length > 12000) return sendJson(res, 413, { error: "Request too large." }); }
+        try { payload = JSON.parse(body || "{}"); } catch { return sendJson(res, 400, { error: "Invalid JSON." }); }
+        const validation = validateCountryPlatformPayload(payload);
+        if (validation.error) return sendJson(res, 400, { error: validation.error });
+      }
       if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
       try {
         if (req.method === "GET") {
@@ -314,16 +327,7 @@ http.createServer = function routeDashboard(handler) {
           const byCountry = Object.fromEntries(result.rows.map(row => [String(row.country_code).trim(), row]));
           return sendJson(res, 200, { settings: ["US","GB","CA","AU","DE","FR","NL"].map(country => byCountry[country] || { country_code: country, preferred_platform: null, status: "hypothesis", hypothesis: "", approved_at: null, notConfigured: true }) });
         }
-        if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
-        if (!isSameOriginRequest(req.headers)) return sendJson(res, 403, { error: "Origin check failed." });
-        if (!String(req.headers["content-type"] || "").toLowerCase().includes("application/json")) return sendJson(res, 415, { error: "Use application/json." });
-        let body = "";
-        for await (const chunk of req) { body += chunk; if (body.length > 12000) return sendJson(res, 413, { error: "Request too large." }); }
-        let payload;
-        try { payload = JSON.parse(body || "{}"); } catch { return sendJson(res, 400, { error: "Invalid JSON." }); }
-        const validation = validateCountryPlatformPayload(payload);
-        if (validation.error) return sendJson(res, 400, { error: validation.error });
-        const { country, platform, action, hypothesis, status } = validation.value;
+        const { country, platform, action, hypothesis, status } = payload ? validateCountryPlatformPayload(payload).value : {};
         const approvedAt = action === "approve" ? new Date() : null;
         const saved = await pool.query(
           `INSERT INTO country_platform_settings (country_code, preferred_platform, status, hypothesis, approved_at, updated_by, updated_at)
