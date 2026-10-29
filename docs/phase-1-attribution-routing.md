@@ -12,7 +12,7 @@ Bot-like user agents are marked in the richer event table; they are not silently
 
 The dashboard stats API includes `countryPlatformPerformance` with clicks, signups, payers, reported revenue and EPC. Engaged clicks are returned as unknown (`null`) until an authoritative source is integrated; they must not be inferred from raw click counts. Conversion values are attributed to the country and partner reported by postbacks, so unmatched and missing-country events need review before making routing decisions.
 
-EPC is calculated as reported revenue divided by tracked clicks. Revenue currency consistency and postback classification must be checked before comparing platforms.
+EPC is calculated as reported payout divided by tracked clicks only when every revenue event in a country/platform group has the same known currency. Mixed or missing currencies produce unknown revenue/EPC rather than a misleading sum. The report applies the selected date range to click timestamps for clicks and postback received timestamps for conversions; it is an event-date report, not a click-cohort report, so conversion lag must be considered. Conversion country uses the originating click country when the click ID and a known click country match. Otherwise the event remains under the partner-reported country and is labeled unmatched.
 
 ## Country routing
 
