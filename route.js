@@ -6,6 +6,7 @@ const crypto = require("crypto");
 const { Pool } = require("pg");
 const bongacash = require("./bongacash");
 const { isSameOriginRequest } = require("./src/services/country-settings-origin.cjs");
+const { validateCountryPlatformPayload } = require("./src/services/country-settings-validation.cjs");
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -320,18 +321,9 @@ http.createServer = function routeDashboard(handler) {
         for await (const chunk of req) { body += chunk; if (body.length > 12000) return sendJson(res, 413, { error: "Request too large." }); }
         let payload;
         try { payload = JSON.parse(body || "{}"); } catch { return sendJson(res, 400, { error: "Invalid JSON." }); }
-        const countries = new Set(["US","GB","CA","AU","DE","FR","NL"]);
-        const platforms = new Set(["chaturbate","bongacams"]);
-        const country = String(payload.country || "").trim().toUpperCase();
-        const platform = String(payload.preferredPlatform || "").trim().toLowerCase();
-        const action = String(payload.action || "save_hypothesis");
-        const hypothesis = String(payload.hypothesis || "").trim().slice(0, 1200);
-        if (!countries.has(country)) return sendJson(res, 400, { error: "Unsupported country." });
-        if (!platforms.has(platform)) return sendJson(res, 400, { error: "Choose a supported platform." });
-        if (!hypothesis) return sendJson(res, 400, { error: "Add a clearly labelled hypothesis before saving." });
-        if (!["save_hypothesis","approve"].includes(action)) return sendJson(res, 400, { error: "Unsupported settings action." });
-        if (action === "approve" && payload.confirmApproval !== true) return sendJson(res, 400, { error: "Explicit approval confirmation is required." });
-        const status = action === "approve" ? "approved" : "hypothesis";
+        const validation = validateCountryPlatformPayload(payload);
+        if (validation.error) return sendJson(res, 400, { error: validation.error });
+        const { country, platform, action, hypothesis, status } = validation.value;
         const approvedAt = action === "approve" ? new Date() : null;
         const saved = await pool.query(
           `INSERT INTO country_platform_settings (country_code, preferred_platform, status, hypothesis, approved_at, updated_by, updated_at)
