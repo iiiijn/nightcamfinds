@@ -73,7 +73,7 @@ jobs:
           grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_ROUTE_V2" route.js
           grep -q "NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V2" public/app.js
           grep -q "NIGHTCAMFINDS_DASHBOARD_SEO_ATTRIBUTION_V2" public/dashboard.html
-          grep -q "NIGHTCAMFINDS_SPA_SEO_ROUTES_V13" route.js
+          grep -q "NIGHTCAMFINDS_SPA_SEO_ROUTES_V14" route.js
 
       - name: Install isolated test dependencies and run tests
         run: |
