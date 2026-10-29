@@ -24,6 +24,14 @@ test("keeps unmatched conversions under partner-reported country and labels them
   assert.equal(unmatched.attributionQuality, "partner_reported_unmatched");
 });
 
+test("does not call an unknown click country click-attributed", () => {
+  const row = summarizeCountryPerformance([], [
+    { platform: "chaturbate", conversion_type: "revshare_signup-referral", matched_click: true, click_country: "UNKNOWN", reported_country: "DE" }
+  ])[0];
+  assert.equal(row.country, "DE");
+  assert.equal(row.attributionQuality, "partner_reported_unmatched");
+});
+
 test("does not aggregate revenue or EPC across mixed or missing currencies", () => {
   const mixed = summarizeCountryPerformance(
     [{ country: "GB", platform: "bongacams", clicks: 10 }],
