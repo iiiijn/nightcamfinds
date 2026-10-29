@@ -29,7 +29,7 @@ function signedSession(username, secret) {
 async function waitForServer(baseUrl, child) {
   const deadline = Date.now() + 8000;
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) throw new Error(`Test server exited early with code ${child.exitCode}`);
+    if (child.exitCode !== null) throw new Error(`Test server exited early with code ${child.exitCode}: ${child.testStderr || "no stderr captured"}`);
     try {
       const response = await fetch(`${baseUrl}/api/health`);
       if (response.ok) return;
@@ -61,8 +61,9 @@ test("country settings HTTP endpoints enforce session auth and return controlled
     stdio: ["ignore", "ignore", "pipe"]
   });
   let stderr = "";
+  child.testStderr = "";
   child.stderr.setEncoding("utf8");
-  child.stderr.on("data", chunk => { stderr += chunk; });
+  child.stderr.on("data", chunk => { stderr += chunk; child.testStderr += chunk; });
   t.after(() => {
     if (child.exitCode === null) child.kill("SIGTERM");
   });
