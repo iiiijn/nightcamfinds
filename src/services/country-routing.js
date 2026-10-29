@@ -61,3 +61,35 @@ export function calculateEpc({ revenue, eligibleClicks } = {}) {
   if (!Number.isFinite(amount) || !Number.isFinite(clicks) || clicks <= 0) return null;
   return amount / clicks;
 }
+
+export function summarizeCountryPlatformMetrics(rows = []) {
+  const summary = new Map();
+  for (const row of rows) {
+    const country = normalizeCountryCode(row?.country);
+    const platform = normalizePlatform(row?.platform);
+    if (country === "UNKNOWN" || !platform) continue;
+    const key = `${country}:${platform}`;
+    const current = summary.get(key) || {
+      country, platform, clicks: 0, engagedClicks: 0, verifiedSignups: 0,
+      verifiedPayers: 0, revenue: 0, epc: null, evidenceEligible: false
+    };
+    const nonNegative = value => {
+      const number = Number(value ?? 0);
+      return Number.isFinite(number) && number > 0 ? number : 0;
+    };
+    current.clicks += nonNegative(row.clicks);
+    current.engagedClicks += nonNegative(row.engagedClicks);
+    current.verifiedSignups += nonNegative(row.verifiedSignups);
+    current.verifiedPayers += nonNegative(row.verifiedPayers);
+    current.revenue += nonNegative(row.revenue);
+    summary.set(key, current);
+  }
+  for (const item of summary.values()) {
+    item.epc = calculateEpc({ revenue: item.revenue, eligibleClicks: item.clicks });
+    item.evidenceEligible = isEligibleForRoutingEvidence({
+      clicks: item.clicks, engagedClicks: item.engagedClicks, verifiedSignups: item.verifiedSignups
+    });
+  }
+  return [...summary.values()].sort((a, b) => a.country.localeCompare(b.country) || a.platform.localeCompare(b.platform));
+}
+
