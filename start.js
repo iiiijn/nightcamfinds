@@ -1,6 +1,7 @@
 const http = require("http");
 const crypto = require("crypto");
 const { COUNTRIES, PLATFORMS, resolveCountryPreference } = require("./src/country-routing.cjs");
+const { summarizeCountryPerformance, buildDateRange } = require("./src/country-performance.cjs");
 
 const originalCreateServer = http.createServer;
 const databaseUrl = process.env.DATABASE_URL;
@@ -264,51 +265,51 @@ async function dashboardStats(incoming) {
   const cbClicks = platforms.chaturbate || 0;
   const bcClicks = platforms.bongacams || 0;
   const cbTier = Number(tierRows.rows[0]?.n || 0) - Number(tierRows.rows[0]?.bonga || 0);
-  const performance = new Map();
-  for (const row of await q(`SELECT country, platform, COUNT(*)::int AS clicks FROM affiliate_clicks ${where} GROUP BY country, platform`)) {
-    const countryCode = String(row.country || "UNKNOWN").toUpperCase();
-    const platform = String(row.platform || "unknown").toLowerCase();
-    performance.set(countryCode + ":" + platform, {
-      country: countryCode, platform, clicks: Number(row.clicks || 0),
-      engagedClicks: null, signups: 0, payers: 0, revenue: 0, epc: null,
-      engagementDataAvailable: false
-    });
+  const conversionRange = buildDateRange(
+    incoming.searchParams.get("from"),
+    incoming.searchParams.get("to"),
+    "received_at"
+  );
+  const clickPerformanceRows = await q(
+    `SELECT country, platform, COUNT(*)::int AS clicks
+       FROM affiliate_clicks ${where}
+      GROUP BY country, platform`,
+    params
+  );
+  const conversionEvents = [];
+  try {
+    const rows = await pool.query(
+      `SELECT c.conversion_type, c.payout, c.currency, c.country AS reported_country,
+              c.user_id,
+              COALESCE(NULLIF(cc.country, 'UNKNOWN'), NULLIF(ac.country, 'UNKNOWN')) AS click_country,
+              (cc.click_id IS NOT NULL OR ac.click_id IS NOT NULL) AS matched_click
+         FROM cb_conversions c
+         LEFT JOIN cb_clicks cc ON cc.click_id = c.click_id
+         LEFT JOIN affiliate_clicks ac ON ac.click_id = c.click_id AND ac.platform = 'chaturbate'
+         ${conversionRange.where}`,
+      conversionRange.params
+    );
+    for (const row of rows.rows) conversionEvents.push({ ...row, platform: "chaturbate" });
+  } catch (err) {
+    console.warn("Chaturbate country attribution unavailable:", err.message);
   }
-  const addConversions = (rows, platform) => {
-    for (const row of rows) {
-      const countryCode = String(row.country || "UNKNOWN").toUpperCase();
-      const key = countryCode + ":" + platform;
-      const item = performance.get(key) || {
-        country: countryCode, platform, clicks: 0, engagedClicks: null,
-        signups: 0, payers: 0, revenue: 0, epc: null, engagementDataAvailable: false
-      };
-      item.signups += Number(row.signups || 0);
-      item.payers += Number(row.payers || 0);
-      item.revenue += Number(row.revenue || 0);
-      performance.set(key, item);
-    }
-  };
   try {
-    const rows = await pool.query(`SELECT country,
-      COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS signups,
-      COUNT(DISTINCT user_id) FILTER (WHERE conversion_type='revshare_purchase' AND user_id IS NOT NULL AND user_id <> '')::int AS payers,
-      COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS revenue
-      FROM cb_conversions GROUP BY country`);
-    addConversions(rows.rows, "chaturbate");
-  } catch {}
-  try {
-    const rows = await pool.query(`SELECT country,
-      COUNT(*) FILTER (WHERE conversion_type='registration')::int AS signups,
-      COUNT(DISTINCT user_id) FILTER (WHERE conversion_type='purchase' AND user_id IS NOT NULL AND user_id <> '')::int AS payers,
-      COALESCE(SUM(payout) FILTER (WHERE conversion_type='purchase'),0)::numeric AS revenue
-      FROM bonga_conversions GROUP BY country`);
-    addConversions(rows.rows, "bongacams");
-  } catch {}
-  const countryPlatformPerformance = [...performance.values()].map(item => ({
-    ...item,
-    revenue: Number(item.revenue.toFixed(4)),
-    epc: item.clicks > 0 ? Number((item.revenue / item.clicks).toFixed(6)) : null
-  })).sort((a,b) => a.country.localeCompare(b.country) || a.platform.localeCompare(b.platform));
+    const rows = await pool.query(
+      `SELECT c.conversion_type, c.payout, c.currency, c.country AS reported_country,
+              c.user_id,
+              COALESCE(NULLIF(bc.country, 'UNKNOWN'), NULLIF(ac.country, 'UNKNOWN')) AS click_country,
+              (bc.click_id IS NOT NULL OR ac.click_id IS NOT NULL) AS matched_click
+         FROM bonga_conversions c
+         LEFT JOIN bonga_clicks bc ON bc.click_id = c.click_id
+         LEFT JOIN affiliate_clicks ac ON ac.click_id = c.click_id AND ac.platform = 'bongacams'
+         ${conversionRange.where}`,
+      conversionRange.params
+    );
+    for (const row of rows.rows) conversionEvents.push({ ...row, platform: "bongacams" });
+  } catch (err) {
+    console.warn("BongaCams country attribution unavailable:", err.message);
+  }
+  const countryPlatformPerformance = summarizeCountryPerformance(clickPerformanceRows, conversionEvents);
   return {
     persistent: true, totalClicks: total, chaturbateClicks: cbClicks, bongacamsClicks: bcClicks,
     countryPlatformPerformance,
