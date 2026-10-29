@@ -214,10 +214,12 @@ async function dashboardStats(incoming) {
   try {
     const rows = await pool.query(
       `SELECT c.conversion_type, c.payout, c.currency, c.country AS reported_country,
-              c.user_id, cc.country AS click_country,
-              (cc.click_id IS NOT NULL) AS matched_click
+              c.user_id,
+              COALESCE(NULLIF(cc.country, 'UNKNOWN'), NULLIF(ac.country, 'UNKNOWN')) AS click_country,
+              (cc.click_id IS NOT NULL OR ac.click_id IS NOT NULL) AS matched_click
          FROM cb_conversions c
          LEFT JOIN cb_clicks cc ON cc.click_id = c.click_id
+         LEFT JOIN affiliate_clicks ac ON ac.click_id = c.click_id AND ac.platform = 'chaturbate'
          ${conv.where}`,
       conv.params
     );
@@ -228,10 +230,12 @@ async function dashboardStats(incoming) {
   try {
     const rows = await pool.query(
       `SELECT c.conversion_type, c.payout, c.currency, c.country AS reported_country,
-              c.user_id, bc.country AS click_country,
-              (bc.click_id IS NOT NULL) AS matched_click
+              c.user_id,
+              COALESCE(NULLIF(bc.country, 'UNKNOWN'), NULLIF(ac.country, 'UNKNOWN')) AS click_country,
+              (bc.click_id IS NOT NULL OR ac.click_id IS NOT NULL) AS matched_click
          FROM bonga_conversions c
          LEFT JOIN bonga_clicks bc ON bc.click_id = c.click_id
+         LEFT JOIN affiliate_clicks ac ON ac.click_id = c.click_id AND ac.platform = 'bongacams'
          ${conv.where}`,
       conv.params
     );
