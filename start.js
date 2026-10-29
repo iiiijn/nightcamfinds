@@ -391,18 +391,23 @@ http.createServer = function wrappedCreateServer(handler) {
       const platform = String(body.preferredPlatform || "").trim().toLowerCase();
       const status = String(body.status || "hypothesis").trim().toLowerCase();
       const hypothesis = String(body.hypothesis || "").replace(/[\\u0000-\\u001f\\u007f]/g, "").trim().slice(0, 500);
-      if (!COUNTRIES.includes(countryCode) || !PLATFORMS.includes(platform) || !["hypothesis", "unassigned"].includes(status)) {
-        return json(res, 400, { error: "Invalid country routing setting. Live approval is intentionally not available through this endpoint." });
+      const confirmLive = body.confirmLive === true;
+      if (!COUNTRIES.includes(countryCode) || !["hypothesis", "unassigned", "approved"].includes(status) ||
+          (status !== "unassigned" && !PLATFORMS.includes(platform)) ||
+          (status === "approved" && (!confirmLive || hypothesis.length < 10))) {
+        return json(res, 400, { error: "Invalid setting. Live approval requires explicit confirmation and a documented hypothesis." });
       }
       try {
         const result = await pool.query("SELECT value FROM system_settings WHERE key = $1 LIMIT 1", ["country_platform_routing"]);
         const stored = result.rows[0]?.value || {};
-        stored[countryCode] = { preferredPlatform: status === "hypothesis" ? platform : null, status, hypothesis, approvedAt: null, updatedAt: new Date().toISOString() };
-        await pool.query(
-          "INSERT INTO system_settings (key, value, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()",
-          ["country_platform_routing", JSON.stringify(stored)]
-        );
-        return json(res, 200, { saved: true, country: countryCode, status, livePreferenceChanged: false });
+        stored[countryCode] = {
+          preferredPlatform: status === "unassigned" ? null : platform,
+          status, hypothesis: status === "unassigned" ? "" : hypothesis,
+          approvedAt: status === "approved" ? new Date().toISOString() : null,
+          updatedAt: new Date().toISOString()
+        };
+        await pool.query("INSERT INTO system_settings (key, value, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()", ["country_platform_routing", JSON.stringify(stored)]);
+        return json(res, 200, { saved: true, country: countryCode, status, livePreferenceChanged: status === "approved" || status === "unassigned" });
       } catch (err) {
         console.error("Country routing write failed:", err.message);
         return json(res, 500, { error: "Could not save country routing hypothesis." });
