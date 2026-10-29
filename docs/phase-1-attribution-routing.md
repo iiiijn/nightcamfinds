@@ -16,13 +16,13 @@ EPC is calculated as reported revenue divided by tracked clicks. Revenue currenc
 
 ## Country routing
 
-Supported initial markets: US, GB, CA, AU, DE, FR and NL. Routing preferences default to unassigned. A hypothesis is not a live preference. The public read endpoint returns only approved settings, while the authenticated write endpoint stores hypotheses and unassigned states. This initial API deliberately does not permit making a hypothesis live. A user-facing approval control and evidence review must be completed before live routing is enabled.
+Supported initial markets: US, GB, CA, AU, DE, FR and NL. Routing preferences default to unassigned. A hypothesis is not a live preference. The public read endpoint returns only approved settings, while the authenticated dashboard can inspect all settings. Hypotheses and unassigned states can be saved without affecting visitors. The dashboard's separate “Approve live” action requires a documented hypothesis and an explicit browser confirmation before the authenticated API activates that country's preference. No country preference is pre-approved by default.
 
 The second platform remains available as an alternative. No platform is assumed to be more familiar or popular in a country without evidence.
 
 ## Migration
 
-`sql/004_country_routing_attribution.sql` is additive. It creates country routing settings and richer attribution events. It must not be applied to production until separately authorized. Until it is applied, the new event insert is best-effort and legacy tracking continues.
+`sql/004_country_routing_attribution.sql` is additive and creates the richer attribution event table. Country preferences are stored in the existing `system_settings` table and do not require a separate settings-table migration. The attribution migration must not be applied to production until separately authorized. Until it is applied, the new event insert is best-effort and legacy tracking continues.
 
 ## Operational notes
 
