@@ -1,20 +1,4 @@
 -- Phase 1 additive schema. Do not apply to production without explicit approval.
-CREATE TABLE IF NOT EXISTS country_platform_settings (
-  country CHAR(2) PRIMARY KEY,
-  preferred_platform TEXT,
-  status TEXT NOT NULL DEFAULT 'unassigned'
-    CHECK (status IN ('unassigned', 'hypothesis', 'approved')),
-  hypothesis TEXT NOT NULL DEFAULT '',
-  approved_at TIMESTAMPTZ,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_by TEXT,
-  CHECK (preferred_platform IS NULL OR preferred_platform IN ('chaturbate', 'bongacams')),
-  CHECK (
-    (status = 'approved' AND preferred_platform IS NOT NULL AND approved_at IS NOT NULL)
-    OR status <> 'approved'
-  )
-);
-
 CREATE TABLE IF NOT EXISTS click_attribution_events (
   id BIGSERIAL PRIMARY KEY,
   click_id VARCHAR(128) NOT NULL UNIQUE,
