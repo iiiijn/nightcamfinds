@@ -165,11 +165,29 @@ async function saveClick(click) {
   if (!pool) return;
   try {
     await ensurePostbackTables();
-    await pool.query(
-      `INSERT INTO affiliate_clicks (click_id,country,category,source,campaign,placement,platform,medium,content,device)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [click.clickId, click.country, click.category, click.source, click.campaign, click.placement, click.platform, click.medium, click.content, click.device]
-    );
+    // Prefer the expanded schema, but retain compatibility with the current
+    // production schema until the additive migration is separately approved.
+    try {
+      await pool.query(
+        `INSERT INTO affiliate_clicks
+         (click_id,country,category,source,campaign,placement,platform,medium,content,device,
+          page_type,card_position,referrer,utm_source,utm_medium,utm_campaign,utm_content,utm_term,
+          landing_path,is_bot,bot_reason)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+        [click.clickId, click.country, click.category, click.source, click.campaign, click.placement,
+          click.platform, click.medium, click.content, click.device, click.pageType, click.cardPosition,
+          click.referrer, click.utmSource, click.utmMedium, click.utmCampaign, click.utmContent,
+          click.utmTerm, click.landingPath, click.isBot, click.botReason]
+      );
+    } catch (expandedErr) {
+      if (!/column .* does not exist|undefined column/i.test(String(expandedErr.message))) throw expandedErr;
+      await pool.query(
+        `INSERT INTO affiliate_clicks (click_id,country,category,source,campaign,placement,platform,medium,content,device)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [click.clickId, click.country, click.category, click.source, click.campaign, click.placement,
+          click.platform, click.medium, click.content, click.device]
+      );
+    }
     if (click.platform === "chaturbate") {
       await pool.query(
         `INSERT INTO cb_clicks (click_id,country,category,source,campaign,placement)
@@ -267,9 +285,27 @@ function parseAttribution(incoming, req, platform) {
   const content = cleanLabel(p.get("utm_content") || p.get("content"), "", 120);
   const source = cleanLabel(p.get("utm_source") || p.get("source"), "direct", 40);
   const campaign = cleanLabel(p.get("utm_campaign") || p.get("campaign"), "organic", 80);
-  const placement = cleanLabel(p.get("src"), platform === "bongacams" ? "bc-card" : "cb-card", 80);
-  const category = cleanLabel(p.get("cat"), "unknown", 40);
-  return { clickId: makeClickId(), country: country(req), category, source, medium, campaign, placement, content, device: device(req), platform };
+  const placement = cleanLabel(p.get("src") || p.get("placement"), platform === "bongacams" ? "bc-card" : "cb-card", 80);
+  const category = cleanLabel(p.get("cat") || p.get("category"), "unknown", 40);
+  const userAgent = String(req.headers["user-agent"] || "").slice(0, 500);
+  const botMatch = /bot|crawler|spider|headless|preview|monitoring|uptime/i.test(userAgent);
+  const cardPositionRaw = Number.parseInt(p.get("position") || p.get("card_position") || "", 10);
+  const cardPosition = Number.isInteger(cardPositionRaw) && cardPositionRaw > 0 && cardPositionRaw <= 1000 ? cardPositionRaw : null;
+  return {
+    clickId: makeClickId(), country: country(req), category, source, medium, campaign,
+    placement, content, device: device(req), platform,
+    pageType: cleanLabel(p.get("page_type") || (incoming.pathname.includes("/country/") ? "country" : "directory"), "unknown", 40),
+    cardPosition,
+    referrer: String(req.headers.referer || "").slice(0, 2000),
+    utmSource: cleanLabel(p.get("utm_source"), "", 120),
+    utmMedium: cleanLabel(p.get("utm_medium"), "", 120),
+    utmCampaign: cleanLabel(p.get("utm_campaign"), "", 160),
+    utmContent: cleanLabel(p.get("utm_content"), "", 160),
+    utmTerm: cleanLabel(p.get("utm_term"), "", 160),
+    landingPath: String(p.get("landing_path") || req.headers.referer || "/").slice(0, 2000),
+    isBot: botMatch,
+    botReason: botMatch ? "user_agent_match" : null
+  };
 }
 async function handleAuth(req,res,incoming) {
   if (incoming.pathname === "/api/auth/me") return json(res,200,{authenticated:validSession(req),username:validSession(req)?ADMIN_USER:null});
