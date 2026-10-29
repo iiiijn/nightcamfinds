@@ -96,5 +96,52 @@ test("country settings HTTP endpoints enforce session auth and return controlled
   assert.equal(authenticatedPost.status, 503);
   assert.match((await authenticatedPost.json()).error, /Database is not configured/);
 
+  const invalidOrigin = await fetch(`${baseUrl}/api/country-platform-settings`, {
+    method: "POST",
+    headers: { Cookie: cookie, "Content-Type": "application/json", Origin: "https://attacker.example" },
+    body: JSON.stringify({
+      country: "DE",
+      preferredPlatform: "bongacams",
+      hypothesis: "Unverified test hypothesis"
+    })
+  });
+  assert.equal(invalidOrigin.status, 403);
+  assert.deepEqual(await invalidOrigin.json(), { error: "Origin check failed." });
+
+  const wrongContentType = await fetch(`${baseUrl}/api/country-platform-settings`, {
+    method: "POST",
+    headers: { Cookie: cookie, "Content-Type": "text/plain", Origin: baseUrl },
+    body: "not-json"
+  });
+  assert.equal(wrongContentType.status, 415);
+  assert.deepEqual(await wrongContentType.json(), { error: "Use application/json." });
+
+  const malformedJson = await fetch(`${baseUrl}/api/country-platform-settings`, {
+    method: "POST",
+    headers: { Cookie: cookie, "Content-Type": "application/json", Origin: baseUrl },
+    body: "{"
+  });
+  assert.equal(malformedJson.status, 400);
+  assert.deepEqual(await malformedJson.json(), { error: "Invalid JSON." });
+
+  const unsupportedCountry = await fetch(`${baseUrl}/api/country-platform-settings`, {
+    method: "POST",
+    headers: { Cookie: cookie, "Content-Type": "application/json", Origin: baseUrl },
+    body: JSON.stringify({
+      country: "KE",
+      preferredPlatform: "bongacams",
+      hypothesis: "Unverified test hypothesis"
+    })
+  });
+  assert.equal(unsupportedCountry.status, 400);
+  assert.deepEqual(await unsupportedCountry.json(), { error: "Unsupported country." });
+
+  const unsupportedMethod = await fetch(`${baseUrl}/api/country-platform-settings`, {
+    method: "DELETE",
+    headers: { Cookie: cookie }
+  });
+  assert.equal(unsupportedMethod.status, 405);
+  assert.deepEqual(await unsupportedMethod.json(), { error: "Method not allowed." });
+
   assert.doesNotMatch(stderr, /test-only-password/);
 });
