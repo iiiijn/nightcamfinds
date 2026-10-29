@@ -2,8 +2,6 @@
 -- This file is intentionally not wired into production startup. Applying it to
 -- the production database requires a separate explicit confirmation.
 
--- Ensure the click table exists in fresh test/dev databases as well as in
--- existing production installations.
 CREATE TABLE IF NOT EXISTS affiliate_clicks (
   id BIGSERIAL PRIMARY KEY,
   clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
