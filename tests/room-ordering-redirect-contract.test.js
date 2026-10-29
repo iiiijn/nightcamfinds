@@ -23,13 +23,17 @@ test("Chaturbate and BongaCams use distinct tracked redirect paths", () => {
   assert.match(serverSource, /pathname\.startsWith\("\/bgo\/"\)\s*\|\|\s*pathname\.startsWith\("\/go\/"\)/);
   assert.match(serverSource, /const platform\s*=\s*isBonga\s*\?\s*"bongacams"\s*:\s*"chaturbate"/);
   assert.match(serverSource, /https:\/\/chaturbate\.com\/in\//);
-  assert.match(serverSource, /https:\/\/bongacams4\.com\/track/);
+  assert.match(serverSource, /https:\/\/bongacams\.com\//);
   assert.match(serverSource, /searchParams\.set\("click_id",\s*clickId\)/);
+  assert.match(serverSource, /searchParams\.set\("ncf_click_id",\s*clickId\)/);
   assert.match(serverSource, /searchParams\.set\("track",\s*src\)/);
 });
 
-test("BongaCams redirect keeps the configured campaign and Chaturbate keeps its own affiliate parameters", () => {
-  assert.match(serverSource, /BONGA_CAMPAIGN\)\}&click_id=/);
+test("BongaCams attribution and Chaturbate affiliate parameters remain platform-specific", () => {
+  assert.match(serverSource, /BONGA_BCS\)\)\s*target\.searchParams\.set\("bcs",\s*BONGA_BCS\)/);
+  assert.match(serverSource, /target\.searchParams\.set\("ncf_source",\s*source\)/);
+  assert.match(serverSource, /target\.searchParams\.set\("ncf_campaign",\s*campaign\)/);
+  assert.match(serverSource, /target\.searchParams\.set\("ncf_placement",\s*src\)/);
   assert.match(serverSource, /tour=\$\{encodeURIComponent\(TOUR\)\}&campaign=\$\{encodeURIComponent\(CAMPAIGN\)\}&track=/);
   assert.match(serverSource, /withTrack\(room\.href,\s*src\)/);
 });
