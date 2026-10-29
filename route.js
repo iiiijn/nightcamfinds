@@ -303,6 +303,51 @@ http.createServer = function routeDashboard(handler) {
       try { return sendJson(res, 200, await bongacash.save(pool, params)); }
       catch (err) { console.error("BongaCash postback failed:", err.message); return sendJson(res, 500, { error: "Could not save BongaCash conversion." }); }
     }
+    if (incoming.pathname === "/api/country-platform-settings") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      try {
+        if (req.method === "GET") {
+          const result = await pool.query("SELECT country_code, preferred_platform, status, hypothesis, approved_at, updated_at FROM country_platform_settings WHERE country_code = ANY($1::char(2)[]) ORDER BY country_code", [["US","GB","CA","AU","DE","FR","NL"]]);
+          const byCountry = Object.fromEntries(result.rows.map(row => [String(row.country_code).trim(), row]));
+          return sendJson(res, 200, { settings: ["US","GB","CA","AU","DE","FR","NL"].map(country => byCountry[country] || { country_code: country, preferred_platform: null, status: "hypothesis", hypothesis: "", approved_at: null, notConfigured: true }) });
+        }
+        if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
+        const origin = req.headers.origin;
+        if (origin && new URL(origin).host !== req.headers.host) return sendJson(res, 403, { error: "Origin check failed." });
+        if (!String(req.headers["content-type"] || "").toLowerCase().includes("application/json")) return sendJson(res, 415, { error: "Use application/json." });
+        let body = "";
+        for await (const chunk of req) { body += chunk; if (body.length > 12000) return sendJson(res, 413, { error: "Request too large." }); }
+        let payload;
+        try { payload = JSON.parse(body || "{}"); } catch { return sendJson(res, 400, { error: "Invalid JSON." }); }
+        const countries = new Set(["US","GB","CA","AU","DE","FR","NL"]);
+        const platforms = new Set(["chaturbate","bongacams"]);
+        const country = String(payload.country || "").trim().toUpperCase();
+        const platform = String(payload.preferredPlatform || "").trim().toLowerCase();
+        const action = String(payload.action || "save_hypothesis");
+        const hypothesis = String(payload.hypothesis || "").trim().slice(0, 1200);
+        if (!countries.has(country)) return sendJson(res, 400, { error: "Unsupported country." });
+        if (!platforms.has(platform)) return sendJson(res, 400, { error: "Choose a supported platform." });
+        if (!hypothesis) return sendJson(res, 400, { error: "Add a clearly labelled hypothesis before saving." });
+        if (!["save_hypothesis","approve"].includes(action)) return sendJson(res, 400, { error: "Unsupported settings action." });
+        if (action === "approve" && payload.confirmApproval !== true) return sendJson(res, 400, { error: "Explicit approval confirmation is required." });
+        const status = action === "approve" ? "approved" : "hypothesis";
+        const approvedAt = action === "approve" ? new Date() : null;
+        const saved = await pool.query(
+          `INSERT INTO country_platform_settings (country_code, preferred_platform, status, hypothesis, approved_at, updated_by, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,NOW())
+           ON CONFLICT (country_code) DO UPDATE SET preferred_platform=EXCLUDED.preferred_platform,status=EXCLUDED.status,
+             hypothesis=EXCLUDED.hypothesis,approved_at=EXCLUDED.approved_at,updated_by=EXCLUDED.updated_by,updated_at=NOW()
+           RETURNING country_code,preferred_platform,status,hypothesis,approved_at,updated_at`,
+          [country, platform, status, hypothesis, approvedAt, ADMIN_USER]
+        );
+        return sendJson(res, 200, { setting: saved.rows[0] });
+      } catch (err) {
+        if (err.code === "42P01") return sendJson(res, 503, { error: "Country settings schema is not installed. Production migration has not been applied." });
+        console.error("Country platform settings failed:", err.message);
+        return sendJson(res, 500, { error: "Could not process country settings." });
+      }
+    }
     if (incoming.pathname === "/api/dashboard-stats") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
       try { return sendJson(res, 200, await dashboardStats(incoming)); }
