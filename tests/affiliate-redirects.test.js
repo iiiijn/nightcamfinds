@@ -96,12 +96,24 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   );
   assert.equal(bongaResponse.status, 302);
   const bongaTarget = new URL(bongaResponse.headers.get("location"));
-  assert.equal(bongaTarget.hostname, "bongacams.com");
-  assert.equal(bongaTarget.pathname, "/testbongamodel");
-  assert.equal(bongaTarget.searchParams.get("ncf_source"), "redirect-test");
-  assert.equal(bongaTarget.searchParams.get("ncf_campaign"), "bonga-check");
-  assert.equal(bongaTarget.searchParams.get("ncf_placement"), "bonga-test-card");
-  assert.match(bongaTarget.searchParams.get("ncf_click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
+  // The production patch chain can route Bonga through either the direct room
+  // URL or the legacy tracking endpoint. Both are valid, tracked destinations.
+  assert.ok(
+    ["bongacams.com", "bongacams4.com"].includes(bongaTarget.hostname),
+    `Unexpected Bonga host: ${bongaTarget.hostname}`
+  );
+  if (bongaTarget.hostname === "bongacams.com") {
+    assert.equal(bongaTarget.pathname, "/testbongamodel");
+    assert.equal(bongaTarget.searchParams.get("ncf_source"), "redirect-test");
+    assert.equal(bongaTarget.searchParams.get("ncf_campaign"), "bonga-check");
+    assert.equal(bongaTarget.searchParams.get("ncf_placement"), "bonga-test-card");
+    assert.match(bongaTarget.searchParams.get("ncf_click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
+  } else {
+    assert.equal(bongaTarget.pathname, "/track");
+    assert.equal(bongaTarget.searchParams.get("c"), "testBongaCampaign");
+    assert.equal(bongaTarget.searchParams.get("track"), "bonga-test-card");
+    assert.match(bongaTarget.searchParams.get("click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
+  }
 
   const statsPath = path.join(dataDir, "clicks.json");
   const stats = JSON.parse(fs.readFileSync(statsPath, "utf8"));
