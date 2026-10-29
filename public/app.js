@@ -42,6 +42,29 @@ document.querySelectorAll("nav a").forEach((a) => {
 
 const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore", BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela", PH:"Philippines", TH:"Thailand", CN:"China", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain", PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa" };
 const QUICK = ["US","GB","CA","AU","DE","FR","NL"];
+const countryPageMatch = location.pathname.match(/^\/country\/([a-z]{2})\/?$/i);
+const countryPageCode = countryPageMatch ? countryPageMatch[1].toUpperCase() : "";
+let countryRoutingPreference = null;
+function preferredPlatform() {
+  return countryPageCode && countryRoutingPreference && countryRoutingPreference.source === "approved_country_setting"
+    ? countryRoutingPreference.preferredPlatform : null;
+}
+function platformOrder(rooms) {
+  const preferred = preferredPlatform();
+  if (!preferred) return rooms;
+  return [...rooms].sort((a,b) => (a.platform === preferred ? -1 : 0) - (b.platform === preferred ? -1 : 0));
+}
+async function loadCountryRouting() {
+  if (!countryPageCode) return;
+  try {
+    const response = await fetch("/api/country-routing", { cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    countryRoutingPreference = (data.settings || {})[countryPageCode] || null;
+    partners();
+    load();
+  } catch (_) {}
+}
 
 const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
 const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
@@ -117,37 +140,42 @@ function trackingQuery(extra = {}) {
     campaign: trafficCampaign,
     content: trafficContent || "",
     placement: extra.placement || src,
+    page: location.pathname,
     lp: String((attributionFresh ? savedAttribution.landingPath : "") || location.pathname || "/").slice(0, 255)
   });
+  if (Number.isInteger(extra.position) && extra.position > 0) params.set("position", String(extra.position));
   return params.toString();
 }
 function partners() {
   const src = category === "all" ? "home-footer" : category + "-footer";
   const wrap = document.querySelector("#partner-actions");
-
-  const cb = document.createElement("a");
-  cb.className = "btn";
-  cb.href = "/go/directory?" + trackingQuery({ src: src + "-chaturbate" });
-  cb.textContent = "Chat on Chaturbate";
-  cb.rel = "sponsored nofollow noopener";
-  wrap.append(cb);
-
-  const bonga = document.createElement("a");
-  bonga.className = "btn ghost";
-  bonga.href = "/bgo/directory?" + trackingQuery({ src: src + "-bongacams" });
-  bonga.textContent = "Browse BongaCams";
-  bonga.rel = "sponsored nofollow noopener";
-  wrap.append(bonga);
+  if (!wrap) return;
+  wrap.replaceChildren();
+  const preferred = preferredPlatform();
+  const platformData = [
+    { platform: "chaturbate", href: "/go/directory?", label: "Chat on Chaturbate" },
+    { platform: "bongacams", href: "/bgo/directory?", label: "Browse BongaCams" }
+  ];
+  if (preferred) platformData.sort((a,b) => (a.platform === preferred ? -1 : 0) - (b.platform === preferred ? -1 : 0));
+  platformData.forEach((item,index) => {
+    const a = document.createElement("a");
+    a.className = index === 0 ? "btn" : "btn ghost";
+    a.href = item.href + trackingQuery({ src: src + "-" + item.platform });
+    a.textContent = preferred ? (index === 0 ? "Start with " : "Alternative: ") + (item.platform === "chaturbate" ? "Chaturbate" : "BongaCams") : item.label;
+    a.rel = "sponsored nofollow noopener";
+    wrap.append(a);
+  });
 }
 
-function card(room) {
+function card(room, position = 0) {
   const a = document.createElement("a");
   const isBonga = room.platform === "bongacams";
   const redirect = isBonga ? "/bgo/" : "/go/";
   a.className = "card";
   a.href = redirect + encodeURIComponent(room.id) + "?" + trackingQuery({
     src: placement(),
-    cat: room.gender || (category === "all" ? "all" : category)
+    cat: room.gender || (category === "all" ? "all" : category),
+    position: position + 1
   });
   a.rel = "sponsored nofollow noopener";
   const img = document.createElement(room.image ? "img" : "div");
@@ -161,7 +189,8 @@ function card(room) {
   meta.className = "meta";
   const badges = document.createElement("div");
   badges.className = "badges";
-  const bits = [[isBonga ? "BongaCams" : "Chaturbate", "platform"], ["Live", "live"], room.isHd ? ["HD", ""] : null, room.isNew ? ["New", ""] : null, [Number(room.viewerCount || 0).toLocaleString() + " watching", ""], room.country ? [room.countryName || NAMES[room.country] || room.country, ""] : null].filter(Boolean);
+  const preferred = preferredPlatform();
+  const bits = [[isBonga ? "BongaCams" : "Chaturbate", "platform"], preferred && room.platform === preferred ? ["First option", "platform"] : preferred && room.platform !== preferred ? ["Alternative", ""] : null, ["Live", "live"], room.isHd ? ["HD", ""] : null, room.isNew ? ["New", ""] : null, [Number(room.viewerCount || 0).toLocaleString() + " watching", ""], room.country ? [room.countryName || NAMES[room.country] || room.country, ""] : null].filter(Boolean);
   for (const [label, extra] of bits) {
     const span = document.createElement("span");
     span.className = extra ? "badge " + extra : "badge";
@@ -175,7 +204,7 @@ function card(room) {
   subject.textContent = room.roomSubject || "Live room";
   const cta = document.createElement("span");
   cta.className = "btn";
-  cta.textContent = "Watch live";
+  cta.textContent = preferred && room.platform === preferred ? "Start here · Watch live" : preferred ? "Alternative · Watch live" : "Watch live";
   meta.append(badges, strong, subject, cta);
   a.append(img, meta);
   return a;
@@ -243,7 +272,7 @@ async function load() {
   if ((category === "all" || category === "live") && !q.value && !countrySelect.value) {
     grid.replaceChildren();
     for (const [key, label] of [["female","Top female"],["male","Top male"],["trans","Top trans"],["couples","Top couples"]]) {
-      const picked = pickHomeRooms(rooms, key);
+      const picked = platformOrder(pickHomeRooms(rooms, key));
       if (!picked.length) continue;
       const section = document.createElement("section");
       section.className = "home-group";
@@ -256,7 +285,7 @@ async function load() {
       grid.append(section);
     }
   } else {
-    const displayed = balanceCategoryRooms(rooms);
+    const displayed = platformOrder(balanceCategoryRooms(rooms));
     grid.replaceChildren(...displayed.map(card));
   }
   countEl.textContent = (rooms.length ? rooms.length + " live rooms" : "No rooms match that filter.") + " · updated " + new Date().toLocaleTimeString();
@@ -268,6 +297,7 @@ sort.addEventListener("change", load);
 countrySelect.addEventListener("change", load);
 q.addEventListener("input", schedule);
 partners();
+loadCountryRouting();
 load().catch(() => {
   notice.hidden = false;
   notice.textContent = "Could not load rooms. Please try again.";

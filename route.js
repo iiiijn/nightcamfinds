@@ -5,6 +5,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { Pool } = require("pg");
 const bongacash = require("./bongacash");
+const { summarizeCountryPerformance, buildDateRange } = require("./src/country-performance.cjs");
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -132,13 +133,11 @@ function validDashboardSession(req) {
 }
 
 function rangeClause(incoming, column = "received_at") {
-  const params = [];
-  const where = [];
-  const from = incoming.searchParams.get("from");
-  const to = incoming.searchParams.get("to");
-  if (from) { params.push(`${from}T00:00:00.000Z`); where.push(`${column} >= $${params.length}`); }
-  if (to) { params.push(`${to}T23:59:59.999Z`); where.push(`${column} <= $${params.length}`); }
-  return { params, where: where.length ? `WHERE ${where.join(" AND ")}` : "" };
+  return buildDateRange(
+    incoming.searchParams.get("from"),
+    incoming.searchParams.get("to"),
+    column
+  );
 }
 
 async function dashboardStats(incoming) {
@@ -198,6 +197,72 @@ async function dashboardStats(incoming) {
   } catch {}
 
   const totalClicks = cbClicks + bongaClicks;
+
+  // Country/platform report: click counts use the selected click-date range;
+  // conversions use the same selected date range on received_at and are attributed
+  // to the originating click country only when the click ID can be matched.
+  const countryClickRows = await pool.query(
+    `SELECT UPPER(COALESCE(NULLIF(country,''),'UNKNOWN')) AS country,
+            LOWER(COALESCE(NULLIF(platform,''),'unknown')) AS platform,
+            COUNT(*)::int AS clicks
+       FROM affiliate_clicks ${cb.where}
+      GROUP BY 1,2`,
+    cb.params
+  );
+  const conversionEvents = [];
+  try {
+    const rows = await pool.query(
+      `SELECT c.conversion_type, c.payout, c.currency, c.country AS reported_country,
+              c.user_id,
+              COALESCE(NULLIF(cc.country, 'UNKNOWN'), NULLIF(ac.country, 'UNKNOWN')) AS click_country,
+              (cc.click_id IS NOT NULL OR ac.click_id IS NOT NULL) AS matched_click
+         FROM cb_conversions c
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM cb_clicks cc0
+            WHERE cc0.click_id = c.click_id
+            LIMIT 1
+         ) cc ON TRUE
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM affiliate_clicks ac0
+            WHERE ac0.click_id = c.click_id AND ac0.platform = 'chaturbate'
+            ORDER BY ac0.clicked_at ASC
+            LIMIT 1
+         ) ac ON TRUE
+         ${conv.where}`,
+      conv.params
+    );
+    for (const row of rows.rows) conversionEvents.push({ ...row, platform: "chaturbate" });
+  } catch (err) {
+    console.warn("Chaturbate country attribution unavailable:", err.message);
+  }
+  try {
+    const rows = await pool.query(
+      `SELECT c.conversion_type, c.payout, c.currency, c.country AS reported_country,
+              c.user_id,
+              COALESCE(NULLIF(bc.country, 'UNKNOWN'), NULLIF(ac.country, 'UNKNOWN')) AS click_country,
+              (bc.click_id IS NOT NULL OR ac.click_id IS NOT NULL) AS matched_click
+         FROM bonga_conversions c
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM bonga_clicks bc0
+            WHERE bc0.click_id = c.click_id
+            ORDER BY bc0.clicked_at ASC
+            LIMIT 1
+         ) bc ON TRUE
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM affiliate_clicks ac0
+            WHERE ac0.click_id = c.click_id AND ac0.platform = 'bongacams'
+            ORDER BY ac0.clicked_at ASC
+            LIMIT 1
+         ) ac ON TRUE
+         ${conv.where}`,
+      conv.params
+    );
+    for (const row of rows.rows) conversionEvents.push({ ...row, platform: "bongacams" });
+  } catch (err) {
+    console.warn("BongaCams country attribution unavailable:", err.message);
+  }
+  const countryPlatformPerformance = summarizeCountryPerformance(countryClickRows.rows, conversionEvents);
+
   const now = new Date();
   const iso = d => d.toISOString().slice(0,10);
   const day = new URL(incoming); day.searchParams.set("from", iso(now)); day.searchParams.set("to", iso(now));
@@ -268,6 +333,7 @@ async function dashboardStats(incoming) {
     bongacashPostbackConfigured: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
     bongacashTrackingVerified: false,
     platforms: { chaturbate: cbClicks, bongacams: bongaClicks },
+    countryPlatformPerformance,
     sources,
     countries: combinedCountries,
     placements,

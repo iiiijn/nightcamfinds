@@ -1,5 +1,7 @@
 const http = require("http");
 const crypto = require("crypto");
+const { COUNTRIES, PLATFORMS, resolveCountryPreference } = require("./src/country-routing.cjs");
+const { summarizeCountryPerformance, buildDateRange } = require("./src/country-performance.cjs");
 
 const originalCreateServer = http.createServer;
 const databaseUrl = process.env.DATABASE_URL;
@@ -177,6 +179,20 @@ async function saveClick(click) {
         [click.clickId, click.country, click.category, click.source, click.campaign, click.placement]
       );
     }
+    // Add richer attribution when the Phase 1 migration has been explicitly applied.
+    // Missing table is tolerated so older production schemas keep working.
+    try {
+      await pool.query(
+        `INSERT INTO click_attribution_events
+          (click_id,country,page_type,category,platform,card_position,device,referrer_host,utm_source,utm_medium,utm_campaign,utm_content,sub_id,is_bot)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         ON CONFLICT (click_id) DO NOTHING`,
+        [click.clickId, click.country === "UNKNOWN" ? "UN" : click.country, click.pageType, click.category, click.platform,
+          click.cardPosition, click.device, click.referrerHost, click.source, click.medium, click.campaign, click.content, click.subId, click.isBot]
+      );
+    } catch (eventErr) {
+      if (!/click_attribution_events/.test(String(eventErr.message || ""))) throw eventErr;
+    }
   } catch (err) {
     console.error("Affiliate click tracking failed:", err.message);
   }
@@ -249,8 +265,73 @@ async function dashboardStats(incoming) {
   const cbClicks = platforms.chaturbate || 0;
   const bcClicks = platforms.bongacams || 0;
   const cbTier = Number(tierRows.rows[0]?.n || 0) - Number(tierRows.rows[0]?.bonga || 0);
+  const conversionRange = buildDateRange(
+    incoming.searchParams.get("from"),
+    incoming.searchParams.get("to"),
+    "received_at"
+  );
+  const clickPerformanceRows = await q(
+    `SELECT country, platform, COUNT(*)::int AS clicks
+       FROM affiliate_clicks ${where}
+      GROUP BY country, platform`,
+    params
+  );
+  const conversionEvents = [];
+  try {
+    const rows = await pool.query(
+      `SELECT c.conversion_type, c.payout, c.currency, c.country AS reported_country,
+              c.user_id,
+              COALESCE(NULLIF(cc.country, 'UNKNOWN'), NULLIF(ac.country, 'UNKNOWN')) AS click_country,
+              (cc.click_id IS NOT NULL OR ac.click_id IS NOT NULL) AS matched_click
+         FROM cb_conversions c
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM cb_clicks cc0
+            WHERE cc0.click_id = c.click_id
+            LIMIT 1
+         ) cc ON TRUE
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM affiliate_clicks ac0
+            WHERE ac0.click_id = c.click_id AND ac0.platform = 'chaturbate'
+            ORDER BY ac0.clicked_at ASC
+            LIMIT 1
+         ) ac ON TRUE
+         ${conversionRange.where}`,
+      conversionRange.params
+    );
+    for (const row of rows.rows) conversionEvents.push({ ...row, platform: "chaturbate" });
+  } catch (err) {
+    console.warn("Chaturbate country attribution unavailable:", err.message);
+  }
+  try {
+    const rows = await pool.query(
+      `SELECT c.conversion_type, c.payout, c.currency, c.country AS reported_country,
+              c.user_id,
+              COALESCE(NULLIF(bc.country, 'UNKNOWN'), NULLIF(ac.country, 'UNKNOWN')) AS click_country,
+              (bc.click_id IS NOT NULL OR ac.click_id IS NOT NULL) AS matched_click
+         FROM bonga_conversions c
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM bonga_clicks bc0
+            WHERE bc0.click_id = c.click_id
+            ORDER BY bc0.clicked_at ASC
+            LIMIT 1
+         ) bc ON TRUE
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM affiliate_clicks ac0
+            WHERE ac0.click_id = c.click_id AND ac0.platform = 'bongacams'
+            ORDER BY ac0.clicked_at ASC
+            LIMIT 1
+         ) ac ON TRUE
+         ${conversionRange.where}`,
+      conversionRange.params
+    );
+    for (const row of rows.rows) conversionEvents.push({ ...row, platform: "bongacams" });
+  } catch (err) {
+    console.warn("BongaCams country attribution unavailable:", err.message);
+  }
+  const countryPlatformPerformance = summarizeCountryPerformance(clickPerformanceRows, conversionEvents);
   return {
     persistent: true, totalClicks: total, chaturbateClicks: cbClicks, bongacamsClicks: bcClicks,
+    countryPlatformPerformance,
     tier1Clicks: Number(tierRows.rows[0]?.n || 0), bongaTier1Clicks: Number(tierRows.rows[0]?.bonga || 0),
     today: await countSince(1), week: await countSince(7), month: await countSince(30),
     registrations: Number(earningsRows.rows[0]?.registrations || 0), purchases: Number(earningsRows.rows[0]?.purchases || 0),
@@ -269,7 +350,20 @@ function parseAttribution(incoming, req, platform) {
   const campaign = cleanLabel(p.get("utm_campaign") || p.get("campaign"), "organic", 80);
   const placement = cleanLabel(p.get("src"), platform === "bongacams" ? "bc-card" : "cb-card", 80);
   const category = cleanLabel(p.get("cat"), "unknown", 40);
-  return { clickId: makeClickId(), country: country(req), category, source, medium, campaign, placement, content, device: device(req), platform };
+  const cardPositionRaw = Number.parseInt(p.get("position") || p.get("card_position") || "", 10);
+  let referrerHost = "";
+  try { referrerHost = req.headers.referer ? new URL(req.headers.referer).hostname.slice(0, 255) : ""; } catch {}
+  const pagePath = String(p.get("page") || req.headers.referer || incoming.pathname);
+  const pageType = /country/i.test(pagePath) ? "country" : /female|male|trans|couples/i.test(pagePath) ? "category" : /popular|new|hd|live/i.test(pagePath) ? "listing" : "home_or_other";
+  const subId = cleanLabel(p.get("subid") || p.get("sub_id") || p.get("utm_id"), "", 128);
+  const ua = String(req.headers["user-agent"] || "");
+  const isBot = /bot|crawler|spider|slurp|headless|facebookexternalhit|preview/i.test(ua);
+  return {
+    clickId: makeClickId(), country: country(req), category, source, medium, campaign, placement, content,
+    device: device(req), platform, pageType, referrerHost,
+    cardPosition: Number.isInteger(cardPositionRaw) && cardPositionRaw > 0 && cardPositionRaw <= 1000 ? cardPositionRaw : null,
+    subId, isBot
+  };
 }
 async function handleAuth(req,res,incoming) {
   if (incoming.pathname === "/api/auth/me") return json(res,200,{authenticated:validSession(req),username:validSession(req)?ADMIN_USER:null});
@@ -291,6 +385,55 @@ http.createServer = function wrappedCreateServer(handler) {
   return originalCreateServer.call(http, async (req,res) => {
     const incoming = new URL(req.url, "http://localhost");
     const authHandled = await handleAuth(req,res,incoming);
+    if (incoming.pathname === "/api/country-routing" && req.method === "GET") {
+      try {
+        if (!pool) return json(res, 200, { settings: {}, fallback: true });
+        const result = await pool.query("SELECT value FROM system_settings WHERE key = $1 LIMIT 1", ["country_platform_routing"]);
+        const stored = result.rows[0]?.value || {};
+        if (validSession(req)) return json(res, 200, { settings: stored, fallback: false, private: true });
+        const approved = {};
+        for (const countryCode of COUNTRIES) {
+          const resolved = resolveCountryPreference(countryCode, stored);
+          if (resolved.preferredPlatform) approved[countryCode] = resolved;
+        }
+        return json(res, 200, { settings: approved, fallback: Object.keys(approved).length === 0 });
+      } catch (err) {
+        console.error("Country routing read failed:", err.message);
+        return json(res, 200, { settings: {}, fallback: true });
+      }
+    }
+    if (incoming.pathname === "/api/country-routing" && req.method === "POST") {
+      if (!validSession(req)) return json(res, 401, { error: "Authentication required." });
+      if (!pool) return json(res, 503, { error: "Database is not configured." });
+      let body;
+      try { body = JSON.parse(await readBody(req) || "{}"); }
+      catch { return json(res, 400, { error: "Invalid JSON." }); }
+      const countryCode = String(body.country || "").trim().toUpperCase();
+      const platform = String(body.preferredPlatform || "").trim().toLowerCase();
+      const status = String(body.status || "hypothesis").trim().toLowerCase();
+      const hypothesis = String(body.hypothesis || "").replace(/[\\u0000-\\u001f\\u007f]/g, "").trim().slice(0, 500);
+      const confirmLive = body.confirmLive === true;
+      if (!COUNTRIES.includes(countryCode) || !["hypothesis", "unassigned", "approved"].includes(status) ||
+          (status !== "unassigned" && !PLATFORMS.includes(platform)) ||
+          (status === "approved" && (!confirmLive || hypothesis.length < 10))) {
+        return json(res, 400, { error: "Invalid setting. Live approval requires explicit confirmation and a documented hypothesis." });
+      }
+      try {
+        const result = await pool.query("SELECT value FROM system_settings WHERE key = $1 LIMIT 1", ["country_platform_routing"]);
+        const stored = result.rows[0]?.value || {};
+        stored[countryCode] = {
+          preferredPlatform: status === "unassigned" ? null : platform,
+          status, hypothesis: status === "unassigned" ? "" : hypothesis,
+          approvedAt: status === "approved" ? new Date().toISOString() : null,
+          updatedAt: new Date().toISOString()
+        };
+        await pool.query("INSERT INTO system_settings (key, value, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()", ["country_platform_routing", JSON.stringify(stored)]);
+        return json(res, 200, { saved: true, country: countryCode, status, livePreferenceChanged: status === "approved" || status === "unassigned" });
+      } catch (err) {
+        console.error("Country routing write failed:", err.message);
+        return json(res, 500, { error: "Could not save country routing hypothesis." });
+      }
+    }
     if(authHandled !== false) return;
     if(["/api/dashboard-stats","/api/revshare","/api/stats","/api/stats.csv"].includes(incoming.pathname) && !validSession(req)) {
       return json(res,401,{error:"Authentication required."});
