@@ -1,6 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
 const net = require("node:net");
 const { spawn } = require("node:child_process");
 
@@ -40,10 +43,15 @@ test("country settings HTTP endpoints enforce session auth and return controlled
   const port = await freePort();
   const secret = crypto.randomBytes(32).toString("hex");
   const baseUrl = `http://127.0.0.1:${port}`;
+  const stubRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-test-modules-"));
+  const pgStub = path.join(stubRoot, "pg");
+  fs.mkdirSync(pgStub, { recursive: true });
+  fs.writeFileSync(path.join(pgStub, "index.js"), "class Pool { constructor() { throw new Error('Unexpected database pool creation in no-database test'); } } module.exports = { Pool };");
   const child = spawn(process.execPath, ["route.js"], {
     cwd: process.cwd(),
     env: {
       ...process.env,
+      NODE_PATH: [stubRoot, process.env.NODE_PATH || ""].filter(Boolean).join(path.delimiter),
       PORT: String(port),
       SESSION_SECRET: secret,
       ADMIN_USER: "test-admin",
