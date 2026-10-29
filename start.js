@@ -290,12 +290,17 @@ async function dashboardStats(incoming) {
       const verifiedSignups = Number(row.verified_signups || 0);
       const verifiedPayers = Number(row.verified_payers || 0);
       const revenue = Number(row.revenue || 0);
+      const conversionAvailable = row.platform === "chaturbate";
       return {
         country: row.country || "UNKNOWN", platform: row.platform || "unknown",
-        clicks, engagedClicks, verifiedSignups, verifiedPayers, revenue,
-        epc: clicks > 0 ? revenue / clicks : null,
-        conversionAttribution: row.platform === "chaturbate" ? "matched_click_ids" : "unavailable",
-        evidenceEligible: clicks >= 100 && engagedClicks >= 20 && verifiedSignups >= 5
+        clicks,
+        engagedClicks: conversionAvailable ? engagedClicks : null,
+        verifiedSignups: conversionAvailable ? verifiedSignups : null,
+        verifiedPayers: conversionAvailable ? verifiedPayers : null,
+        revenue: conversionAvailable ? revenue : null,
+        epc: conversionAvailable && clicks > 0 ? revenue / clicks : null,
+        conversionAttribution: conversionAvailable ? "matched_click_ids" : "unavailable",
+        evidenceEligible: conversionAvailable && clicks >= 100 && engagedClicks >= 20 && verifiedSignups >= 5
       };
     });
     countryPlatformMetricsAvailable = true;
