@@ -1,5 +1,6 @@
 const http = require("http");
 const crypto = require("crypto");
+const { COUNTRIES, PLATFORMS, resolveCountryPreference } = require("./src/country-routing.cjs");
 
 const originalCreateServer = http.createServer;
 const databaseUrl = process.env.DATABASE_URL;
@@ -291,6 +292,49 @@ http.createServer = function wrappedCreateServer(handler) {
   return originalCreateServer.call(http, async (req,res) => {
     const incoming = new URL(req.url, "http://localhost");
     const authHandled = await handleAuth(req,res,incoming);
+    if (incoming.pathname === "/api/country-routing" && req.method === "GET") {
+      try {
+        if (!pool) return json(res, 200, { settings: {}, fallback: true });
+        const result = await pool.query("SELECT value FROM system_settings WHERE key = $1 LIMIT 1", ["country_platform_routing"]);
+        const stored = result.rows[0]?.value || {};
+        const approved = {};
+        for (const countryCode of COUNTRIES) {
+          const resolved = resolveCountryPreference(countryCode, stored);
+          if (resolved.preferredPlatform) approved[countryCode] = resolved;
+        }
+        return json(res, 200, { settings: approved, fallback: Object.keys(approved).length === 0 });
+      } catch (err) {
+        console.error("Country routing read failed:", err.message);
+        return json(res, 200, { settings: {}, fallback: true });
+      }
+    }
+    if (incoming.pathname === "/api/country-routing" && req.method === "POST") {
+      if (!validSession(req)) return json(res, 401, { error: "Authentication required." });
+      if (!pool) return json(res, 503, { error: "Database is not configured." });
+      let body;
+      try { body = JSON.parse(await readBody(req) || "{}"); }
+      catch { return json(res, 400, { error: "Invalid JSON." }); }
+      const countryCode = String(body.country || "").trim().toUpperCase();
+      const platform = String(body.preferredPlatform || "").trim().toLowerCase();
+      const status = String(body.status || "hypothesis").trim().toLowerCase();
+      const hypothesis = String(body.hypothesis || "").replace(/[\\u0000-\\u001f\\u007f]/g, "").trim().slice(0, 500);
+      if (!COUNTRIES.includes(countryCode) || !PLATFORMS.includes(platform) || !["hypothesis", "unassigned"].includes(status)) {
+        return json(res, 400, { error: "Invalid country routing setting. Live approval is intentionally not available through this endpoint." });
+      }
+      try {
+        const result = await pool.query("SELECT value FROM system_settings WHERE key = $1 LIMIT 1", ["country_platform_routing"]);
+        const stored = result.rows[0]?.value || {};
+        stored[countryCode] = { preferredPlatform: status === "hypothesis" ? platform : null, status, hypothesis, approvedAt: null, updatedAt: new Date().toISOString() };
+        await pool.query(
+          "INSERT INTO system_settings (key, value, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()",
+          ["country_platform_routing", JSON.stringify(stored)]
+        );
+        return json(res, 200, { saved: true, country: countryCode, status, livePreferenceChanged: false });
+      } catch (err) {
+        console.error("Country routing write failed:", err.message);
+        return json(res, 500, { error: "Could not save country routing hypothesis." });
+      }
+    }
     if(authHandled !== false) return;
     if(["/api/dashboard-stats","/api/revshare","/api/stats","/api/stats.csv"].includes(incoming.pathname) && !validSession(req)) {
       return json(res,401,{error:"Authentication required."});
