@@ -178,6 +178,20 @@ async function saveClick(click) {
         [click.clickId, click.country, click.category, click.source, click.campaign, click.placement]
       );
     }
+    // Add richer attribution when the Phase 1 migration has been explicitly applied.
+    // Missing table is tolerated so older production schemas keep working.
+    try {
+      await pool.query(
+        `INSERT INTO click_attribution_events
+          (click_id,country,page_type,category,platform,card_position,device,referrer_host,utm_source,utm_medium,utm_campaign,utm_content,sub_id,is_bot)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         ON CONFLICT (click_id) DO NOTHING`,
+        [click.clickId, click.country === "UNKNOWN" ? "UN" : click.country, click.pageType, click.category, click.platform,
+          click.cardPosition, click.device, click.referrerHost, click.source, click.medium, click.campaign, click.content, click.subId, click.isBot]
+      );
+    } catch (eventErr) {
+      if (!/click_attribution_events/.test(String(eventErr.message || ""))) throw eventErr;
+    }
   } catch (err) {
     console.error("Affiliate click tracking failed:", err.message);
   }
@@ -270,7 +284,20 @@ function parseAttribution(incoming, req, platform) {
   const campaign = cleanLabel(p.get("utm_campaign") || p.get("campaign"), "organic", 80);
   const placement = cleanLabel(p.get("src"), platform === "bongacams" ? "bc-card" : "cb-card", 80);
   const category = cleanLabel(p.get("cat"), "unknown", 40);
-  return { clickId: makeClickId(), country: country(req), category, source, medium, campaign, placement, content, device: device(req), platform };
+  const cardPositionRaw = Number.parseInt(p.get("position") || p.get("card_position") || "", 10);
+  let referrerHost = "";
+  try { referrerHost = req.headers.referer ? new URL(req.headers.referer).hostname.slice(0, 255) : ""; } catch {}
+  const pagePath = String(p.get("page") || req.headers.referer || incoming.pathname);
+  const pageType = /country/i.test(pagePath) ? "country" : /female|male|trans|couples/i.test(pagePath) ? "category" : /popular|new|hd|live/i.test(pagePath) ? "listing" : "home_or_other";
+  const subId = cleanLabel(p.get("subid") || p.get("sub_id") || p.get("utm_id"), "", 128);
+  const ua = String(req.headers["user-agent"] || "");
+  const isBot = /bot|crawler|spider|slurp|headless|facebookexternalhit|preview/i.test(ua);
+  return {
+    clickId: makeClickId(), country: country(req), category, source, medium, campaign, placement, content,
+    device: device(req), platform, pageType, referrerHost,
+    cardPosition: Number.isInteger(cardPositionRaw) && cardPositionRaw > 0 && cardPositionRaw <= 1000 ? cardPositionRaw : null,
+    subId, isBot
+  };
 }
 async function handleAuth(req,res,incoming) {
   if (incoming.pathname === "/api/auth/me") return json(res,200,{authenticated:validSession(req),username:validSession(req)?ADMIN_USER:null});
