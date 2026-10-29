@@ -310,7 +310,7 @@ http.createServer = function wrappedCreateServer(handler) {
         }
         // Chaturbate's URL tester can send literal macro placeholders.
         // A validation probe must never be stored as a real affiliate conversion.
-        const macroPlaceholder = value => /^\\{[a-z_]+\\}$/i.test(String(value || "").trim());
+        const macroPlaceholder = value => /^\{[a-z_]+\}$/i.test(String(value || "").trim());
         if (macroPlaceholder(params.click_id) || macroPlaceholder(params.transaction_id) || macroPlaceholder(params.type)) {
           console.log("Chaturbate postback test acknowledged; no conversion recorded");
           res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
