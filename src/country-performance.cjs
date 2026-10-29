@@ -47,9 +47,10 @@ function summarizeCountryPerformance(clickRows = [], conversionRows = []) {
   }
 
   for (const row of conversionRows) {
-    const matched = row.matched_click === true || row.matched_click === "true" || row.matched_click === 1;
+    const hasMatchedClick = row.matched_click === true || row.matched_click === "true" || row.matched_click === 1;
     const clickCountry = String(row.click_country ?? "").trim();
-    const country = matched && clickCountry ? clickCountry : (row.reported_country || "UNKNOWN");
+    const matched = hasMatchedClick && /^[A-Za-z]{2}$/.test(clickCountry);
+    const country = matched ? clickCountry : (row.reported_country || "UNKNOWN");
     const group = getGroup(country, row.platform);
     const type = String(row.conversion_type ?? "").trim().toLowerCase();
     const platform = platformName(row.platform);
