@@ -2,6 +2,23 @@
 -- This file is intentionally not wired into production startup. Applying it to
 -- the production database requires a separate explicit confirmation.
 
+-- Ensure the click table exists in fresh test/dev databases as well as in
+-- existing production installations.
+CREATE TABLE IF NOT EXISTS affiliate_clicks (
+  id BIGSERIAL PRIMARY KEY,
+  clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  country VARCHAR(16) NOT NULL DEFAULT 'UNKNOWN',
+  category VARCHAR(40) NOT NULL DEFAULT 'unknown',
+  source VARCHAR(40) NOT NULL DEFAULT 'direct',
+  campaign VARCHAR(80) NOT NULL DEFAULT 'unknown',
+  placement VARCHAR(80) NOT NULL DEFAULT 'unknown',
+  platform VARCHAR(30) NOT NULL DEFAULT 'chaturbate',
+  medium VARCHAR(80) NOT NULL DEFAULT 'unknown',
+  content VARCHAR(120) NOT NULL DEFAULT '',
+  device VARCHAR(32) NOT NULL DEFAULT 'unknown',
+  click_id VARCHAR(128)
+);
+
 ALTER TABLE affiliate_clicks
   ADD COLUMN IF NOT EXISTS page_type VARCHAR(40) NOT NULL DEFAULT 'unknown',
   ADD COLUMN IF NOT EXISTS card_position INTEGER,
