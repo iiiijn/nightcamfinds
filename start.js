@@ -185,19 +185,27 @@ async function saveClick(click) {
 async function saveConversion(params) {
   if (!pool) throw new Error("Database unavailable");
   await ensurePostbackTables();
+  const clickId = clean(params.click_id, "", 128);
+  const transactionId = clean(params.transaction_id, "", 255);
+  const matchedResult = await pool.query(
+    "SELECT EXISTS(SELECT 1 FROM cb_clicks WHERE click_id = $1::varchar(128)) AS matched",
+    [clickId]
+  );
+  const matchedClick = Boolean(matchedResult.rows[0]?.matched);
   const payout = Number.parseFloat(params.payout);
   const amount = Number.parseFloat(params.amount);
   await pool.query(
     `INSERT INTO cb_conversions
      (click_id,transaction_id,conversion_type,payout,currency,amount,country,track,source,campaign_id,program_id,user_id,event_timestamp,raw_payload,matched_click)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,EXISTS(SELECT 1 FROM cb_clicks WHERE click_id=$1))
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb,$15)
      ON CONFLICT (transaction_id) DO NOTHING`,
     [
-      clean(params.click_id, "", 128), clean(params.transaction_id, "", 255), clean(params.type, "unknown", 100),
+      clickId, transactionId, clean(params.type, "unknown", 100),
       Number.isFinite(payout) ? payout : 0, clean(params.currency, "", 16),
       Number.isFinite(amount) ? amount : null, clean(params.country, "UNKNOWN", 16).toUpperCase(),
       clean(params.track, "", 255), clean(params.source, "", 255), clean(params.campaign_id, "", 255),
-      clean(params.program_id, "", 255), clean(params.user_id, "", 255), clean(params.timestamp, "", 100), JSON.stringify(params)
+      clean(params.program_id, "", 255), clean(params.user_id, "", 255), clean(params.timestamp, "", 100),
+      JSON.stringify(params), matchedClick
     ]
   );
 }
