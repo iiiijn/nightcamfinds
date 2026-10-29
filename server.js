@@ -3,6 +3,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const { URL } = require("url");
+const { rankRoomsByPreferredPlatform } = require("./src/services/platform-ranking.cjs");
 
 let pgPool = null;
 try {
@@ -164,10 +165,7 @@ const server=http.createServer(async(req,res)=>{
   if(country)list=list.filter(r=>r.country===country);
   if(["chaturbate","bongacams"].includes(platform))list=list.filter(r=>r.platform===platform);
   if(q)list=list.filter(r=>`${r.displayName} ${r.roomSubject} ${r.country} ${r.location} ${r.platformName}`.toLowerCase().includes(q));
-  list.sort((a,b)=>{
-    if(preferredPlatform){const rank=Number(b.platform===preferredPlatform)-Number(a.platform===preferredPlatform);if(rank)return rank;}
-    return sort==="newest"?Number(b.isNew)-Number(a.isNew)||b.viewerCount-a.viewerCount:b.viewerCount-a.viewerCount;
-  });
+  list=rankRoomsByPreferredPlatform(list,preferredPlatform,sort);
   const countries=[...new Set(feed.rooms.map(r=>r.country).filter(Boolean))].sort();
   const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();
   return send(res,200,JSON.stringify({rooms:list.slice(0,60),countries,platforms,notice:feed.notice,tier1:MARKETS.some(([,iso])=>iso===visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null}),"application/json");
