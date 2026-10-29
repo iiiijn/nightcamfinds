@@ -217,8 +217,17 @@ async function dashboardStats(incoming) {
               COALESCE(NULLIF(cc.country, 'UNKNOWN'), NULLIF(ac.country, 'UNKNOWN')) AS click_country,
               (cc.click_id IS NOT NULL OR ac.click_id IS NOT NULL) AS matched_click
          FROM cb_conversions c
-         LEFT JOIN cb_clicks cc ON cc.click_id = c.click_id
-         LEFT JOIN affiliate_clicks ac ON ac.click_id = c.click_id AND ac.platform = 'chaturbate'
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM cb_clicks cc0
+            WHERE cc0.click_id = c.click_id
+            LIMIT 1
+         ) cc ON TRUE
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM affiliate_clicks ac0
+            WHERE ac0.click_id = c.click_id AND ac0.platform = 'chaturbate'
+            ORDER BY ac0.clicked_at ASC
+            LIMIT 1
+         ) ac ON TRUE
          ${conv.where}`,
       conv.params
     );
@@ -233,8 +242,18 @@ async function dashboardStats(incoming) {
               COALESCE(NULLIF(bc.country, 'UNKNOWN'), NULLIF(ac.country, 'UNKNOWN')) AS click_country,
               (bc.click_id IS NOT NULL OR ac.click_id IS NOT NULL) AS matched_click
          FROM bonga_conversions c
-         LEFT JOIN bonga_clicks bc ON bc.click_id = c.click_id
-         LEFT JOIN affiliate_clicks ac ON ac.click_id = c.click_id AND ac.platform = 'bongacams'
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM bonga_clicks bc0
+            WHERE bc0.click_id = c.click_id
+            ORDER BY bc0.clicked_at ASC
+            LIMIT 1
+         ) bc ON TRUE
+         LEFT JOIN LATERAL (
+           SELECT click_id, country FROM affiliate_clicks ac0
+            WHERE ac0.click_id = c.click_id AND ac0.platform = 'bongacams'
+            ORDER BY ac0.clicked_at ASC
+            LIMIT 1
+         ) ac ON TRUE
          ${conv.where}`,
       conv.params
     );
