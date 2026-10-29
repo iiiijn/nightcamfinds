@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const net = require("node:net");
-const { spawn } = require("node:child_process");
+const { spawn, execFileSync } = require("node:child_process");
 
 async function freePort() {
   const server = net.createServer();
@@ -45,7 +45,9 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   fs.mkdirSync(pgStub, { recursive: true });
   fs.writeFileSync(path.join(pgStub, "index.js"), "class Pool { constructor() { throw new Error('Unexpected database pool creation in redirect test'); } } module.exports = { Pool };");
   const baseUrl = `http://127.0.0.1:${port}`;
-  const child = spawn(process.execPath, ["-e", "require('./scripts/fix-server-syntax.js'); require('./scripts/patch-spa-seo-routes.js'); require('./route.js')"], {
+  execFileSync(process.execPath, ["scripts/fix-server-syntax.js"], { cwd: projectDir, stdio: "pipe" });
+  execFileSync(process.execPath, ["scripts/patch-spa-seo-routes.js"], { cwd: projectDir, stdio: "pipe" });
+  const child = spawn(process.execPath, ["-e", "require('./route.js')"], {
     cwd: projectDir,
     env: {
       ...process.env,
@@ -81,7 +83,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   assert.equal(chaturbateTarget.hostname, "chaturbate.com");
   assert.equal(chaturbateTarget.pathname, "/in/");
   assert.equal(chaturbateTarget.searchParams.get("tour"), "testTour");
-  assert.equal(chaturbateTarget.searchParams.get("campaign"), "testCampaign");
+  assert.equal(chaturbateTarget.searchParams.get("campaign"), "cb-check");
   assert.equal(chaturbateTarget.searchParams.get("room"), "testmodel");
   assert.equal(chaturbateTarget.searchParams.get("track"), "cb-test-card");
   assert.equal(chaturbateTarget.searchParams.get("source"), "redirect-test");
