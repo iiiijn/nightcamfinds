@@ -370,6 +370,7 @@ http.createServer = function wrappedCreateServer(handler) {
         if (!pool) return json(res, 200, { settings: {}, fallback: true });
         const result = await pool.query("SELECT value FROM system_settings WHERE key = $1 LIMIT 1", ["country_platform_routing"]);
         const stored = result.rows[0]?.value || {};
+        if (validSession(req)) return json(res, 200, { settings: stored, fallback: false, private: true });
         const approved = {};
         for (const countryCode of COUNTRIES) {
           const resolved = resolveCountryPreference(countryCode, stored);
