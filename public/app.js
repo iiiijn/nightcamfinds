@@ -140,8 +140,10 @@ function trackingQuery(extra = {}) {
     campaign: trafficCampaign,
     content: trafficContent || "",
     placement: extra.placement || src,
+    page: location.pathname,
     lp: String((attributionFresh ? savedAttribution.landingPath : "") || location.pathname || "/").slice(0, 255)
   });
+  if (Number.isInteger(extra.position) && extra.position > 0) params.set("position", String(extra.position));
   return params.toString();
 }
 function partners() {
@@ -165,14 +167,15 @@ function partners() {
   });
 }
 
-function card(room) {
+function card(room, position = 0) {
   const a = document.createElement("a");
   const isBonga = room.platform === "bongacams";
   const redirect = isBonga ? "/bgo/" : "/go/";
   a.className = "card";
   a.href = redirect + encodeURIComponent(room.id) + "?" + trackingQuery({
     src: placement(),
-    cat: room.gender || (category === "all" ? "all" : category)
+    cat: room.gender || (category === "all" ? "all" : category),
+    position: position + 1
   });
   a.rel = "sponsored nofollow noopener";
   const img = document.createElement(room.image ? "img" : "div");
