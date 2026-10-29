@@ -5,6 +5,7 @@ const path = require("path");
 const crypto = require("crypto");
 const { Pool } = require("pg");
 const bongacash = require("./bongacash");
+const { summarizeCountryPerformance, buildDateRange } = require("./src/country-performance.cjs");
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -132,13 +133,11 @@ function validDashboardSession(req) {
 }
 
 function rangeClause(incoming, column = "received_at") {
-  const params = [];
-  const where = [];
-  const from = incoming.searchParams.get("from");
-  const to = incoming.searchParams.get("to");
-  if (from) { params.push(`${from}T00:00:00.000Z`); where.push(`${column} >= $${params.length}`); }
-  if (to) { params.push(`${to}T23:59:59.999Z`); where.push(`${column} <= $${params.length}`); }
-  return { params, where: where.length ? `WHERE ${where.join(" AND ")}` : "" };
+  return buildDateRange(
+    incoming.searchParams.get("from"),
+    incoming.searchParams.get("to"),
+    column
+  );
 }
 
 async function dashboardStats(incoming) {
@@ -243,7 +242,6 @@ async function dashboardStats(incoming) {
   } catch (err) {
     console.warn("BongaCams country attribution unavailable:", err.message);
   }
-  const { summarizeCountryPerformance } = require("./src/country-performance.cjs");
   const countryPlatformPerformance = summarizeCountryPerformance(countryClickRows.rows, conversionEvents);
 
   const now = new Date();
