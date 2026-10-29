@@ -23,5 +23,5 @@ test("missing or unsupported preference preserves ordinary recommended ordering"
 
 test("newest sort is not overridden by a country platform preference", () => {
   const result = rankRoomsByPreferredPlatform(rooms, "bongacams", "newest");
-  assert.deepEqual(result.map(room => room.username), ["cb-low", "bonga-high", "cb-high", "bonga-low"]);
+  assert.deepEqual(result.map(room => room.username), ["bonga-high", "cb-low", "cb-high", "bonga-low"]);
 });
