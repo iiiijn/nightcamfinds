@@ -15,7 +15,7 @@ export async function openDatabase({ provider, databaseUrl, dataDir, sqlDir }) {
       }
     };
     await migrate(db, sqlDir);
-    return { repo: createRepository(db), kind: "postgres", async close() { await pool.end(); } };
+    return { repo: createRepository(db), kind: "postgres", query: db.query, async close() { await pool.end(); } };
   }
   const { PGlite } = await import("@electric-sql/pglite");
   const pg = new PGlite(path.join(dataDir, "pglite"));
@@ -25,5 +25,5 @@ export async function openDatabase({ provider, databaseUrl, dataDir, sqlDir }) {
     }
   };
   await migrate(db, sqlDir);
-  return { repo: createRepository(db), kind: "pglite", async close() { await pg.close(); } };
+  return { repo: createRepository(db), kind: "pglite", query: db.query, async close() { await pg.close(); } };
 }

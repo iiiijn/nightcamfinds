@@ -165,11 +165,29 @@ async function saveClick(click) {
   if (!pool) return;
   try {
     await ensurePostbackTables();
-    await pool.query(
-      `INSERT INTO affiliate_clicks (click_id,country,category,source,campaign,placement,platform,medium,content,device)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-      [click.clickId, click.country, click.category, click.source, click.campaign, click.placement, click.platform, click.medium, click.content, click.device]
-    );
+    // Prefer the expanded schema, but retain compatibility with the current
+    // production schema until the additive migration is separately approved.
+    try {
+      await pool.query(
+        `INSERT INTO affiliate_clicks
+         (click_id,country,category,source,campaign,placement,platform,medium,content,device,
+          page_type,card_position,referrer,utm_source,utm_medium,utm_campaign,utm_content,utm_term,
+          landing_path,is_bot,bot_reason)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)`,
+        [click.clickId, click.country, click.category, click.source, click.campaign, click.placement,
+          click.platform, click.medium, click.content, click.device, click.pageType, click.cardPosition,
+          click.referrer, click.utmSource, click.utmMedium, click.utmCampaign, click.utmContent,
+          click.utmTerm, click.landingPath, click.isBot, click.botReason]
+      );
+    } catch (expandedErr) {
+      if (!/column .* does not exist|undefined column/i.test(String(expandedErr.message))) throw expandedErr;
+      await pool.query(
+        `INSERT INTO affiliate_clicks (click_id,country,category,source,campaign,placement,platform,medium,content,device)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [click.clickId, click.country, click.category, click.source, click.campaign, click.placement,
+          click.platform, click.medium, click.content, click.device]
+      );
+    }
     if (click.platform === "chaturbate") {
       await pool.query(
         `INSERT INTO cb_clicks (click_id,country,category,source,campaign,placement)
@@ -245,6 +263,64 @@ async function dashboardStats(incoming) {
   const devices = Object.fromEntries(deviceRows.map(r => [r.device || "unknown", Number(r.n)]));
   const countries = Object.fromEntries(countryRows.map(r => [r.country || "UNKNOWN", Number(r.n)]));
   const mediumStats = Object.fromEntries(mediums.map(r => [r.medium || "unknown", Number(r.n)]));
+  // Country/platform detail is derived from stored click IDs. Conversion counts
+  // are reported only where a conversion can be matched to a tracked click.
+  // BongaCams per-country conversion attribution remains unavailable unless its
+  // postback data includes a reliable matching click ID.
+  let countryPlatformMetrics = [];
+  let countryPlatformMetricsAvailable = false;
+  try {
+    const metricRows = await pool.query(
+      `SELECT UPPER(ac.country) AS country, LOWER(ac.platform) AS platform,
+        COUNT(DISTINCT ac.id)::int AS clicks,
+        COUNT(DISTINCT ac.id) FILTER (WHERE ac.engaged_at IS NOT NULL)::int AS engaged_clicks,
+        COUNT(DISTINCT cc.id) FILTER (WHERE cc.conversion_type IN ('revshare_signup-referral','registration','signup'))::int AS verified_signups,
+        COUNT(DISTINCT cc.id) FILTER (WHERE cc.conversion_type IN ('revshare_purchase','purchase'))::int AS verified_payers,
+        COALESCE(SUM(cc.payout) FILTER (WHERE cc.conversion_type IN ('revshare_purchase','revshare_payout-adjustment','purchase')),0)::numeric AS revenue
+       FROM affiliate_clicks ac
+       LEFT JOIN cb_conversions cc ON cc.click_id = ac.click_id AND ac.platform = 'chaturbate'
+       ${where}
+       GROUP BY UPPER(ac.country), LOWER(ac.platform)
+       ORDER BY UPPER(ac.country), LOWER(ac.platform)`,
+      params
+    );
+    countryPlatformMetrics = metricRows.rows.map(row => {
+      const clicks = Number(row.clicks || 0);
+      const engagedClicks = Number(row.engaged_clicks || 0);
+      const verifiedSignups = Number(row.verified_signups || 0);
+      const verifiedPayers = Number(row.verified_payers || 0);
+      const revenue = Number(row.revenue || 0);
+      const conversionAvailable = row.platform === "chaturbate";
+      return {
+        country: row.country || "UNKNOWN", platform: row.platform || "unknown",
+        clicks,
+        engagedClicks: conversionAvailable ? engagedClicks : null,
+        verifiedSignups: conversionAvailable ? verifiedSignups : null,
+        verifiedPayers: conversionAvailable ? verifiedPayers : null,
+        revenue: conversionAvailable ? revenue : null,
+        epc: conversionAvailable && clicks > 0 ? revenue / clicks : null,
+        conversionAttribution: conversionAvailable ? "matched_click_ids" : "unavailable",
+        evidenceEligible: conversionAvailable && clicks >= 100 && engagedClicks >= 20 && verifiedSignups >= 5
+      };
+    });
+    countryPlatformMetricsAvailable = true;
+  } catch (metricError) {
+    // The additive attribution migration is not applied automatically to production.
+    // Fall back to a truthful click-only report using the legacy columns.
+    const metricRows = await pool.query(
+      `SELECT UPPER(country) AS country, LOWER(platform) AS platform, COUNT(*)::int AS clicks
+       FROM affiliate_clicks ${where}
+       GROUP BY UPPER(country), LOWER(platform)
+       ORDER BY UPPER(country), LOWER(platform)`,
+      params
+    );
+    countryPlatformMetrics = metricRows.rows.map(row => ({
+      country: row.country || "UNKNOWN", platform: row.platform || "unknown",
+      clicks: Number(row.clicks || 0), engagedClicks: null, verifiedSignups: null,
+      verifiedPayers: null, revenue: null, epc: null, evidenceEligible: false,
+      conversionAttribution: "unavailable_until_schema_and_postbacks_are_verified"
+    }));
+  }
   const countSince = async days => Number((await pool.query("SELECT COUNT(*)::int AS n FROM affiliate_clicks WHERE clicked_at >= NOW() - ($1::int * INTERVAL '1 day')", [days])).rows[0]?.n || 0);
   const cbClicks = platforms.chaturbate || 0;
   const bcClicks = platforms.bongacams || 0;
@@ -257,7 +333,8 @@ async function dashboardStats(incoming) {
     earnings: Number(earningsRows.rows[0]?.earnings || 0), bongacamsRegistrations: Number(bongacash.rows[0]?.registrations || 0),
     bongacamsPurchases: Number(bongacash.rows[0]?.purchases || 0), bongacamsEarnings: Number(bongacash.rows[0]?.earnings || 0),
     bongacashConnected: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
-    platforms, countries, sources, placements, campaigns, devices, mediums
+    platforms, countries, sources, placements, campaigns, devices, mediums,
+    countryPlatformMetrics, countryPlatformMetricsAvailable
   };
 }
 
@@ -267,9 +344,27 @@ function parseAttribution(incoming, req, platform) {
   const content = cleanLabel(p.get("utm_content") || p.get("content"), "", 120);
   const source = cleanLabel(p.get("utm_source") || p.get("source"), "direct", 40);
   const campaign = cleanLabel(p.get("utm_campaign") || p.get("campaign"), "organic", 80);
-  const placement = cleanLabel(p.get("src"), platform === "bongacams" ? "bc-card" : "cb-card", 80);
-  const category = cleanLabel(p.get("cat"), "unknown", 40);
-  return { clickId: makeClickId(), country: country(req), category, source, medium, campaign, placement, content, device: device(req), platform };
+  const placement = cleanLabel(p.get("src") || p.get("placement"), platform === "bongacams" ? "bc-card" : "cb-card", 80);
+  const category = cleanLabel(p.get("cat") || p.get("category"), "unknown", 40);
+  const userAgent = String(req.headers["user-agent"] || "").slice(0, 500);
+  const botMatch = /bot|crawler|spider|headless|preview|monitoring|uptime/i.test(userAgent);
+  const cardPositionRaw = Number.parseInt(p.get("position") || p.get("card_position") || "", 10);
+  const cardPosition = Number.isInteger(cardPositionRaw) && cardPositionRaw > 0 && cardPositionRaw <= 1000 ? cardPositionRaw : null;
+  return {
+    clickId: makeClickId(), country: country(req), category, source, medium, campaign,
+    placement, content, device: device(req), platform,
+    pageType: cleanLabel(p.get("page_type") || (incoming.pathname.includes("/country/") ? "country" : "directory"), "unknown", 40),
+    cardPosition,
+    referrer: String(req.headers.referer || "").slice(0, 2000),
+    utmSource: cleanLabel(p.get("utm_source"), "", 120),
+    utmMedium: cleanLabel(p.get("utm_medium"), "", 120),
+    utmCampaign: cleanLabel(p.get("utm_campaign"), "", 160),
+    utmContent: cleanLabel(p.get("utm_content"), "", 160),
+    utmTerm: cleanLabel(p.get("utm_term"), "", 160),
+    landingPath: String(p.get("landing_path") || req.headers.referer || "/").slice(0, 2000),
+    isBot: botMatch,
+    botReason: botMatch ? "user_agent_match" : null
+  };
 }
 async function handleAuth(req,res,incoming) {
   if (incoming.pathname === "/api/auth/me") return json(res,200,{authenticated:validSession(req),username:validSession(req)?ADMIN_USER:null});
