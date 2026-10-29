@@ -47,7 +47,7 @@ test("country settings HTTP endpoints enforce session auth and return controlled
   const pgStub = path.join(stubRoot, "pg");
   fs.mkdirSync(pgStub, { recursive: true });
   fs.writeFileSync(path.join(pgStub, "index.js"), "class Pool { constructor() { throw new Error('Unexpected database pool creation in no-database test'); } } module.exports = { Pool };");
-  const child = spawn(process.execPath, ["route.js"], {
+  const child = spawn(process.execPath, ["-e", "const cp=require('node:child_process'); for (const script of ['scripts/run-production-migrations.js','scripts/fix-server-syntax.js','scripts/patch-spa-seo-routes.js']) cp.execFileSync(process.execPath,[script],{stdio:'inherit'}); require('./route.js');"], {
     cwd: process.cwd(),
     env: {
       ...process.env,
