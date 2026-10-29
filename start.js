@@ -308,18 +308,21 @@ http.createServer = function wrappedCreateServer(handler) {
           console.warn("Chaturbate postback rejected: invalid optional secret");
           return json(res, 403, { error: "Invalid postback secret." });
         }
+        // Chaturbate's URL tester can send literal macro placeholders.
+        // A validation probe must never be stored as a real affiliate conversion.
+        const macroPlaceholder = value => /^\\{[a-z_]+\\}$/i.test(String(value || "").trim());
+        if (macroPlaceholder(params.click_id) || macroPlaceholder(params.transaction_id) || macroPlaceholder(params.type)) {
+          console.log("Chaturbate postback test acknowledged; no conversion recorded");
+          res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
+          return res.end("OK");
+        }
         // Require the identifiers needed for safe attribution and idempotency.
         if (!params.click_id || !params.transaction_id) {
           console.warn("Chaturbate postback rejected: missing click_id or transaction_id");
           return json(res, 400, { error: "Missing click_id or transaction_id." });
         }
-        const event = await saveConversion(params);
-        const logContext = JSON.stringify({ clickIdPresent: Boolean(params.click_id), transactionIdPresent: Boolean(params.transaction_id) });
-        if (event?.test) {
-          console.log("Chaturbate postback test acknowledged; no conversion recorded", logContext);
-        } else {
-          console.log("Chaturbate postback conversion recorded", JSON.stringify({ type: params.type || "", clickIdPresent: Boolean(params.click_id), transactionIdPresent: Boolean(params.transaction_id) }));
-        }
+        await saveConversion(params);
+        console.log("Chaturbate postback conversion recorded", JSON.stringify({ type: params.type || "", clickIdPresent: true, transactionIdPresent: true }));
         res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
         return res.end("OK");
       } catch (err) {
