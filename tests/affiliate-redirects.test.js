@@ -36,12 +36,17 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   const port = await freePort();
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-stats-"));
   const stubRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-modules-"));
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-project-"));
+  fs.cpSync(process.cwd(), projectDir, {
+    recursive: true,
+    filter: source => !source.split(path.sep).includes(".git") && !source.split(path.sep).includes("node_modules")
+  });
   const pgStub = path.join(stubRoot, "pg");
   fs.mkdirSync(pgStub, { recursive: true });
   fs.writeFileSync(path.join(pgStub, "index.js"), "class Pool { constructor() { throw new Error('Unexpected database pool creation in redirect test'); } } module.exports = { Pool };");
   const baseUrl = `http://127.0.0.1:${port}`;
-  const child = spawn(process.execPath, ["-e", "require('./route.js')"], {
-    cwd: process.cwd(),
+  const child = spawn(process.execPath, ["-e", "require('./scripts/fix-server-syntax.js'); require('./scripts/patch-spa-seo-routes.js'); require('./route.js')"], {
+    cwd: projectDir,
     env: {
       ...process.env,
       NODE_PATH: [stubRoot, process.env.NODE_PATH || ""].filter(Boolean).join(path.delimiter),
@@ -62,6 +67,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
     if (child.exitCode === null) child.kill("SIGTERM");
     fs.rmSync(dataDir, { recursive: true, force: true });
     fs.rmSync(stubRoot, { recursive: true, force: true });
+    fs.rmSync(projectDir, { recursive: true, force: true });
   });
 
   await waitForServer(baseUrl, child);
