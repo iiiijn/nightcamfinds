@@ -98,7 +98,7 @@ module.exports = { Pool };
   assert.equal(bonga.status, 302);
 
   await new Promise(resolve => setTimeout(resolve, 150));
-  const queries = fs.readFileSync(queryLog, "utf8").trim().split("\\n").filter(Boolean).map(line => JSON.parse(line));
+  const queries = fs.readFileSync(queryLog, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line));
   const inserts = queries.filter(q => /INSERT INTO affiliate_clicks/i.test(q.sql));
   const cbLedger = queries.filter(q => /INSERT INTO cb_clicks/i.test(q.sql));
   const bongaLedger = queries.filter(q => /INSERT INTO bonga_clicks/i.test(q.sql));
