@@ -425,25 +425,8 @@ http.createServer = function wrappedCreateServer(handler) {
         return json(res, 400, { error: "Postback event rejected." });
       }
     }
-    const originalWriteHead = res.writeHead.bind(res);
-    const path = incoming.pathname;
-    const platform = path.startsWith("/bgo/") ? "bongacams" : path.startsWith("/go/") ? "chaturbate" : "";
-    if(platform) {
-      const click = parseAttribution(incoming,req,platform);
-      await saveClick(click);
-      res.writeHead = function(statusCode,headers,...rest) {
-        if(headers && headers.Location) {
-          try {
-            const target = new URL(headers.Location);
-            target.searchParams.set("click_id",click.clickId);
-            if(click.source!=="direct" && !target.searchParams.get("source")) target.searchParams.set("source",click.source);
-            target.searchParams.set("track",click.placement);
-            headers = {...headers,Location:target.toString()};
-          } catch {}
-        }
-        return originalWriteHead(statusCode,headers,...rest);
-      };
-    }
+    // Redirect click recording and click_id generation are owned by server.js.
+    // Keeping a second writer here caused duplicate counts and orphaned IDs.
     return handler(req,res);
   });
 };
