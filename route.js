@@ -7,6 +7,7 @@ const { Pool } = require("pg");
 const bongacash = require("./bongacash");
 const { isSameOriginRequest } = require("./src/services/country-settings-origin.cjs");
 const { validateCountryPlatformPayload } = require("./src/services/country-settings-validation.cjs");
+const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -291,12 +292,6 @@ async function ensureBongaReconciliationTable() {
   `);
 }
 
-function validIsoDate(value) {
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(value || ""))) return false;
-  const d = new Date(String(value) + "T00:00:00.000Z");
-  return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === value;
-}
-
 http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
@@ -379,16 +374,9 @@ http.createServer = function routeDashboard(handler) {
           for await (const chunk of req) { body += chunk; if (body.length > 4000) return sendJson(res, 413, { error: "Request too large." }); }
           let payload;
           try { payload = JSON.parse(body || "{}"); } catch { return sendJson(res, 400, { error: "Invalid JSON." }); }
-          const reportDate = String(payload.date || "");
-          const registrations = Number(payload.registrations);
-          const purchases = Number(payload.purchases);
-          const earnings = Number(payload.earnings);
-          const notes = String(payload.notes || "").trim();
-          if (!validIsoDate(reportDate)) return sendJson(res, 400, { error: "Choose a valid reporting date." });
-          if (!Number.isSafeInteger(registrations) || registrations < 0 || registrations > 100000000) return sendJson(res, 400, { error: "Registrations must be a non-negative whole number." });
-          if (!Number.isSafeInteger(purchases) || purchases < 0 || purchases > 100000000) return sendJson(res, 400, { error: "Purchases must be a non-negative whole number." });
-          if (!Number.isFinite(earnings) || earnings < 0 || earnings > 1000000000000) return sendJson(res, 400, { error: "Earnings must be a valid non-negative USD amount." });
-          if (notes.length > 500) return sendJson(res, 400, { error: "Notes must be 500 characters or fewer." });
+          const validation = validateDailyEntry(payload);
+          if (validation.error) return sendJson(res, 400, { error: validation.error });
+          const { date: reportDate, registrations, purchases, earnings, notes } = validation.value;
           const saved = await pool.query(
             `INSERT INTO bongacash_daily_reconciliation
               (report_date, registrations, purchases, earnings, notes, updated_by, updated_at)
@@ -404,7 +392,7 @@ http.createServer = function routeDashboard(handler) {
         }
         const from = incoming.searchParams.get("from");
         const to = incoming.searchParams.get("to");
-        if ((from && !validIsoDate(from)) || (to && !validIsoDate(to))) return sendJson(res, 400, { error: "Invalid date range." });
+        if ((from && !isValidIsoDate(from)) || (to && !isValidIsoDate(to))) return sendJson(res, 400, { error: "Invalid date range." });
         if (from && to && from > to) return sendJson(res, 400, { error: "Start date must be on or before end date." });
         const clauses = [], params = [];
         if (from) { params.push(from); clauses.push(`report_date >= ${params.length}::date`); }
