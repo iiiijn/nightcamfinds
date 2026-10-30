@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const net = require("node:net");
-const { spawn } = require("node:child_process");
+const { spawn, execFileSync } = require("node:child_process");
 
 async function freePort() {
   const server = net.createServer();
@@ -56,6 +56,9 @@ class Pool {
 }
 module.exports = { Pool };
 `);
+
+  execFileSync(process.execPath, ["scripts/fix-server-syntax.js"], { cwd: projectDir, stdio: "pipe" });
+  execFileSync(process.execPath, ["scripts/patch-spa-seo-routes.js"], { cwd: projectDir, stdio: "pipe" });
 
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["-e", "require('./route.js')"], {
