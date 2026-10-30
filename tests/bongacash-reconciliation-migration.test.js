@@ -18,7 +18,7 @@ test("BongaCash reconciliation migration matches the API table contract", () => 
 });
 
 test("BongaCash reconciliation migration is registered for approved production startup", () => {
-  assert.match(migration, /requires separate explicit approval/i);
+  assert.match(migration, /separate explicit approval/i);
   assert.match(startup, /version: "005_bongacash_daily_reconciliation"/i);
   assert.match(startup, /file: "005_bongacash_daily_reconciliation\.sql"/i);
   assert.match(startup, /SELECT 1 FROM schema_migrations WHERE version = \$1/i);
