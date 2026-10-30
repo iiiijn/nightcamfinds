@@ -330,8 +330,8 @@ http.createServer = function wrappedCreateServer(handler) {
         const configuredSecret = String(process.env.CB_POSTBACK_SECRET || "").trim();
         // Chaturbate Dynamic Postbacks do not send a generic `secret` macro.
         // Keep legacy secret support only when Chaturbate actually supplies one.
-        if (configuredSecret && params.secret && !safeEqual(params.secret, configuredSecret)) {
-          console.warn("Chaturbate postback rejected: invalid optional secret");
+        if (configuredSecret && (!params.secret || !safeEqual(params.secret, configuredSecret))) {
+          console.warn("Chaturbate postback rejected: missing or invalid secret");
           return json(res, 403, { error: "Invalid postback secret." });
         }
         // Chaturbate's URL tester can send literal macro placeholders.
