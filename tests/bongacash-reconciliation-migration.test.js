@@ -17,9 +17,12 @@ test("BongaCash reconciliation migration matches the API table contract", () => 
   assert.match(route, /FROM bongacash_daily_reconciliation/i);
 });
 
-test("BongaCash reconciliation schema stays outside automatic production migrations", () => {
-  assert.match(migration, /intentionally not wired into automatic production startup/i);
-  assert.doesNotMatch(startup, /005_bongacash_daily_reconciliation/i);
-  assert.match(route, /schema is not installed\. Production migration 005 requires separate approval/i);
+test("BongaCash reconciliation migration is registered for approved production startup", () => {
+  assert.match(migration, /requires separate explicit approval/i);
+  assert.match(startup, /version: "005_bongacash_daily_reconciliation"/i);
+  assert.match(startup, /file: "005_bongacash_daily_reconciliation\.sql"/i);
+  assert.match(startup, /SELECT 1 FROM schema_migrations WHERE version = \$1/i);
+  assert.match(startup, /INSERT INTO schema_migrations \(version\) VALUES \(\$1\)/i);
+  assert.match(route, /Production migration 005 has not been applied/i);
   assert.doesNotMatch(route, /CREATE TABLE IF NOT EXISTS bongacash_daily_reconciliation/i);
 });
