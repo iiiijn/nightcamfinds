@@ -397,7 +397,7 @@ http.createServer = function routeDashboard(handler) {
         );
         return sendJson(res, 200, { totals: totals.rows[0], entries: entries.rows });
       } catch (err) {
-        if (err.code === "42P01") return sendJson(res, 503, { error: "BongaCash reconciliation schema is not installed. Production migration 005 requires separate approval." });
+        if (err.code === "42P01") return sendJson(res, 503, { error: "BongaCash reconciliation schema is not installed. Production migration 005 has not been applied." });
         console.error("BongaCash reconciliation failed:", err.message);
         return sendJson(res, 500, { error: "Could not process BongaCash reconciliation." });
       }
