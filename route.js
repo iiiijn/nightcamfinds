@@ -278,20 +278,6 @@ async function dashboardStats(incoming) {
   };
 }
 
-async function ensureBongaReconciliationTable() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS bongacash_daily_reconciliation (
-      report_date DATE PRIMARY KEY,
-      registrations INTEGER NOT NULL DEFAULT 0 CHECK (registrations >= 0),
-      purchases INTEGER NOT NULL DEFAULT 0 CHECK (purchases >= 0),
-      earnings NUMERIC(18,2) NOT NULL DEFAULT 0 CHECK (earnings >= 0),
-      notes VARCHAR(500) NOT NULL DEFAULT '',
-      updated_by VARCHAR(120) NOT NULL,
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-}
-
 http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
@@ -368,7 +354,6 @@ http.createServer = function routeDashboard(handler) {
         if (!String(req.headers["content-type"] || "").toLowerCase().includes("application/json")) return sendJson(res, 415, { error: "Use application/json." });
       }
       try {
-        await ensureBongaReconciliationTable();
         if (req.method === "POST") {
           let body = "";
           for await (const chunk of req) { body += chunk; if (body.length > 4000) return sendJson(res, 413, { error: "Request too large." }); }
@@ -412,6 +397,7 @@ http.createServer = function routeDashboard(handler) {
         );
         return sendJson(res, 200, { totals: totals.rows[0], entries: entries.rows });
       } catch (err) {
+        if (err.code === "42P01") return sendJson(res, 503, { error: "BongaCash reconciliation schema is not installed. Production migration 005 requires separate approval." });
         console.error("BongaCash reconciliation failed:", err.message);
         return sendJson(res, 500, { error: "Could not process BongaCash reconciliation." });
       }
