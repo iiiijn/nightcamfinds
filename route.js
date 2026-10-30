@@ -5,6 +5,9 @@ const path = require("path");
 const crypto = require("crypto");
 const { Pool } = require("pg");
 const bongacash = require("./bongacash");
+const { isSameOriginRequest } = require("./src/services/country-settings-origin.cjs");
+const { validateCountryPlatformPayload } = require("./src/services/country-settings-validation.cjs");
+const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -302,6 +305,102 @@ http.createServer = function routeDashboard(handler) {
       if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
       try { return sendJson(res, 200, await bongacash.save(pool, params)); }
       catch (err) { console.error("BongaCash postback failed:", err.message); return sendJson(res, 500, { error: "Could not save BongaCash conversion." }); }
+    }
+    if (incoming.pathname === "/api/country-platform-settings") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET" && req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
+      if (req.method === "POST") {
+        if (!isSameOriginRequest(req.headers)) return sendJson(res, 403, { error: "Origin check failed." });
+        if (!String(req.headers["content-type"] || "").toLowerCase().includes("application/json")) return sendJson(res, 415, { error: "Use application/json." });
+      }
+      let payload;
+      if (req.method === "POST") {
+        let body = "";
+        for await (const chunk of req) { body += chunk; if (body.length > 12000) return sendJson(res, 413, { error: "Request too large." }); }
+        try { payload = JSON.parse(body || "{}"); } catch { return sendJson(res, 400, { error: "Invalid JSON." }); }
+        const validation = validateCountryPlatformPayload(payload);
+        if (validation.error) return sendJson(res, 400, { error: validation.error });
+      }
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      try {
+        if (req.method === "GET") {
+          const result = await pool.query("SELECT country_code, preferred_platform, status, hypothesis, approved_at, updated_at FROM country_platform_settings WHERE country_code = ANY($1::char(2)[]) ORDER BY country_code", [["US","GB","CA","AU","DE","FR","NL"]]);
+          const byCountry = Object.fromEntries(result.rows.map(row => [String(row.country_code).trim(), row]));
+          return sendJson(res, 200, { settings: ["US","GB","CA","AU","DE","FR","NL"].map(country => byCountry[country] || { country_code: country, preferred_platform: null, status: "hypothesis", hypothesis: "", approved_at: null, notConfigured: true }) });
+        }
+        const { country, platform, action, hypothesis, status } = payload ? validateCountryPlatformPayload(payload).value : {};
+        const approvedAt = action === "approve" ? new Date() : null;
+        const saved = await pool.query(
+          `INSERT INTO country_platform_settings (country_code, preferred_platform, status, hypothesis, approved_at, updated_by, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,NOW())
+           ON CONFLICT (country_code) DO UPDATE SET preferred_platform=EXCLUDED.preferred_platform,status=EXCLUDED.status,
+             hypothesis=EXCLUDED.hypothesis,approved_at=EXCLUDED.approved_at,updated_by=EXCLUDED.updated_by,updated_at=NOW()
+           RETURNING country_code,preferred_platform,status,hypothesis,approved_at,updated_at`,
+          [country, platform, status, hypothesis, approvedAt, ADMIN_USER]
+        );
+        return sendJson(res, 200, { setting: saved.rows[0] });
+      } catch (err) {
+        if (err.code === "42P01") return sendJson(res, 503, { error: "Country settings schema is not installed. Production migration has not been applied." });
+        console.error("Country platform settings failed:", err.message);
+        return sendJson(res, 500, { error: "Could not process country settings." });
+      }
+    }
+    if (incoming.pathname === "/api/bongacash-reconciliation") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      if (req.method !== "GET" && req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
+      if (req.method === "POST") {
+        if (!isSameOriginRequest(req.headers)) return sendJson(res, 403, { error: "Origin check failed." });
+        if (!String(req.headers["content-type"] || "").toLowerCase().includes("application/json")) return sendJson(res, 415, { error: "Use application/json." });
+      }
+      try {
+        if (req.method === "POST") {
+          let body = "";
+          for await (const chunk of req) { body += chunk; if (body.length > 4000) return sendJson(res, 413, { error: "Request too large." }); }
+          let payload;
+          try { payload = JSON.parse(body || "{}"); } catch { return sendJson(res, 400, { error: "Invalid JSON." }); }
+          const validation = validateDailyEntry(payload);
+          if (validation.error) return sendJson(res, 400, { error: validation.error });
+          const { date: reportDate, registrations, purchases, earnings, notes } = validation.value;
+          const saved = await pool.query(
+            `INSERT INTO bongacash_daily_reconciliation
+              (report_date, registrations, purchases, earnings, notes, updated_by, updated_at)
+             VALUES ($1::date, $2, $3, $4, $5, $6, NOW())
+             ON CONFLICT (report_date) DO UPDATE SET
+               registrations=EXCLUDED.registrations, purchases=EXCLUDED.purchases,
+               earnings=EXCLUDED.earnings, notes=EXCLUDED.notes,
+               updated_by=EXCLUDED.updated_by, updated_at=NOW()
+             RETURNING report_date, registrations, purchases, earnings, notes, updated_at`,
+            [reportDate, registrations, purchases, earnings, notes, ADMIN_USER]
+          );
+          return sendJson(res, 200, { saved: saved.rows[0] });
+        }
+        const from = incoming.searchParams.get("from");
+        const to = incoming.searchParams.get("to");
+        if ((from && !isValidIsoDate(from)) || (to && !isValidIsoDate(to))) return sendJson(res, 400, { error: "Invalid date range." });
+        if (from && to && from > to) return sendJson(res, 400, { error: "Start date must be on or before end date." });
+        const clauses = [], params = [];
+        if (from) { params.push(from); clauses.push(`report_date >= $${params.length}::date`); }
+        if (to) { params.push(to); clauses.push(`report_date <= $${params.length}::date`); }
+        const where = clauses.length ? "WHERE " + clauses.join(" AND ") : "";
+        const totals = await pool.query(
+          `SELECT COALESCE(SUM(registrations),0)::int AS registrations,
+                  COALESCE(SUM(purchases),0)::int AS purchases,
+                  COALESCE(SUM(earnings),0)::numeric AS earnings,
+                  COUNT(*)::int AS days_reported
+           FROM bongacash_daily_reconciliation ${where}`, params
+        );
+        const entries = await pool.query(
+          `SELECT report_date, registrations, purchases, earnings, notes, updated_at
+           FROM bongacash_daily_reconciliation ${where}
+           ORDER BY report_date DESC LIMIT 90`, params
+        );
+        return sendJson(res, 200, { totals: totals.rows[0], entries: entries.rows });
+      } catch (err) {
+        if (err.code === "42P01") return sendJson(res, 503, { error: "BongaCash reconciliation schema is not installed. Production migration 005 requires separate approval." });
+        console.error("BongaCash reconciliation failed:", err.message);
+        return sendJson(res, 500, { error: "Could not process BongaCash reconciliation." });
+      }
     }
     if (incoming.pathname === "/api/dashboard-stats") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
