@@ -395,8 +395,8 @@ http.createServer = function routeDashboard(handler) {
         if ((from && !isValidIsoDate(from)) || (to && !isValidIsoDate(to))) return sendJson(res, 400, { error: "Invalid date range." });
         if (from && to && from > to) return sendJson(res, 400, { error: "Start date must be on or before end date." });
         const clauses = [], params = [];
-        if (from) { params.push(from); clauses.push(`report_date >= ${params.length}::date`); }
-        if (to) { params.push(to); clauses.push(`report_date <= ${params.length}::date`); }
+        if (from) { params.push(from); clauses.push(`report_date >= $${params.length}::date`); }
+        if (to) { params.push(to); clauses.push(`report_date <= $${params.length}::date`); }
         const where = clauses.length ? "WHERE " + clauses.join(" AND ") : "";
         const totals = await pool.query(
           `SELECT COALESCE(SUM(registrations),0)::int AS registrations,
