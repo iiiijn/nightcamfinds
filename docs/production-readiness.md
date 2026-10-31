@@ -98,7 +98,7 @@ Keep `BONGACASH_ENABLED=false` and `BONGACASH_POSTBACKS=false`.
 
 ## 6. Backups
 
-NOT CONFIGURED. No backup has been confirmed as taken or restored as of 2026-10-31. Treat backup and restore as NOT CONFIGURED until a downloadable export exists and a restore test succeeds.
+EXPORT CREATED AND DOWNLOADED; RESTORE NOT TESTED (2026-10-31). Render Recovery shows a successful logical database export created at 23:53 Kenya time on 2026-10-31. The owner confirmed downloading the `.dir.tar.gz` export. This confirms an export exists, but not that it can be restored. Keep backup/restore verification incomplete until a separate restore test succeeds.
 
 Prepare, outside the app:
 
@@ -109,7 +109,7 @@ Prepare, outside the app:
 - Alert if the latest successful backup is older than 26 hours.
 - Restore into a separate database and run `SELECT count(*) FROM schema_migrations` before calling it tested.
 
-Admin backup status remains `NOT_CONFIGURED` until that restore succeeds. Do not flip it earlier.
+Admin backup status must remain `NOT_CONFIGURED` until a separate restore succeeds. Do not mark backup/restore as fully verified based only on a successful export.
 
 ## 7. CDN/WAF
 
@@ -145,7 +145,8 @@ Do not run this until sections 1–3 have real values.
 | BongaCash API, destination, PPS, postbacks | REQUIRES VERIFICATION |
 | Chaturbate program, attribution, postback registration | REQUIRES VERIFICATION |
 | Hosted PostgreSQL | VERIFIED AVAILABLE AND CONNECTED (2026-10-31) |
-| Backup and restore | NOT CONFIGURED |
+| Logical export | CREATED AND DOWNLOADED (2026-10-31) |
+| Restore test | NOT TESTED |
 | CDN/WAF | NOT CONFIGURED |
 | HTTPS termination | NOT CONFIGURED |
 | Production smoke test | NOT CONFIGURED |
