@@ -78,10 +78,11 @@ Do not assume the selected program.
 - Record the selected payout program from the account. Do not copy a guessed rate.
 - Open a room from NightCamFinds `/go/{id}` and confirm the landing URL is on `chaturbate.com` and carries `click_id`.
 - Confirm in Chaturbate docs/account that `click_id` is an accepted pass-through for your program.
-- Register the postback URL only after the account shows dynamic postbacks: `https://APP_BASE_URL/postback/chaturbate`
-- Append only macros the current Chaturbate postback page lists, including `{click_id}` and `{transaction_id}` if shown there.
-- Send a test click. Do not mark attribution verified until the account shows the click.
-- Send a test registration or purchase only if the account provides a test event. Otherwise leave postback delivery REQUIRES VERIFICATION.
+- The production handler is `GET https://nightcamfinds.com/api/chaturbate/postback` (also accepts `/cb/postback`). The older `/postback/chaturbate` path in prior notes is not the active handler.
+- For Dynamic Postbacks, use the documented Chaturbate macros: `{click_id}`, `{transaction_id}`, `{type}`, `{payout}`, `{currency}`, `{amount}`, `{country}`, `{track}`, `{source}`, `{campaign_id}`, `{program_id}`, `{user_id}`, `{timestamp}`, `{device}`, and `{language}`. Chaturbate documents GET and POST delivery; the current NightCamFinds handler is verified for GET only, so select GET.
+- The handler requires real `click_id` and `transaction_id`, ignores literal macro-placeholder test probes, and stores conversion events idempotently by transaction ID. It checks the click against the legacy `cb_clicks` mirror; a live click ID was confirmed in both `cb_clicks` and `affiliate_clicks` on 2026-10-31.
+- The optional Chaturbate validation-salt/checksum mechanism is not yet implemented in NightCamFinds. Do not configure checksum validation until its exact signature algorithm is implemented and tested. Do not set `CB_POSTBACK_SECRET` unless the postback request actually sends a matching `secret` parameter; Chaturbate's documented dynamic macro list does not include one.
+- Configure the URL in the Chaturbate account only after verifying the selected campaign/program and the account's Dynamic Postbacks page. Send the URL tester first; it should receive `200 OK` without creating a conversion row. Real signup/purchase events remain REQUIRES VERIFICATION until one arrives with a real click ID and is matched.
 
 ## 5. BongaCash verification checklist
 
