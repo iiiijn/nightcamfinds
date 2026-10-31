@@ -147,7 +147,7 @@ const server=http.createServer(async(req,res)=>{
   if(pathname==="/robots.txt") return send(res,200,`User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /bgo/\nDisallow: /api/\nSitemap: ${pageOrigin(req)}/sitemap.xml\n`,"text/plain");
   if(pathname==="/sitemap.xml")return send(res,200,sitemap(pageOrigin(req)),"application/xml");
   if(pathname==="/broadcast"||pathname==="/broadcast/"){const html=fs.readFileSync(path.join(PUBLIC,"broadcast.html"),"utf8");return send(res,200,html,"text/html; charset=utf-8");}
-  const countryMatch = pathname.match(/^\\/country\\/([a-z]{2})\\/$/);
+  const countryMatch = pathname.match(/^\/country\/([a-z]{2})\/$/);
   if (countryMatch) {
     const countryHtml = getCountryPage(countryMatch[1], pageOrigin(req));
     if (countryHtml) return send(res, 200, countryHtml, "text/html; charset=utf-8");
