@@ -13,7 +13,7 @@ test("country URLs reach the dedicated server-rendered country page handler", ()
   const fallback = server.indexOf('const file=pathname==="/"||pathname.endsWith("/")?"/index.html":pathname;');
   assert.ok(route >= 0, "dedicated country route should exist");
   assert.ok(fallback > route, "country route must run before homepage/static fallback");
-  assert.ok(server.slice(route, fallback).includes("getCountryPage(countryRoute[1], pageOrigin(req))"));
+  assert.ok(server.slice(route, fallback).includes("getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, countryRooms.length > 0)"));
 });
 
 test("SEO request rewriting does not turn country URLs into the homepage URL", () => {
