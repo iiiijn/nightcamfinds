@@ -113,7 +113,7 @@ function ncfRewriteSeoRequestV14(req) {
   try {
     const current = new URL(String(req.url || "/"), "http://nightcamfinds.local");
     const pathname = current.pathname;
-    if (NCF_SEO_PATHS_V14.has(pathname) || /^\\/country\\/[a-z]{2}\\/$/i.test(pathname)) {
+    if (NCF_SEO_PATHS_V14.has(pathname)) {
       req.seoOriginalPathname = pathname;
       req.url = "/" + current.search;
     }
