@@ -8,15 +8,15 @@ const slugs = ["us", "gb", "ca", "au", "de", "fr", "nl"];
 
 function visibleText(html) {
   return html
-    .replace(/<script[\\s\\S]*?<\\/script>/gi, " ")
-    .replace(/<style[\\s\\S]*?<\\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/\\s+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -32,12 +32,12 @@ test("all priority country pages render distinct content and canonical URLs", ()
     assert.match(html, new RegExp("<h1>" + country.name + " Live Cams</h1>"));
     assert.match(html, new RegExp('rel="canonical" href="https://nightcamfinds\\.com/country/' + slug + '/"'));
     assert.match(html, /aria-label="Breadcrumb"/);
-    assert.match(html, /<a href="/">Home<\\/a>/);
+    assert.match(html, /<a href="/">Home<\/a>/);
     assert.match(html, /Frequently asked questions/);
     assert.equal((html.match(/<section class="country-faq-item">/g) || []).length, 3);
-    assert.match(html, /href="\\/female\\/"/);
-    assert.match(html, /href="\\/live\\/"/);
-    const words = visibleText(html).split(/\\s+/).length;
+    assert.match(html, /href="\/female\/"/);
+    assert.match(html, /href="\/live\/"/);
+    const words = visibleText(html).split(/\s+/).length;
     assert.ok(words >= 150 && words <= 300, slug + " page has " + words + " visible words");
   }
 });
