@@ -43,8 +43,8 @@ test("all priority country pages render distinct content and canonical URLs", ()
     assert.equal((html.match(/<section class="country-faq-item">/g) || []).length, 3);
     assert.match(html, /href="\/female\/"/);
     assert.match(html, /href="\/live\/"/);
-    const words = visibleText(html).split(/\s+/).length;
-    assert.ok(words >= 150 && words <= 300, slug + " page has " + words + " visible words");
+    const words = introWords(html);
+    assert.ok(words >= 150 && words <= 300, slug + " main country copy has " + words + " words");
   }
 });
 
