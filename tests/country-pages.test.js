@@ -6,6 +6,12 @@ const { COUNTRIES, getCountryPage } = require("../country-pages");
 
 const slugs = ["us", "gb", "ca", "au", "de", "fr", "nl"];
 
+function introWords(html) {
+  const match = html.match(/<header class="country-intro">([\\s\\S]*?)<\\/header>/i);
+  assert.ok(match, "country intro should be present");
+  return match[1].replace(/<[^>]+>/g, " ").replace(/\\s+/g, " ").trim().split(" ").length;
+}
+
 function visibleText(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
