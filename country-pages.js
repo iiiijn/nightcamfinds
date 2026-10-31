@@ -101,11 +101,10 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
 function getCountryPage(slug, origin = "https://nightcamfinds.com") {
   const country = COUNTRIES[String(slug || "").toLowerCase()];
   if (!country) return null;
-  const canonical = `${origin.replace(/\\/$/, "")}/country/${String(slug).toLowerCase()}/`;
+  const canonical = `${origin.replace(/\/$/, "")}/country/${String(slug).toLowerCase()}/`;
   const title = `${country.name} Live Cams | NightCamFinds`;
   const description = `Browse public live rooms associated with ${country.name}. Compare categories and current activity on NightCamFinds.`;
   const paragraphs = [country.intro, ...country.paragraphs];
-  const wordCount = paragraphs.join(" ").trim().split(/\\s+/).length;
   const links = [
     ["Female live rooms", "/female/"], ["Male live rooms", "/male/"],
     ["Trans live rooms", "/trans/"], ["Couples live rooms", "/couples/"],
