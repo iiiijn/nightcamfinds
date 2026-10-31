@@ -43,3 +43,12 @@ test("country page output escapes an untrusted origin value", () => {
   const html = getCountryPage("us", 'https://nightcamfinds.com/" onmouseover="alert(1)');
   assert.ok(!html.includes('href="https://nightcamfinds.com/" onmouseover='));
 });
+
+test("country pages index only when server-rendered rooms are available", () => {
+  const populated = getCountryPage("us", "https://nightcamfinds.com", '<a class="card" href="/go/example">Room</a>', true);
+  const empty = getCountryPage("us", "https://nightcamfinds.com", '<p class="empty-state">No live rooms</p>', false);
+  assert.match(populated, /<meta name="robots" content="index,follow">/);
+  assert.match(populated, /country-live-rooms/);
+  assert.match(populated, /href="\/go\/example"/);
+  assert.match(empty, /<meta name="robots" content="noindex,follow">/);
+});

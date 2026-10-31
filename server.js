@@ -5,6 +5,7 @@ const path = require("path");
 const { URL } = require("url");
 const { rankRoomsByPreferredPlatform } = require("./src/services/platform-ranking.cjs");
 const { getCountryPage } = require("./country-pages.js");
+const { renderRoomCards } = require("./src/services/room-page-renderer.cjs");
 
 let pgPool = null;
 try {
@@ -180,11 +181,59 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   if(pathname.startsWith("/bgo/")||pathname.startsWith("/go/")){const isBonga=pathname.startsWith("/bgo/");const id=decodeURIComponent(pathname.slice(isBonga?5:4));const username=id.split(":").pop();const platform=isBonga?"bongacams":"chaturbate";const src=cleanLabel(url.searchParams.get("src"),isBonga?"bonga-card":"cb-card",80);const category=cleanLabel(url.searchParams.get("cat"),"unknown",40);const source=cleanLabel(url.searchParams.get("utm_source")||url.searchParams.get("source"),"direct",40);const medium=cleanLabel(url.searchParams.get("utm_medium")||url.searchParams.get("medium"),"unknown",80);const campaign=cleanLabel(url.searchParams.get("utm_campaign")||url.searchParams.get("campaign"),"unknown",80);const content=cleanLabel(url.searchParams.get("utm_content")||url.searchParams.get("content"),"",120);const country=visitorCountry(req);const agent=String(req.headers["user-agent"]||"").toLowerCase();const device=/mobile|android|iphone|ipad/.test(agent)?"mobile":"desktop";const clickId="ncf_"+Date.now().toString(36)+"_"+require("crypto").randomBytes(8).toString("hex");await countClick({src,country,category,source,campaign,medium,content,device,clickId,platform});const room=cache.rooms.find(r=>r.platform===platform&&r.username===username);let target;if(isBonga){const supplied=room?.href||"";try{const parsed=supplied?new URL(supplied):null;if(parsed&&/(^|\.)bongacams4?\.com$/i.test(parsed.hostname)){parsed.searchParams.set("click_id",clickId);parsed.searchParams.set("source",source);parsed.searchParams.set("campaign",campaign);parsed.searchParams.set("track",src);target=parsed.toString();}}catch(_){}if(!target)target=`https://bongacams4.com/track?c=${encodeURIComponent(BONGA_CAMPAIGN)}&click_id=${encodeURIComponent(clickId)}&track=${encodeURIComponent(src)}`;}else{const fallback=`https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(src)}&room=${encodeURIComponent(username)}`;target=room?.href?withTrack(room.href,src):fallback;try{const parsed=new URL(target);parsed.searchParams.set("click_id",clickId);parsed.searchParams.set("source",source);parsed.searchParams.set("campaign",campaign);parsed.searchParams.set("medium",medium);target=parsed.toString();}catch(_){target=fallback;}}res.writeHead(302,{Location:target,"Cache-Control":"no-store","Referrer-Policy":"no-referrer"});return res.end();}
   const countryRoute = pathname.match(/^\/country\/([a-z]{2})\/$/i);
   if (countryRoute) {
-    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req));
+    const feed = await rooms(req);
+    const iso = countryRoute[1].toUpperCase();
+    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended").slice(0, 60);
+    const roomMarkup = renderRoomCards(countryRooms, { category: "all", pagePath: pathname });
+    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, countryRooms.length > 0);
     if (!countryHtml) return send(res, 404, "Country page not found", "text/plain; charset=utf-8");
     return send(res, 200, countryHtml, "text/html; charset=utf-8");
   }
-  const file=pathname==="/"||pathname.endsWith("/")?"/index.html":pathname;const safe=path.normalize(file).replace(/^(\.\.[/\\])+/,"");const full=path.join(PUBLIC,safe);const market=pathname.match(/^\/country\/([a-z]{2})\/$/);const forced=market?MARKETS.find(([slug])=>slug===market[1]):null;if(pathname.endsWith("/")||forced){let html=fs.readFileSync(path.join(PUBLIC,"index.html"),"utf8").replaceAll("__ORIGIN__",pageOrigin(req)).replace("__COUNTRY__",visitorCountry(req)).replace("__FORCE__",forced?forced[1]:"").replace("__LANG__",langFor(forced?forced[1]:visitorCountry(req)));if(forced)html=html.replace("Discover live cams right now",`Live cams in ${forced[2]}`).replace("NightCamFinds — Live cam directory",`Live cams in ${forced[2]} — NightCamFinds`).replace("Explore live rooms, compare viewer counts, and open a room on Chaturbate. NightCamFinds does not stream video itself.",`Public rooms that list ${forced[2]} in the partner feeds. Counts change quickly. Video plays on the partner platform, not on NightCamFinds.`);return send(res,200,html,"text/html; charset=utf-8");}
+  const file=pathname==="/"||pathname.endsWith("/")?"/index.html":pathname;const safe=path.normalize(file).replace(/^(\.\.[/\\])+/,"");const full=path.join(PUBLIC,safe);const market=pathname.match(/^\/country\/([a-z]{2})\/$/);const forced=market?MARKETS.find(([slug])=>slug===market[1]):null;if(pathname.endsWith("/")||forced){
+  let html=fs.readFileSync(path.join(PUBLIC,"index.html"),"utf8")
+    .replaceAll("__ORIGIN__",pageOrigin(req))
+    .replace("__COUNTRY__",visitorCountry(req))
+    .replace("__FORCE__",forced?forced[1]:"")
+    .replace("__LANG__",langFor(forced?forced[1]:visitorCountry(req)));
+  const feed = await rooms(req);
+  const routeKey = pathname.replace(/^\/+|\/+$/g, "") || "all";
+  const pageCopy = {
+    all:["Independent discovery","Discover live cams right now","Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.","NightCamFinds — Live cam directory"],
+    live:["Live now","Rooms that are live now","Currently online rooms from partner platforms. Counts and subjects come from the feed and can change every minute.","Live cams now — NightCamFinds"],
+    female:["Female","Find live female cams","Browse public female rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Female live cams — NightCamFinds"],
+    male:["Male","Find live male cams","Browse public male rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Male live cams — NightCamFinds"],
+    trans:["Trans","Find live trans cams","Browse public trans rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Trans live cams — NightCamFinds"],
+    couples:["Couples","Find live couples cams","Browse public couples rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Couples live cams — NightCamFinds"],
+    hd:["HD","Find HD live cams","Browse rooms the feed marks as HD. Quality can change with the broadcaster's connection.","HD live cams — NightCamFinds"],
+    new:["New","Find new live broadcasters","Browse rooms marked new in the live feed. Availability changes as broadcasters come online and offline.","New live cams — NightCamFinds"],
+    popular:["Popular","Find the most watched live rooms","Browse rooms sorted by current viewer count and continue to the broadcaster's room on its partner platform.","Popular live cams — NightCamFinds"],
+    countries:["Countries","Live cams by country","Pick a country to filter rooms that publish a country code. Not every room includes one.","Live cams by country — NightCamFinds"]
+  };
+  const category = Object.hasOwn(pageCopy, routeKey) ? routeKey : "all";
+  let list = feed.rooms.slice();
+  if(["female","male","trans","couples"].includes(category)) list=list.filter(room=>room.gender===category);
+  if(category==="hd") list=list.filter(room=>room.isHd);
+  if(category==="new") list=list.filter(room=>room.isNew);
+  if(forced) list=list.filter(room=>room.country===forced[1]);
+  if(category==="popular") list.sort((a,b)=>Number(b.viewerCount||0)-Number(a.viewerCount||0));
+  list=rankRoomsByPreferredPlatform(list,null,category==="popular"?"viewers":"recommended").slice(0,60);
+  const home = (category==="all"||category==="live") && !forced;
+  const roomMarkup = renderRoomCards(list,{category,pagePath:pathname,home});
+  const hasRooms = list.length > 0;
+  const copy = forced
+    ? ["Country directory",`Live cams in ${forced[2]}`,`Browse public rooms associated with ${forced[2]}. Compare categories and current activity before opening a room on its partner platform.`,`Live cams in ${forced[2]} — NightCamFinds`]
+    : pageCopy[category];
+  html=html.replace('<meta name="robots" content="index,follow">',`<meta name="robots" content="${hasRooms?"index,follow":"noindex,follow"}">`);
+  html=html.replaceAll("__CANONICAL__", `${pageOrigin(req)}${pathname}`).replaceAll("__OG_URL__", `${pageOrigin(req)}${pathname}`);
+  html=html.replace('<div id="grid" class="grid" aria-live="polite"></div>',`<div id="grid" class="grid" aria-live="polite">${roomMarkup}</div>`);
+  html=html.replace('<p id="result-count" class="result-count" aria-live="polite"></p>',`<p id="result-count" class="result-count" aria-live="polite">${hasRooms?list.length+" live rooms":"No live rooms are available right now."}</p>`);
+  html=html.replace('id="kicker">Independent discovery','id="kicker">${copy[0]}')
+    .replace('id="page-title">Discover live cams right now','id="page-title">${copy[1]}')
+    .replace('id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.','id="page-intro">${copy[2]}')
+    .replace('<title>NightCamFinds — Live cam directory</title>',`<title>${copy[3]}</title>`)
+    .replace('content="Browse live rooms by country from Chaturbate and BongaCams. NightCamFinds does not stream video."','content="${copy[2]}"');
+  return send(res,200,html,"text/html; charset=utf-8");
+}
   if(!full.startsWith(PUBLIC)||!fs.existsSync(full)||fs.statSync(full).isDirectory())return send(res,404,"Not found","text/plain");const types={".html":"text/html",".css":"text/css",".js":"text/javascript",".svg":"image/svg+xml"};send(res,200,fs.readFileSync(full),types[path.extname(full)]||"application/octet-stream");
 });
 server.listen(PORT,()=>console.log(`NightCamFinds listening on ${PORT}`));
