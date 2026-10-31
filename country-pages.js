@@ -7,7 +7,7 @@ const COUNTRIES = {
     paragraphs: [
       "Use the category links to narrow the directory to female, male, trans or couples rooms. Where a broadcaster feed supplies a country label, it can help you discover rooms associated with the United States; it is not a guarantee of a performer's residence or nationality.",
       "NightCamFinds is an independent discovery directory, not a streaming service. Selecting a room takes you to the relevant partner platform, where its own account rules, age requirements, privacy policy and payment terms apply. Review those terms before registering or spending."
-      "For visitors in different US time zones, the directory can be useful at different points in the day. A room marked live is simply a snapshot from the feed, not a promise that the broadcaster will remain online. Compare the room description and category, then use the partner site's own controls to decide whether to stay, follow or leave."
+      "For visitors in different US time zones, the directory can be useful at different points in the day. A room marked live is simply a snapshot from the feed, not a promise that the broadcaster will remain online. Compare the room description and category, then use the partner site's own controls to decide whether to stay, follow or leave.",
     ],
     faqs: [
       ["Are these rooms hosted by NightCamFinds?", "No. NightCamFinds lists public room information and links to partner platforms. Video and account activity take place on those platforms."],
@@ -21,7 +21,7 @@ const COUNTRIES = {
     paragraphs: [
       "Choose a category to explore female, male, trans or couples rooms. A UK country label reflects the country information supplied by a partner feed; it should not be treated as independently verified identity or location information.",
       "NightCamFinds does not host streams or process partner-platform payments. When you select a room, you continue to the platform that operates it. Check that platform's age rules, privacy information and pricing before creating an account or purchasing anything."
-      "Visitors across the UK may see different room activity depending on the time of day and broadcaster schedules. The directory is intended for discovery, not as a ranking of people or a guarantee of availability. Check the room details shown by the partner platform and use its reporting, privacy and account controls if you decide to interact."
+      "Visitors across the UK may see different room activity depending on the time of day and broadcaster schedules. The directory is intended for discovery, not as a ranking of people or a guarantee of availability. Check the room details shown by the partner platform and use its reporting, privacy and account controls if you decide to interact.",
     ],
     faqs: [
       ["Does NightCamFinds stream the rooms?", "No. The directory links to public listings on partner platforms, where the video and account services are provided."],
@@ -35,7 +35,7 @@ const COUNTRIES = {
     paragraphs: [
       "Browse female, male, trans and couples categories to narrow the listings. Country labels are displayed only when partner feeds provide country information. They are not independent verification of a broadcaster's location, citizenship or identity.",
       "NightCamFinds is a directory rather than a streaming or payment service. Room links take visitors to external partner platforms. Read the relevant platform's privacy policy, age requirements and payment terms before registering or using paid features."
-      "Activity can vary across Canadian time zones, and listings may include broadcasters from other locations as well. Use the country filter as a discovery aid rather than proof of where someone lives. Before interacting, review the room description on the partner site and make your own decision about whether its community rules and features suit you."
+      "Activity can vary across Canadian time zones, and listings may include broadcasters from other locations as well. Use the country filter as a discovery aid rather than proof of where someone lives. Before interacting, review the room description on the partner site and make your own decision about whether its community rules and features suit you.",
     ],
     faqs: [
       ["Are the listings guaranteed to be online?", "No. Room availability and viewer counts change as broadcasters start and stop streaming."],
@@ -49,7 +49,7 @@ const COUNTRIES = {
     paragraphs: [
       "Use the category links to browse female, male, trans and couples rooms. Country information appears when a partner feed supplies it, but it should not be understood as verified residence, nationality or identity information.",
       "NightCamFinds does not host video, operate performer accounts or take payments for partner services. Selecting a listing opens the relevant external platform. Check its age requirements, privacy policy and pricing, and make sure any purchase is appropriate for you."
-      "Australian visitors may see room activity change with local time and broadcaster schedules in other parts of the world. The directory does not promise that a particular room will be available at a specific hour. Treat viewer counts as a momentary indicator, read the room information and check the partner platform's rules before interacting."
+      "Australian visitors may see room activity change with local time and broadcaster schedules in other parts of the world. The directory does not promise that a particular room will be available at a specific hour. Treat viewer counts as a momentary indicator, read the room information and check the partner platform's rules before interacting.",
     ],
     faqs: [
       ["Does NightCamFinds host live video?", "No. Video is provided by the external partner platform after you follow a room link."],
@@ -63,7 +63,7 @@ const COUNTRIES = {
     paragraphs: [
       "Über die Kategorie-Links finden Sie Angebote aus den Bereichen Female, Male, Trans und Paare. Ein Länderhinweis wird nur angezeigt, wenn der Partner-Feed entsprechende Daten liefert. Er bestätigt weder Wohnort noch Staatsangehörigkeit oder Identität einer Person.",
       "NightCamFinds ist ein unabhängiges Verzeichnis und hostet keine Videos. Beim Öffnen eines Raums wechseln Sie zur jeweiligen Partnerplattform. Bitte prüfen Sie dort Altersvorgaben, Datenschutzinformationen und Preise, bevor Sie ein Konto erstellen oder kostenpflichtige Funktionen nutzen."
-      "Die Aktivität kann je nach Tageszeit und Zeitzone unterschiedlich ausfallen. Die angezeigten Zuschauerzahlen sind Momentaufnahmen und keine Garantie für die Qualität oder Verfügbarkeit eines Angebots. Lesen Sie die Raumbeschreibung auf der Partnerseite und entscheiden Sie selbst, ob Sie den Chat nutzen möchten. Beachten Sie dabei die dort geltenden Community-Regeln."
+      "Die Aktivität kann je nach Tageszeit und Zeitzone unterschiedlich ausfallen. Die angezeigten Zuschauerzahlen sind Momentaufnahmen und keine Garantie für die Qualität oder Verfügbarkeit eines Angebots. Lesen Sie die Raumbeschreibung auf der Partnerseite und entscheiden Sie selbst, ob Sie den Chat nutzen möchten. Beachten Sie dabei die dort geltenden Community-Regeln.",
     ],
     faqs: [
       ["Werden die Videos auf NightCamFinds übertragen?", "Nein. Die Videos werden von der jeweiligen Partnerplattform bereitgestellt."],
@@ -77,7 +77,7 @@ const COUNTRIES = {
     paragraphs: [
       "Les liens de catégorie permettent de parcourir les salons féminins, masculins, trans et couples. Le pays affiché dépend des données fournies par le flux partenaire. Il ne constitue pas une vérification indépendante du domicile, de la nationalité ou de l'identité d'une personne.",
       "NightCamFinds est un annuaire indépendant et n'héberge pas les vidéos. En ouvrant un salon, vous accédez à la plateforme partenaire correspondante. Consultez ses conditions d'âge, sa politique de confidentialité et ses tarifs avant toute inscription ou dépense."
-      "L'activité peut varier selon l'heure et les horaires des diffuseurs. Le nombre de spectateurs affiché est une indication momentanée, et non une garantie de disponibilité ou de qualité. Prenez le temps de lire la description du salon sur la plateforme partenaire et de consulter ses règles de communauté avant de participer à une conversation ou d'utiliser une fonction payante."
+      "L'activité peut varier selon l'heure et les horaires des diffuseurs. Le nombre de spectateurs affiché est une indication momentanée, et non une garantie de disponibilité ou de qualité. Prenez le temps de lire la description du salon sur la plateforme partenaire et de consulter ses règles de communauté avant de participer à une conversation ou d'utiliser une fonction payante.",
     ],
     faqs: [
       ["Les vidéos sont-elles hébergées par NightCamFinds ?", "Non. Les vidéos et les comptes sont gérés par les plateformes partenaires."],
@@ -91,7 +91,7 @@ const COUNTRIES = {
     paragraphs: [
       "Gebruik de categorielinks om vrouwelijke, mannelijke, trans- en koppelskamers te bekijken. Een landvermelding wordt alleen getoond wanneer een partnerfeed landgegevens aanlevert. Dit is geen onafhankelijke bevestiging van iemands woonplaats, nationaliteit of identiteit.",
       "NightCamFinds is een onafhankelijke gids en host geen video's. Als je een kamer opent, ga je naar het bijbehorende partnerplatform. Controleer daar de leeftijdsvoorwaarden, het privacybeleid en de prijzen voordat je je registreert of betaalde functies gebruikt."
-      "De activiteit kan verschillen per tijdstip en volgens de planning van broadcasters. Het getoonde aantal kijkers is een momentopname en geen garantie dat een kamer beschikbaar blijft. Lees de kamerbeschrijving op het partnerplatform en bekijk de communityregels voordat je deelneemt aan een gesprek of een betaalde functie gebruikt."
+      "De activiteit kan verschillen per tijdstip en volgens de planning van broadcasters. Het getoonde aantal kijkers is een momentopname en geen garantie dat een kamer beschikbaar blijft. Lees de kamerbeschrijving op het partnerplatform en bekijk de communityregels voordat je deelneemt aan een gesprek of een betaalde functie gebruikt.",
     ],
     faqs: [
       ["Worden de video's door NightCamFinds gehost?", "Nee. De video's worden aangeboden op het externe partnerplatform."],
