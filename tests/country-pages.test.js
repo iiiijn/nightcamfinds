@@ -6,24 +6,10 @@ const { COUNTRIES, getCountryPage } = require("../country-pages");
 
 const slugs = ["us", "gb", "ca", "au", "de", "fr", "nl"];
 
+function introWords(html) {
   const match = html.match(/<header class="country-intro">([\s\S]*?)<\/header>/i);
-  const match = html.match(/<header class="country-intro">([\\s\\S]*?)<\\/header>/i);
+  assert.ok(match, "country intro should be present");
   return match[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().split(" ").length;
-  return match[1].replace(/<[^>]+>/g, " ").replace(/\\s+/g, " ").trim().split(" ").length;
-}
-
-function visibleText(html) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 test("all priority country pages render distinct content and canonical URLs", () => {
