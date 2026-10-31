@@ -105,7 +105,7 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
 }[char]));
 
-function getCountryPage(slug, origin = "https://nightcamfinds.com") {
+function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup = "", hasRooms = false) {
   const country = COUNTRIES[String(slug || "").toLowerCase()];
   if (!country) return null;
   const canonical = `${origin.replace(/\/$/, "")}/country/${String(slug).toLowerCase()}/`;
@@ -125,13 +125,14 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com") {
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}">
-<meta name="robots" content="index,follow"><link rel="canonical" href="${escapeHtml(canonical)}">
+<meta name="robots" content="${hasRooms ? "index,follow" : "noindex,follow"}"><link rel="canonical" href="${escapeHtml(canonical)}">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
 </head>
 <body><main class="wrap legal country-landing">
 <nav aria-label="Breadcrumb"><ol class="breadcrumbs"><li><a href="/">Home</a></li><li aria-current="page">${escapeHtml(country.name)}</li></ol></nav>
 <header class="country-intro"><p class="eyebrow">NightCamFinds country directory</p><h1>${escapeHtml(country.name)} Live Cams</h1>
 ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
+<section class="country-live-rooms" aria-labelledby="country-live-heading"><h2 id="country-live-heading">Live rooms associated with ${escapeHtml(country.name)}</h2><div class="grid">${roomMarkup || '<p class="empty-state">No live rooms are available in this directory right now. Please check again soon.</p>'}</div></section>
 <section aria-labelledby="country-categories"><h2 id="country-categories">Explore room categories</h2>
 <ul class="country-links">${links.map(([label, href]) => `<li><a href="${href}">${escapeHtml(label)}</a></li>`).join("")}</ul></section>
 <section aria-labelledby="country-faq"><h2 id="country-faq">Frequently asked questions</h2>${faqHtml}</section>
