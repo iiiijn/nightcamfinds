@@ -1,8 +1,8 @@
 # Production readiness
 
-Status of public launch: BLOCKED.
+Status of public launch: BLOCKED pending the remaining verification gates below.
 
-Nothing in this document is a completed production deployment. No hosted database, backup, CDN, or affiliate account was connected from this environment.
+Production audit update (2026-10-31): the Render web service `nightcamfinds` is live on the Starter compute plan, and the Render PostgreSQL instance `nightcamfinds-db` is available on the paid `0.1c-256mb` plan in Frankfurt. The live service logs report the affiliate attribution schema ready, and direct read-only database checks confirmed existing click and conversion tables. This verifies hosted PostgreSQL provisioning and application connectivity. It does not verify backup/restore, every affiliate postback, or a full production smoke test.
 
 ## 1. Production PostgreSQL
 
@@ -26,7 +26,7 @@ psql "$DATABASE_URL" -f sql/002_auth_and_config.sql
 
 Then start the app once so `schema_migrations` is recorded. Do not run destructive SQL.
 
-This environment did not connect to a hosted database. Hosted PostgreSQL is NOT CONFIGURED.
+This environment did not connect to a hosted database. Hosted PostgreSQL is provisioned and reachable by the live application as of 2026-10-31. The database plan is `0.1c-256mb` ($6/month compute, as displayed in Render).
 
 ## 2. Production secrets
 
@@ -98,7 +98,7 @@ Keep `BONGACASH_ENABLED=false` and `BONGACASH_POSTBACKS=false`.
 
 ## 6. Backups
 
-NOT CONFIGURED. No backup has been taken or restored.
+NOT CONFIGURED. No backup has been confirmed as taken or restored as of 2026-10-31. Treat backup and restore as NOT CONFIGURED until a downloadable export exists and a restore test succeeds.
 
 Prepare, outside the app:
 
@@ -144,7 +144,7 @@ Do not run this until sections 1–3 have real values.
 | BongaCash campaign `840970` / RevShare label | CONFIGURED |
 | BongaCash API, destination, PPS, postbacks | REQUIRES VERIFICATION |
 | Chaturbate program, attribution, postback registration | REQUIRES VERIFICATION |
-| Hosted PostgreSQL | NOT CONFIGURED |
+| Hosted PostgreSQL | VERIFIED AVAILABLE AND CONNECTED (2026-10-31) |
 | Backup and restore | NOT CONFIGURED |
 | CDN/WAF | NOT CONFIGURED |
 | HTTPS termination | NOT CONFIGURED |
