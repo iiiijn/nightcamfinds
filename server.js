@@ -224,6 +224,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     ? ["Country directory",`Live cams in ${forced[2]}`,`Browse public rooms associated with ${forced[2]}. Compare categories and current activity before opening a room on its partner platform.`,`Live cams in ${forced[2]} — NightCamFinds`]
     : pageCopy[category];
   html=html.replace('<meta name="robots" content="index,follow">',`<meta name="robots" content="${hasRooms?"index,follow":"noindex,follow"}">`);
+  html=html.replace('href="__CANONICAL__"', `href="${pageOrigin(req)}${pathname}"`).replace('content="__OG_URL__"', `content="${pageOrigin(req)}${pathname}"`);
   html=html.replace('<div id="grid" class="grid" aria-live="polite"></div>',`<div id="grid" class="grid" aria-live="polite">${roomMarkup}</div>`);
   html=html.replace('<p id="result-count" class="result-count" aria-live="polite"></p>',`<p id="result-count" class="result-count" aria-live="polite">${hasRooms?list.length+" live rooms":"No live rooms are available right now."}</p>`);
   html=html.replace('id="kicker">Independent discovery','id="kicker">${copy[0]}')
