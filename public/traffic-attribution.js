@@ -1,7 +1,7 @@
 (function (root) {
   "use strict";
   const HOST_RULES = [
-    [/^(?:www\.)?google\./i, "google", "organic"],
+    [/^(?:www\.)?google\.(?:com(?:\.[a-z]{2})?|[a-z]{2,3}|co\.[a-z]{2})$/i, "google", "organic"],
     [/^(?:www\.)?bing\.com$/i, "bing", "organic"],
     [/^(?:www\.)?duckduckgo\.com$/i, "duckduckgo", "organic"],
     [/^(?:www\.)?search\.yahoo\.com$/i, "yahoo", "organic"],
