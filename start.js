@@ -209,6 +209,7 @@ async function dashboardStats(incoming) {
   const tierPlaceholders = tier1.map((_, i) => `$${params.length + i + 1}`).join(",");
   const tierRows = await pool.query(`SELECT COUNT(*)::int AS n, COUNT(*) FILTER (WHERE platform='bongacams')::int AS bonga FROM affiliate_clicks ${where ? where + " AND" : "WHERE"} UPPER(country) IN (${tierPlaceholders})`, [...params, ...tier1]);
   const sourceRows = await q(`SELECT platform, source, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY platform,source`);
+  const countrySourceRows = await q(`SELECT UPPER(country) AS country, source, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY UPPER(country),source`);
   const placementRows = await q(`SELECT platform, placement, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY platform,placement`);
   const campaignRows = await q(`SELECT platform, campaign, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY platform,campaign`);
   const deviceRows = await q(`SELECT device, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY device`);
@@ -217,6 +218,7 @@ async function dashboardStats(incoming) {
   const bongacash = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='registration')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type='purchase'),0)::numeric AS earnings FROM bonga_conversions`).catch(() => ({rows:[{}]}));
   const platforms = Object.fromEntries(platformRows.map(r => [r.platform || "unknown", Number(r.n)]));
   const sources = Object.fromEntries(sourceRows.map(r => [`${r.platform}:${r.source}`, Number(r.n)]));
+  const countrySources = Object.fromEntries(countrySourceRows.map(r => [`${r.country || "UNKNOWN"}:${r.source || "unknown"}`, Number(r.n)]));
   const placements = Object.fromEntries(placementRows.map(r => [`${r.platform}:${r.placement}`, Number(r.n)]));
   const campaigns = Object.fromEntries(campaignRows.map(r => [`${r.platform}:${r.campaign}`, Number(r.n)]));
   const devices = Object.fromEntries(deviceRows.map(r => [r.device || "unknown", Number(r.n)]));
@@ -292,7 +294,7 @@ async function dashboardStats(incoming) {
     earnings: Number(earningsRows.rows[0]?.earnings || 0), bongacamsRegistrations: Number(bongacash.rows[0]?.registrations || 0),
     bongacamsPurchases: Number(bongacash.rows[0]?.purchases || 0), bongacamsEarnings: Number(bongacash.rows[0]?.earnings || 0),
     bongacashConnected: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
-    platforms, countries, sources, placements, campaigns, devices, mediums,
+    platforms, countries, sources, countrySources, placements, campaigns, devices, mediums,
     countryPlatformMetrics, countryPlatformMetricsAvailable
   };
 }
