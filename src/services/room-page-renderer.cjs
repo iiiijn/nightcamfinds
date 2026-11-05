@@ -1,6 +1,18 @@
 "use strict";
 
-const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+function plainText(value, depth = 0) {
+  if (depth > 4 || value == null) return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) return value.map((item) => plainText(item, depth + 1)).filter(Boolean).join(", ");
+  if (typeof value === "object") {
+    for (const key of ["text", "title", "description", "subject", "topic", "value", "label", "name"]) {
+      if (value[key] != null) { const result = plainText(value[key], depth + 1); if (result) return result; }
+    }
+  }
+  return "";
+}
+
+const escapeHtml = (value) => plainText(value).replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
 }[char]));
 
@@ -73,4 +85,4 @@ function renderRoomCards(rooms, options = {}) {
   return balanced.map((room) => card(room, category, pagePath)).join("");
 }
 
-module.exports = { escapeHtml, renderRoomCards };
+module.exports = { escapeHtml, plainText, renderRoomCards };
