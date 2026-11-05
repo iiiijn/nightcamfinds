@@ -5,6 +5,8 @@ const countEl = document.querySelector("#result-count");
 const sort = document.querySelector("#sort");
 const q = document.querySelector("#q");
 const countrySelect = document.querySelector("#country");
+const regionSelect = document.querySelector("#region");
+const languageSelect = document.querySelector("#language");
 
 if (localStorage.getItem("ncf18") === "1" && gate) gate.hidden = true;
 document.querySelector("#enter")?.addEventListener("click", () => {
@@ -228,6 +230,8 @@ function schedule() { clearTimeout(timer); timer = setTimeout(load, 250); }
 async function load() {
   const params = new URLSearchParams({ category, sort: sort.value, q: q.value });
   if (countrySelect.value) params.set("country", countrySelect.value);
+  if (regionSelect.value) params.set("region", regionSelect.value);
+  if (languageSelect.value) params.set("language", languageSelect.value);
   const data = await fetch("/api/rooms?" + params).then((r) => r.json());
   if (countrySelect.options.length === 1) {
     for (const iso of data.countries || []) {
@@ -239,6 +243,15 @@ async function load() {
     if (!countrySelect.value && (forced || hinted) && (data.countries || []).includes(forced || hinted)) countrySelect.value = forced || hinted;
     if (countrySelect.value) return load();
   }
+  const syncOptions = (select, values, label) => {
+    const selected = select.value;
+    const available = [...new Set((values || []).filter(Boolean))].sort((x, y) => x.localeCompare(y));
+    select.replaceChildren(new Option(label, ""));
+    for (const value of available) select.add(new Option(value, value));
+    if (available.includes(selected)) select.value = selected;
+  };
+  syncOptions(regionSelect, data.regions, "All regions");
+  syncOptions(languageSelect, data.languages, "All languages");
   const rooms = data.rooms || [];
   if ((category === "all" || category === "live") && !q.value && !countrySelect.value) {
     grid.replaceChildren();
@@ -266,6 +279,8 @@ async function load() {
 
 sort.addEventListener("change", load);
 countrySelect.addEventListener("change", load);
+regionSelect.addEventListener("change", load);
+languageSelect.addEventListener("change", load);
 q.addEventListener("input", schedule);
 partners();
 load().catch(() => {

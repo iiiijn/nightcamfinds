@@ -6,6 +6,7 @@ on:
       - "scripts/patch-seo-attribution-v2.js"
       - "scripts/patch-seo-attribution-v3.js"
       - "scripts/fix-server-syntax.js"
+      - "scripts/patch-country-directory.js"
       - "scripts/patch-spa-seo-routes.js"
       - "scripts/fix-bonga-affiliate.js"
       - "scripts/verify-start-command.js"
@@ -20,6 +21,7 @@ on:
       - "scripts/patch-seo-attribution-v2.js"
       - "scripts/patch-seo-attribution-v3.js"
       - "scripts/fix-server-syntax.js"
+      - "scripts/patch-country-directory.js"
       - "scripts/patch-spa-seo-routes.js"
       - "scripts/fix-bonga-affiliate.js"
       - "scripts/verify-start-command.js"
@@ -48,6 +50,7 @@ jobs:
           node --check scripts/patch-seo-attribution-v2.js
           node --check scripts/patch-seo-attribution-v3.js
           node --check scripts/fix-server-syntax.js
+          node --check scripts/patch-country-directory.js
           node --check scripts/patch-spa-seo-routes.js
           node --check scripts/fix-bonga-affiliate.js
           node --check scripts/verify-start-command.js
@@ -56,6 +59,7 @@ jobs:
         run: |
           node scripts/patch-seo-attribution-v2.js
           node scripts/fix-server-syntax.js
+          node scripts/patch-country-directory.js
           node scripts/patch-spa-seo-routes.js
           node scripts/fix-bonga-affiliate.js
 
