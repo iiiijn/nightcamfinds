@@ -98,7 +98,7 @@ const COUNTRIES = {
       ["Bewijst het label Nederland waar iemand woont?", "Nee. Het label is gebaseerd op gegevens uit partnerfeeds en is niet onafhankelijk gecontroleerd."],
       ["Is NightCamFinds gratis te gebruiken?", "Het bekijken van de directory is gratis. Partnerplatforms kunnen betaalde functies aanbieden."]
     ]
-  }
+  },
   ie: {
     code: "IE", name: "Ireland", adjective: "Irish", region: "Ireland", language: "en-IE",
     intro: "Explore public live rooms associated with Ireland in the NightCamFinds country directory. The page brings together room listings and the country information supplied by partner feeds, helping adult visitors compare available categories and viewer activity before choosing an external platform. Feed details can change throughout the day, and a room shown as live may be offline by the time you open it.",
