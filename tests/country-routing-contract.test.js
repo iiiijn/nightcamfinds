@@ -15,7 +15,7 @@ test("country URLs reach the dedicated server-rendered country page handler", ()
   const fallback = patchedServer.indexOf('const file=pathname==="/"||pathname.endsWith("/")?"/index.html":pathname;');
   assert.ok(route >= 0, "dedicated country route should exist");
   assert.ok(fallback > route, "country route must run before homepage/static fallback");
-  assert.ok(patchedServer.slice(route, fallback).includes("getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, isIndexableCountryRoomCount(countryRooms.length))"));
+  assert.ok(patchedServer.slice(route, fallback).includes("getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, isIndexableCountryRooms(countryRooms))"));
   assert.ok(!patchedServer.includes("const countryMatch = pathname.match("), "unreachable duplicate country handler must be removed");
 });
 
