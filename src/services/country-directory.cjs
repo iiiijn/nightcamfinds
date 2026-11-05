@@ -16,7 +16,7 @@ function normalizeCountryCode(value) {
  if(/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
  return COUNTRY_NAME_CODES.get(raw.toUpperCase())||"";
 }
-function normalizeRegion(value){return textValue(value).replace(/\\s+/g," ").slice(0,80);}
+function normalizeRegion(value){return textValue(value).split(/\\s+/).filter(Boolean).join(" ").slice(0,80);}
 function normalizeLanguages(value){
  const values=(Array.isArray(value)?value:[value]).map(textValue).flatMap(v=>v.split(/[,;|]/)).map(v=>v.trim()).filter(Boolean);
  return [...new Set(values)].slice(0,8).join(", ");
@@ -33,7 +33,7 @@ function isIndexableCountryRooms(rooms,minimum=10){
  return unique.size>=minimum;
 }
 function buildCountrySitemap(origin,rooms,countryEntries,lastmodByPath={}){
- const base=String(origin||"").replace(/\\/$/,"");
+ const base=(String(origin||"").endsWith("/")?String(origin||"").slice(0,-1):String(origin||""));
  const staticPaths=["/","/live/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/popular/","/countries/","/broadcast","/about","/affiliate-disclosure","/privacy","/terms","/contact"];
  const byCountry=new Map();
  for(const room of Array.isArray(rooms)?rooms:[]){
