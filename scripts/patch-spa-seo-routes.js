@@ -11,17 +11,11 @@ if (s.includes(MARKER)) {
 
 const helper = `
 // ${MARKER}
+// Only routes that need the SPA metadata wrapper belong here. Category and
+// country directories are rendered server-side by server.js and must retain
+// their original request path so their own room lists, copy and canonicals render.
 const NCF_SEO_PATHS_V14 = new Set([
   "/",
-  "/live/",
-  "/female/",
-  "/male/",
-  "/trans/",
-  "/couples/",
-  "/hd/",
-  "/new/",
-  "/popular/",
-  "/countries/",
   "/broadcast"
 ]);
 
