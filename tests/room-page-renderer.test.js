@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { renderRoomCards } = require("../src/services/room-page-renderer.cjs");
+const { renderRoomCards, renderHeroCopy, plainText } = require("../src/services/room-page-renderer.cjs");
 
 const rooms = [
   { id: "chaturbate:alice", platform: "chaturbate", gender: "female", username: "alice", displayName: "Alice", viewerCount: 12, country: "US", roomSubject: "Hello", href: "https://chaturbate.com/alice/", image: "https://images.example/alice.jpg", isHd: true, isNew: false },
@@ -37,4 +37,25 @@ test("home page renders grouped server-side room sections", () => {
 
 test("empty room lists render a useful empty state", () => {
   assert.match(renderRoomCards([]), /No live rooms are available/);
+});
+
+test("hero copy is interpolated into server HTML without template placeholders", () => {
+  const template = '<p id="kicker">Independent discovery</p><h1 id="page-title">Discover live cams right now</h1><p id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.</p><title>NightCamFinds — Live cam directory</title><meta name="description" content="Browse live rooms by country from Chaturbate and BongaCams. NightCamFinds does not stream video.">';
+  const html = renderHeroCopy(template, ["Country directory", "Live cams in Canada", "Browse public rooms in Canada.", "Canada live cams — NightCamFinds"]);
+  assert.match(html, /id="kicker">Country directory/);
+  assert.match(html, /id="page-title">Live cams in Canada/);
+  assert.match(html, /id="page-intro">Browse public rooms in Canada\./);
+  assert.match(html, /<title>Canada live cams — NightCamFinds<\/title>/);
+  assert.doesNotMatch(html, /\$\{[^}]+\}|\[object Object\]/);
+});
+
+test("object-valued BongaCams subjects become readable text, never object coercion", () => {
+  const html = renderRoomCards([{ ...rooms[1], roomSubject: { description: "Friendly chat", nested: { title: "ignored" } } }]);
+  assert.match(html, /Friendly chat/);
+  assert.doesNotMatch(html, /\[object Object\]|\$\{[^}]+\}/);
+});
+
+test("unknown object descriptions safely fall back to an empty value", () => {
+  assert.equal(plainText({ unexpected: { payload: "raw" } }), "");
+  assert.equal(plainText(["English", { name: "German" }]), "English, German");
 });

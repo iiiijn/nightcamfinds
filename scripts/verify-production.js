@@ -50,6 +50,23 @@ if (!route.includes("NIGHTCAMFINDS_CB_POSTBACK_PATCH_V6")) fail("route.js is mis
 if (!route.includes("NIGHTCAMFINDS_BONGA_REVSHARE_V1")) fail("route.js is missing BongaCash RevShare routing");
 if (!route.includes('target.searchParams.set("c", BONGA_CAMPAIGN)')) fail("BongaCash campaign routing is missing");
 
+
+const serverSource = fs.readFileSync("server.js", "utf8");
+if (!serverSource.includes("html = renderHeroCopy(html, copy)")) fail("server pages must render hero copy through the safe renderer");
+
+const roomRenderer = require("../src/services/room-page-renderer.cjs");
+const renderedHero = roomRenderer.renderHeroCopy(
+  '<p id="kicker">Independent discovery</p><h1 id="page-title">Discover live cams right now</h1><p id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.</p><title>NightCamFinds — Live cam directory</title><meta name="description" content="Browse live rooms by country from Chaturbate and BongaCams. NightCamFinds does not stream video.">',
+  ["Directory", "Live rooms", "Browse rooms.", "Live rooms — NightCamFinds"]
+);
+const renderedCards = roomRenderer.renderRoomCards([
+  { id: "bongacams:test", platform: "bongacams", gender: "female", username: "test", displayName: "Test", roomSubject: { description: "A readable description" } }
+]);
+for (const [label, html] of [["hero", renderedHero], ["room cards", renderedCards]]) {
+  if (/\$\{[^}]+\}|\[object Object\]/.test(html)) fail(`${label} HTML contains an unrendered template or object placeholder`);
+}
+if (!renderedCards.includes("A readable description")) fail("object-valued room descriptions must render their text field");
+
 const seoPatch = fs.readFileSync("scripts/patch-spa-seo-routes.js", "utf8");
 if (!seoPatch.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V14")) fail("SPA SEO patch marker V13 is missing");
 if (!seoPatch.includes("ncfRedirectSeoNoSlashV14")) fail("SEO no-slash redirect helper is missing");
