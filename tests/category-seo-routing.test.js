@@ -6,10 +6,12 @@ const patch = fs.readFileSync("scripts/patch-spa-seo-routes.js", "utf8");
 const server = fs.readFileSync("server.js", "utf8");
 
 test("category directory requests are not rewritten to the homepage", () => {
-  const match = patch.match(/const NCF_SEO_PATHS_V14 = new Set\\(\\[([\\s\\S]*?)\\]\\);/);
-  assert.ok(match, "SEO route allowlist exists");
+  const start = patch.indexOf("const NCF_SEO_PATHS_V14 = new Set([");
+  const end = start >= 0 ? patch.indexOf("]);", start) : -1;
+  assert.ok(start >= 0 && end > start, "SEO route allowlist exists");
+  const allowlist = patch.slice(start, end);
   for (const route of ["/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/"]) {
-    assert.ok(!match[1].includes(JSON.stringify(route)), `${route} must reach server.js unchanged`);
+    assert.ok(!allowlist.includes(JSON.stringify(route)), `${route} must reach server.js unchanged`);
   }
 });
 
