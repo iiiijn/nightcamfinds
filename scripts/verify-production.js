@@ -75,9 +75,21 @@ for (const [label, html] of [["hero", renderedHero], ["room cards", renderedCard
 if (!renderedCards.includes("A readable description")) fail("object-valued room descriptions must render their text field");
 
 const seoPatch = fs.readFileSync("scripts/patch-spa-seo-routes.js", "utf8");
-if (!seoPatch.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V14")) fail("SPA SEO patch marker V13 is missing");
+if (!seoPatch.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V14")) fail("SPA SEO patch marker V14 is missing");
 if (!seoPatch.includes("ncfRedirectSeoNoSlashV14")) fail("SEO no-slash redirect helper is missing");
 if (!seoPatch.includes("ncfApplySeoRouteMetadataV14")) fail("SEO metadata helper is missing");
+const seoPathStart = seoPatch.indexOf("const NCF_SEO_PATHS_V14 = new Set([");
+const seoPathEnd = seoPathStart >= 0 ? seoPatch.indexOf("]);", seoPathStart) : -1;
+const seoPathSet = seoPathStart >= 0 && seoPathEnd > seoPathStart ? seoPatch.slice(seoPathStart, seoPathEnd) : "";
+if (!seoPathSet) fail("SEO metadata path allowlist is missing");
+else {
+  for (const path of ["/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/"]) {
+    if (seoPathSet.includes(JSON.stringify(path))) fail(`server-rendered category route must not be rewritten: ${path}`);
+  }
+  for (const path of ["/", "/broadcast"]) {
+    if (!seoPathSet.includes(JSON.stringify(path))) fail(`SPA metadata route is missing: ${path}`);
+  }
+}
 
 if (failed) {
   console.error("Production verification failed.");
