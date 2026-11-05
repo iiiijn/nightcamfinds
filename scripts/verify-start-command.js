@@ -3,6 +3,7 @@ const pkg = require("../package.json");
 const expected = [
   "node scripts/run-production-migrations.js",
   "node scripts/fix-server-syntax.js",
+  "node scripts/patch-country-directory.js",
   "node scripts/patch-spa-seo-routes.js",
   "node route.js",
 ];
