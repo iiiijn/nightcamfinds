@@ -16,6 +16,16 @@ const escapeHtml = (value) => plainText(value).replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
 }[char]));
 
+function renderHeroCopy(html, copy) {
+  const values = Array.isArray(copy) ? copy : [];
+  return String(html)
+    .replace('id="kicker">Independent discovery', `id="kicker">${escapeHtml(values[0] || "")}`)
+    .replace('id="page-title">Discover live cams right now', `id="page-title">${escapeHtml(values[1] || "")}`)
+    .replace('id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.', `id="page-intro">${escapeHtml(values[2] || "")}`)
+    .replace("<title>NightCamFinds — Live cam directory</title>", `<title>${escapeHtml(values[3] || "")}</title>`)
+    .replace('content="Browse live rooms by country from Chaturbate and BongaCams. NightCamFinds does not stream video."', `content="${escapeHtml(values[2] || "")}"`);
+}
+
 function safeImage(value) {
   try {
     const parsed = new URL(String(value || ""));
@@ -85,4 +95,4 @@ function renderRoomCards(rooms, options = {}) {
   return balanced.map((room) => card(room, category, pagePath)).join("");
 }
 
-module.exports = { escapeHtml, plainText, renderRoomCards };
+module.exports = { escapeHtml, plainText, renderHeroCopy, renderRoomCards };
