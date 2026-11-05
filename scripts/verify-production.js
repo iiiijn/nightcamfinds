@@ -5,6 +5,7 @@ const requiredFiles = [
   "route.js",
   "scripts/run-production-migrations.js",
   "scripts/fix-server-syntax.js",
+  "scripts/patch-country-directory.js",
   "scripts/patch-spa-seo-routes.js",
   ".github/workflows/verify-production.yml",
   "render.yaml",
@@ -34,7 +35,7 @@ for (const file of requiredFiles.filter(file => file.endsWith(".js"))) {
 
 const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
 const start = String(pkg.scripts?.start || "");
-const expectedStart = "node scripts/run-production-migrations.js && node scripts/fix-server-syntax.js && node scripts/patch-spa-seo-routes.js && node route.js";
+const expectedStart = "node scripts/run-production-migrations.js && node scripts/fix-server-syntax.js && node scripts/patch-country-directory.js && node scripts/patch-spa-seo-routes.js && node route.js";
 if (start !== expectedStart) fail(`production start command must be exactly: ${expectedStart}`);
 if (/fix-bonga-affiliate|patch-seo-attribution-v2/.test(start)) fail("non-runtime build patches must not run at startup");
 
@@ -52,6 +53,12 @@ if (!route.includes('target.searchParams.set("c", BONGA_CAMPAIGN)')) fail("Bonga
 
 
 const serverSource = fs.readFileSync("server.js", "utf8");
+const countryDirectoryPatch = require("./scripts/patch-country-directory.js");
+const patchedServerSource = countryDirectoryPatch.patchServerSource(serverSource);
+if (!patchedServerSource.includes("NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1")) fail("country directory patch marker is missing");
+if (patchedServerSource.includes("const countryMatch = pathname.match(")) fail("duplicate early country route remains after patch");
+if (!patchedServerSource.includes("isIndexableCountryRoomCount(countryRooms.length)")) fail("country pages must use the minimum indexable room threshold");
+if (!patchedServerSource.includes("buildCountrySitemap")) fail("dynamic country sitemap filtering is missing");
 if (!serverSource.includes("html = renderHeroCopy(html, copy)")) fail("server pages must render hero copy through the safe renderer");
 
 const roomRenderer = require("../src/services/room-page-renderer.cjs");
