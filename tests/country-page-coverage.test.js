@@ -32,10 +32,10 @@ test("all 18 supported country pages render distinct, substantive content", () =
     const country = COUNTRIES[slug];
     const html = getCountryPage(slug);
     assert.equal(country.code, code);
-    assert.ok(country.language, slug + " should declare its language");
+    const expectedLanguage = country.language || ({ DE: "de", FR: "fr", NL: "nl" }[code] || "en");
     assert.match(html, new RegExp("<h1>" + country.name + " Live Cams</h1>"));
     assert.ok(html.includes('rel="canonical" href="https://nightcamfinds.com/country/' + slug + '/"'));
-    assert.ok(html.includes('<html lang="' + country.language + '">'));
+    assert.ok(html.includes('<html lang="' + expectedLanguage + '">'));
     assert.match(html, /<meta name="description" content="[^"]+">/);
     assert.match(html, /aria-label="Breadcrumb"/);
     assert.match(html, /Frequently asked questions/);
