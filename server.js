@@ -5,7 +5,7 @@ const path = require("path");
 const { URL } = require("url");
 const { rankRoomsByPreferredPlatform } = require("./src/services/platform-ranking.cjs");
 const { getCountryPage } = require("./country-pages.js");
-const { renderRoomCards, escapeHtml, plainText } = require("./src/services/room-page-renderer.cjs");
+const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 
 let pgPool = null;
 try {
@@ -227,11 +227,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   html=html.replaceAll("__CANONICAL__", `${pageOrigin(req)}${pathname}`).replaceAll("__OG_URL__", `${pageOrigin(req)}${pathname}`);
   html=html.replace('<div id="grid" class="grid" aria-live="polite"></div>',`<div id="grid" class="grid" aria-live="polite">${roomMarkup}</div>`);
   html=html.replace('<p id="result-count" class="result-count" aria-live="polite"></p>',`<p id="result-count" class="result-count" aria-live="polite">${hasRooms?list.length+" live rooms":"No live rooms are available right now."}</p>`);
-  html=html.replace('id="kicker">Independent discovery',`id="kicker">${escapeHtml(copy[0])}`)
-    .replace('id="page-title">Discover live cams right now',`id="page-title">${escapeHtml(copy[1])}`)
-    .replace('id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.',`id="page-intro">${escapeHtml(copy[2])}`)
-    .replace('<title>NightCamFinds — Live cam directory</title>',`<title>${copy[3]}</title>`)
-    .replace('content="Browse live rooms by country from Chaturbate and BongaCams. NightCamFinds does not stream video."','content="${copy[2]}"');
+  html = renderHeroCopy(html, copy);
   return send(res,200,html,"text/html; charset=utf-8");
 }
   if(!full.startsWith(PUBLIC)||!fs.existsSync(full)||fs.statSync(full).isDirectory())return send(res,404,"Not found","text/plain");const types={".html":"text/html",".css":"text/css",".js":"text/javascript",".svg":"image/svg+xml"};send(res,200,fs.readFileSync(full),types[path.extname(full)]||"application/octet-stream");
