@@ -99,6 +99,160 @@ const COUNTRIES = {
       ["Is NightCamFinds gratis te gebruiken?", "Het bekijken van de directory is gratis. Partnerplatforms kunnen betaalde functies aanbieden."]
     ]
   }
+  ie: {
+    code: "IE", name: "Ireland", adjective: "Irish", region: "Ireland", language: "en-IE",
+    intro: "Explore public live rooms associated with Ireland in the NightCamFinds country directory. The page brings together room listings and the country information supplied by partner feeds, helping adult visitors compare available categories and viewer activity before choosing an external platform. Feed details can change throughout the day, and a room shown as live may be offline by the time you open it.",
+    paragraphs: [
+      "Use the category links to browse female, male, trans and couples rooms. An Ireland label is a discovery signal based on partner-feed data, not independent proof of a broadcaster's residence, nationality or identity. Some listings may have no country information at all.",
+      "NightCamFinds is an independent directory, not a streaming, messaging or payment service. Selecting a room takes you to Chaturbate or BongaCams, where the partner platform controls accounts, video, moderation and transactions. Read its age requirements, privacy information and payment terms before registering or using paid features.",
+      "Room activity can vary between Dublin, Cork, Galway and other parts of Ireland simply because visitors and broadcasters follow different schedules. Viewer counts are snapshots rather than guarantees. Check the room description on the partner platform and use its own safety and reporting controls if you decide to interact."
+    ],
+    faqs: [
+      ["Does NightCamFinds host the video?", "No. The directory lists public room information and sends visitors to the external partner platform."],
+      ["Does an Ireland label verify someone's location?", "No. Country labels come from partner-feed information and are not independently verified."],
+      ["Are partner-platform features free?", "Browsing this directory is free. Partner platforms may offer paid features under their own pricing and terms."]
+    ]
+  },
+  nz: {
+    code: "NZ", name: "New Zealand", adjective: "New Zealand", region: "New Zealand", language: "en-NZ",
+    intro: "Discover public live rooms associated with New Zealand through the NightCamFinds country directory. Compare the room categories, descriptions and viewer activity made available by partner feeds before continuing to an external platform. Live listings are temporary snapshots, so availability and room details can change between visits.",
+    paragraphs: [
+      "Browse female, male, trans and couples categories using the links below. A New Zealand country label reflects information supplied by a partner feed. It does not independently confirm a broadcaster's home, citizenship or identity, and some feeds may omit country details.",
+      "NightCamFinds is a discovery directory and does not host video or handle partner-platform accounts and payments. When you open a room, the relevant partner platform provides the stream and its own account services. Review the platform's age rules, privacy policy and prices before signing up or purchasing anything.",
+      "New Zealand spans multiple local schedules, while broadcasters may be streaming from elsewhere. A room marked live can go offline without notice, and viewer counts can rise or fall quickly. Read the room information on the partner platform and rely on its own community, privacy and reporting controls when deciding whether to participate."
+    ],
+    faqs: [
+      ["Are rooms streamed on NightCamFinds?", "No. Video is supplied by the external platform after you follow a room link."],
+      ["Does the country label prove a broadcaster is in New Zealand?", "No. It is based on partner-feed data and may be incomplete or inaccurate."],
+      ["Can room availability change?", "Yes. Listings reflect changing partner feeds and are not a guarantee that a room will remain online."]
+    ]
+  },
+  se: {
+    code: "SE", name: "Sweden", adjective: "Swedish", region: "Sweden", language: "sv-SE",
+    intro: "Browse public live rooms associated with Sweden in the NightCamFinds country directory. The directory helps adult visitors compare available categories, room descriptions and current viewer activity before visiting a partner platform. Listings are supplied by external feeds and may change as broadcasters start, pause or end a session.",
+    paragraphs: [
+      "Use the category links to explore female, male, trans and couples rooms. A Sweden label is based on country information supplied by a partner feed. It is not independent verification of a person's residence, nationality or identity, and not every listing includes a country value.",
+      "NightCamFinds is an independent directory rather than a streaming service. Room links lead to Chaturbate or BongaCams, where video, accounts, moderation and payments are managed. Check the partner platform's age requirements, privacy policy and pricing before creating an account or using a paid feature.",
+      "Activity can differ by time of day and broadcaster schedule, including across Stockholm, Gothenburg and other Swedish locations. Viewer counts are momentary feed data, not a promise of continued availability. Review the room details on the partner platform and use its own privacy and reporting tools if you choose to interact."
+    ],
+    faqs: [
+      ["Does NightCamFinds provide the stream?", "No. It lists public room details and links to the platform that hosts the video."],
+      ["Is a Sweden label independently verified?", "No. It reflects country information received from a partner feed."],
+      ["Do I pay NightCamFinds to browse?", "No. Directory browsing is free. Any paid services are offered by the partner platform under its terms."]
+    ]
+  },
+  no: {
+    code: "NO", name: "Norway", adjective: "Norwegian", region: "Norway", language: "nb-NO",
+    intro: "Find public live rooms associated with Norway through the NightCamFinds country directory. The page brings partner-feed listings together so adult visitors can compare room categories, available descriptions and current viewer activity before moving to an external platform. Feed information changes frequently, so a room may no longer be live when opened.",
+    paragraphs: [
+      "Choose a category to browse female, male, trans or couples rooms. A Norway label is drawn from partner-feed country information and should be treated as a discovery aid, not proof of a broadcaster's location, citizenship or identity. Country details may be missing or inaccurate.",
+      "NightCamFinds does not host streams, operate performer accounts or process partner payments. Selecting a listing takes you to the platform responsible for the room. Read its age requirements, privacy policy, community rules and pricing before registering or using paid features.",
+      "Room activity can vary throughout the day and across Norwegian locations such as Oslo, Bergen and Trondheim. Viewer numbers are snapshots supplied by partner feeds, not a guarantee that a room will remain available. Check the room description and use the partner platform's own privacy, blocking and reporting controls when needed."
+    ],
+    faqs: [
+      ["Are the videos hosted by NightCamFinds?", "No. The videos and accounts are provided by the external partner platforms."],
+      ["Does a Norway label confirm where someone lives?", "No. It is based on partner-feed information and is not independently checked."],
+      ["Are paid features part of this directory?", "No. Browsing is free. Partner platforms set their own prices for optional paid features."]
+    ]
+  },
+  dk: {
+    code: "DK", name: "Denmark", adjective: "Danish", region: "Denmark", language: "da-DK",
+    intro: "Explore public live rooms associated with Denmark in the NightCamFinds country directory. Compare the categories, room information and viewer activity currently supplied by partner feeds before choosing an external platform. The listings are live-feed snapshots, so a broadcaster can go offline or details can change after the page loads.",
+    paragraphs: [
+      "The category links make it easier to browse female, male, trans and couples rooms. A Denmark label comes from country information in a partner feed. It is not independent confirmation of a broadcaster's residence, nationality or identity, and some room feeds do not provide a country value.",
+      "NightCamFinds is an independent discovery directory. It does not stream video or manage partner accounts, chat or payments. Following a room link takes you to the relevant platform, where its own age requirements, privacy policy, community standards and prices apply. Review those details before registering or spending.",
+      "Room activity changes with time zones and broadcaster schedules, including around Copenhagen, Aarhus and other Danish locations. Viewer counts are temporary indicators, not rankings or promises of availability. Read the room description on the partner site and use its privacy, blocking and reporting options if you decide to interact."
+    ],
+    faqs: [
+      ["Does NightCamFinds stream rooms?", "No. It displays public listing information and links to the external streaming platform."],
+      ["Is a Denmark country label proof of location?", "No. It is based on partner-feed information and may be incomplete."],
+      ["Is browsing this directory paid?", "No. Browsing is free. Partner platforms may charge for their own optional features."]
+    ]
+  },
+  fi: {
+    code: "FI", name: "Finland", adjective: "Finnish", region: "Finland", language: "fi-FI",
+    intro: "Browse public live rooms associated with Finland through the NightCamFinds country directory. Adult visitors can compare available room categories, descriptions and current viewer activity before continuing to a partner platform. Listings come from external feeds, which can update at any time and do not guarantee that a room will remain online.",
+    paragraphs: [
+      "Use the category links to explore female, male, trans and couples rooms. A Finland label is based on country information supplied by a partner feed. It is not independent verification of a person's home, nationality or identity, and some listings may not include country information.",
+      "NightCamFinds is a directory, not a streaming or payment provider. Room links open the partner platform that operates the stream and account. Before registering or using paid features, check that platform's age requirements, privacy policy, community rules and current pricing.",
+      "Live activity may vary by time of day and broadcaster schedule, including for visitors in Helsinki, Tampere, Turku and other Finnish locations. Viewer counts are snapshots and can change quickly. Read the room description on the partner platform and use its own privacy, blocking and reporting tools to manage your experience."
+    ],
+    faqs: [
+      ["Who provides the live video?", "The external partner platform provides the stream. NightCamFinds only lists public room information."],
+      ["Does a Finland label verify someone's identity or address?", "No. Country labels reflect partner-feed data and are not independently verified."],
+      ["Can partner platforms charge for features?", "Yes. Directory browsing is free, but partner platforms set their own prices and terms."]
+    ]
+  },
+  ch: {
+    code: "CH", name: "Switzerland", adjective: "Swiss", region: "Switzerland", language: "de-CH",
+    intro: "Discover public live rooms associated with Switzerland in the NightCamFinds country directory. Compare the categories, room descriptions and viewer activity supplied by partner feeds before continuing to an external platform. Switzerland is multilingual, and a country label alone does not indicate which language a broadcaster or visitor prefers.",
+    paragraphs: [
+      "Browse female, male, trans and couples rooms using the category links. A Switzerland label is based on partner-feed country information and is not independent proof of a broadcaster's residence, nationality or identity. Language information, when available, is shown separately from country data.",
+      "NightCamFinds is an independent directory and does not host video, manage accounts or process partner payments. Selecting a room takes you to the relevant platform, where its own age requirements, privacy policy, community rules and prices apply. Review those terms before creating an account or making a purchase.",
+      "Room activity can change throughout the day and across German-, French- and Italian-speaking parts of Switzerland. Viewer counts are temporary feed values rather than guarantees of availability. Read the room details on the partner platform and use its own privacy and reporting controls if you decide to interact."
+    ],
+    faqs: [
+      ["Does NightCamFinds host the video?", "No. The stream and account services are provided by the external partner platform."],
+      ["Does a Switzerland label prove where a broadcaster lives?", "No. It is based on partner-feed information and is not independently verified."],
+      ["Does the country label identify a preferred language?", "No. Country and language are separate details, and language data may not be available."]
+    ]
+  },
+  at: {
+    code: "AT", name: "Austria", adjective: "Austrian", region: "Austria", language: "de-AT",
+    intro: "Explore public live rooms associated with Austria through the NightCamFinds country directory. The page helps adult visitors compare available room categories, descriptions and current viewer activity before opening a partner platform. Listings are drawn from external feeds and may change quickly, so the room status shown here is not a guarantee of future availability.",
+    paragraphs: [
+      "Use the category links to browse female, male, trans and couples rooms. An Austria label reflects country information supplied by a partner feed. It is not independent confirmation of a broadcaster's residence, citizenship or identity, and some room listings may have no country value.",
+      "NightCamFinds is an independent discovery directory, not a streaming or payment service. Following a room link takes you to the partner platform that operates it. Check that platform's age requirements, privacy policy, community rules and prices before registering or using paid features.",
+      "Room activity can vary by time of day and broadcaster schedule, including around Vienna, Graz, Linz and other Austrian locations. Viewer counts are snapshots from partner feeds and may rise or fall without notice. Review the room information on the partner site and use its privacy, blocking and reporting controls as appropriate."
+    ],
+    faqs: [
+      ["Are rooms streamed on NightCamFinds?", "No. NightCamFinds lists public room information and links to the partner platform."],
+      ["Does an Austria label verify a broadcaster's location?", "No. The label is based on partner-feed data and is not independently checked."],
+      ["Who handles accounts and payments?", "The partner platform handles accounts and payments under its own terms."]
+    ]
+  },
+  be: {
+    code: "BE", name: "Belgium", adjective: "Belgian", region: "Belgium", language: "nl-BE",
+    intro: "Browse public live rooms associated with Belgium in the NightCamFinds country directory. The page brings together partner-feed listings so adult visitors can compare categories, available descriptions and viewer activity before continuing to an external platform. Belgium has multiple official languages, so country information should not be mistaken for a language preference.",
+    paragraphs: [
+      "Explore female, male, trans and couples rooms using the category links. A Belgium label comes from country information supplied by a partner feed. It is not independent verification of a broadcaster's residence, nationality or identity. Language details, if supplied, are separate from country labels.",
+      "NightCamFinds is an independent directory and does not host streams or process partner-platform payments. Room links lead to the platform responsible for video, accounts and moderation. Review its age requirements, privacy policy, community rules and pricing before registering or using optional paid features.",
+      "Listings may change throughout the day and viewer activity can differ with broadcaster schedules. Whether you are browsing from Brussels, Antwerp, Ghent or elsewhere, treat viewer counts as temporary feed data rather than a promise that a room will stay online. Read the room details on the partner platform and use its own privacy and reporting controls."
+    ],
+    faqs: [
+      ["Does NightCamFinds provide the video?", "No. Video and account services are provided by the external partner platform."],
+      ["Does a Belgium label confirm someone's language?", "No. Country and language are separate fields, and language information may be unavailable."],
+      ["Are listings guaranteed to remain live?", "No. Partner feeds update frequently and room availability can change at any time."]
+    ]
+  },
+  jp: {
+    code: "JP", name: "Japan", adjective: "Japanese", region: "Japan", language: "ja-JP",
+    intro: "Discover public live rooms associated with Japan through the NightCamFinds country directory. Compare available room categories, descriptions and current viewer activity before continuing to an external partner platform. Listings come from partner feeds and can change throughout the day, so the information displayed is a snapshot rather than a promise that a room will remain live.",
+    paragraphs: [
+      "Use the category links to browse female, male, trans and couples rooms. A Japan label reflects country information supplied by a partner feed. It is not independent verification of a broadcaster's residence, nationality or identity, and some feeds may omit country details.",
+      "NightCamFinds is an independent discovery directory, not a streaming, account or payment provider. Selecting a room takes you to the partner platform that operates it. Check the platform's age requirements, privacy policy, community rules and pricing before registering or using paid features.",
+      "Room activity may vary by time of day and broadcaster schedule, including for visitors in Tokyo, Osaka and other parts of Japan. Viewer counts can change quickly and should not be treated as a ranking or guarantee. Read the room description on the partner platform and use its own privacy, blocking and reporting tools if you choose to interact."
+    ],
+    faqs: [
+      ["Does NightCamFinds host Japanese live streams?", "No. It lists public room information and links to external partner platforms."],
+      ["Does a Japan label prove a broadcaster's nationality?", "No. It is based on partner-feed country information and is not independently verified."],
+      ["Can I use paid features through NightCamFinds?", "No. Any paid features belong to the partner platform and are subject to its terms."]
+    ]
+  },
+  sg: {
+    code: "SG", name: "Singapore", adjective: "Singaporean", region: "Singapore", language: "en-SG",
+    intro: "Explore public live rooms associated with Singapore in the NightCamFinds country directory. The page helps adult visitors compare room categories, descriptions and current viewer activity supplied by partner feeds before choosing an external platform. Live listings can change quickly, and a room marked live may be unavailable when you follow its link.",
+    paragraphs: [
+      "Browse female, male, trans and couples rooms using the category links. A Singapore label is based on country information supplied by a partner feed. It is not independent proof of a broadcaster's residence, nationality or identity, and some listings may not include country data.",
+      "NightCamFinds is an independent directory. It does not host video, operate partner accounts or process payments for partner services. Selecting a room takes you to the external platform, where its age requirements, privacy policy, community standards and pricing apply. Review those terms before registering or making a purchase.",
+      "Room activity changes with broadcaster schedules and time zones across the region. Viewer counts are temporary feed values rather than guarantees of availability or quality. Read the room information on the partner platform and use its own privacy, blocking and reporting controls if you decide to interact."
+    ],
+    faqs: [
+      ["Does NightCamFinds stream the rooms?", "No. The directory links to public listings hosted by external partner platforms."],
+      ["Does a Singapore label verify someone's location?", "No. Country information comes from partner feeds and is not independently checked."],
+      ["Are paid partner features included?", "No. Browsing this directory is free, while partner platforms set their own prices and terms."]
+    ]
+  },
 };
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
@@ -110,7 +264,7 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
   if (!country) return null;
   const canonical = `${origin.replace(/\/$/, "")}/country/${String(slug).toLowerCase()}/`;
   const title = `${country.name} Live Cams | NightCamFinds`;
-  const description = `Browse public live rooms associated with ${country.name}. Compare categories and current activity on NightCamFinds.`;
+  const description = country.metaDescription || `Browse public live rooms associated with ${country.name}. Compare categories and current activity on NightCamFinds.`;
   const paragraphs = [country.intro, ...country.paragraphs];
   const links = [
     ["Female live rooms", "/female/"], ["Male live rooms", "/male/"],
@@ -121,7 +275,7 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
     `<section class="country-faq-item"><h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p></section>`
   ).join("");
   return `<!doctype html>
-<html lang="${country.code === "DE" ? "de" : country.code === "FR" ? "fr" : country.code === "NL" ? "nl" : "en"}">
+<html lang="${country.language || (country.code === "DE" ? "de" : country.code === "FR" ? "fr" : country.code === "NL" ? "nl" : "en")}">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}">
