@@ -16,7 +16,7 @@ function normalizeCountryCode(value) {
  if(/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
  return COUNTRY_NAME_CODES.get(raw.toUpperCase())||"";
 }
-function normalizeRegion(value){return textValue(value).split(/\\s+/).filter(Boolean).join(" ").slice(0,80);}
+function normalizeRegion(value){return textValue(value).replaceAll("\t"," ").replaceAll("\n"," ").split(" ").filter(Boolean).join(" ").slice(0,80);}
 function normalizeLanguages(value){
  const values=(Array.isArray(value)?value:[value]).map(textValue).flatMap(v=>v.split(/[,;|]/)).map(v=>v.trim()).filter(Boolean);
  return [...new Set(values)].slice(0,8).join(", ");
