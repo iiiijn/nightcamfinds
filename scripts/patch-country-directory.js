@@ -11,7 +11,7 @@ function patchServerSource(input){
   source=source.replace(before,after);
  };
  replaceOnce('const { getCountryPage } = require("./country-pages.js");',
-  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, normalizeRegion, normalizeLanguages, isIndexableCountryRoomCount, buildCountrySitemap } = require("./src/services/country-directory.cjs");',
+  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap } = require("./src/services/country-directory.cjs");',
   "country page import");
  const normalizers=/function normalizeChaturbateRoom\(room\) \{[^\n]*\}\nfunction bongaGender\(value\) \{[^\n]*\}\nfunction normalizeBongaRoom\(room\) \{[^\n]*\}/;
  if(!normalizers.test(source))throw new Error("Country directory patch could not locate both partner normalizers");
@@ -48,12 +48,12 @@ function normalizeBongaRoom(room){
  source=source.slice(0,earlyStart)+source.slice(earlyEnd);
  const oldSitemap=/function sitemap\(origin\)\{[^\n]*\}/;
  if(!oldSitemap.test(source))throw new Error("Country directory patch could not locate sitemap builder");
- source=source.replace(oldSitemap,'function sitemap(origin,feedRooms){return buildCountrySitemap(origin,feedRooms,Object.entries(COUNTRIES).map(([slug,country])=>({slug,code:country.code})),new Date().toISOString());}');
+ source=source.replace(oldSitemap,'function sitemap(origin,feedRooms){return buildCountrySitemap(origin,feedRooms,Object.entries(COUNTRIES).map(([slug,country])=>({slug,code:country.code})),{});}');
  replaceOnce('  if(pathname==="/sitemap.xml")return send(res,200,sitemap(pageOrigin(req)),"application/xml");',
   '  if(pathname==="/sitemap.xml"){const feed=await rooms(req);return send(res,200,sitemap(pageOrigin(req),feed.rooms),"application/xml");}',
   "sitemap route");
  replaceOnce('    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended").slice(0, 60);\n    const roomMarkup = renderRoomCards(countryRooms, { category: "all", pagePath: pathname });\n    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, countryRooms.length > 0);',
-  '    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended");\n    const roomMarkup = renderRoomCards(countryRooms.slice(0, 60), { category: "all", pagePath: pathname });\n    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, isIndexableCountryRoomCount(countryRooms.length));',
+  '    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended");\n    const roomMarkup = renderRoomCards(countryRooms.slice(0, 60), { category: "all", pagePath: pathname });\n    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, isIndexableCountryRooms(countryRooms));',
   "country room threshold");
  replaceOnce('  const country=(url.searchParams.get("country")||"").toUpperCase();\n  const platform=(url.searchParams.get("platform")||"").toLowerCase();',
   '  const country=normalizeCountryCode(url.searchParams.get("country"));\n  const region=(url.searchParams.get("region")||"").trim().toLowerCase();\n  const language=(url.searchParams.get("language")||"").trim().toLowerCase();\n  const platform=(url.searchParams.get("platform")||"").toLowerCase();',
