@@ -53,7 +53,7 @@ if (!route.includes('target.searchParams.set("c", BONGA_CAMPAIGN)')) fail("Bonga
 
 
 const serverSource = fs.readFileSync("server.js", "utf8");
-const countryDirectoryPatch = require("./scripts/patch-country-directory.js");
+const countryDirectoryPatch = require("./patch-country-directory.js");
 const patchedServerSource = countryDirectoryPatch.patchServerSource(serverSource);
 if (!patchedServerSource.includes("NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1")) fail("country directory patch marker is missing");
 if (patchedServerSource.includes("const countryMatch = pathname.match(")) fail("duplicate early country route remains after patch");
