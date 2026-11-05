@@ -5,7 +5,7 @@ const path = require("path");
 const { URL } = require("url");
 const { rankRoomsByPreferredPlatform } = require("./src/services/platform-ranking.cjs");
 const { getCountryPage } = require("./country-pages.js");
-const { renderRoomCards } = require("./src/services/room-page-renderer.cjs");
+const { renderRoomCards, escapeHtml, plainText } = require("./src/services/room-page-renderer.cjs");
 
 let pgPool = null;
 try {
@@ -64,8 +64,8 @@ function fetchJson(url) {
     }).on("error", reject);
   });
 }
-function clean(text) {
-  return String(text || "").replace(/https?:\/\/\S+/gi, "").replace(/\b[\w.-]+\.(com|net|tv|xxx|ai)\b\S*/gi, "").replace(/\(\s*1[89]\s*\)/g, "").replace(BLOCKED, "").replace(/\b(beat|barely)\s*18\b/gi, "").replace(/#[^\s#]+/g, "").replace(/\s{2,}/g, " ").replace(/^[\s\-|#]+|[\s\-|#]+$/g, "").trim();
+function clean(value) {
+  return plainText(value).replace(/https?:\/\/\S+/gi, "").replace(/\b[\w.-]+\.(com|net|tv|xxx|ai)\b\S*/gi, "").replace(/\(\s*1[89]\s*\)/g, "").replace(BLOCKED, "").replace(/\b(beat|barely)\s*18\b/gi, "").replace(/#[^\s#]+/g, "").replace(/\s{2,}/g, " ").replace(/^[\s\-|#]+|[\s\-|#]+$/g, "").trim();
 }
 function cleanLabel(value, fallback = "unknown", max = 40) { const cleaned = String(value || "").trim().replace(/[^a-z0-9._-]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, max); return cleaned || fallback; }
 function visitorCountry(req) { for (const value of [req.headers["cf-ipcountry"], req.headers["x-vercel-ip-country"], req.headers["cloudfront-viewer-country"], req.headers["x-country-code"]]) { const iso = String(value || "").trim().toUpperCase(); if (/^[A-Z]{2}$/.test(iso) && iso !== "XX") return iso; } return "UNKNOWN"; }
@@ -227,9 +227,9 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   html=html.replaceAll("__CANONICAL__", `${pageOrigin(req)}${pathname}`).replaceAll("__OG_URL__", `${pageOrigin(req)}${pathname}`);
   html=html.replace('<div id="grid" class="grid" aria-live="polite"></div>',`<div id="grid" class="grid" aria-live="polite">${roomMarkup}</div>`);
   html=html.replace('<p id="result-count" class="result-count" aria-live="polite"></p>',`<p id="result-count" class="result-count" aria-live="polite">${hasRooms?list.length+" live rooms":"No live rooms are available right now."}</p>`);
-  html=html.replace('id="kicker">Independent discovery','id="kicker">${copy[0]}')
-    .replace('id="page-title">Discover live cams right now','id="page-title">${copy[1]}')
-    .replace('id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.','id="page-intro">${copy[2]}')
+  html=html.replace('id="kicker">Independent discovery',`id="kicker">${escapeHtml(copy[0])}`)
+    .replace('id="page-title">Discover live cams right now',`id="page-title">${escapeHtml(copy[1])}`)
+    .replace('id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.',`id="page-intro">${escapeHtml(copy[2])}`)
     .replace('<title>NightCamFinds — Live cam directory</title>',`<title>${copy[3]}</title>`)
     .replace('content="Browse live rooms by country from Chaturbate and BongaCams. NightCamFinds does not stream video."','content="${copy[2]}"');
   return send(res,200,html,"text/html; charset=utf-8");
