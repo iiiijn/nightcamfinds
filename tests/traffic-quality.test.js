@@ -32,6 +32,18 @@ test('engagement endpoint uses the persisted effective classification before cou
   assert.match(endpoint, /eligibleForEngagementMetrics: effectiveTrafficClass === "unverified"/);
 });
 
+test('affiliate redirect writes preserve the strongest visit classification', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+  const start = server.indexOf('INSERT INTO traffic_visits');
+  const end = server.indexOf(');', start);
+  const upsert = server.slice(start, end);
+  assert.match(upsert, /traffic_visits\.traffic_class = CASE/);
+  assert.match(upsert, /EXCLUDED\.traffic_class = 'known_bot'/);
+  assert.match(upsert, /EXCLUDED\.traffic_class = 'suspected_bot'/);
+});
+
 test('creates and validates privacy-preserving random visit identifiers', () => {
   const id = newVisitId();
   assert.match(id, /^[a-f0-9]{32}$/);
