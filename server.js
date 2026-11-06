@@ -137,6 +137,39 @@ async function countClick({ src, country, category="unknown", source="direct", c
           console.error("Postgres click tracking rollback failed:", rollbackError.message);
         }
       }
+      if (client && ["42P01", "42703"].includes(err.code)) {
+        // Migration 006 is intentionally separate. Preserve the legacy persistent
+        // click ledger until visit/landing columns and traffic tables are approved.
+        let fallbackClient = null;
+        try {
+          fallbackClient = await pgPool.connect();
+          await fallbackClient.query("BEGIN");
+          const legacy = await fallbackClient.query(
+            "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
+            [country,category,source,campaign,src,platform,medium,content,device,clickId||null]
+          );
+          if (platform === "chaturbate" && clickId) {
+            await fallbackClient.query(
+              "INSERT INTO cb_clicks (click_id,country,category,source,campaign,placement) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (click_id) DO NOTHING",
+              [clickId,country,category,source,campaign,src]
+            );
+          } else if (platform === "bongacams" && clickId) {
+            await fallbackClient.query(
+              "INSERT INTO bonga_clicks (affiliate_click_id,click_id,country,category,source,campaign,placement,medium,content,device) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (click_id) DO NOTHING",
+              [legacy.rows[0]?.id||null,clickId,country,category,source,campaign,src,medium,content,device]
+            );
+          }
+          await fallbackClient.query("COMMIT");
+          console.warn("Traffic-quality schema unavailable; affiliate click saved without visit linkage.");
+          return;
+        } catch (fallbackError) {
+          if (fallbackClient) { try { await fallbackClient.query("ROLLBACK"); } catch {} }
+          console.error("Legacy persistent affiliate click fallback failed:", fallbackError.message);
+          throw fallbackError;
+        } finally {
+          if (fallbackClient) fallbackClient.release();
+        }
+      }
       console.error("Postgres click tracking failed; falling back to local storage:", err.message);
     } finally {
       if (client) client.release();
