@@ -122,6 +122,8 @@ function trafficVisitId() {
   } catch (_) { return ""; }
 }
 const visitId = trafficVisitId();
+let visitLandingPath = location.pathname;
+try { visitLandingPath = sessionStorage.getItem("ncf_landing_path") || location.pathname; sessionStorage.setItem("ncf_landing_path", visitLandingPath); } catch (_) {}
 function sendEngagement(eventType) {
   if (!visitId) return;
   fetch("/api/engage", {
@@ -130,7 +132,7 @@ function sendEngagement(eventType) {
     keepalive: true,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      visitId, eventType, pagePath: location.pathname,
+      visitId, eventType, pagePath: location.pathname, landingPath: visitLandingPath,
       platform: "directory", source: trafficSource, medium: trafficMedium,
       campaign: trafficCampaign, content: trafficContent,
       placement: category === "all" ? "home" : category
@@ -163,7 +165,7 @@ function trackingQuery(extra = {}) {
     campaign: trafficCampaign,
     content: trafficContent || "",
     placement: extra.placement || src,
-    lp: String((attributionFresh ? savedAttribution.landingPath : "") || location.pathname || "/").slice(0, 255),
+    lp: String(visitLandingPath || location.pathname || "/").slice(0, 255),
     vid: visitId
   });
   return params.toString();
