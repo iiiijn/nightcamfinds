@@ -1,0 +1,50 @@
+'use strict';
+
+const crypto = require('node:crypto');
+
+const KNOWN_BOT = /bot|crawler|spider|slurp|preview|facebookexternalhit|twitterbot|linkedinbot|discordbot|telegrambot|whatsapp|google-inspectiontool|bingpreview|headlesschrome|phantomjs|selenium|playwright|puppeteer/i;
+const SUSPICIOUS = /curl|wget|python-requests|httpclient|axios|go-http-client|libwww-perl|scrapy/i;
+const ALLOWED_EVENTS = new Set(['active_10s', 'scroll_50']);
+
+function classifyUserAgent(value) {
+  const ua = String(value || '').trim();
+  if (!ua) return 'unverified';
+  if (KNOWN_BOT.test(ua)) return 'known_bot';
+  if (SUSPICIOUS.test(ua)) return 'suspected_bot';
+  return 'unverified';
+}
+
+function normalizeVisitId(value) {
+  const id = String(value || '').trim();
+  return /^[a-f0-9]{32}$/i.test(id) ? id.toLowerCase() : null;
+}
+
+function normalizeEvent(payload) {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return { error: 'Invalid event payload.' };
+  const visitId = normalizeVisitId(payload.visitId);
+  if (!visitId) return { error: 'Invalid visit identifier.' };
+  if (!ALLOWED_EVENTS.has(payload.eventType)) return { error: 'Unsupported engagement event.' };
+  const pagePath = String(payload.pagePath || '').trim();
+  if (!pagePath.startsWith('/') || pagePath.startsWith('//') || pagePath.length > 255 || /[\r\n]/.test(pagePath)) return { error: 'Invalid page path.' };
+  return { value: { visitId, eventType: payload.eventType, pagePath } };
+}
+
+function newVisitId() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+// Convert a Nairobi-local Monday-to-Sunday week into UTC boundaries.
+// Africa/Nairobi is UTC+03:00 and does not observe daylight saving time.
+function nairobiWeekBounds(date = new Date()) {
+  const local = new Date(date.getTime() + 3 * 60 * 60 * 1000);
+  const day = local.getUTCDay();
+  const daysSinceMonday = (day + 6) % 7;
+  const mondayLocal = new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() - daysSinceMonday));
+  const nextMondayLocal = new Date(mondayLocal.getTime() + 7 * 86400000);
+  return {
+    from: new Date(mondayLocal.getTime() - 3 * 60 * 60 * 1000).toISOString(),
+    toExclusive: new Date(nextMondayLocal.getTime() - 3 * 60 * 60 * 1000).toISOString()
+  };
+}
+
+module.exports = { classifyUserAgent, normalizeVisitId, normalizeEvent, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS };
