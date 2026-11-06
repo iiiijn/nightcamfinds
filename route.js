@@ -302,19 +302,27 @@ http.createServer = function routeDashboard(handler) {
       const landingPath = String(payload.landingPath || event.pagePath).trim();
       const safeLandingPath = landingPath.startsWith("/") && !landingPath.startsWith("//") && landingPath.length <= 255 && !/[\\r\\n]/.test(landingPath) ? landingPath : event.pagePath;
       try {
-        await pool.query(
+        const visit = await pool.query(
           `INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
-           ON CONFLICT (visit_id) DO UPDATE SET last_seen_at=NOW()`,
+           ON CONFLICT (visit_id) DO UPDATE SET
+             traffic_class = CASE
+               WHEN traffic_visits.traffic_class = 'known_bot' OR EXCLUDED.traffic_class = 'known_bot' THEN 'known_bot'
+               WHEN traffic_visits.traffic_class = 'suspected_bot' OR EXCLUDED.traffic_class = 'suspected_bot' THEN 'suspected_bot'
+               ELSE 'unverified'
+             END,
+             last_seen_at=NOW()
+           RETURNING traffic_class`,
           [event.visitId,country,cleanLabel(payload.platform,"unknown",30),cleanLabel(payload.source,"direct",40),cleanLabel(payload.medium,"unknown",80),cleanLabel(payload.campaign,"unknown",80),cleanLabel(payload.content,"",120),cleanLabel(payload.placement,"unknown",80),safeLandingPath,trafficClass]
         );
+        const effectiveTrafficClass = visit.rows[0]?.traffic_class || trafficClass;
         const saved = await pool.query(
           `INSERT INTO traffic_engagement_events (visit_id,event_type,page_path)
            SELECT $1,$2,$3 WHERE $4 = 'unverified'
            ON CONFLICT (visit_id,event_type,page_path) DO NOTHING RETURNING event_id`,
-          [event.visitId,event.eventType,event.pagePath,trafficClass]
+          [event.visitId,event.eventType,event.pagePath,effectiveTrafficClass]
         );
-        return sendJson(res, 202, { accepted: true, eligibleForEngagementMetrics: trafficClass === "unverified", duplicate: saved.rowCount === 0, trafficClass });
+        return sendJson(res, 202, { accepted: true, eligibleForEngagementMetrics: effectiveTrafficClass === "unverified", duplicate: saved.rowCount === 0, trafficClass: effectiveTrafficClass });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
         console.error("Traffic engagement failed:", err.message);
