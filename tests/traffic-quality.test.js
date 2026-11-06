@@ -56,3 +56,25 @@ test('traffic quality analytics separates bot, unverified and unclassified affil
   assert.match(dashboard, /Unclassified affiliate redirects/);
   assert.match(dashboard, /main platform and country click totals remain raw redirect counts/);
 });
+
+
+test('affiliate click database writes are atomic across primary, visit and platform ledgers', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+  const start = server.indexOf('async function countClick(');
+  const end = server.indexOf('async function statsFromDb()', start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+  const writer = server.slice(start, end);
+  assert.match(writer, /await pgPool\.connect\(\)/);
+  assert.match(writer, /await client\.query\(["']BEGIN["']\)/);
+  assert.match(writer, /await client\.query\(["']COMMIT["']\)/);
+  assert.match(writer, /await client\.query\(["']ROLLBACK["']\)/);
+  assert.match(writer, /finally\s*\{\s*if\s*\(client\)\s*client\.release\(\)/);
+  assert.match(writer, /INSERT INTO affiliate_clicks/);
+  assert.match(writer, /INSERT INTO traffic_visits/);
+  assert.match(writer, /INSERT INTO cb_clicks/);
+  assert.match(writer, /INSERT INTO bonga_clicks/);
+  assert.ok(writer.indexOf('await client.query("COMMIT")') > writer.indexOf('INSERT INTO bonga_clicks'));
+});
