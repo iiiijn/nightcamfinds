@@ -39,7 +39,7 @@ test('affiliate redirect writes preserve the strongest visit classification', ()
   const start = server.indexOf('INSERT INTO traffic_visits');
   const end = server.indexOf(');', start);
   const upsert = server.slice(start, end);
-  assert.match(upsert, /traffic_visits\.traffic_class = CASE/);
+  assert.match(upsert, /traffic_class = CASE WHEN traffic_visits\.traffic_class/);
   assert.match(upsert, /EXCLUDED\.traffic_class = 'known_bot'/);
   assert.match(upsert, /EXCLUDED\.traffic_class = 'suspected_bot'/);
 });
