@@ -36,13 +36,26 @@ function buildQuery(filters) {
 }
 
 function rankRows(rows) {
-  const totals = new Map();
-  for (const row of rows) totals.set(row.country, (totals.get(row.country) || 0) + Number(row.clicks || 0));
+  const countryTotals = new Map();
+  const categoryTotals = new Map();
+  for (const row of rows) {
+    const clicks = Number(row.clicks || 0);
+    countryTotals.set(row.country, (countryTotals.get(row.country) || 0) + clicks);
+    const key = row.country + ':' + row.category;
+    categoryTotals.set(key, (categoryTotals.get(key) || 0) + clicks);
+  }
+  const topByCountry = new Map();
+  for (const [key, clicks] of categoryTotals) {
+    const country = key.split(':')[0];
+    const current = topByCountry.get(country);
+    if (!current || clicks > current.clicks) topByCountry.set(country, { category: key.slice(country.length + 1), clicks });
+  }
   return rows.map(row => {
     const clicks = Number(row.clicks || 0);
-    const total = totals.get(row.country) || 0;
-    return { country: row.country, category: row.category, platform: row.platform, clicks, countryClicks: total, sharePercent: total ? Math.round(clicks / total * 10000) / 100 : 0 };
-  }).sort((a, b) => a.country.localeCompare(b.country) || b.clicks - a.clicks || a.category.localeCompare(b.category));
+    const categoryClicks = categoryTotals.get(row.country + ':' + row.category) || 0;
+    const total = countryTotals.get(row.country) || 0;
+    return { country: row.country, category: row.category, platform: row.platform, clicks, categoryClicks, countryClicks: total, sharePercent: total ? Math.round(categoryClicks / total * 10000) / 100 : 0, topCategory: topByCountry.get(row.country)?.category === row.category };
+  }).sort((a, b) => a.country.localeCompare(b.country) || b.categoryClicks - a.categoryClicks || a.category.localeCompare(b.category) || a.platform.localeCompare(b.platform));
 }
 
 module.exports = { CATEGORIES, validDate, parseFilters, buildQuery, rankRows };
