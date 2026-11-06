@@ -304,11 +304,22 @@ async function getDailyCountryAnalytics(incoming) {
   const parsed = dailyCountryAnalytics.parseFilters(incoming.searchParams);
   if (parsed.error) return { error: parsed.error };
   const built = dailyCountryAnalytics.buildQuery(parsed.value);
-  const result = await pool.query(built.text, built.params);
+  let result;
+  let engagementAvailable = true;
+  try {
+    result = await pool.query(built.text, built.params);
+  } catch (err) {
+    if (err.code !== "42703") throw err;
+    engagementAvailable = false;
+    const fallback = dailyCountryAnalytics.buildQuery(parsed.value, { includeEngagement: false });
+    result = await pool.query(fallback.text, fallback.params);
+  }
   return {
     timezone: "UTC",
     tier1Countries: dailyCountryAnalytics.TIER1_COUNTRIES,
     filters: parsed.value,
+    engagementAvailable,
+    truncated: result.rows.length === 20000,
     rows: result.rows.map(row => ({
       date: String(row.day).slice(0, 10),
       country: row.country || "UNKNOWN",

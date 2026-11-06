@@ -20,14 +20,15 @@ function parseFilters(searchParams) {
   return { value: { from, to, country, tier1 } };
 }
 
-function buildQuery(filters) {
+function buildQuery(filters, options = {}) {
   const params = [], conditions = [];
   if (filters.from) { params.push(filters.from); conditions.push("clicked_at >= ($" + params.length + "::date AT TIME ZONE 'UTC')"); }
   if (filters.to) { params.push(filters.to); conditions.push("clicked_at < (($" + params.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')"); }
   if (filters.tier1) { params.push(TIER1_COUNTRIES); conditions.push('UPPER(country) = ANY($' + params.length + '::text[])'); }
   if (filters.country !== 'ALL') { params.push(filters.country); conditions.push('UPPER(country) = $' + params.length); }
   const where = conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
-  return { text: "SELECT (clicked_at AT TIME ZONE 'UTC')::date AS day, UPPER(country) AS country, LOWER(platform) AS platform, COUNT(*)::int AS clicks, COUNT(*) FILTER (WHERE engaged_at IS NOT NULL)::int AS engaged_clicks FROM affiliate_clicks " + where + " GROUP BY (clicked_at AT TIME ZONE 'UTC')::date, UPPER(country), LOWER(platform) ORDER BY day DESC, clicks DESC, country ASC, platform ASC LIMIT 5000", params };
+  const engagement = options.includeEngagement === false ? 'NULL::int AS engaged_clicks' : 'COUNT(*) FILTER (WHERE engaged_at IS NOT NULL)::int AS engaged_clicks';
+  return { text: "SELECT (clicked_at AT TIME ZONE 'UTC')::date AS day, UPPER(country) AS country, LOWER(platform) AS platform, COUNT(*)::int AS clicks, " + engagement + " FROM affiliate_clicks " + where + " GROUP BY (clicked_at AT TIME ZONE 'UTC')::date, UPPER(country), LOWER(platform) ORDER BY day DESC, clicks DESC, country ASC, platform ASC LIMIT 20000", params };
 }
 
 module.exports = { TIER1_COUNTRIES, validDate, parseFilters, buildQuery };
