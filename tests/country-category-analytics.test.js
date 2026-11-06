@@ -19,7 +19,7 @@ test('query is parameterized and limits categories to the four directory categor
   const built = analytics.buildQuery({ from: '2026-11-01', to: '2026-11-06', country: 'US', platform: 'chaturbate' });
   assert.deepEqual(built.params, [analytics.CATEGORIES, '2026-11-01', '2026-11-06', 'US', 'chaturbate']);
   assert.match(built.text, /LOWER\(category\) = ANY\(\$1::text\[\]\)/);
-  assert.match(built.text, /GROUP BY UPPER\\(country\\), LOWER\\(category\\), LOWER\\(platform\\)/);
+  assert.match(built.text, /GROUP BY UPPER\(country\), LOWER\(category\), LOWER\(platform\)/);
   assert.doesNotMatch(built.text, /2026-11-01|chaturbate/);
 });
 
