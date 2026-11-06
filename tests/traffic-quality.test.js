@@ -84,6 +84,13 @@ test('traffic quality analytics separates bot, unverified and unclassified affil
   assert.match(route, /suspectedBotAffiliateClicks/);
   assert.match(route, /unverifiedAffiliateClicks/);
   assert.match(route, /unclassifiedAffiliateClicks/);
+  assert.match(route, /clicksWithoutVisitId/);
+  assert.match(route, /clicksWithMissingVisitRecord/);
+  assert.match(route, /missing_visit_id/);
+  assert.match(route, /missing_visit_record/);
+  assert.match(route, /legacy records from before visit tracking was introduced/);
+  assert.match(dashboard, /Legacy clicks without visit IDs/);
+  assert.match(dashboard, /Clicks with missing visit records/);
   assert.match(dashboard, /All tracked affiliate redirects/);
   assert.match(dashboard, /Known-bot affiliate redirects/);
   assert.match(dashboard, /Unclassified affiliate redirects/);
