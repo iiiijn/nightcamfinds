@@ -8,7 +8,8 @@ const bongacash = require("./bongacash");
 const { isSameOriginRequest } = require("./src/services/country-settings-origin.cjs");
 const { validateCountryPlatformPayload } = require("./src/services/country-settings-validation.cjs");
 const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
-const { classifyUserAgent, normalizeEvent, nairobiWeekBounds } = require("./src/services/traffic-quality.cjs");
+const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRateLimiter } = require("./src/services/traffic-quality.cjs");
+const allowEngagement = createEngagementRateLimiter();
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -269,7 +270,6 @@ async function dashboardStats(incoming) {
     bongacamsPurchases: bonga.purchases,
     bongacamsEarnings: bonga.earnings,
     bongacamsPurchaseSpend: bonga.spend,
-    bongacashPostbackConfigured: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
     bongacashTrackingVerified: false,
     platforms: { chaturbate: cbClicks, bongacams: bongaClicks },
     sources,
@@ -295,6 +295,7 @@ http.createServer = function routeDashboard(handler) {
       const validation = normalizeEvent(payload);
       if (validation.error) return sendJson(res, 400, { error: validation.error });
       const event = validation.value;
+      if (!allowEngagement(event.visitId)) return sendJson(res, 429, { error: "Engagement event rate limit reached." });
       const cleanLabel = (value, fallback, max) => String(value || "").trim().replace(/[^a-z0-9._-]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, max) || fallback;
       const country = String(req.headers["cf-ipcountry"] || req.headers["x-vercel-ip-country"] || req.headers["cloudfront-viewer-country"] || "UNKNOWN").toUpperCase().match(/^[A-Z]{2}$/)?.[0] || "UNKNOWN";
       const trafficClass = classifyUserAgent(req.headers["user-agent"]);
@@ -375,7 +376,6 @@ http.createServer = function routeDashboard(handler) {
       return sendJson(res, 200, {
         ok: true,
         databaseConfigured: Boolean(databaseUrl),
-        bongaPostbackConfigured: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
         timestamp: new Date().toISOString()
       });
     }
@@ -389,11 +389,7 @@ http.createServer = function routeDashboard(handler) {
       catch (err) { console.error("BongaCams feed error:", err.message); return sendJson(res, 502, { rooms: [], platform: "bongacams", error: err.message }); }
     }
     if (incoming.pathname === "/api/bongacash/postback") {
-      const params = new URLSearchParams(incoming.searchParams);
-      if (!bongacash.verifySecret(req, params)) return sendJson(res, 403, { error: "Invalid BongaCash postback secret." });
-      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
-      try { return sendJson(res, 200, await bongacash.save(pool, params)); }
-      catch (err) { console.error("BongaCash postback failed:", err.message); return sendJson(res, 500, { error: "Could not save BongaCash conversion." }); }
+      return sendJson(res, 410, { error: "BongaCash postbacks are not supported. Use manual affiliate-report reconciliation." });
     }
     if (incoming.pathname === "/api/country-platform-settings") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
