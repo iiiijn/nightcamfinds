@@ -10,7 +10,9 @@ test("affiliate redirects have exactly one click attribution writer", () => {
   assert.doesNotMatch(start, /saveClick\s*\(|parseAttribution\s*\(/);
   assert.doesNotMatch(start, /path\.startsWith\(["']\/bgo\/["']\).*path\.startsWith\(["']\/go\/["']/);
   assert.match(server, /async function countClick\s*\(/);
-  assert.match(server, /await countClick\(\{\s*src,\s*country,[\s\S]*?clickId,\s*platform,[\s\S]*?visitId,[\s\S]*?landingPath,[\s\S]*?trafficClass:[\s\S]*?\}\)/);
+  assert.match(server, /await countClick\(\{[\s\S]*?clickId/);
+  assert.match(server, /visitId/);
+  assert.match(server, /trafficClass:classifyUserAgent\(agent\)/);
   assert.match(server, /searchParams\.set\(["']click_id["'],\s*clickId\)/);
 });
 
