@@ -339,12 +339,18 @@ http.createServer = function routeDashboard(handler) {
            WHERE e.occurred_at >= $1 AND e.occurred_at < $2
              AND v.traffic_class='unverified'`, [bounds.from, bounds.toExclusive]
         );
-        const linkedClicks = await pool.query(
-          `SELECT COUNT(*)::int AS clicks
-           FROM affiliate_clicks c JOIN traffic_visits v ON v.visit_id=c.visit_id
+        const clickQuality = await pool.query(
+          `SELECT CASE
+                    WHEN v.traffic_class IN ('known_bot','suspected_bot','unverified') THEN v.traffic_class
+                    ELSE 'unclassified'
+                  END AS traffic_class,
+                  COUNT(*)::int AS clicks
+           FROM affiliate_clicks c
+           LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id
            WHERE c.clicked_at >= $1 AND c.clicked_at < $2
-             AND v.traffic_class='unverified'`, [bounds.from, bounds.toExclusive]
+           GROUP BY 1`, [bounds.from, bounds.toExclusive]
         );
+        const clickCounts = Object.fromEntries(clickQuality.rows.map(row => [row.traffic_class, Number(row.clicks || 0)]));
         const counts = Object.fromEntries(visits.rows.map(row => [row.traffic_class, Number(row.visits || 0)]));
         return sendJson(res, 200, {
           timezone: "Africa/Nairobi", from: bounds.from, toExclusive: bounds.toExclusive,
@@ -352,8 +358,12 @@ http.createServer = function routeDashboard(handler) {
           unverifiedBrowserVisits: counts.unverified || 0,
           unverifiedEngagedVisits: Number(engagement.rows[0]?.engaged_visits || 0),
           engagementEvents: Number(engagement.rows[0]?.events || 0),
-          linkedAffiliateClicks: Number(linkedClicks.rows[0]?.clicks || 0),
-          note: "Unverified browser traffic is not proof of human visitors. Known and suspected automation are excluded from engagement metrics."
+          trackedAffiliateRedirects: Object.values(clickCounts).reduce((sum, value) => sum + value, 0),
+          knownBotAffiliateClicks: clickCounts.known_bot || 0,
+          suspectedBotAffiliateClicks: clickCounts.suspected_bot || 0,
+          unverifiedAffiliateClicks: clickCounts.unverified || 0,
+          unclassifiedAffiliateClicks: clickCounts.unclassified || 0,
+          note: "These are tracked affiliate redirects, not verified human clicks. Known and suspected automation are separated. Unverified browser traffic is not proof of human visitors. Clicks without a linked visit record are unclassified."
         });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
