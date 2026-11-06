@@ -297,6 +297,28 @@ async function dashboardStats(incoming) {
   };
 }
 
+const dailyCountryAnalytics = require("./src/services/daily-country-analytics.cjs");
+
+async function getDailyCountryAnalytics(incoming) {
+  if (!pool) throw new Error("Database is not configured");
+  const parsed = dailyCountryAnalytics.parseFilters(incoming.searchParams);
+  if (parsed.error) return { error: parsed.error };
+  const built = dailyCountryAnalytics.buildQuery(parsed.value);
+  const result = await pool.query(built.text, built.params);
+  return {
+    timezone: "UTC",
+    tier1Countries: dailyCountryAnalytics.TIER1_COUNTRIES,
+    filters: parsed.value,
+    rows: result.rows.map(row => ({
+      date: String(row.day).slice(0, 10),
+      country: row.country || "UNKNOWN",
+      platform: row.platform || "unknown",
+      clicks: Number(row.clicks || 0),
+      engagedClicks: row.engaged_clicks == null ? null : Number(row.engaged_clicks)
+    }))
+  };
+}
+
 async function handleAuth(req,res,incoming) {
   if (incoming.pathname === "/api/auth/me") return json(res,200,{authenticated:validSession(req),username:validSession(req)?ADMIN_USER:null});
   if (incoming.pathname === "/api/auth/logout") {
@@ -318,8 +340,18 @@ http.createServer = function wrappedCreateServer(handler) {
     const incoming = new URL(req.url, "http://localhost");
     const authHandled = await handleAuth(req,res,incoming);
     if(authHandled !== false) return;
-    if(["/api/dashboard-stats","/api/revshare","/api/stats","/api/stats.csv"].includes(incoming.pathname) && !validSession(req)) {
+    if(["/api/dashboard-stats","/api/daily-country-analytics","/api/revshare","/api/stats","/api/stats.csv"].includes(incoming.pathname) && !validSession(req)) {
       return json(res,401,{error:"Authentication required."});
+    }
+    if(incoming.pathname === "/api/daily-country-analytics") {
+      try {
+        const result = await getDailyCountryAnalytics(incoming);
+        if (result.error) return json(res, 400, { error: result.error });
+        return json(res, 200, result);
+      } catch(err) {
+        console.error("Daily country analytics failed:", err.message);
+        return json(res, 500, { error: "Could not load daily country analytics." });
+      }
     }
     if(incoming.pathname === "/api/dashboard-stats") {
       try{return json(res,200,await dashboardStats(incoming))}catch(err){console.error("Dashboard stats failed:",err.message);return json(res,500,{error:"Could not load dashboard analytics."})}
