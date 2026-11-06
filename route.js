@@ -8,7 +8,7 @@ const bongacash = require("./bongacash");
 const { isSameOriginRequest } = require("./src/services/country-settings-origin.cjs");
 const { validateCountryPlatformPayload } = require("./src/services/country-settings-validation.cjs");
 const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
-const { classifyUserAgent, normalizeEvent } = require("./src/services/traffic-quality.cjs");
+const { classifyUserAgent, normalizeEvent, nairobiWeekBounds } = require("./src/services/traffic-quality.cjs");
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -311,11 +311,52 @@ http.createServer = function routeDashboard(handler) {
            ON CONFLICT (visit_id,event_type,page_path) DO NOTHING RETURNING event_id`,
           [event.visitId,event.eventType,event.pagePath,trafficClass]
         );
-        return sendJson(res, 202, { accepted: true, qualified: trafficClass === "unverified", duplicate: saved.rowCount === 0, trafficClass });
+        return sendJson(res, 202, { accepted: true, eligibleForEngagementMetrics: trafficClass === "unverified", duplicate: saved.rowCount === 0, trafficClass });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
         console.error("Traffic engagement failed:", err.message);
         return sendJson(res, 500, { error: "Could not record engagement." });
+      }
+    }
+    if (incoming.pathname === "/api/traffic-quality-analytics") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const bounds = nairobiWeekBounds();
+      try {
+        const visits = await pool.query(
+          `SELECT traffic_class, COUNT(*)::int AS visits
+           FROM traffic_visits WHERE first_seen_at >= $1 AND first_seen_at < $2
+           GROUP BY traffic_class`, [bounds.from, bounds.toExclusive]
+        );
+        const engagement = await pool.query(
+          `SELECT COUNT(DISTINCT e.visit_id)::int AS engaged_visits,
+                  COUNT(*)::int AS events
+           FROM traffic_engagement_events e
+           JOIN traffic_visits v ON v.visit_id=e.visit_id
+           WHERE e.occurred_at >= $1 AND e.occurred_at < $2
+             AND v.traffic_class='unverified'`, [bounds.from, bounds.toExclusive]
+        );
+        const linkedClicks = await pool.query(
+          `SELECT COUNT(*)::int AS clicks
+           FROM affiliate_clicks c JOIN traffic_visits v ON v.visit_id=c.visit_id
+           WHERE c.clicked_at >= $1 AND c.clicked_at < $2
+             AND v.traffic_class='unverified'`, [bounds.from, bounds.toExclusive]
+        );
+        const counts = Object.fromEntries(visits.rows.map(row => [row.traffic_class, Number(row.visits || 0)]));
+        return sendJson(res, 200, {
+          timezone: "Africa/Nairobi", from: bounds.from, toExclusive: bounds.toExclusive,
+          knownBots: counts.known_bot || 0, suspectedBots: counts.suspected_bot || 0,
+          unverifiedBrowserVisits: counts.unverified || 0,
+          unverifiedEngagedVisits: Number(engagement.rows[0]?.engaged_visits || 0),
+          engagementEvents: Number(engagement.rows[0]?.events || 0),
+          linkedAffiliateClicks: Number(linkedClicks.rows[0]?.clicks || 0),
+          note: "Unverified browser traffic is not proof of human visitors. Known and suspected automation are excluded from engagement metrics."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
+        console.error("Traffic quality analytics failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load traffic quality analytics." });
       }
     }
     if (incoming.pathname === "/api/health") {
