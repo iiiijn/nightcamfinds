@@ -205,7 +205,7 @@ async function dashboardStats(incoming) {
   const platformRows = await q(`SELECT platform, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY platform`);
   const countryRows = await q(`SELECT country, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY country`);
   const total = Number((await q(`SELECT COUNT(*)::int AS n FROM affiliate_clicks ${where}`))[0]?.n || 0);
-  const tier1 = ["US","CA","GB","IE","AU","NZ","DE","FR","NL","SE","NO","DK","FI","CH","AT","BE"];
+  const tier1 = ["US","GB","CA","AU","DE","FR","NL","IE","NZ","SE","NO","DK","FI","CH","AT","BE","JP","SG"];
   const tierPlaceholders = tier1.map((_, i) => `$${params.length + i + 1}`).join(",");
   const tierRows = await pool.query(`SELECT COUNT(*)::int AS n, COUNT(*) FILTER (WHERE platform='bongacams')::int AS bonga FROM affiliate_clicks ${where ? where + " AND" : "WHERE"} UPPER(country) IN (${tierPlaceholders})`, [...params, ...tier1]);
   const sourceRows = await q(`SELECT platform, source, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY platform,source`);
