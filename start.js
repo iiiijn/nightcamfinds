@@ -205,7 +205,7 @@ async function dashboardStats(incoming) {
   const platformRows = await q(`SELECT platform, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY platform`);
   const countryRows = await q(`SELECT country, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY country`);
   const total = Number((await q(`SELECT COUNT(*)::int AS n FROM affiliate_clicks ${where}`))[0]?.n || 0);
-  const tier1 = ["US","CA","GB","IE","AU","NZ","DE","FR","NL","SE","NO","DK","FI","CH","AT","BE"];
+  const tier1 = ["US","GB","CA","AU","DE","FR","NL","IE","NZ","SE","NO","DK","FI","CH","AT","BE","JP","SG"];
   const tierPlaceholders = tier1.map((_, i) => `$${params.length + i + 1}`).join(",");
   const tierRows = await pool.query(`SELECT COUNT(*)::int AS n, COUNT(*) FILTER (WHERE platform='bongacams')::int AS bonga FROM affiliate_clicks ${where ? where + " AND" : "WHERE"} UPPER(country) IN (${tierPlaceholders})`, [...params, ...tier1]);
   const sourceRows = await q(`SELECT platform, source, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY platform,source`);
@@ -297,6 +297,39 @@ async function dashboardStats(incoming) {
   };
 }
 
+const dailyCountryAnalytics = require("./src/services/daily-country-analytics.cjs");
+
+async function getDailyCountryAnalytics(incoming) {
+  if (!pool) throw new Error("Database is not configured");
+  const parsed = dailyCountryAnalytics.parseFilters(incoming.searchParams);
+  if (parsed.error) return { error: parsed.error };
+  const built = dailyCountryAnalytics.buildQuery(parsed.value);
+  let result;
+  let engagementAvailable = true;
+  try {
+    result = await pool.query(built.text, built.params);
+  } catch (err) {
+    if (err.code !== "42703") throw err;
+    engagementAvailable = false;
+    const fallback = dailyCountryAnalytics.buildQuery(parsed.value, { includeEngagement: false });
+    result = await pool.query(fallback.text, fallback.params);
+  }
+  return {
+    timezone: "UTC",
+    tier1Countries: dailyCountryAnalytics.TIER1_COUNTRIES,
+    filters: parsed.value,
+    engagementAvailable,
+    truncated: result.rows.length === 20000,
+    rows: result.rows.map(row => ({
+      date: String(row.day).slice(0, 10),
+      country: row.country || "UNKNOWN",
+      platform: row.platform || "unknown",
+      clicks: Number(row.clicks || 0),
+      engagedClicks: row.engaged_clicks == null ? null : Number(row.engaged_clicks)
+    }))
+  };
+}
+
 async function handleAuth(req,res,incoming) {
   if (incoming.pathname === "/api/auth/me") return json(res,200,{authenticated:validSession(req),username:validSession(req)?ADMIN_USER:null});
   if (incoming.pathname === "/api/auth/logout") {
@@ -318,8 +351,18 @@ http.createServer = function wrappedCreateServer(handler) {
     const incoming = new URL(req.url, "http://localhost");
     const authHandled = await handleAuth(req,res,incoming);
     if(authHandled !== false) return;
-    if(["/api/dashboard-stats","/api/revshare","/api/stats","/api/stats.csv"].includes(incoming.pathname) && !validSession(req)) {
+    if(["/api/dashboard-stats","/api/daily-country-analytics","/api/revshare","/api/stats","/api/stats.csv"].includes(incoming.pathname) && !validSession(req)) {
       return json(res,401,{error:"Authentication required."});
+    }
+    if(incoming.pathname === "/api/daily-country-analytics") {
+      try {
+        const result = await getDailyCountryAnalytics(incoming);
+        if (result.error) return json(res, 400, { error: result.error });
+        return json(res, 200, result);
+      } catch(err) {
+        console.error("Daily country analytics failed:", err.message);
+        return json(res, 500, { error: "Could not load daily country analytics." });
+      }
     }
     if(incoming.pathname === "/api/dashboard-stats") {
       try{return json(res,200,await dashboardStats(incoming))}catch(err){console.error("Dashboard stats failed:",err.message);return json(res,500,{error:"Could not load dashboard analytics."})}
