@@ -29,6 +29,27 @@ function normalizeEvent(payload) {
   return { value: { visitId, eventType: payload.eventType, pagePath } };
 }
 
+function createEngagementRateLimiter({ perMinute = 6, perHour = 30, maxEntries = 10000 } = {}) {
+  const requests = new Map();
+  return function allowEngagement(visitId, now = Date.now()) {
+    const id = normalizeVisitId(visitId);
+    if (!id) return false;
+    const recent = (requests.get(id) || []).filter(time => now - time < 60 * 60 * 1000);
+    if (recent.filter(time => now - time < 60 * 1000).length >= perMinute || recent.length >= perHour) {
+      requests.set(id, recent);
+      return false;
+    }
+    if (!requests.has(id) && requests.size >= maxEntries) {
+      const oldestKey = requests.keys().next().value;
+      if (oldestKey !== undefined) requests.delete(oldestKey);
+    }
+    recent.push(now);
+    requests.delete(id);
+    requests.set(id, recent);
+    return true;
+  };
+}
+
 function newVisitId() {
   return crypto.randomBytes(16).toString('hex');
 }
@@ -47,4 +68,4 @@ function nairobiWeekBounds(date = new Date()) {
   };
 }
 
-module.exports = { classifyUserAgent, normalizeVisitId, normalizeEvent, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS };
+module.exports = { classifyUserAgent, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS };
