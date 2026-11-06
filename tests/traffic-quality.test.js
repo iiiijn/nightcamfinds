@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { classifyUserAgent, normalizeVisitId, normalizeEvent, newVisitId, nairobiWeekBounds } = require('../src/services/traffic-quality.cjs');
+const { classifyUserAgent, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds } = require('../src/services/traffic-quality.cjs');
 
 test('classifies known crawlers separately from suspected automation', () => {
   assert.equal(classifyUserAgent('Googlebot/2.1'), 'known_bot');
@@ -77,4 +77,33 @@ test('affiliate click database writes are atomic across primary, visit and platf
   assert.match(writer, /INSERT INTO cb_clicks/);
   assert.match(writer, /INSERT INTO bonga_clicks/);
   assert.ok(writer.indexOf('await client.query("COMMIT")') > writer.indexOf('INSERT INTO bonga_clicks'));
+});
+
+test('limits engagement submissions per anonymous visit without storing IP addresses', () => {
+  const allow = createEngagementRateLimiter({ perMinute: 2, perHour: 3 });
+  const id = 'b'.repeat(32);
+  assert.equal(allow(id, 1000), true);
+  assert.equal(allow(id, 2000), true);
+  assert.equal(allow(id, 3000), false);
+  assert.equal(allow(id, 61000), true);
+  assert.equal(allow('invalid', 62000), false);
+});
+
+test('banner affiliate links retain the visit ID and original landing path', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const promo = fs.readFileSync(path.join(__dirname, '../public/promo.js'), 'utf8');
+  assert.match(promo, /vid: currentVisitId/);
+  assert.match(promo, /lp: originalLandingPath\.slice\(0, 255\)/);
+  assert.match(promo, /chaturbate-banner/);
+});
+
+test('engagement endpoint rate-limits and BongaCash remains manual-only', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  assert.match(route, /allowEngagement\(event\.visitId\)/);
+  assert.match(route, /Engagement event rate limit reached/);
+  assert.match(route, /BongaCash postbacks are not supported/);
+  assert.doesNotMatch(route, /bongacashPostbackConfigured|bongaPostbackConfigured/);
 });
