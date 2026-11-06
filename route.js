@@ -8,6 +8,7 @@ const bongacash = require("./bongacash");
 const { isSameOriginRequest } = require("./src/services/country-settings-origin.cjs");
 const { validateCountryPlatformPayload } = require("./src/services/country-settings-validation.cjs");
 const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
+const { classifyUserAgent, normalizeEvent } = require("./src/services/traffic-quality.cjs");
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -282,6 +283,41 @@ http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
 
+    if (incoming.pathname === "/api/engage") {
+      if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!isSameOriginRequest(req.headers)) return sendJson(res, 403, { error: "Origin check failed." });
+      if (!String(req.headers["content-type"] || "").toLowerCase().includes("application/json")) return sendJson(res, 415, { error: "Use application/json." });
+      if (!pool) return sendJson(res, 503, { error: "Traffic engagement storage is not configured." });
+      let body = "";
+      for await (const chunk of req) { body += chunk; if (body.length > 2500) return sendJson(res, 413, { error: "Request too large." }); }
+      let payload;
+      try { payload = JSON.parse(body || "{}"); } catch { return sendJson(res, 400, { error: "Invalid JSON." }); }
+      const validation = normalizeEvent(payload);
+      if (validation.error) return sendJson(res, 400, { error: validation.error });
+      const event = validation.value;
+      const cleanLabel = (value, fallback, max) => String(value || "").trim().replace(/[^a-z0-9._-]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, max) || fallback;
+      const country = String(req.headers["cf-ipcountry"] || req.headers["x-vercel-ip-country"] || req.headers["cloudfront-viewer-country"] || "UNKNOWN").toUpperCase().match(/^[A-Z]{2}$/)?.[0] || "UNKNOWN";
+      const trafficClass = classifyUserAgent(req.headers["user-agent"]);
+      try {
+        await pool.query(
+          `INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+           ON CONFLICT (visit_id) DO UPDATE SET last_seen_at=NOW()`,
+          [event.visitId,country,cleanLabel(payload.platform,"unknown",30),cleanLabel(payload.source,"direct",40),cleanLabel(payload.medium,"unknown",80),cleanLabel(payload.campaign,"unknown",80),cleanLabel(payload.content,"",120),cleanLabel(payload.placement,"unknown",80),event.pagePath,trafficClass]
+        );
+        const saved = await pool.query(
+          `INSERT INTO traffic_engagement_events (visit_id,event_type,page_path)
+           SELECT $1,$2,$3 WHERE $4 = 'unverified'
+           ON CONFLICT (visit_id,event_type,page_path) DO NOTHING RETURNING event_id`,
+          [event.visitId,event.eventType,event.pagePath,trafficClass]
+        );
+        return sendJson(res, 202, { accepted: true, qualified: trafficClass === "unverified", duplicate: saved.rowCount === 0, trafficClass });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
+        console.error("Traffic engagement failed:", err.message);
+        return sendJson(res, 500, { error: "Could not record engagement." });
+      }
+    }
     if (incoming.pathname === "/api/health") {
       return sendJson(res, 200, {
         ok: true,
