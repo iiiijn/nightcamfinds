@@ -121,7 +121,12 @@
     banner.innerHTML = '';
     const a = document.createElement('a');
     const attr = getMarketingAttribution();
-    a.href = `/go/chaturbate:featured?src=chaturbate-banner&cat=promo&source=${encodeURIComponent(attr.source)}&medium=${encodeURIComponent(attr.medium)}&campaign=${encodeURIComponent(attr.campaign)}&content=banner`;
+    const params = new URLSearchParams({
+      src: 'chaturbate-banner', cat: 'promo', source: attr.source, medium: attr.medium,
+      campaign: attr.campaign, content: 'banner', vid: currentVisitId,
+      lp: originalLandingPath.slice(0, 255)
+    });
+    a.href = `/go/chaturbate:featured?${params.toString()}`;
     a.target = '_blank';
     a.rel = 'sponsored nofollow noopener';
     const img = document.createElement('img');
