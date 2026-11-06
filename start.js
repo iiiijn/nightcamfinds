@@ -330,6 +330,17 @@ async function getDailyCountryAnalytics(incoming) {
   };
 }
 
+const countryCategoryAnalytics = require("./src/services/country-category-analytics.cjs");
+
+async function getCountryCategoryAnalytics(incoming) {
+  if (!pool) throw new Error("Database is not configured");
+  const parsed = countryCategoryAnalytics.parseFilters(incoming.searchParams);
+  if (parsed.error) return { error: parsed.error };
+  const built = countryCategoryAnalytics.buildQuery(parsed.value);
+  const result = await pool.query(built.text, built.params);
+  return { timezone: "UTC", filters: parsed.value, rows: countryCategoryAnalytics.rankRows(result.rows), truncated: result.rows.length === 2000 };
+}
+
 async function handleAuth(req,res,incoming) {
   if (incoming.pathname === "/api/auth/me") return json(res,200,{authenticated:validSession(req),username:validSession(req)?ADMIN_USER:null});
   if (incoming.pathname === "/api/auth/logout") {
@@ -351,8 +362,18 @@ http.createServer = function wrappedCreateServer(handler) {
     const incoming = new URL(req.url, "http://localhost");
     const authHandled = await handleAuth(req,res,incoming);
     if(authHandled !== false) return;
-    if(["/api/dashboard-stats","/api/daily-country-analytics","/api/revshare","/api/stats","/api/stats.csv"].includes(incoming.pathname) && !validSession(req)) {
+    if(["/api/dashboard-stats","/api/daily-country-analytics","/api/country-category-analytics","/api/revshare","/api/stats","/api/stats.csv"].includes(incoming.pathname) && !validSession(req)) {
       return json(res,401,{error:"Authentication required."});
+    }
+    if(incoming.pathname === "/api/country-category-analytics") {
+      try {
+        const result = await getCountryCategoryAnalytics(incoming);
+        if (result.error) return json(res, 400, { error: result.error });
+        return json(res, 200, result);
+      } catch(err) {
+        console.error("Country category analytics failed:", err.message);
+        return json(res, 500, { error: "Could not load country category analytics." });
+      }
     }
     if(incoming.pathname === "/api/daily-country-analytics") {
       try {
