@@ -14,9 +14,12 @@ function parseFilters(params) {
   const from = String(params.get('from') || '').trim();
   const to = String(params.get('to') || '').trim();
   const country = String(params.get('country') || 'ALL').trim().toUpperCase();
-  const platform = String(params.get('platform') || 'ALL').trim().toLowerCase();
-  const category = String(params.get('category') || 'ALL').trim().toLowerCase();
-  const source = String(params.get('source') || 'ALL').trim().toLowerCase();
+  const platformRaw = String(params.get('platform') || 'ALL').trim().toLowerCase();
+  const categoryRaw = String(params.get('category') || 'ALL').trim().toLowerCase();
+  const sourceRaw = String(params.get('source') || 'ALL').trim().toLowerCase();
+  const platform = platformRaw === 'all' ? 'ALL' : platformRaw;
+  const category = categoryRaw === 'all' ? 'ALL' : categoryRaw;
+  const source = sourceRaw === 'all' ? 'ALL' : sourceRaw;
   if ((from && !validDate(from)) || (to && !validDate(to))) return { error: 'Dates must be valid calendar dates in YYYY-MM-DD format.' };
   if (from && to && from > to) return { error: 'Start date must be on or before end date.' };
   if (country !== 'ALL' && !/^[A-Z]{2}$/.test(country)) return { error: 'Country must be ALL or a two-letter country code.' };
