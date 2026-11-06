@@ -74,3 +74,15 @@ test("country page output escapes an untrusted origin value", () => {
   const html = getCountryPage("ie", 'https://nightcamfinds.com/" onmouseover="alert(1)');
   assert.ok(!html.includes('href="https://nightcamfinds.com/" onmouseover='));
 });
+
+
+test("homepage exposes all 18 supported country markets", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const html = fs.readFileSync(path.join(__dirname, "../public/index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
+  for (const [slug] of expectedCountries) {
+    assert.ok(html.includes('href="/country/' + slug + '/"'), slug + " homepage market link");
+  }
+  assert.match(app, /const QUICK = \["US","GB","CA","AU","DE","FR","NL","IE","NZ","SE","NO","DK","FI","CH","AT","BE","JP","SG"\]/);
+});
