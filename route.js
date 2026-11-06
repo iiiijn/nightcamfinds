@@ -298,12 +298,14 @@ http.createServer = function routeDashboard(handler) {
       const cleanLabel = (value, fallback, max) => String(value || "").trim().replace(/[^a-z0-9._-]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, max) || fallback;
       const country = String(req.headers["cf-ipcountry"] || req.headers["x-vercel-ip-country"] || req.headers["cloudfront-viewer-country"] || "UNKNOWN").toUpperCase().match(/^[A-Z]{2}$/)?.[0] || "UNKNOWN";
       const trafficClass = classifyUserAgent(req.headers["user-agent"]);
+      const landingPath = String(payload.landingPath || event.pagePath).trim();
+      const safeLandingPath = landingPath.startsWith("/") && !landingPath.startsWith("//") && landingPath.length <= 255 && !/[\\r\\n]/.test(landingPath) ? landingPath : event.pagePath;
       try {
         await pool.query(
           `INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
            ON CONFLICT (visit_id) DO UPDATE SET last_seen_at=NOW()`,
-          [event.visitId,country,cleanLabel(payload.platform,"unknown",30),cleanLabel(payload.source,"direct",40),cleanLabel(payload.medium,"unknown",80),cleanLabel(payload.campaign,"unknown",80),cleanLabel(payload.content,"",120),cleanLabel(payload.placement,"unknown",80),event.pagePath,trafficClass]
+          [event.visitId,country,cleanLabel(payload.platform,"unknown",30),cleanLabel(payload.source,"direct",40),cleanLabel(payload.medium,"unknown",80),cleanLabel(payload.campaign,"unknown",80),cleanLabel(payload.content,"",120),cleanLabel(payload.placement,"unknown",80),safeLandingPath,trafficClass]
         );
         const saved = await pool.query(
           `INSERT INTO traffic_engagement_events (visit_id,event_type,page_path)
