@@ -18,7 +18,7 @@ const escapeHtml = (value) => plainText(value).replace(/[&<>"']/g, (char) => ({
 
 function replaceElementText(html, tag, id, value) {
   const pattern = new RegExp(
-    `(<${tag}\\b[^>]*\\bid=["']${id}["'][^>]*>)[\\s\\S]*?(</${tag}>)`,
+    \`(<\${tag}\\b[^>]*\\bid=["']\${id}["'][^>]*>)[\\s\\S]*?(</\${tag}>)\`,
     "i"
   );
   return html.replace(pattern, (_, opening, closing) => opening + escapeHtml(value || "") + closing);
@@ -30,9 +30,9 @@ function renderHeroCopy(html, copy) {
   output = replaceElementText(output, "p", "kicker", values[0]);
   output = replaceElementText(output, "h1", "page-title", values[1]);
   output = replaceElementText(output, "p", "page-intro", values[2]);
-  output = output.replace(/<title\\b[^>]*>[\\s\\S]*?<\\/title>/i, `<title>${escapeHtml(values[3] || "")}</title>`);
+  output = output.replace(/<title\b[^>]*>[\s\S]*?<\/title>/i, \`<title>\${escapeHtml(values[3] || "")}</title>\`);
   output = output.replace(
-    /(<meta\\b(?=[^>]*\\bname=["']description["'])[^>]*\\bcontent=["'])[^"']*(["'][^>]*>)/i,
+    /(<meta\b(?=[^>]*\bname=["']description["'])[^>]*\bcontent=["'])[^"']*(["'][^>]*>)/i,
     (_, opening, closing) => opening + escapeHtml(values[2] || "") + closing
   );
   return output;
