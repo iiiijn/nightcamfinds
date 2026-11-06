@@ -32,5 +32,7 @@ test('ranks category click shares within each country without mixing platforms i
   assert.equal(rows[0].country, 'GB');
   const usMale = rows.find(x => x.country === 'US' && x.category === 'male');
   assert.equal(usMale.sharePercent, 60);
+  assert.equal(usMale.categoryClicks, 60);
   assert.equal(usMale.countryClicks, 100);
+  assert.equal(usMale.topCategory, true);
 });
