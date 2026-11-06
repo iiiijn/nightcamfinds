@@ -55,3 +55,14 @@ test('click origins API is protected by dashboard session and validates GET filt
   assert.ok(block.includes('clickOrigins.parseFilters'));
   assert.ok(block.includes('pool.query(query.text, query.params)'));
 });
+
+test('fresh login loads the click origins report', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const html = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
+  const loginStart = html.indexOf('async function login(e)');
+  const loginEnd = html.indexOf('async function logout()', loginStart);
+  assert.ok(loginStart >= 0 && loginEnd > loginStart);
+  const loginHandler = html.slice(loginStart, loginEnd);
+  assert.match(loginHandler, /loadClickOrigins\(\)/);
+});
