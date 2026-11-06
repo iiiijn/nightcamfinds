@@ -101,7 +101,47 @@ async function ensureAffiliateLedgers() {
   await pgPool.query("CREATE INDEX IF NOT EXISTS bonga_clicks_clicked_at_idx ON bonga_clicks(clicked_at)");
 }
 async function countClick({ src, country, category="unknown", source="direct", campaign="unknown", medium="unknown", content="", device="unknown", clickId, platform="chaturbate", visitId=null, landingPath="/", trafficClass="unverified" }) {
-  if (pgPool) { try { await ensureTrackingTable(); await ensureAffiliateLedgers(); const inserted = await pgPool.query("INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id,visit_id,landing_path) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id", [country,category,source,campaign,src,platform,medium,content,device,clickId||null,visitId,landingPath]); if (visitId) await pgPool.query("INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) ON CONFLICT (visit_id) DO UPDATE SET last_seen_at=NOW()", [visitId,country,platform,source,medium,campaign,content,src,landingPath,trafficClass]); if (platform === "chaturbate" && clickId) await pgPool.query("INSERT INTO cb_clicks (click_id,country,category,source,campaign,placement) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (click_id) DO NOTHING", [clickId,country,category,source,campaign,src]); else if (platform === "bongacams" && clickId) await pgPool.query("INSERT INTO bonga_clicks (affiliate_click_id,click_id,country,category,source,campaign,placement,medium,content,device) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (click_id) DO NOTHING", [inserted.rows[0]?.id||null,clickId,country,category,source,campaign,src,medium,content,device]); return; } catch (err) { console.error("Postgres click tracking failed; falling back to local storage:", err.message); } }
+  if (pgPool) {
+    let client = null;
+    try {
+      await ensureTrackingTable();
+      await ensureAffiliateLedgers();
+      client = await pgPool.connect();
+      await client.query("BEGIN");
+      const inserted = await client.query(
+        "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id,visit_id,landing_path) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id",
+        [country,category,source,campaign,src,platform,medium,content,device,clickId||null,visitId,landingPath]
+      );
+      if (visitId) {
+        await client.query(
+          "INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) ON CONFLICT (visit_id) DO UPDATE SET last_seen_at=NOW()",
+          [visitId,country,platform,source,medium,campaign,content,src,landingPath,trafficClass]
+        );
+      }
+      if (platform === "chaturbate" && clickId) {
+        await client.query(
+          "INSERT INTO cb_clicks (click_id,country,category,source,campaign,placement) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (click_id) DO NOTHING",
+          [clickId,country,category,source,campaign,src]
+        );
+      } else if (platform === "bongacams" && clickId) {
+        await client.query(
+          "INSERT INTO bonga_clicks (affiliate_click_id,click_id,country,category,source,campaign,placement,medium,content,device) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (click_id) DO NOTHING",
+          [inserted.rows[0]?.id||null,clickId,country,category,source,campaign,src,medium,content,device]
+        );
+      }
+      await client.query("COMMIT");
+      return;
+    } catch (err) {
+      if (client) {
+        try { await client.query("ROLLBACK"); } catch (rollbackError) {
+          console.error("Postgres click tracking rollback failed:", rollbackError.message);
+        }
+      }
+      console.error("Postgres click tracking failed; falling back to local storage:", err.message);
+    } finally {
+      if (client) client.release();
+    }
+  }
   const stats=readStats(); stats.total=(stats.total||0)+1; stats.countries=stats.countries||{}; stats.countries[country]=(stats.countries[country]||0)+1; stats.byCategory=stats.byCategory||{}; stats.byCategory[category]=(stats.byCategory[category]||0)+1; stats.byCountryCategory=stats.byCountryCategory||{}; stats.byCountryCategory[`${country}:${category}`]=(stats.byCountryCategory[`${country}:${category}`]||0)+1; stats.bySource=stats.bySource||{}; stats.bySource[source]=(stats.bySource[source]||0)+1; stats.byCampaign=stats.byCampaign||{}; stats.byCampaign[campaign]=(stats.byCampaign[campaign]||0)+1; stats.byCountrySource=stats.byCountrySource||{}; stats.byCountrySource[`${country}:${source}`]=(stats.byCountrySource[`${country}:${source}`]||0)+1; stats.byCountryCampaign=stats.byCountryCampaign||{}; stats.byCountryCampaign[`${country}:${campaign}`]=(stats.byCountryCampaign[`${country}:${campaign}`]||0)+1; stats.byPlacement=stats.byPlacement||{}; stats.byPlacement[`${platform}:${src}`]=(stats.byPlacement[`${platform}:${src}`]||0)+1; stats.byPlatform=stats.byPlatform||{}; stats.byPlatform[platform]=(stats.byPlatform[platform]||0)+1; stats.byMedium=stats.byMedium||{}; stats.byMedium[medium]=(stats.byMedium[medium]||0)+1; stats.byDevice=stats.byDevice||{}; stats.byDevice[device]=(stats.byDevice[device]||0)+1; stats.updatedAt=new Date().toISOString(); writeStats(stats);
 }
 async function statsFromDb() { if (!pgPool) return null; try { await ensureTrackingTable(); const q=async(sql,params=[]) => (await pgPool.query(sql,params)).rows; const countries={}; for(const r of await q("SELECT country, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country ORDER BY count DESC")) countries[r.country]=r.count; const byCountryCategory={}; for(const r of await q("SELECT country, category, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, category ORDER BY count DESC")) byCountryCategory[`${r.country}:${r.category}`]=r.count; const byCountrySource={}; for(const r of await q("SELECT country, source, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, source ORDER BY count DESC")) byCountrySource[`${r.country}:${r.source}`]=r.count; const byPlatform={}; for(const r of await q("SELECT platform, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY platform ORDER BY count DESC")) byPlatform[r.platform]=r.count; const total=Number((await q("SELECT COUNT(*)::int AS count FROM affiliate_clicks"))[0]?.count||0); const updated=await q("SELECT MAX(clicked_at) AS updated_at FROM affiliate_clicks"); return {total,countries,byCountryCategory,byCountrySource,byPlatform,updatedAt:updated[0]?.updated_at||null,persistent:true}; } catch(err) { console.error("Postgres stats read failed:",err.message); return null; } }
