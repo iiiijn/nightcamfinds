@@ -8,7 +8,7 @@ const COUNTRY_NAME_CODES = new Map([
 function textValue(value) {
  if (typeof value==="string"||typeof value==="number") return String(value).trim();
  if (Array.isArray(value)) return value.map(textValue).filter(Boolean).join(", ");
- if (value&&typeof value==="object") for (const key of ["name","language","label","title","value","code","text"]) if(value[key]!=null){const s=textValue(value[key]);if(s)return s;}
+ if (value&&typeof value==="object") for (const key of ["code","iso","iso2","country_code","countryCode","name","language","label","title","value","text"]) if(value[key]!=null){const s=textValue(value[key]);if(s)return s;}
  return "";
 }
 function normalizeCountryCode(value) {

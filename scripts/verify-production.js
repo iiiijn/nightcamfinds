@@ -60,19 +60,24 @@ if (patchedServerSource.includes("const countryMatch = pathname.match(")) fail("
 if (!patchedServerSource.includes("isIndexableCountryRooms(countryRooms)")) fail("country pages must use the minimum indexable room threshold");
 if (!patchedServerSource.includes("buildCountrySitemap")) fail("dynamic country sitemap filtering is missing");
 if (!serverSource.includes("html = renderHeroCopy(html, copy)")) fail("server pages must render hero copy through the safe renderer");
+if (!serverSource.includes("plainText(room.homecountry||room.country||room.country_code||\"\")")) fail("Bonga country objects must be normalized without JavaScript object coercion");
+
+const { normalizeCountryCode } = require("../src/services/country-directory.cjs");
+if (normalizeCountryCode({ country_code: "GB", name: "United Kingdom" }) !== "GB") fail("Bonga country object codes must normalize to ISO country codes");
 
 const roomRenderer = require("../src/services/room-page-renderer.cjs");
 const renderedHero = roomRenderer.renderHeroCopy(
-  '<p id="kicker">Independent discovery</p><h1 id="page-title">Discover live cams right now</h1><p id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.</p><title>NightCamFinds — Live cam directory</title><meta name="description" content="Browse live rooms by country from Chaturbate and BongaCams. NightCamFinds does not stream video.">',
+  '<p id="kicker">${copy[0]}</p><h1 id="page-title">${copy[1]}</h1><p id="page-intro">${copy[2]}</p><title>${copy[3]}</title><meta name="description" content="${copy[2]}">',
   ["Directory", "Live rooms", "Browse rooms.", "Live rooms — NightCamFinds"]
 );
 const renderedCards = roomRenderer.renderRoomCards([
-  { id: "bongacams:test", platform: "bongacams", gender: "female", username: "test", displayName: "Test", roomSubject: { description: "A readable description" } }
+  { id: "bongacams:test", platform: "bongacams", gender: "female", username: "test", displayName: { username: "Bonga model" }, countryName: { name: "United Kingdom" }, roomSubject: { description: "A readable description" } }
 ]);
 for (const [label, html] of [["hero", renderedHero], ["room cards", renderedCards]]) {
   if (/\$\{[^}]+\}|\[object Object\]/.test(html)) fail(`${label} HTML contains an unrendered template or object placeholder`);
 }
 if (!renderedCards.includes("A readable description")) fail("object-valued room descriptions must render their text field");
+if (!renderedCards.includes("Bonga model") || !renderedCards.includes("United Kingdom")) fail("object-valued Bonga card fields must render readable values");
 
 const seoPatch = fs.readFileSync("scripts/patch-spa-seo-routes.js", "utf8");
 if (!seoPatch.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V14")) fail("SPA SEO patch marker V14 is missing");

@@ -59,3 +59,26 @@ test("unknown object descriptions safely fall back to an empty value", () => {
   assert.equal(plainText({ unexpected: { payload: "raw" } }), "");
   assert.equal(plainText(["English", { name: "German" }]), "English, German");
 });
+
+test("hero renderer replaces literal template placeholders even when the template defaults change", () => {
+  const template = '<p id="kicker">${copy[0]}</p><h1 id="page-title">${copy[1]}</h1><p id="page-intro">${copy[2]}</p><title>${copy[3]}</title><meta name="description" content="${copy[2]}">';
+  const html = renderHeroCopy(template, ["Country directory", "Live cams in Ireland", "Browse public rooms in Ireland.", "Ireland live cams — NightCamFinds"]);
+  assert.match(html, /id="kicker">Country directory/);
+  assert.match(html, /id="page-title">Live cams in Ireland/);
+  assert.match(html, /id="page-intro">Browse public rooms in Ireland\./);
+  assert.match(html, /<title>Ireland live cams — NightCamFinds<\/title>/);
+  assert.doesNotMatch(html, /\\$\\{copy\\[/);
+});
+
+test("BongaCams object-valued card fields render readable values without object coercion", () => {
+  const html = renderRoomCards([{
+    ...rooms[1],
+    displayName: { username: "bonga_bob" },
+    roomSubject: { description: "Friendly chat" },
+    countryName: { name: "United Kingdom" }
+  }]);
+  assert.match(html, /bonga_bob/);
+  assert.match(html, /Friendly chat/);
+  assert.match(html, /United Kingdom/);
+  assert.doesNotMatch(html, /\\[object Object\\]/);
+});
