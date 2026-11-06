@@ -6,6 +6,7 @@ const { URL } = require("url");
 const { rankRoomsByPreferredPlatform } = require("./src/services/platform-ranking.cjs");
 const { getCountryPage } = require("./country-pages.js");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
+const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 
 let pgPool = null;
 try {
@@ -99,8 +100,81 @@ async function ensureAffiliateLedgers() {
   await pgPool.query("CREATE INDEX IF NOT EXISTS cb_clicks_clicked_at_idx ON cb_clicks(clicked_at)");
   await pgPool.query("CREATE INDEX IF NOT EXISTS bonga_clicks_clicked_at_idx ON bonga_clicks(clicked_at)");
 }
-async function countClick({ src, country, category="unknown", source="direct", campaign="unknown", medium="unknown", content="", device="unknown", clickId, platform="chaturbate" }) {
-  if (pgPool) { try { await ensureTrackingTable(); await ensureAffiliateLedgers(); const inserted = await pgPool.query("INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id", [country,category,source,campaign,src,platform,medium,content,device,clickId||null]); if (platform === "chaturbate" && clickId) await pgPool.query("INSERT INTO cb_clicks (click_id,country,category,source,campaign,placement) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (click_id) DO NOTHING", [clickId,country,category,source,campaign,src]); else if (platform === "bongacams" && clickId) await pgPool.query("INSERT INTO bonga_clicks (affiliate_click_id,click_id,country,category,source,campaign,placement,medium,content,device) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (click_id) DO NOTHING", [inserted.rows[0]?.id||null,clickId,country,category,source,campaign,src,medium,content,device]); return; } catch (err) { console.error("Postgres click tracking failed; falling back to local storage:", err.message); } }
+async function countClick({ src, country, category="unknown", source="direct", campaign="unknown", medium="unknown", content="", device="unknown", clickId, platform="chaturbate", visitId=null, landingPath="/", trafficClass="unverified" }) {
+  if (pgPool) {
+    let client = null;
+    try {
+      await ensureTrackingTable();
+      await ensureAffiliateLedgers();
+      client = await pgPool.connect();
+      await client.query("BEGIN");
+      const inserted = await client.query(
+        "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id,visit_id,landing_path) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id",
+        [country,category,source,campaign,src,platform,medium,content,device,clickId||null,visitId,landingPath]
+      );
+      if (visitId) {
+        await client.query(
+          "INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) ON CONFLICT (visit_id) DO UPDATE SET traffic_class = CASE WHEN traffic_visits.traffic_class = 'known_bot' OR EXCLUDED.traffic_class = 'known_bot' THEN 'known_bot' WHEN traffic_visits.traffic_class = 'suspected_bot' OR EXCLUDED.traffic_class = 'suspected_bot' THEN 'suspected_bot' ELSE 'unverified' END, last_seen_at=NOW()",
+          [visitId,country,platform,source,medium,campaign,content,src,landingPath,trafficClass]
+        );
+      }
+      if (platform === "chaturbate" && clickId) {
+        await client.query(
+          "INSERT INTO cb_clicks (click_id,country,category,source,campaign,placement) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (click_id) DO NOTHING",
+          [clickId,country,category,source,campaign,src]
+        );
+      } else if (platform === "bongacams" && clickId) {
+        await client.query(
+          "INSERT INTO bonga_clicks (affiliate_click_id,click_id,country,category,source,campaign,placement,medium,content,device) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (click_id) DO NOTHING",
+          [inserted.rows[0]?.id||null,clickId,country,category,source,campaign,src,medium,content,device]
+        );
+      }
+      await client.query("COMMIT");
+      return;
+    } catch (err) {
+      if (client) {
+        try { await client.query("ROLLBACK"); } catch (rollbackError) {
+          console.error("Postgres click tracking rollback failed:", rollbackError.message);
+        }
+      }
+      if (client && ["42P01", "42703"].includes(err.code)) {
+        // Migration 006 is intentionally separate. Preserve the legacy persistent
+        // click ledger until visit/landing columns and traffic tables are approved.
+        let fallbackClient = null;
+        try {
+          fallbackClient = await pgPool.connect();
+          await fallbackClient.query("BEGIN");
+          const legacy = await fallbackClient.query(
+            "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
+            [country,category,source,campaign,src,platform,medium,content,device,clickId||null]
+          );
+          if (platform === "chaturbate" && clickId) {
+            await fallbackClient.query(
+              "INSERT INTO cb_clicks (click_id,country,category,source,campaign,placement) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (click_id) DO NOTHING",
+              [clickId,country,category,source,campaign,src]
+            );
+          } else if (platform === "bongacams" && clickId) {
+            await fallbackClient.query(
+              "INSERT INTO bonga_clicks (affiliate_click_id,click_id,country,category,source,campaign,placement,medium,content,device) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (click_id) DO NOTHING",
+              [legacy.rows[0]?.id||null,clickId,country,category,source,campaign,src,medium,content,device]
+            );
+          }
+          await fallbackClient.query("COMMIT");
+          console.warn("Traffic-quality schema unavailable; affiliate click saved without visit linkage.");
+          return;
+        } catch (fallbackError) {
+          if (fallbackClient) { try { await fallbackClient.query("ROLLBACK"); } catch {} }
+          console.error("Legacy persistent affiliate click fallback failed:", fallbackError.message);
+          throw fallbackError;
+        } finally {
+          if (fallbackClient) fallbackClient.release();
+        }
+      }
+      console.error("Postgres click tracking failed; falling back to local storage:", err.message);
+    } finally {
+      if (client) client.release();
+    }
+  }
   const stats=readStats(); stats.total=(stats.total||0)+1; stats.countries=stats.countries||{}; stats.countries[country]=(stats.countries[country]||0)+1; stats.byCategory=stats.byCategory||{}; stats.byCategory[category]=(stats.byCategory[category]||0)+1; stats.byCountryCategory=stats.byCountryCategory||{}; stats.byCountryCategory[`${country}:${category}`]=(stats.byCountryCategory[`${country}:${category}`]||0)+1; stats.bySource=stats.bySource||{}; stats.bySource[source]=(stats.bySource[source]||0)+1; stats.byCampaign=stats.byCampaign||{}; stats.byCampaign[campaign]=(stats.byCampaign[campaign]||0)+1; stats.byCountrySource=stats.byCountrySource||{}; stats.byCountrySource[`${country}:${source}`]=(stats.byCountrySource[`${country}:${source}`]||0)+1; stats.byCountryCampaign=stats.byCountryCampaign||{}; stats.byCountryCampaign[`${country}:${campaign}`]=(stats.byCountryCampaign[`${country}:${campaign}`]||0)+1; stats.byPlacement=stats.byPlacement||{}; stats.byPlacement[`${platform}:${src}`]=(stats.byPlacement[`${platform}:${src}`]||0)+1; stats.byPlatform=stats.byPlatform||{}; stats.byPlatform[platform]=(stats.byPlatform[platform]||0)+1; stats.byMedium=stats.byMedium||{}; stats.byMedium[medium]=(stats.byMedium[medium]||0)+1; stats.byDevice=stats.byDevice||{}; stats.byDevice[device]=(stats.byDevice[device]||0)+1; stats.updatedAt=new Date().toISOString(); writeStats(stats);
 }
 async function statsFromDb() { if (!pgPool) return null; try { await ensureTrackingTable(); const q=async(sql,params=[]) => (await pgPool.query(sql,params)).rows; const countries={}; for(const r of await q("SELECT country, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country ORDER BY count DESC")) countries[r.country]=r.count; const byCountryCategory={}; for(const r of await q("SELECT country, category, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, category ORDER BY count DESC")) byCountryCategory[`${r.country}:${r.category}`]=r.count; const byCountrySource={}; for(const r of await q("SELECT country, source, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, source ORDER BY count DESC")) byCountrySource[`${r.country}:${r.source}`]=r.count; const byPlatform={}; for(const r of await q("SELECT platform, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY platform ORDER BY count DESC")) byPlatform[r.platform]=r.count; const total=Number((await q("SELECT COUNT(*)::int AS count FROM affiliate_clicks"))[0]?.count||0); const updated=await q("SELECT MAX(clicked_at) AS updated_at FROM affiliate_clicks"); return {total,countries,byCountryCategory,byCountrySource,byPlatform,updatedAt:updated[0]?.updated_at||null,persistent:true}; } catch(err) { console.error("Postgres stats read failed:",err.message); return null; } }
@@ -178,7 +252,7 @@ const server=http.createServer(async(req,res)=>{
   return send(res,200,JSON.stringify({rooms:list.slice(0,60),countries,platforms,notice:feed.notice,tier1:MARKETS.some(([,iso])=>iso===visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null}),"application/json");
 }
 if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms[Math.floor(Math.random()*Math.min(feed.rooms.length,40))]||null;return send(res,room?200:503,JSON.stringify({room}),"application/json");}
-  if(pathname.startsWith("/bgo/")||pathname.startsWith("/go/")){const isBonga=pathname.startsWith("/bgo/");const id=decodeURIComponent(pathname.slice(isBonga?5:4));const username=id.split(":").pop();const platform=isBonga?"bongacams":"chaturbate";const src=cleanLabel(url.searchParams.get("src"),isBonga?"bonga-card":"cb-card",80);const category=cleanLabel(url.searchParams.get("cat"),"unknown",40);const source=cleanLabel(url.searchParams.get("utm_source")||url.searchParams.get("source"),"direct",40);const medium=cleanLabel(url.searchParams.get("utm_medium")||url.searchParams.get("medium"),"unknown",80);const campaign=cleanLabel(url.searchParams.get("utm_campaign")||url.searchParams.get("campaign"),"unknown",80);const content=cleanLabel(url.searchParams.get("utm_content")||url.searchParams.get("content"),"",120);const country=visitorCountry(req);const agent=String(req.headers["user-agent"]||"").toLowerCase();const device=/mobile|android|iphone|ipad/.test(agent)?"mobile":"desktop";const clickId="ncf_"+Date.now().toString(36)+"_"+require("crypto").randomBytes(8).toString("hex");await countClick({src,country,category,source,campaign,medium,content,device,clickId,platform});const room=cache.rooms.find(r=>r.platform===platform&&r.username===username);let target;if(isBonga){const supplied=room?.href||"";try{const parsed=supplied?new URL(supplied):null;if(parsed&&/(^|\.)bongacams4?\.com$/i.test(parsed.hostname)){parsed.searchParams.set("click_id",clickId);parsed.searchParams.set("source",source);parsed.searchParams.set("campaign",campaign);parsed.searchParams.set("track",src);target=parsed.toString();}}catch(_){}if(!target)target=`https://bongacams4.com/track?c=${encodeURIComponent(BONGA_CAMPAIGN)}&click_id=${encodeURIComponent(clickId)}&track=${encodeURIComponent(src)}`;}else{const fallback=`https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(src)}&room=${encodeURIComponent(username)}`;target=room?.href?withTrack(room.href,src):fallback;try{const parsed=new URL(target);parsed.searchParams.set("click_id",clickId);parsed.searchParams.set("source",source);parsed.searchParams.set("campaign",campaign);parsed.searchParams.set("medium",medium);target=parsed.toString();}catch(_){target=fallback;}}res.writeHead(302,{Location:target,"Cache-Control":"no-store","Referrer-Policy":"no-referrer"});return res.end();}
+  if(pathname.startsWith("/bgo/")||pathname.startsWith("/go/")){const isBonga=pathname.startsWith("/bgo/");const id=decodeURIComponent(pathname.slice(isBonga?5:4));const username=id.split(":").pop();const platform=isBonga?"bongacams":"chaturbate";const src=cleanLabel(url.searchParams.get("src"),isBonga?"bonga-card":"cb-card",80);const category=cleanLabel(url.searchParams.get("cat"),"unknown",40);const source=cleanLabel(url.searchParams.get("utm_source")||url.searchParams.get("source"),"direct",40);const medium=cleanLabel(url.searchParams.get("utm_medium")||url.searchParams.get("medium"),"unknown",80);const campaign=cleanLabel(url.searchParams.get("utm_campaign")||url.searchParams.get("campaign"),"unknown",80);const content=cleanLabel(url.searchParams.get("utm_content")||url.searchParams.get("content"),"",120);const country=visitorCountry(req);const agent=String(req.headers["user-agent"]||"").toLowerCase();const device=/mobile|android|iphone|ipad/.test(agent)?"mobile":"desktop";const clickId="ncf_"+Date.now().toString(36)+"_"+require("crypto").randomBytes(8).toString("hex");const visitId=String(url.searchParams.get("vid")||"").match(/^[a-f0-9]{32}$/i)?.[0]||null;const landingPath=String(url.searchParams.get("lp")||pathname).startsWith("/")&&!String(url.searchParams.get("lp")||pathname).startsWith("//")?String(url.searchParams.get("lp")||pathname).slice(0,255):pathname;await countClick({src,country,category,source,campaign,medium,content,device,clickId,platform,visitId,landingPath,trafficClass:classifyUserAgent(agent)});const room=cache.rooms.find(r=>r.platform===platform&&r.username===username);let target;if(isBonga){const supplied=room?.href||"";try{const parsed=supplied?new URL(supplied):null;if(parsed&&/(^|\.)bongacams4?\.com$/i.test(parsed.hostname)){parsed.searchParams.set("click_id",clickId);parsed.searchParams.set("source",source);parsed.searchParams.set("campaign",campaign);parsed.searchParams.set("track",src);target=parsed.toString();}}catch(_){}if(!target)target=`https://bongacams4.com/track?c=${encodeURIComponent(BONGA_CAMPAIGN)}&click_id=${encodeURIComponent(clickId)}&track=${encodeURIComponent(src)}`;}else{const fallback=`https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(src)}&room=${encodeURIComponent(username)}`;target=room?.href?withTrack(room.href,src):fallback;try{const parsed=new URL(target);parsed.searchParams.set("click_id",clickId);parsed.searchParams.set("source",source);parsed.searchParams.set("campaign",campaign);parsed.searchParams.set("medium",medium);target=parsed.toString();}catch(_){target=fallback;}}res.writeHead(302,{Location:target,"Cache-Control":"no-store","Referrer-Policy":"no-referrer"});return res.end();}
   const countryRoute = pathname.match(/^\/country\/([a-z]{2})\/$/i);
   if (countryRoute) {
     const feed = await rooms(req);

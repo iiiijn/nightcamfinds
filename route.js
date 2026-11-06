@@ -8,6 +8,8 @@ const bongacash = require("./bongacash");
 const { isSameOriginRequest } = require("./src/services/country-settings-origin.cjs");
 const { validateCountryPlatformPayload } = require("./src/services/country-settings-validation.cjs");
 const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
+const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRateLimiter } = require("./src/services/traffic-quality.cjs");
+const allowEngagement = createEngagementRateLimiter();
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -268,7 +270,6 @@ async function dashboardStats(incoming) {
     bongacamsPurchases: bonga.purchases,
     bongacamsEarnings: bonga.earnings,
     bongacamsPurchaseSpend: bonga.spend,
-    bongacashPostbackConfigured: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
     bongacashTrackingVerified: false,
     platforms: { chaturbate: cbClicks, bongacams: bongaClicks },
     sources,
@@ -282,11 +283,107 @@ http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
 
+    if (incoming.pathname === "/api/engage") {
+      if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!isSameOriginRequest(req.headers)) return sendJson(res, 403, { error: "Origin check failed." });
+      if (!String(req.headers["content-type"] || "").toLowerCase().includes("application/json")) return sendJson(res, 415, { error: "Use application/json." });
+      if (!pool) return sendJson(res, 503, { error: "Traffic engagement storage is not configured." });
+      let body = "";
+      for await (const chunk of req) { body += chunk; if (body.length > 2500) return sendJson(res, 413, { error: "Request too large." }); }
+      let payload;
+      try { payload = JSON.parse(body || "{}"); } catch { return sendJson(res, 400, { error: "Invalid JSON." }); }
+      const validation = normalizeEvent(payload);
+      if (validation.error) return sendJson(res, 400, { error: validation.error });
+      const event = validation.value;
+      if (!allowEngagement(event.visitId)) return sendJson(res, 429, { error: "Engagement event rate limit reached." });
+      const cleanLabel = (value, fallback, max) => String(value || "").trim().replace(/[^a-z0-9._-]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, max) || fallback;
+      const country = String(req.headers["cf-ipcountry"] || req.headers["x-vercel-ip-country"] || req.headers["cloudfront-viewer-country"] || "UNKNOWN").toUpperCase().match(/^[A-Z]{2}$/)?.[0] || "UNKNOWN";
+      const trafficClass = classifyUserAgent(req.headers["user-agent"]);
+      const landingPath = String(payload.landingPath || event.pagePath).trim();
+      const safeLandingPath = landingPath.startsWith("/") && !landingPath.startsWith("//") && landingPath.length <= 255 && !/[\\r\\n]/.test(landingPath) ? landingPath : event.pagePath;
+      try {
+        const visit = await pool.query(
+          `INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+           ON CONFLICT (visit_id) DO UPDATE SET
+             traffic_class = CASE
+               WHEN traffic_visits.traffic_class = 'known_bot' OR EXCLUDED.traffic_class = 'known_bot' THEN 'known_bot'
+               WHEN traffic_visits.traffic_class = 'suspected_bot' OR EXCLUDED.traffic_class = 'suspected_bot' THEN 'suspected_bot'
+               ELSE 'unverified'
+             END,
+             last_seen_at=NOW()
+           RETURNING traffic_class`,
+          [event.visitId,country,cleanLabel(payload.platform,"unknown",30),cleanLabel(payload.source,"direct",40),cleanLabel(payload.medium,"unknown",80),cleanLabel(payload.campaign,"unknown",80),cleanLabel(payload.content,"",120),cleanLabel(payload.placement,"unknown",80),safeLandingPath,trafficClass]
+        );
+        const effectiveTrafficClass = visit.rows[0]?.traffic_class || trafficClass;
+        const saved = await pool.query(
+          `INSERT INTO traffic_engagement_events (visit_id,event_type,page_path)
+           SELECT $1,$2,$3 WHERE $4 = 'unverified'
+           ON CONFLICT (visit_id,event_type,page_path) DO NOTHING RETURNING event_id`,
+          [event.visitId,event.eventType,event.pagePath,effectiveTrafficClass]
+        );
+        return sendJson(res, 202, { accepted: true, eligibleForEngagementMetrics: effectiveTrafficClass === "unverified", duplicate: saved.rowCount === 0, trafficClass: effectiveTrafficClass });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
+        console.error("Traffic engagement failed:", err.message);
+        return sendJson(res, 500, { error: "Could not record engagement." });
+      }
+    }
+    if (incoming.pathname === "/api/traffic-quality-analytics") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const bounds = nairobiWeekBounds();
+      try {
+        const visits = await pool.query(
+          `SELECT traffic_class, COUNT(*)::int AS visits
+           FROM traffic_visits WHERE first_seen_at >= $1 AND first_seen_at < $2
+           GROUP BY traffic_class`, [bounds.from, bounds.toExclusive]
+        );
+        const engagement = await pool.query(
+          `SELECT COUNT(DISTINCT e.visit_id)::int AS engaged_visits,
+                  COUNT(*)::int AS events
+           FROM traffic_engagement_events e
+           JOIN traffic_visits v ON v.visit_id=e.visit_id
+           WHERE e.occurred_at >= $1 AND e.occurred_at < $2
+             AND v.traffic_class='unverified'`, [bounds.from, bounds.toExclusive]
+        );
+        const clickQuality = await pool.query(
+          `SELECT CASE
+                    WHEN v.traffic_class IN ('known_bot','suspected_bot','unverified') THEN v.traffic_class
+                    ELSE 'unclassified'
+                  END AS traffic_class,
+                  COUNT(*)::int AS clicks
+           FROM affiliate_clicks c
+           LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id
+           WHERE c.clicked_at >= $1 AND c.clicked_at < $2
+           GROUP BY 1`, [bounds.from, bounds.toExclusive]
+        );
+        const clickCounts = Object.fromEntries(clickQuality.rows.map(row => [row.traffic_class, Number(row.clicks || 0)]));
+        const counts = Object.fromEntries(visits.rows.map(row => [row.traffic_class, Number(row.visits || 0)]));
+        return sendJson(res, 200, {
+          timezone: "Africa/Nairobi", from: bounds.from, toExclusive: bounds.toExclusive,
+          knownBots: counts.known_bot || 0, suspectedBots: counts.suspected_bot || 0,
+          unverifiedBrowserVisits: counts.unverified || 0,
+          unverifiedEngagedVisits: Number(engagement.rows[0]?.engaged_visits || 0),
+          engagementEvents: Number(engagement.rows[0]?.events || 0),
+          trackedAffiliateRedirects: Object.values(clickCounts).reduce((sum, value) => sum + value, 0),
+          knownBotAffiliateClicks: clickCounts.known_bot || 0,
+          suspectedBotAffiliateClicks: clickCounts.suspected_bot || 0,
+          unverifiedAffiliateClicks: clickCounts.unverified || 0,
+          unclassifiedAffiliateClicks: clickCounts.unclassified || 0,
+          note: "These are tracked affiliate redirects, not verified human clicks. Known and suspected automation are separated. Unverified browser traffic is not proof of human visitors. Clicks without a linked visit record are unclassified."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
+        console.error("Traffic quality analytics failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load traffic quality analytics." });
+      }
+    }
     if (incoming.pathname === "/api/health") {
       return sendJson(res, 200, {
         ok: true,
         databaseConfigured: Boolean(databaseUrl),
-        bongaPostbackConfigured: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
         timestamp: new Date().toISOString()
       });
     }
@@ -300,11 +397,7 @@ http.createServer = function routeDashboard(handler) {
       catch (err) { console.error("BongaCams feed error:", err.message); return sendJson(res, 502, { rooms: [], platform: "bongacams", error: err.message }); }
     }
     if (incoming.pathname === "/api/bongacash/postback") {
-      const params = new URLSearchParams(incoming.searchParams);
-      if (!bongacash.verifySecret(req, params)) return sendJson(res, 403, { error: "Invalid BongaCash postback secret." });
-      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
-      try { return sendJson(res, 200, await bongacash.save(pool, params)); }
-      catch (err) { console.error("BongaCash postback failed:", err.message); return sendJson(res, 500, { error: "Could not save BongaCash conversion." }); }
+      return sendJson(res, 410, { error: "BongaCash postbacks are not supported. Use manual affiliate-report reconciliation." });
     }
     if (incoming.pathname === "/api/country-platform-settings") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });

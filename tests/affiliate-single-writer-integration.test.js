@@ -47,8 +47,22 @@ test("each production affiliate redirect writes one click and one matching platf
 const fs = require("node:fs");
 class Pool {
   async query(sql, params = []) {
+    return this.record(sql, params);
+  }
+  async connect() {
+    return {
+      query: (sql, params = []) => this.record(sql, params),
+      release() {}
+    };
+  }
+  async record(sql, params = []) {
     const text = String(sql);
     fs.appendFileSync(process.env.PG_QUERY_LOG, JSON.stringify({ sql: text, params }) + "\\n");
+    if (/INSERT INTO affiliate_clicks/i.test(text) && /visit_id/i.test(text)) {
+      const error = new Error("column visit_id does not exist");
+      error.code = "42703";
+      throw error;
+    }
     if (/INSERT INTO affiliate_clicks/i.test(text)) return { rows: [{ id: 101 }], rowCount: 1 };
     return { rows: [], rowCount: 1 };
   }
@@ -59,6 +73,12 @@ module.exports = { Pool };
 
   execFileSync(process.execPath, ["scripts/fix-server-syntax.js"], { cwd: projectDir, stdio: "pipe" });
   execFileSync(process.execPath, ["scripts/patch-spa-seo-routes.js"], { cwd: projectDir, stdio: "pipe" });
+  // Exercise the same Bonga redirect rewrite that production startup applies.
+  execFileSync(process.execPath, ["scripts/fix-bonga-affiliate.js"], { cwd: projectDir, stdio: "pipe" });
+  const patchedServer = fs.readFileSync(path.join(projectDir, "server.js"), "utf8");
+  assert.match(patchedServer, /const visitId=String\(url\.searchParams\.get\(["']vid["']\)/);
+  assert.match(patchedServer, /landingPath/);
+  assert.match(patchedServer, /trafficClass:classifyUserAgent\(agent\)/);
 
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["-e", "require('./route.js')"], {
@@ -102,11 +122,13 @@ module.exports = { Pool };
 
   await new Promise(resolve => setTimeout(resolve, 150));
   const queries = fs.readFileSync(queryLog, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line));
-  const inserts = queries.filter(q => /INSERT INTO affiliate_clicks/i.test(q.sql));
+  const attemptedInserts = queries.filter(q => /INSERT INTO affiliate_clicks/i.test(q.sql));
+  const inserts = attemptedInserts.filter(q => !/visit_id/i.test(q.sql));
   const cbLedger = queries.filter(q => /INSERT INTO cb_clicks/i.test(q.sql));
   const bongaLedger = queries.filter(q => /INSERT INTO bonga_clicks/i.test(q.sql));
 
-  assert.equal(inserts.length, 2, "two redirects must produce exactly two primary click rows");
+  assert.equal(attemptedInserts.length, 4, "each redirect tries the visit-aware write, then the legacy schema fallback");
+  assert.equal(inserts.length, 2, "two redirects must persist exactly two primary click rows using the legacy schema");
   assert.equal(cbLedger.length, 1, "the Chaturbate redirect must produce one Chaturbate ledger row");
   assert.equal(bongaLedger.length, 1, "the BongaCams redirect must produce one Bonga ledger row");
   assert.equal(inserts[0].params[9], cbLedger[0].params[0], "Chaturbate ledger must reuse the primary click ID");

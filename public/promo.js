@@ -22,6 +22,51 @@
     };
   }
 
+  function visitId() {
+    try {
+      let id = sessionStorage.getItem('ncf_visit_id');
+      if (!/^[a-f0-9]{32}$/i.test(id || '')) {
+        const bytes = new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        id = [...bytes].map(x => x.toString(16).padStart(2, '0')).join('');
+        sessionStorage.setItem('ncf_visit_id', id);
+      }
+      return id;
+    } catch (_) { return ''; }
+  }
+  const currentVisitId = visitId();
+  let originalLandingPath = location.pathname;
+  try { originalLandingPath = sessionStorage.getItem("ncf_landing_path") || location.pathname; sessionStorage.setItem("ncf_landing_path", originalLandingPath); } catch (_) {}
+  function recordEngagement(eventType) {
+    if (!currentVisitId) return;
+    const attr = getMarketingAttribution();
+    fetch('/api/engage', {
+      method: 'POST', credentials: 'same-origin', keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        visitId: currentVisitId, eventType, pagePath: location.pathname, landingPath: originalLandingPath,
+        platform: 'directory', source: attr.source, medium: attr.medium,
+        campaign: attr.campaign, placement: 'promo'
+      })
+    }).catch(() => {});
+  }
+  let engagementTimer;
+  function scheduleEngagement() {
+    clearTimeout(engagementTimer);
+    if (!document.hidden) engagementTimer = setTimeout(() => recordEngagement('active_10s'), 10000);
+  }
+  document.addEventListener('visibilitychange', scheduleEngagement);
+  scheduleEngagement();
+  let scrolledEnough = false;
+  window.addEventListener('scroll', () => {
+    if (scrolledEnough) return;
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    if (max > 0 && window.scrollY / max >= 0.5) {
+      scrolledEnough = true;
+      recordEngagement('scroll_50');
+    }
+  }, { passive: true });
+
   function trackUrl(room, placement) {
     const platform = room.platform === 'bongacams' ? 'bongacams' : 'chaturbate';
     const attr = getMarketingAttribution();
@@ -31,7 +76,9 @@
       source: attr.source,
       medium: attr.medium,
       campaign: attr.campaign,
-      content: placement
+      content: placement,
+      vid: currentVisitId,
+      lp: originalLandingPath.slice(0, 255)
     });
     return platform === 'bongacams'
       ? `/bgo/${encodeURIComponent(room.id)}?${params.toString()}`
@@ -74,7 +121,12 @@
     banner.innerHTML = '';
     const a = document.createElement('a');
     const attr = getMarketingAttribution();
-    a.href = `/go/chaturbate:featured?src=chaturbate-banner&cat=promo&source=${encodeURIComponent(attr.source)}&medium=${encodeURIComponent(attr.medium)}&campaign=${encodeURIComponent(attr.campaign)}&content=banner`;
+    const params = new URLSearchParams({
+      src: 'chaturbate-banner', cat: 'promo', source: attr.source, medium: attr.medium,
+      campaign: attr.campaign, content: 'banner', vid: currentVisitId,
+      lp: originalLandingPath.slice(0, 255)
+    });
+    a.href = `/go/chaturbate:featured?${params.toString()}`;
     a.target = '_blank';
     a.rel = 'sponsored nofollow noopener';
     const img = document.createElement('img');

@@ -10,7 +10,9 @@ test("affiliate redirects have exactly one click attribution writer", () => {
   assert.doesNotMatch(start, /saveClick\s*\(|parseAttribution\s*\(/);
   assert.doesNotMatch(start, /path\.startsWith\(["']\/bgo\/["']\).*path\.startsWith\(["']\/go\/["']/);
   assert.match(server, /async function countClick\s*\(/);
-  assert.match(server, /await countClick\(\{\s*src,\s*country,[\s\S]*?clickId,\s*platform\s*\}\)/);
+  assert.match(server, /await countClick\(\{[\s\S]*?clickId/);
+  assert.match(server, /visitId/);
+  assert.match(server, /trafficClass:classifyUserAgent\(agent\)/);
   assert.match(server, /searchParams\.set\(["']click_id["'],\s*clickId\)/);
 });
 
@@ -20,8 +22,10 @@ test("removing duplicate click tracking keeps Chaturbate postbacks enabled", () 
   assert.match(start, /await saveConversion\(params\)/);
 });
 
-test("BongaCash postbacks remain handled by the route layer", () => {
+test("BongaCash postback endpoint explicitly directs to manual reconciliation", () => {
   const route = fs.readFileSync(path.join(__dirname, "../route.js"), "utf8");
   assert.match(route, /\/api\/bongacash\/postback/);
-  assert.match(route, /bongacash\.save\(pool, params\)/);
+  assert.match(route, /sendJson\(res, 410/);
+  assert.match(route, /BongaCash postbacks are not supported/);
+  assert.doesNotMatch(route, /bongacash\.save\(pool, params\)/);
 });

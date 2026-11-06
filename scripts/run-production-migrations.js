@@ -17,7 +17,8 @@ const pool = new Pool({
 const migrations = [
   { version: "003_click_attribution_columns", file: "003_click_attribution_columns.sql" },
   { version: "004_country_platform_routing", file: "004_country_platform_routing.sql" },
-  { version: "005_bongacash_daily_reconciliation", file: "005_bongacash_daily_reconciliation.sql" }
+  { version: "005_bongacash_daily_reconciliation", file: "005_bongacash_daily_reconciliation.sql" },
+  { version: "006_traffic_quality_engagement", file: "006_traffic_quality_engagement.sql" }
 ];
 
 (async () => {

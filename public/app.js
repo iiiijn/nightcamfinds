@@ -109,6 +109,52 @@ function placement() {
   return country || base + "-card";
 }
 
+function trafficVisitId() {
+  try {
+    let id = sessionStorage.getItem("ncf_visit_id");
+    if (!/^[a-f0-9]{32}$/i.test(id || "")) {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      id = [...bytes].map(x => x.toString(16).padStart(2, "0")).join("");
+      sessionStorage.setItem("ncf_visit_id", id);
+    }
+    return id;
+  } catch (_) { return ""; }
+}
+const visitId = trafficVisitId();
+let visitLandingPath = location.pathname;
+try { visitLandingPath = sessionStorage.getItem("ncf_landing_path") || location.pathname; sessionStorage.setItem("ncf_landing_path", visitLandingPath); } catch (_) {}
+function sendEngagement(eventType) {
+  if (!visitId) return;
+  fetch("/api/engage", {
+    method: "POST",
+    credentials: "same-origin",
+    keepalive: true,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      visitId, eventType, pagePath: location.pathname, landingPath: visitLandingPath,
+      platform: "directory", source: trafficSource, medium: trafficMedium,
+      campaign: trafficCampaign, content: trafficContent,
+      placement: category === "all" ? "home" : category
+    })
+  }).catch(() => {});
+}
+let activeTimer;
+function scheduleActiveEngagement() {
+  clearTimeout(activeTimer);
+  if (!document.hidden) activeTimer = setTimeout(() => sendEngagement("active_10s"), 10000);
+}
+document.addEventListener("visibilitychange", scheduleActiveEngagement);
+scheduleActiveEngagement();
+let scrollQualified = false;
+window.addEventListener("scroll", () => {
+  if (scrollQualified) return;
+  const height = document.documentElement.scrollHeight - window.innerHeight;
+  if (height > 0 && window.scrollY / height >= 0.5) {
+    scrollQualified = true;
+    sendEngagement("scroll_50");
+  }
+}, { passive: true });
 function trackingQuery(extra = {}) {
   const src = extra.src || placement();
   const params = new URLSearchParams({
@@ -119,7 +165,8 @@ function trackingQuery(extra = {}) {
     campaign: trafficCampaign,
     content: trafficContent || "",
     placement: extra.placement || src,
-    lp: String((attributionFresh ? savedAttribution.landingPath : "") || location.pathname || "/").slice(0, 255)
+    lp: String(visitLandingPath || location.pathname || "/").slice(0, 255),
+    vid: visitId
   });
   return params.toString();
 }
