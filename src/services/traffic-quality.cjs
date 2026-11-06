@@ -14,6 +14,13 @@ function classifyUserAgent(value) {
   return 'unverified';
 }
 
+function mergeTrafficClass(existing, incoming) {
+  const rank = { unverified: 0, suspected_bot: 1, known_bot: 2 };
+  const current = Object.prototype.hasOwnProperty.call(rank, existing) ? existing : 'unverified';
+  const next = Object.prototype.hasOwnProperty.call(rank, incoming) ? incoming : 'unverified';
+  return rank[next] > rank[current] ? next : current;
+}
+
 function normalizeVisitId(value) {
   const id = String(value || '').trim();
   return /^[a-f0-9]{32}$/i.test(id) ? id.toLowerCase() : null;
@@ -68,4 +75,4 @@ function nairobiWeekBounds(date = new Date()) {
   };
 }
 
-module.exports = { classifyUserAgent, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS };
+module.exports = { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS };
