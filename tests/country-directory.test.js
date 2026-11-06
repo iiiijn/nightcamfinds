@@ -7,7 +7,7 @@ const {normalizeCountryCode,normalizeRegion,normalizeLanguages,isValidCountryRoo
 const {patchServerSource}=require("../scripts/patch-country-directory.js");
 test("country values normalize ISO codes and explicit country names only",()=>{
  assert.equal(normalizeCountryCode(" gb "),"GB");assert.equal(normalizeCountryCode("United States"),"US");
- assert.equal(normalizeCountryCode("The Netherlands"),"NL");assert.equal(normalizeCountryCode("Nairobi"),"");assert.equal(normalizeCountryCode(""),"");
+ assert.equal(normalizeCountryCode("The Netherlands"),"NL");assert.equal(normalizeCountryCode({country_code:"GB",name:"United Kingdom"}),"GB");assert.equal(normalizeCountryCode({iso:"CA"}),"CA");assert.equal(normalizeCountryCode("Nairobi"),"");assert.equal(normalizeCountryCode(""),"");
 });
 test("region and language values normalize without inferring residence from language",()=>{
  assert.equal(normalizeRegion("  Bavaria  "),"Bavaria");assert.equal(normalizeLanguages(["English","German","English"]),"English, German");
