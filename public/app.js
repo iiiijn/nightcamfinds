@@ -57,22 +57,21 @@ const incomingAttribution = {
 const hasIncomingAttribution = Object.values(incomingAttribution).some((value) => String(value).trim() !== "");
 let savedAttribution = {};
 try { savedAttribution = JSON.parse(localStorage.getItem("ncf_attribution") || "{}"); } catch (_) { savedAttribution = {}; }
+const savedAttributionFresh = Number(savedAttribution.savedAt || 0) > Date.now() - 30 * 24 * 60 * 60 * 1000;
+const inferred = window.NCFTrafficAttribution ? window.NCFTrafficAttribution.classifyReferrer(document.referrer, location.hostname) : { source: "direct", medium: "direct", referrerHost: "" };
 if (hasIncomingAttribution) {
-  savedAttribution = {
-    source: incomingAttribution.source || "direct",
-    medium: incomingAttribution.medium || "unknown",
-    campaign: incomingAttribution.campaign || "organic",
-    content: incomingAttribution.content || "",
-    landingPath: location.pathname,
-    savedAt: Date.now()
-  };
+  savedAttribution = { source: incomingAttribution.source || "direct", medium: incomingAttribution.medium || "unknown", campaign: incomingAttribution.campaign || "organic", content: incomingAttribution.content || "", referrerHost: queryParams.get("ncf_referrer") || "", landingPath: location.pathname, savedAt: Date.now() };
+  try { localStorage.setItem("ncf_attribution", JSON.stringify(savedAttribution)); } catch (_) {}
+} else if (!savedAttributionFresh) {
+  savedAttribution = { source: inferred.source, medium: inferred.medium, campaign: inferred.source === "direct" ? "direct" : "organic", content: "", referrerHost: inferred.referrerHost, landingPath: location.pathname, savedAt: Date.now() };
   try { localStorage.setItem("ncf_attribution", JSON.stringify(savedAttribution)); } catch (_) {}
 }
 const attributionFresh = Number(savedAttribution.savedAt || 0) > Date.now() - 30 * 24 * 60 * 60 * 1000;
-const trafficSource = String(incomingAttribution.source || (attributionFresh ? savedAttribution.source : "") || "direct").slice(0, 30);
+const trafficSource = String(incomingAttribution.source || (attributionFresh ? savedAttribution.source : "") || inferred.source || "direct").slice(0, 30);
 const trafficCampaign = String(incomingAttribution.campaign || (attributionFresh ? savedAttribution.campaign : "") || "organic").slice(0, 40);
-const trafficMedium = String(incomingAttribution.medium || (attributionFresh ? savedAttribution.medium : "") || "unknown").slice(0, 30);
+const trafficMedium = String(incomingAttribution.medium || (attributionFresh ? savedAttribution.medium : "") || inferred.medium || "unknown").slice(0, 30);
 const trafficContent = String(incomingAttribution.content || (attributionFresh ? savedAttribution.content : "") || "").slice(0, 40);
+const trafficReferrer = String(queryParams.get("ncf_referrer") || (attributionFresh ? savedAttribution.referrerHost : "") || inferred.referrerHost || "").slice(0, 120);
 
 const paidCampaign = /^(paid|cpc|ppc|ad|ads)$/i.test(trafficMedium);
 if (paidCampaign && category !== "all") {
@@ -117,7 +116,7 @@ function trackingQuery(extra = {}) {
     source: trafficSource,
     medium: trafficMedium || "unknown",
     campaign: trafficCampaign,
-    content: trafficContent || "",
+    content: trafficContent || (trafficReferrer && trafficSource === "referral" ? trafficReferrer : ""),
     placement: extra.placement || src,
     lp: String((attributionFresh ? savedAttribution.landingPath : "") || location.pathname || "/").slice(0, 255)
   });
