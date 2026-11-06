@@ -39,8 +39,8 @@ test('private dashboard exposes click-origin dimensions and filters', () => {
   for (const id of ['originsCountry','originsPlatform','originsCategory','originsSource','originsRefresh','originsTable']) {
     assert.match(html, new RegExp('id="' + id + '"'));
   }
-  assert.match(html, /loadClickOrigins\\(\\)/);
-  assert.match(html, /\\/api\\/click-origins/);
+  assert.ok(html.includes('loadClickOrigins()'));
+  assert.ok(html.includes('/api/click-origins'));
 });
 
 test('click origins API is protected by dashboard session and validates GET filters', () => {
@@ -51,7 +51,7 @@ test('click origins API is protected by dashboard session and validates GET filt
   const end = route.indexOf('if (incoming.pathname === "/api/health")', start);
   assert.ok(start >= 0 && end > start);
   const block = route.slice(start, end);
-  assert.match(block, /validDashboardSession\\(req\\)/);
-  assert.match(block, /clickOrigins\\.parseFilters/);
-  assert.match(block, /pool\\.query\\(query\\.text, query\\.params\\)/);
+  assert.ok(block.includes('validDashboardSession(req)'));
+  assert.ok(block.includes('clickOrigins.parseFilters'));
+  assert.ok(block.includes('pool.query(query.text, query.params)'));
 });
