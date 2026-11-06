@@ -1,7 +1,7 @@
 'use strict';
 
 const CATEGORIES = Object.freeze(['female', 'male', 'trans', 'couples']);
-const ISO_DATE = /^\\d{4}-\\d{2}-\\d{2}$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function validDate(value) {
   if (!ISO_DATE.test(value)) return false;
