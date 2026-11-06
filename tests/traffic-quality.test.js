@@ -39,3 +39,20 @@ test('handles Nairobi week boundary exactly at Monday local midnight', () => {
   assert.equal(bounds.from, '2026-11-01T21:00:00.000Z');
   assert.equal(bounds.toExclusive, '2026-11-08T21:00:00.000Z');
 });
+
+test('traffic quality analytics separates bot, unverified and unclassified affiliate redirects', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const dashboard = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
+  assert.match(route, /LEFT JOIN traffic_visits v ON v\.visit_id=c\.visit_id/);
+  assert.match(route, /ELSE 'unclassified'/);
+  assert.match(route, /knownBotAffiliateClicks/);
+  assert.match(route, /suspectedBotAffiliateClicks/);
+  assert.match(route, /unverifiedAffiliateClicks/);
+  assert.match(route, /unclassifiedAffiliateClicks/);
+  assert.match(dashboard, /All tracked affiliate redirects/);
+  assert.match(dashboard, /Known-bot affiliate redirects/);
+  assert.match(dashboard, /Unclassified affiliate redirects/);
+  assert.match(dashboard, /main platform and country click totals remain raw redirect counts/);
+});
