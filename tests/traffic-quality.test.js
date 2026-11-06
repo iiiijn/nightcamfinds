@@ -2,13 +2,34 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { classifyUserAgent, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds } = require('../src/services/traffic-quality.cjs');
+const { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds } = require('../src/services/traffic-quality.cjs');
 
 test('classifies known crawlers separately from suspected automation', () => {
   assert.equal(classifyUserAgent('Googlebot/2.1'), 'known_bot');
   assert.equal(classifyUserAgent('curl/8.1'), 'suspected_bot');
   assert.equal(classifyUserAgent('Mozilla/5.0 Chrome/120 Safari/537.36'), 'unverified');
   assert.equal(classifyUserAgent(''), 'unverified');
+});
+
+test('traffic classification keeps the strongest evidence and never downgrades a visit', () => {
+  assert.equal(mergeTrafficClass('unverified', 'suspected_bot'), 'suspected_bot');
+  assert.equal(mergeTrafficClass('suspected_bot', 'known_bot'), 'known_bot');
+  assert.equal(mergeTrafficClass('known_bot', 'unverified'), 'known_bot');
+  assert.equal(mergeTrafficClass('suspected_bot', 'unverified'), 'suspected_bot');
+  assert.equal(mergeTrafficClass('unverified', 'unverified'), 'unverified');
+});
+
+test('engagement endpoint uses the persisted effective classification before counting engagement', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('if (incoming.pathname === "/api/engage")');
+  const end = route.indexOf('if (incoming.pathname === "/api/traffic-quality-analytics")', start);
+  const endpoint = route.slice(start, end);
+  assert.match(endpoint, /RETURNING traffic_class/);
+  assert.match(endpoint, /const effectiveTrafficClass = visit\.rows\[0\]\?\.traffic_class \|\| trafficClass/);
+  assert.match(endpoint, /\[event\.visitId,event\.eventType,event\.pagePath,effectiveTrafficClass\]/);
+  assert.match(endpoint, /eligibleForEngagementMetrics: effectiveTrafficClass === "unverified"/);
 });
 
 test('creates and validates privacy-preserving random visit identifiers', () => {
