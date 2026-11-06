@@ -47,6 +47,15 @@ test("each production affiliate redirect writes one click and one matching platf
 const fs = require("node:fs");
 class Pool {
   async query(sql, params = []) {
+    return this.record(sql, params);
+  }
+  async connect() {
+    return {
+      query: (sql, params = []) => this.record(sql, params),
+      release() {}
+    };
+  }
+  async record(sql, params = []) {
     const text = String(sql);
     fs.appendFileSync(process.env.PG_QUERY_LOG, JSON.stringify({ sql: text, params }) + "\\n");
     if (/INSERT INTO affiliate_clicks/i.test(text)) return { rows: [{ id: 101 }], rowCount: 1 };
