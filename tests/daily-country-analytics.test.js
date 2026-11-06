@@ -41,5 +41,5 @@ test('dashboard login loads daily country analytics after successful sign-in', (
   const fs = require('node:fs');
   const path = require('node:path');
   const html = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
-  assert.match(html, /showDashboard\(j\.username\);await Promise\.all\(\[load\(\),loadRouteSettings\(\),loadDailyCountryAnalytics\(\),loadCountryCategoryAnalytics\(\),loadTrafficQualityAnalytics\(\)\]\)/);
+  assert.match(html, /showDashboard\(j\.username\);await Promise\.all\(\[load\(\),loadRouteSettings\(\),loadDailyCountryAnalytics\(\),loadCountryCategoryAnalytics\(\),loadTrafficQualityAnalytics\(\),loadClickOrigins\(\)\]\)/);
 });

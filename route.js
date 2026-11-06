@@ -9,6 +9,7 @@ const { isSameOriginRequest } = require("./src/services/country-settings-origin.
 const { validateCountryPlatformPayload } = require("./src/services/country-settings-validation.cjs");
 const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
 const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRateLimiter } = require("./src/services/traffic-quality.cjs");
+const clickOrigins = require("./src/services/click-origins.cjs");
 const allowEngagement = createEngagementRateLimiter();
 
 const originalCreateServer = http.createServer;
@@ -391,6 +392,41 @@ http.createServer = function routeDashboard(handler) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
         console.error("Traffic quality analytics failed:", err.message);
         return sendJson(res, 500, { error: "Could not load traffic quality analytics." });
+      }
+    }
+    if (incoming.pathname === "/api/click-origins") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const parsed = clickOrigins.parseFilters(incoming.searchParams);
+      if (parsed.error) return sendJson(res, 400, { error: parsed.error });
+      try {
+        const query = clickOrigins.buildQuery(parsed.value);
+        const result = await pool.query(query.text, query.params);
+        return sendJson(res, 200, {
+          rows: result.rows.map(row => ({
+            date: String(row.date).slice(0, 10),
+            country: row.country,
+            platform: row.platform,
+            category: row.category,
+            source: row.source,
+            medium: row.medium,
+            campaign: row.campaign,
+            content: row.content,
+            placement: row.placement,
+            landingPath: row.landing_path,
+            device: row.device,
+            clicks: Number(row.clicks || 0)
+          })),
+          filters: parsed.value,
+          truncated: result.rows.length === 2000,
+          timezone: "UTC",
+          note: "These are recorded affiliate redirects, not verified human visitors or confirmed conversions. Unknown and direct sources are shown as recorded; source attribution may be absent or inaccurate for older clicks."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Click origins report requires the existing affiliate click attribution columns." });
+        console.error("Click origins analytics failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load click origins report." });
       }
     }
     if (incoming.pathname === "/api/health") {
