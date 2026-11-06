@@ -30,6 +30,9 @@ test('daily query uses parameterized filters and UTC day boundaries', () => {
   assert.deepEqual(built.params, ['2026-11-01', '2026-11-06', analytics.TIER1_COUNTRIES, 'IE']);
   assert.match(built.text, /AT TIME ZONE 'UTC'/);
   assert.match(built.text, /engaged_at IS NOT NULL/);
-  assert.match(built.text, /LIMIT 5000/);
+  assert.match(built.text, /LIMIT 20000/);
+  const fallback = analytics.buildQuery({ from: '', to: '', country: 'ALL', tier1: false }, { includeEngagement: false });
+  assert.match(fallback.text, /NULL::int AS engaged_clicks/);
+  assert.doesNotMatch(fallback.text, /engaged_at/);
   assert.doesNotMatch(built.text, /2026-11-01|IE/);
 });
