@@ -31,3 +31,27 @@ test('uses no raw IP, exact location, names or email fields', () => {
   const built = origins.buildQuery({ from: '', to: '', country: 'ALL', platform: 'ALL', category: 'ALL', source: 'ALL' });
   assert.doesNotMatch(built.text, /ip_address|user_agent|email|full_name|latitude|longitude/i);
 });
+
+test('private dashboard exposes click-origin dimensions and filters', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const html = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
+  for (const id of ['originsCountry','originsPlatform','originsCategory','originsSource','originsRefresh','originsTable']) {
+    assert.match(html, new RegExp('id="' + id + '"'));
+  }
+  assert.match(html, /loadClickOrigins\\(\\)/);
+  assert.match(html, /\\/api\\/click-origins/);
+});
+
+test('click origins API is protected by dashboard session and validates GET filters', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('if (incoming.pathname === "/api/click-origins")');
+  const end = route.indexOf('if (incoming.pathname === "/api/health")', start);
+  assert.ok(start >= 0 && end > start);
+  const block = route.slice(start, end);
+  assert.match(block, /validDashboardSession\\(req\\)/);
+  assert.match(block, /clickOrigins\\.parseFilters/);
+  assert.match(block, /pool\\.query\\(query\\.text, query\\.params\\)/);
+});
