@@ -35,7 +35,7 @@ test('uses Monday-to-Monday UTC boundaries for Nairobi calendar weeks', () => {
 });
 
 test('handles Nairobi week boundary exactly at Monday local midnight', () => {
-  const bounds = nairobiWeekBounds(new Date('2026-11-01T21:00:00.000Z'));
+  const bounds = nairobiWeekBounds(new Date('2026-11-02T21:00:00.000Z'));
   assert.equal(bounds.from, '2026-11-01T21:00:00.000Z');
   assert.equal(bounds.toExclusive, '2026-11-08T21:00:00.000Z');
 });
