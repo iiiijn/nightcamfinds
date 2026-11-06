@@ -114,7 +114,7 @@ async function countClick({ src, country, category="unknown", source="direct", c
       );
       if (visitId) {
         await client.query(
-          "INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) ON CONFLICT (visit_id) DO UPDATE SET last_seen_at=NOW()",
+          "INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) ON CONFLICT (visit_id) DO UPDATE SET traffic_class = CASE WHEN traffic_visits.traffic_class = 'known_bot' OR EXCLUDED.traffic_class = 'known_bot' THEN 'known_bot' WHEN traffic_visits.traffic_class = 'suspected_bot' OR EXCLUDED.traffic_class = 'suspected_bot' THEN 'suspected_bot' ELSE 'unverified' END, last_seen_at=NOW()",
           [visitId,country,platform,source,medium,campaign,content,src,landingPath,trafficClass]
         );
       }
