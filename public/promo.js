@@ -35,6 +35,8 @@
     } catch (_) { return ''; }
   }
   const currentVisitId = visitId();
+  let originalLandingPath = location.pathname;
+  try { originalLandingPath = sessionStorage.getItem("ncf_landing_path") || location.pathname; sessionStorage.setItem("ncf_landing_path", originalLandingPath); } catch (_) {}
   function recordEngagement(eventType) {
     if (!currentVisitId) return;
     const attr = getMarketingAttribution();
@@ -42,7 +44,7 @@
       method: 'POST', credentials: 'same-origin', keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        visitId: currentVisitId, eventType, pagePath: location.pathname,
+        visitId: currentVisitId, eventType, pagePath: location.pathname, landingPath: originalLandingPath,
         platform: 'directory', source: attr.source, medium: attr.medium,
         campaign: attr.campaign, placement: 'promo'
       })
@@ -76,7 +78,7 @@
       campaign: attr.campaign,
       content: placement,
       vid: currentVisitId,
-      lp: location.pathname.slice(0, 255)
+      lp: originalLandingPath.slice(0, 255)
     });
     return platform === 'bongacams'
       ? `/bgo/${encodeURIComponent(room.id)}?${params.toString()}`
