@@ -37,9 +37,9 @@ test('daily query uses parameterized filters and UTC day boundaries', () => {
   assert.doesNotMatch(built.text, /2026-11-01|IE/);
 });
 
-test('dashboard login loads daily country analytics after successful sign-in', () => {
+test('dashboard loads daily and country-category analytics after sign-in', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const html = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
-  assert.match(html, /showDashboard\(j\.username\);await Promise\.all\(\[load\(\),loadRouteSettings\(\),loadDailyCountryAnalytics\(\)\]\)/);
+  assert.match(html, /showDashboard\(j\.username\);await Promise\.all\(\[load\(\),loadRouteSettings\(\),loadDailyCountryAnalytics\(\),loadCountryCategoryAnalytics\(\)\]\)/);
 });
