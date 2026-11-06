@@ -1,7 +1,7 @@
 'use strict';
 
 const CATEGORIES = Object.freeze(['female', 'male', 'trans', 'couples']);
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_DATE = /^\\d{4}-\\d{2}-\\d{2}$/;
 
 function validDate(value) {
   if (!ISO_DATE.test(value)) return false;
@@ -41,20 +41,35 @@ function rankRows(rows) {
   for (const row of rows) {
     const clicks = Number(row.clicks || 0);
     countryTotals.set(row.country, (countryTotals.get(row.country) || 0) + clicks);
-    const key = row.country + ':' + row.category;
-    categoryTotals.set(key, (categoryTotals.get(key) || 0) + clicks);
+    const categories = categoryTotals.get(row.country) || new Map();
+    categories.set(row.category, (categories.get(row.category) || 0) + clicks);
+    categoryTotals.set(row.country, categories);
   }
+
   const topByCountry = new Map();
-  for (const [key, clicks] of categoryTotals) {
-    const country = key.split(':')[0];
-    const current = topByCountry.get(country);
-    if (!current || clicks > current.clicks) topByCountry.set(country, { category: key.slice(country.length + 1), clicks });
+  for (const [country, categories] of categoryTotals) {
+    const highest = Math.max(...categories.values());
+    topByCountry.set(country, new Set(
+      [...categories.entries()].filter(([, clicks]) => clicks === highest).map(([category]) => category)
+    ));
   }
+
   return rows.map(row => {
     const clicks = Number(row.clicks || 0);
-    const categoryClicks = categoryTotals.get(row.country + ':' + row.category) || 0;
+    const categoryClicks = categoryTotals.get(row.country)?.get(row.category) || 0;
     const total = countryTotals.get(row.country) || 0;
-    return { country: row.country, category: row.category, platform: row.platform, clicks, categoryClicks, countryClicks: total, sharePercent: total ? Math.round(categoryClicks / total * 10000) / 100 : 0, topCategory: topByCountry.get(row.country)?.category === row.category };
+    const topCategories = topByCountry.get(row.country) || new Set();
+    return {
+      country: row.country,
+      category: row.category,
+      platform: row.platform,
+      clicks,
+      categoryClicks,
+      countryClicks: total,
+      sharePercent: total ? Math.round(categoryClicks / total * 10000) / 100 : 0,
+      topCategory: topCategories.has(row.category),
+      tiedTopCategories: topCategories.size > 1
+    };
   }).sort((a, b) => a.country.localeCompare(b.country) || b.categoryClicks - a.categoryClicks || a.category.localeCompare(b.category) || a.platform.localeCompare(b.platform));
 }
 
