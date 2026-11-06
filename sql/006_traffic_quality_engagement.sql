@@ -27,6 +27,10 @@ CREATE TABLE IF NOT EXISTS traffic_engagement_events (
   UNIQUE (visit_id, event_type, page_path)
 );
 
+ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS visit_id CHAR(32);
+ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS landing_path VARCHAR(255) NOT NULL DEFAULT '/';
+CREATE INDEX IF NOT EXISTS affiliate_clicks_visit_id_idx ON affiliate_clicks(visit_id);
+
 CREATE INDEX IF NOT EXISTS traffic_visits_first_seen_idx ON traffic_visits(first_seen_at);
 CREATE INDEX IF NOT EXISTS traffic_visits_country_idx ON traffic_visits(country);
 CREATE INDEX IF NOT EXISTS traffic_visits_class_idx ON traffic_visits(traffic_class);
