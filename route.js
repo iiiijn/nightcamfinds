@@ -353,13 +353,24 @@ http.createServer = function routeDashboard(handler) {
                     WHEN v.traffic_class IN ('known_bot','suspected_bot','unverified') THEN v.traffic_class
                     ELSE 'unclassified'
                   END AS traffic_class,
+                  CASE
+                    WHEN c.visit_id IS NULL THEN 'missing_visit_id'
+                    WHEN v.visit_id IS NULL THEN 'missing_visit_record'
+                    ELSE 'linked'
+                  END AS linkage_status,
                   COUNT(*)::int AS clicks
            FROM affiliate_clicks c
            LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id
            WHERE c.clicked_at >= $1 AND c.clicked_at < $2
-           GROUP BY 1`, [bounds.from, bounds.toExclusive]
+           GROUP BY 1, 2`, [bounds.from, bounds.toExclusive]
         );
-        const clickCounts = Object.fromEntries(clickQuality.rows.map(row => [row.traffic_class, Number(row.clicks || 0)]));
+        const clickCounts = {};
+        const unlinkedClickCounts = { missingVisitId: 0, missingVisitRecord: 0 };
+        for (const row of clickQuality.rows) {
+          clickCounts[row.traffic_class] = (clickCounts[row.traffic_class] || 0) + Number(row.clicks || 0);
+          if (row.linkage_status === 'missing_visit_id') unlinkedClickCounts.missingVisitId += Number(row.clicks || 0);
+          if (row.linkage_status === 'missing_visit_record') unlinkedClickCounts.missingVisitRecord += Number(row.clicks || 0);
+        }
         const counts = Object.fromEntries(visits.rows.map(row => [row.traffic_class, Number(row.visits || 0)]));
         return sendJson(res, 200, {
           timezone: "Africa/Nairobi", from: bounds.from, toExclusive: bounds.toExclusive,
@@ -372,7 +383,9 @@ http.createServer = function routeDashboard(handler) {
           suspectedBotAffiliateClicks: clickCounts.suspected_bot || 0,
           unverifiedAffiliateClicks: clickCounts.unverified || 0,
           unclassifiedAffiliateClicks: clickCounts.unclassified || 0,
-          note: "These are tracked affiliate redirects, not verified human clicks. Known and suspected automation are separated. Unverified browser traffic is not proof of human visitors. Clicks without a linked visit record are unclassified."
+          clicksWithoutVisitId: unlinkedClickCounts.missingVisitId,
+          clicksWithMissingVisitRecord: unlinkedClickCounts.missingVisitRecord,
+          note: "These are tracked affiliate redirects, not verified human clicks. Known and suspected automation are separated. Unverified browser traffic is not proof of human visitors. Unclassified redirects are clicks without a usable visit record. Most missing-visit-ID clicks may be legacy records from before visit tracking was introduced; they cannot be retrospectively classified. A missing visit record with an ID indicates a linkage issue that should be investigated."
         });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
