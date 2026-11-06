@@ -71,7 +71,7 @@ const renderedHero = roomRenderer.renderHeroCopy(
   ["Directory", "Live rooms", "Browse rooms.", "Live rooms — NightCamFinds"]
 );
 const renderedCards = roomRenderer.renderRoomCards([
-  { id: "bongacams:test", platform: "bongacams", gender: "female", username: "test", displayName: { username: "Bonga model" }, countryName: { name: "United Kingdom" }, roomSubject: { description: "A readable description" } }
+  { id: "bongacams:test", platform: "bongacams", gender: "female", username: "test", country: "GB", displayName: { username: "Bonga model" }, countryName: { name: "United Kingdom" }, roomSubject: { description: "A readable description" } }
 ]);
 for (const [label, html] of [["hero", renderedHero], ["room cards", renderedCards]]) {
   if (/\$\{[^}]+\}|\[object Object\]/.test(html)) fail(`${label} HTML contains an unrendered template or object placeholder`);
