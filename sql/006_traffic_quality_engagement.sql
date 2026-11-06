@@ -1,6 +1,5 @@
 -- Add privacy-conscious visit and engagement records.
--- This migration is intentionally NOT registered in the production startup runner.
--- Apply only after separate production database approval.
+-- Registered in the production startup migration runner; applies after the approved PR is merged.
 CREATE TABLE IF NOT EXISTS traffic_visits (
   visit_id CHAR(32) PRIMARY KEY,
   first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
