@@ -33,10 +33,10 @@ function buildQuery(filters = {}) {
     LEFT JOIN LATERAL (SELECT country, source, campaign FROM affiliate_clicks
       WHERE click_id = cc.click_id AND LOWER(platform) = 'chaturbate'
       ORDER BY clicked_at ASC, id ASC LIMIT 1) ac ON TRUE
-    \${where.length ? 'WHERE ' + where.join(' AND ') : ''}
+    ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
     GROUP BY 1,2,3,4,5,6,7,8
     ORDER BY is_test ASC, conversions DESC, currency ASC, country ASC, source ASC, campaign ASC
-    LIMIT 2000\`,
+    LIMIT 2000`,
     params, filters: { from, to }
   };
 }
