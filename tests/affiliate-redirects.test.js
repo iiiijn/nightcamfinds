@@ -91,39 +91,27 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   assert.equal(chaturbateTarget.searchParams.get("utm_medium"), "unit-test");
   assert.match(chaturbateTarget.searchParams.get("click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
 
+  const placeholderResponse = await fetch(
+    `${baseUrl}/go/directory?src=placeholder-test`,
+    { redirect: "manual", headers: { "user-agent": "NightCamFinds redirect test" } }
+  );
+  assert.equal(placeholderResponse.status, 404);
+
   const bongaResponse = await fetch(
     `${baseUrl}/bgo/testbongamodel?utm_source=redirect-test&utm_medium=unit-test&utm_campaign=bonga-check&src=bonga-test-card&cat=male`,
     { redirect: "manual", headers: { "cf-ipcountry": "GB", "user-agent": "NightCamFinds redirect test" } }
   );
-  assert.equal(bongaResponse.status, 302);
-  const bongaTarget = new URL(bongaResponse.headers.get("location"));
-  // The production patch chain can route Bonga through either the direct room
-  // URL or the legacy tracking endpoint. Both are valid, tracked destinations.
-  assert.ok(
-    ["bongacams.com", "bongacams4.com"].includes(bongaTarget.hostname),
-    `Unexpected Bonga host: ${bongaTarget.hostname}`
-  );
-  if (bongaTarget.hostname === "bongacams.com") {
-    assert.equal(bongaTarget.pathname, "/testbongamodel");
-    assert.equal(bongaTarget.searchParams.get("ncf_source"), "redirect-test");
-    assert.equal(bongaTarget.searchParams.get("ncf_campaign"), "bonga-check");
-    assert.equal(bongaTarget.searchParams.get("ncf_placement"), "bonga-test-card");
-    assert.match(bongaTarget.searchParams.get("ncf_click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
-  } else {
-    assert.equal(bongaTarget.pathname, "/track");
-    assert.equal(bongaTarget.searchParams.get("c"), "testBongaCampaign");
-    assert.equal(bongaTarget.searchParams.get("track"), "bonga-test-card");
-    assert.match(bongaTarget.searchParams.get("click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
-  }
+  assert.equal(bongaResponse.status, 503);
+  assert.match(await bongaResponse.text(), /room-specific affiliate destination is verified/i);
 
   const statsPath = path.join(dataDir, "clicks.json");
   const stats = JSON.parse(fs.readFileSync(statsPath, "utf8"));
-  assert.equal(stats.total, 2);
+  assert.equal(stats.total, 1);
   assert.equal(stats.byPlatform.chaturbate, 1);
-  assert.equal(stats.byPlatform.bongacams, 1);
+  assert.equal(stats.byPlatform.bongacams, undefined);
   assert.equal(stats.countries.US, 1);
-  assert.equal(stats.countries.GB, 1);
-  assert.equal(stats.bySource["redirect-test"], 2);
+  assert.equal(stats.countries.GB, undefined);
+  assert.equal(stats.bySource["redirect-test"], 1);
   assert.equal(stats.byPlacement["chaturbate:cb-test-card"], 1);
-  assert.equal(stats.byPlacement["bongacams:bonga-test-card"], 1);
+  assert.equal(stats.byRoom["chaturbate:testmodel"], 1);
 });
