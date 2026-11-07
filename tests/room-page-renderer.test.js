@@ -12,14 +12,14 @@ const rooms = [
 test("server room cards use tracked redirects and escape feed content", () => {
   const html = renderRoomCards(rooms, { pagePath: "/female/", category: "female" });
   assert.match(html, /href="\/go\/chaturbate%3Aalice\?/);
-  assert.doesNotMatch(html, /href="\/bgo\//);
+  assert.match(html, /href="\/bgo\/bongacams%3Abob\?/);
   assert.match(html, /source=direct/);
   assert.match(html, /campaign=organic/);
   assert.match(html, /loading="lazy"/);
   assert.doesNotMatch(html, /javascript:alert/);
   assert.match(html, /rel="sponsored nofollow noopener"/);
   assert.match(html, /Watch on Chaturbate/);
-  assert.match(html, /BongaCash link pending verification/);
+  assert.match(html, /Watch on BongaCams/);
 });
 
 test("server room cards escape untrusted text", () => {
@@ -34,7 +34,7 @@ test("home page renders grouped server-side room sections", () => {
   assert.match(html, /Top female/);
   assert.match(html, /Top male/);
   assert.match(html, /\/go\//);
-  assert.doesNotMatch(html, /href="\/bgo\//);
+  assert.match(html, /href="\/bgo\//);
 });
 
 test("empty room lists render a useful empty state", () => {
