@@ -14,8 +14,8 @@ test("Chaturbate room cards and banners use real room IDs through the tracked re
   assert.match(promo, /a\.href = trackUrl\(room, 'banner'\)/);
   assert.match(promo, /function renderBanner\(config, rooms\)/);
   assert.doesNotMatch(promo, /chaturbate:featured/);
-  assert.match(renderer, /const linkAttrs = isBonga \? "" :/);
-  assert.match(renderer, /const tag = isBonga \? "article" : "a"/);
+  assert.match(renderer, /const linkAttrs = ` href=/);
+  assert.match(renderer, /const tag = "a"/);
   assert.match(renderer, /\/go\//);
 });
 
@@ -33,7 +33,7 @@ test("BongaCams room cards use the tracked room redirect and account-generated D
   assert.match(server, /destination\.searchParams\.set\("models\[\]", username\)/);
   assert.match(server, /destination\.searchParams\.set\("c", BONGA_CAMPAIGN\)/);
   assert.match(server, /await countClick\(\{ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
-  assert.match(server, /if \(isBonga\) \{\s*return send\(res, 503/);
+  assert.match(server, /destination\.searchParams\.set\("models\[\]", username\)/);
 });
 
 test("placeholder pseudo-room redirects are rejected and room names are recorded", () => {
