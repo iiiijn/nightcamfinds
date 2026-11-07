@@ -75,3 +75,10 @@ test("filters invalid entries and deduplicates rooms by stable room id", () => {
   assert.equal(rooms.length, 1);
   assert.equal(rooms[0].id, valid.id);
 });
+
+test("BongaCams feed uses strict category mapping and the shared room validator", () => {
+  const route = require("node:fs").readFileSync(require("node:path").join(__dirname, "../route.js"), "utf8");
+  assert.match(route, /filterDisplayableRooms\(normalized\)/);
+  assert.match(route, /\^\(\?:female\|woman\|women\|f\)\$/);
+  assert.doesNotMatch(route, /rawGender\.includes\("male"\)/);
+});
