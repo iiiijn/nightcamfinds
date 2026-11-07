@@ -9,12 +9,29 @@ test('accepts valid origin report filters', () => {
   });
 });
 
-test('rejects invalid dates, platform, category, country and source filters', () => {
+test('rejects invalid dates, platform, category, country and unsafe source filter values', () => {
   assert.match(origins.parseFilters(new URLSearchParams('from=2026-02-31')).error, /calendar dates/);
   assert.match(origins.parseFilters(new URLSearchParams('country=USA')).error, /two-letter/);
   assert.match(origins.parseFilters(new URLSearchParams('platform=other')).error, /Platform/);
   assert.match(origins.parseFilters(new URLSearchParams('category=unknown')).error, /Category/);
-  assert.match(origins.parseFilters(new URLSearchParams('source=x%20OR%201=1')).error, /Source/);
+  assert.match(origins.parseFilters(new URLSearchParams('source=' + 'a'.repeat(81))).error, /80 characters/);
+  assert.match(origins.parseFilters(new URLSearchParams('source=x%00y')).error, /control characters/);
+});
+
+test('accepts historical source labels containing spaces and punctuation', () => {
+  const parsed = origins.parseFilters(new URLSearchParams('source=X+%28Twitter%29'));
+  assert.deepEqual(parsed.value, {
+    from: '', to: '', country: 'ALL', platform: 'ALL', category: 'ALL', source: 'x (twitter)'
+  });
+});
+
+test('keeps source filter values parameterized even when they resemble SQL', () => {
+  const source = "x' or 1=1 --";
+  const parsed = origins.parseFilters(new URLSearchParams('source=' + encodeURIComponent(source)));
+  assert.equal(parsed.value.source, source);
+  const built = origins.buildQuery(parsed.value);
+  assert.equal(built.params.at(-1), source);
+  assert.doesNotMatch(built.text, /x' OR 1=1/);
 });
 
 test('builds a parameterized aggregation across country, platform, category and attribution dimensions', () => {

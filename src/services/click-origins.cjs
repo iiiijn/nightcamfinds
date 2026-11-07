@@ -25,7 +25,10 @@ function parseFilters(params) {
   if (country !== 'ALL' && !/^[A-Z]{2}$/.test(country)) return { error: 'Country must be ALL or a two-letter country code.' };
   if (platform !== 'ALL' && !PLATFORMS.includes(platform)) return { error: 'Platform must be ALL, chaturbate or bongacams.' };
   if (category !== 'ALL' && !CATEGORIES.includes(category)) return { error: 'Category must be ALL, female, male, trans or couples.' };
-  if (source.length > 80 || !/^[a-z0-9._:-]*$/.test(source)) return { error: 'Source filter contains unsupported characters.' };
+  // Source labels are historical attribution values, not SQL identifiers. Accept
+  // ordinary spaces and punctuation; buildQuery always binds this value as a parameter.
+  // Reject only oversized values and control characters that should never be labels.
+  if (source.length > 80 || /[\u0000-\u001F\u007F]/.test(source)) return { error: 'Source filter must be 80 characters or fewer and contain no control characters.' };
   return { value: { from, to, country, platform, category, source } };
 }
 
