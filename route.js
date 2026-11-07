@@ -13,6 +13,7 @@ const clickOrigins = require("./src/services/click-origins.cjs");
 const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
+const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
 const allowEngagement = createEngagementRateLimiter();
 
 const originalCreateServer = http.createServer;
@@ -462,6 +463,36 @@ http.createServer = function routeDashboard(handler) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Campaign performance report requires the existing affiliate click attribution columns." });
         console.error("Campaign performance analytics failed:", err.message);
         return sendJson(res, 500, { error: "Could not load campaign performance." });
+      }
+    }
+    if (incoming.pathname === "/api/traffic-revenue-performance") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const query = trafficRevenuePerformance.buildQuery(Object.fromEntries(incoming.searchParams.entries()));
+      if (query.error) return sendJson(res, 400, { error: query.error });
+      try {
+        const clicks = await pool.query(query.text, query.params.clicks);
+        return sendJson(res, 200, {
+          rows: clicks.rows.map(row => ({
+            country: row.country,
+            platform: row.platform,
+            source: row.source,
+            campaign: row.campaign,
+            clicks: Number(row.clicks || 0),
+            matchedConversions: Number(row.matched_conversions || 0),
+            conversionRate: Number(row.clicks || 0) > 0 ? Number(row.matched_conversions || 0) / Number(row.clicks) : 0,
+            reportedPayoutsByCurrency: row.reported_payouts_by_currency || {}
+          })),
+          filters: query.filters,
+          truncated: clicks.rows.length === 2000,
+          timezone: "UTC",
+          note: "Clicks are recorded redirects. Only non-test Chaturbate postback events with a stored matched click ID are attributed to campaign groups. Unmatched events remain in the separate conversion and provider-health reports. BongaCams conversions and earnings are not assigned to campaigns because BongaCash is manually reconciled and does not provide an automatic postback in this setup. Payouts remain separated by currency and are provider-reported, not verified cash received."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic-to-revenue report requires the existing affiliate click and Chaturbate conversion attribution tables." });
+        console.error("Traffic-to-revenue performance failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load traffic-to-revenue performance." });
       }
     }
     if (incoming.pathname === "/api/conversion-revenue") {
