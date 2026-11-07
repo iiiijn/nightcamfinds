@@ -20,7 +20,7 @@ function buildQuery(filters = {}) {
       LOWER(COALESCE(NULLIF(cc.conversion_type, ''), 'unknown')) AS conversion_type,
       COALESCE(NULLIF(UPPER(cc.currency), ''), 'UNSPECIFIED') AS currency,
       EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE(cc.raw_payload, '{}'::jsonb)) AS payload(key, value)
-        WHERE payload.value ~ '^\\{[A-Za-z][A-Za-z0-9_]*\\} AS is_test,
+        WHERE payload.value ~ '^\\{[A-Za-z][A-Za-z0-9_]*\\}$') AS is_test,
       CASE WHEN NULLIF(BTRIM(cc.click_id), '') IS NULL THEN 'missing_click_id'
         WHEN cc.matched_click IS TRUE THEN 'matched'
         ELSE 'click_id_not_found' END AS match_status,
