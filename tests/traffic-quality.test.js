@@ -157,6 +157,8 @@ test('main directory attributes external referrers and persists campaign context
   assert.match(app, /referrerHost !== currentHost/);
   assert.match(app, /hasReferralAttribution = Boolean\(referralSource\) && !incomingAttribution\.source\.trim\(\)/);
   assert.match(app, /source: incomingAttribution\.source \|\| \(hasReferralAttribution \? referralSource : "unknown"\)/);
+  assert.match(app, /campaign: incomingAttribution.campaign \\|\\| \(hasReferralAttribution \\? "referral" : "unknown"\)/);
+  assert.match(app, /\|\| "unknown"\)\.slice\(0, 30\)/);
   assert.match(app, /localStorage\.setItem\("ncf_attribution", JSON\.stringify\(savedAttribution\)\)/);
   assert.match(app, /vid: visitId/);
 });
