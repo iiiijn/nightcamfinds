@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const net = require("node:net");
+const http = require("node:http");
 const { spawn, execFileSync } = require("node:child_process");
 
 async function freePort() {
@@ -34,6 +35,12 @@ async function waitForServer(baseUrl, child) {
 
 test("affiliate redirect endpoints return tracked provider URLs and record click attribution", async t => {
   const port = await freePort();
+  const bongaFeedPort = await freePort();
+  const bongaFeed = http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify([{ username: "testbongamodel", display_name: "Test Bonga Model", gender: "male", room_url: "https://www.bongacams.com/testbongamodel" }]));
+  });
+  await new Promise(resolve => bongaFeed.listen(bongaFeedPort, "127.0.0.1", resolve));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-stats-"));
   const stubRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-modules-"));
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-project-"));
@@ -58,7 +65,8 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
       CB_TOUR: "testTour",
       CB_CAMPAIGN: "testCampaign",
       BONGACAMS_CAMPAIGN: "testBongaCampaign",
-      BONGACAMS_ENABLED: "false"
+      BONGACAMS_API_BASE: `http://127.0.0.1:${bongaFeedPort}/promo.php`,
+      BONGACAMS_ENABLED: "true"
     },
     stdio: ["ignore", "ignore", "pipe"]
   });
@@ -67,6 +75,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   child.stderr.on("data", chunk => { child.testStderr += chunk; });
   t.after(() => {
     if (child.exitCode === null) child.kill("SIGTERM");
+    bongaFeed.close();
     fs.rmSync(dataDir, { recursive: true, force: true });
     fs.rmSync(stubRoot, { recursive: true, force: true });
     fs.rmSync(projectDir, { recursive: true, force: true });
@@ -102,17 +111,25 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
     `${baseUrl}/bgo/testbongamodel?utm_source=redirect-test&utm_medium=unit-test&utm_campaign=bonga-check&src=bonga-test-card&cat=male`,
     { redirect: "manual", headers: { "cf-ipcountry": "GB", "user-agent": "NightCamFinds redirect test" } }
   );
-  assert.equal(bongaResponse.status, 503);
-  assert.match(await bongaResponse.text(), /room-specific affiliate destination is verified/i);
+  assert.equal(bongaResponse.status, 302);
+  const bongaTarget = new URL(bongaResponse.headers.get("location"));
+  assert.equal(bongaTarget.hostname, "bngprm.com");
+  assert.equal(bongaTarget.pathname, "/promo.php");
+  assert.equal(bongaTarget.searchParams.get("type"), "direct_link");
+  assert.equal(bongaTarget.searchParams.get("v"), "2");
+  assert.equal(bongaTarget.searchParams.get("c"), "testBongaCampaign");
+  assert.equal(bongaTarget.searchParams.get("models[]"), "testbongamodel");
 
   const statsPath = path.join(dataDir, "clicks.json");
   const stats = JSON.parse(fs.readFileSync(statsPath, "utf8"));
   assert.equal(stats.total, 1);
   assert.equal(stats.byPlatform.chaturbate, 1);
-  assert.equal(stats.byPlatform.bongacams, undefined);
+  assert.equal(stats.byPlatform.bongacams, 1);
   assert.equal(stats.countries.US, 1);
-  assert.equal(stats.countries.GB, undefined);
-  assert.equal(stats.bySource["redirect-test"], 1);
+  assert.equal(stats.countries.GB, 1);
+  assert.equal(stats.bySource["redirect-test"], 2);
   assert.equal(stats.byPlacement["chaturbate:cb-test-card"], 1);
+  assert.equal(stats.byPlacement["bongacams:bonga-test-card"], 1);
   assert.equal(stats.byRoom["chaturbate:testmodel"], 1);
+  assert.equal(stats.byRoom["bongacams:testbongamodel"], 1);
 });
