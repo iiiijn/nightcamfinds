@@ -260,7 +260,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const id = decodeURIComponent(pathname.slice(isBonga ? 5 : 4));
     const username = id.split(":").pop();
     const platform = isBonga ? "bongacams" : "chaturbate";
-    if (!username || username.length > 64 || !/^[a-z0-9_-]+$/i.test(username)) {
+    if (!username || ["directory", "featured"].includes(username.toLowerCase()) || username.length > 64 || !/^[a-z0-9_-]+$/i.test(username)) {
       return send(res, 404, "Room not found", "text/plain; charset=utf-8");
     }
     const src = cleanLabel(url.searchParams.get("src"), isBonga ? "bonga-card" : "cb-card", 80);
