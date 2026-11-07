@@ -13,9 +13,10 @@ test("external referrers are captured as referral attribution", () => {
   assert.match(appSource, /campaign:\s*incomingAttribution\.campaign\s*\|\|\s*\(hasReferralAttribution\s*\?\s*"referral"/);
 });
 
-test("explicit campaign parameters take precedence over referrer attribution", () => {
-  assert.match(appSource, /const hasReferralAttribution\s*=\s*Boolean\(referralSource\)\s*&&\s*!hasExplicitAttribution/);
+test("explicit source parameters take precedence while partial UTM tags retain referrer attribution", () => {
+  assert.match(appSource, /const hasReferralAttribution\s*=\s*Boolean\(referralSource\)\s*&&\s*!incomingAttribution\.source\.trim\(\)/);
   assert.match(appSource, /source:\s*incomingAttribution\.source\s*\|\|\s*\(hasReferralAttribution\s*\?\s*referralSource/);
+  assert.match(appSource, /hasReferralAttribution\s*=\s*Boolean\(referralSource\)\s*&&\s*!incomingAttribution\.source\.trim\(\)/);
 });
 
 test("same-site referrers are not recorded as external referral sources", () => {

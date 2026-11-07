@@ -23,14 +23,26 @@
       if (host && host !== currentHost) referral = host;
     } catch (_) {}
     const explicitSource = url.get('utm_source') || url.get('source') || '';
+    const explicitMedium = url.get('utm_medium') || url.get('medium') || '';
+    const explicitCampaign = url.get('utm_campaign') || url.get('campaign') || '';
+    const explicitContent = url.get('utm_content') || url.get('content') || '';
     const savedSource = fresh ? saved.source : '';
-    const source = explicitSource || savedSource || referral || 'direct';
     const referralOnly = !explicitSource && !savedSource && Boolean(referral);
-    return {
+    const source = explicitSource || savedSource || referral || 'direct';
+    const medium = explicitMedium || (fresh ? saved.medium : '') || (referralOnly ? 'referral' : 'unknown');
+    const campaign = explicitCampaign || (fresh ? saved.campaign : '') || (referralOnly ? 'referral' : 'organic');
+    const attribution = {
       source: clean(source, 'direct'),
-      medium: clean(url.get('utm_medium') || url.get('medium') || (fresh ? saved.medium : '') || (referralOnly ? 'referral' : ''), 'unknown'),
-      campaign: clean(url.get('utm_campaign') || url.get('campaign') || (fresh ? saved.campaign : '') || (referralOnly ? 'referral' : ''), 'organic')
+      medium: clean(medium, 'unknown'),
+      campaign: clean(campaign, 'organic'),
+      content: clean(explicitContent || (fresh ? saved.content : ''), ''),
+      landingPath: location.pathname,
+      savedAt: Date.now()
     };
+    if (referralOnly || explicitSource || explicitMedium || explicitCampaign || explicitContent) {
+      try { localStorage.setItem('ncf_attribution', JSON.stringify(attribution)); } catch (_) {}
+    }
+    return attribution;
   }
 
   function visitId() {

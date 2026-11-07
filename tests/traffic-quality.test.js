@@ -147,3 +147,37 @@ test('engagement endpoint rate-limits and BongaCash remains manual-only', () => 
   assert.match(route, /BongaCash postbacks are not supported/);
   assert.doesNotMatch(route, /bongacashPostbackConfigured|bongaPostbackConfigured/);
 });
+
+
+test('main directory attributes external referrers and persists campaign context', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const app = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
+  assert.match(app, /new URL\(document\.referrer\)/);
+  assert.match(app, /referrerHost !== currentHost/);
+  assert.match(app, /hasReferralAttribution = Boolean\(referralSource\) && !incomingAttribution\.source\.trim\(\)/);
+  assert.match(app, /source: incomingAttribution\.source \|\| \(hasReferralAttribution \? referralSource : "direct"\)/);
+  assert.match(app, /localStorage\.setItem\("ncf_attribution", JSON\.stringify\(savedAttribution\)\)/);
+  assert.match(app, /vid: visitId/);
+});
+
+test('promotional landing pages persist referral source and preserve explicit UTM precedence', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const promo = fs.readFileSync(path.join(__dirname, '../public/promo.js'), 'utf8');
+  assert.match(promo, /const explicitSource = url\.get\('utm_source'\) \|\| url\.get\('source'\) \|\| ''/);
+  assert.match(promo, /const source = explicitSource \|\| savedSource \|\| referral \|\| 'direct'/);
+  assert.match(promo, /if \(referralOnly \|\| explicitSource \|\| explicitMedium \|\| explicitCampaign \|\| explicitContent\)/);
+  assert.match(promo, /localStorage\.setItem\('ncf_attribution', JSON\.stringify\(attribution\)\)/);
+  assert.match(promo, /vid: currentVisitId/);
+  assert.match(promo, /lp: originalLandingPath\.slice\(0, 255\)/);
+});
+
+test('affiliate redirect handler accepts source attribution and validates visit IDs before storing them', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+  assert.match(server, /url\.searchParams\.get\("utm_source"\) \|\| url\.searchParams\.get\("source"\)/);
+  assert.match(server, /match\(\/\^\[a-f0-9\]\{32\}\$\/i\)\?\.\[0\]/);
+  assert.match(server, /countClick\(\{ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
+});
