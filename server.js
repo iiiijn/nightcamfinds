@@ -263,9 +263,6 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     if (!username || ["directory", "featured"].includes(username.toLowerCase()) || username.length > 64 || !/^[a-z0-9_-]+$/i.test(username)) {
       return send(res, 404, "Room not found", "text/plain; charset=utf-8");
     }
-    if (isBonga) {
-      return send(res, 503, "BongaCams room links are temporarily unavailable while the room-specific affiliate destination is verified.", "text/plain; charset=utf-8");
-    }
     const src = cleanLabel(url.searchParams.get("src"), "cb-card", 80);
     const category = cleanLabel(url.searchParams.get("cat"), "unknown", 40);
     const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "direct", 40);
