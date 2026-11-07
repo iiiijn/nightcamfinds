@@ -14,7 +14,7 @@ const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
-const { filterDisplayableRooms } = require("./src/services/room-quality.cjs");
+const { cleanRoomTitle, filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const allowEngagement = createEngagementRateLimiter();
 
 const originalCreateServer = http.createServer;
@@ -97,9 +97,9 @@ function normalizeBonga(room) {
     : /^(?:couple|couples|c)$/.test(rawGender) ? "couples" : "";
   const country = String(room.homecountry || room.country || room.country_code || "").toUpperCase().match(/^[A-Z]{2}$/)?.[0] || "";
   const viewers = Number(room.members_count ?? room.num_users ?? room.viewers ?? room.viewer_count ?? 0) || 0;
-  const topic = text(room.chat_topic || room.room_subject || room.topic || (Array.isArray(room.tags) ? room.tags.join(", ") : room.tags));
+  const topic = cleanRoomTitle(text(room.chat_topic || room.room_subject || room.topic || (Array.isArray(room.tags) ? room.tags.join(", ") : room.tags)));
   const href = room.chat_url || room.direct_chat_url || room.room_url || room.url || "";
-  return { id: `bongacams:${username}`, platform: "bongacams", platformName: "BongaCams", username, displayName: text(room.display_name || room.name || username) || username, gender, country, countryName: country, location: text(room.hometown || room.location || room.homecountry), viewerCount: viewers, isHd: Boolean(room.hd_cam || room.hd || /\bhd\b/i.test(topic)), isNew: Boolean(room.is_new || room.new), image: imageFrom(room), roomSubject: topic, languages: text(room.primary_language || room.language || room.languages), href };
+  return { id: `bongacams:${username}`, platform: "bongacams", platformName: "BongaCams", username, displayName: cleanRoomTitle(text(room.display_name || room.name || username)) || username, gender, country, countryName: country, location: text(room.hometown || room.location || room.homecountry), viewerCount: viewers, isHd: Boolean(room.hd_cam || room.hd || /\bhd\b/i.test(topic)), isNew: Boolean(room.is_new || room.new), image: imageFrom(room), roomSubject: topic, languages: text(room.primary_language || room.language || room.languages), href };
 }
 
 async function bongaRooms() {
