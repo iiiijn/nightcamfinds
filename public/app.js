@@ -184,35 +184,38 @@ function trackingQuery(extra = {}) {
   });
   return params.toString();
 }
-function partners() {
+function partners(rooms = []) {
   const src = category === "all" ? "home-footer" : category + "-footer";
   const wrap = document.querySelector("#partner-actions");
-
-  const cb = document.createElement("a");
-  cb.className = "btn";
-  cb.href = "/go/directory?" + trackingQuery({ src: src + "-chaturbate" });
-  cb.textContent = "Chat on Chaturbate";
-  cb.rel = "sponsored nofollow noopener";
-  wrap.append(cb);
-
-  const bonga = document.createElement("a");
-  bonga.className = "btn ghost";
-  bonga.href = "/bgo/directory?" + trackingQuery({ src: src + "-bongacams" });
-  bonga.textContent = "Browse BongaCams";
-  bonga.rel = "sponsored nofollow noopener";
-  wrap.append(bonga);
+  if (!wrap) return;
+  wrap.replaceChildren();
+  const chaturbate = rooms.find((room) => room.platform === "chaturbate");
+  if (chaturbate) {
+    const cb = document.createElement("a");
+    cb.className = "btn";
+    cb.href = "/go/" + encodeURIComponent(chaturbate.id) + "?" + trackingQuery({ src: src + "-chaturbate", cat: chaturbate.gender || "all" });
+    cb.textContent = "Open a Chaturbate room";
+    cb.rel = "sponsored nofollow noopener";
+    wrap.append(cb);
+  }
+  const note = document.createElement("p");
+  note.className = "small-note";
+  note.textContent = "Choose a room above to continue. BongaCams room links are temporarily withheld until their room-specific affiliate format is verified.";
+  wrap.append(note);
 }
 
 function card(room) {
-  const a = document.createElement("a");
   const isBonga = room.platform === "bongacams";
-  const redirect = isBonga ? "/bgo/" : "/go/";
-  a.className = "card";
-  a.href = redirect + encodeURIComponent(room.id) + "?" + trackingQuery({
-    src: placement(),
-    cat: room.gender || (category === "all" ? "all" : category)
-  });
-  a.rel = "sponsored nofollow noopener";
+  const a = document.createElement(isBonga ? "article" : "a");
+  const redirect = "/go/";
+  a.className = isBonga ? "card card-unavailable" : "card";
+  if (!isBonga) {
+    a.href = redirect + encodeURIComponent(room.id) + "?" + trackingQuery({
+      src: placement(),
+      cat: room.gender || (category === "all" ? "all" : category)
+    });
+    a.rel = "sponsored nofollow noopener";
+  }
   const img = document.createElement(room.image ? "img" : "div");
   img.className = "thumb";
   if (room.image) {
@@ -239,7 +242,8 @@ function card(room) {
   subject.textContent = room.roomSubject || "Live room";
   const cta = document.createElement("span");
   cta.className = "btn";
-  cta.textContent = isBonga ? "Watch on BongaCams" : "Watch on Chaturbate";
+  cta.textContent = isBonga ? "BongaCash link pending verification" : "Watch on Chaturbate";
+  if (isBonga) cta.classList.add("btn-disabled");
   meta.append(badges, strong, subject, cta);
   a.append(img, meta);
   return a;
@@ -293,13 +297,14 @@ function renderHomeSections(rooms) {
   if (!featuredPanel || !categoryRows) return;
 
   const ranked = [...rooms].sort((a, b) => Number(b.viewerCount || 0) - Number(a.viewerCount || 0));
+  const featuredRoom = ranked.find((room) => room.platform === "chaturbate") || ranked[0];
   featuredPanel.replaceChildren();
   categoryRows.replaceChildren();
   grid.hidden = true;
   featuredWrap.hidden = false;
 
-  if (ranked.length) {
-    const featured = card(ranked[0]);
+  if (featuredRoom) {
+    const featured = card(featuredRoom);
     featured.classList.add("featured-card");
     featuredPanel.append(featured);
   } else {
@@ -368,6 +373,7 @@ async function load() {
   syncOptions(regionSelect, data.regions, "All regions");
   syncOptions(languageSelect, data.languages, "All languages");
   const rooms = data.rooms || [];
+  partners(rooms);
   const isUnfilteredHome = (category === "all" || category === "live") &&
     !q.value && !countrySelect.value && !regionSelect.value && !languageSelect.value;
   const countryHint = document.querySelector("#country-hint");
@@ -400,7 +406,6 @@ q.addEventListener("input", schedule);
 document.querySelector("#quick-exit")?.addEventListener("click", () => {
   location.replace("https://www.google.com");
 });
-partners();
 load().catch(() => {
   notice.hidden = false;
   notice.textContent = "Could not load rooms. Please try again.";
