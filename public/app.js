@@ -57,8 +57,11 @@ const incomingAttribution = {
 let referralSource = "";
 try {
   const referrer = document.referrer ? new URL(document.referrer) : null;
-  if (referrer && referrer.hostname && referrer.hostname !== location.hostname) {
-    referralSource = referrer.hostname.toLowerCase().replace(/^www\\./, "").slice(0, 30);
+  const normalizeReferralHost = (hostname) => String(hostname || "").toLowerCase().replace(/^www\./, "");
+  const referrerHost = referrer ? normalizeReferralHost(referrer.hostname) : "";
+  const currentHost = normalizeReferralHost(location.hostname);
+  if (referrerHost && referrerHost !== currentHost) {
+    referralSource = referrerHost.slice(0, 30);
   }
 } catch (_) {}
 const hasExplicitAttribution = Object.values(incomingAttribution).some((value) => String(value).trim() !== "");
