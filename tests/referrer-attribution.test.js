@@ -20,3 +20,15 @@ test("explicit campaign parameters take precedence over referrer attribution", (
 test("same-site referrers are not recorded as external referral sources", () => {
   assert.match(appSource, /referrer\.hostname\s*!==\s*location\.hostname/);
 });
+
+test("www and non-www versions of the same site are treated as same-site", () => {
+  assert.match(appSource, /normalizeReferralHost\s*=\s*\(hostname\)\s*=>/);
+  assert.match(appSource, /replace\(\/\^www\\\.\/\s*,\s*""\)/);
+  assert.match(appSource, /normalizeReferralHost\(referrer\.hostname\)/);
+  assert.match(appSource, /normalizeReferralHost\(location\.hostname\)/);
+  assert.match(appSource, /referrerHost\s*!==\s*currentHost/);
+});
+
+test("external referral source stores the normalized hostname", () => {
+  assert.match(appSource, /referralSource\s*=\s*referrerHost\.slice\(0,\s*30\)/);
+});
