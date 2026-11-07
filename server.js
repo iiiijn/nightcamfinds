@@ -260,12 +260,16 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const id = decodeURIComponent(pathname.slice(isBonga ? 5 : 4));
     const username = id.split(":").pop();
     const platform = isBonga ? "bongacams" : "chaturbate";
+    if (!username || username.length > 64 || !/^[a-z0-9_-]+$/i.test(username)) {
+      return send(res, 404, "Room not found", "text/plain; charset=utf-8");
+    }
     const src = cleanLabel(url.searchParams.get("src"), isBonga ? "bonga-card" : "cb-card", 80);
     const category = cleanLabel(url.searchParams.get("cat"), "unknown", 40);
     const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "direct", 40);
     const medium = cleanLabel(url.searchParams.get("utm_medium") || url.searchParams.get("medium"), "unknown", 80);
     const campaign = cleanLabel(url.searchParams.get("utm_campaign") || url.searchParams.get("campaign"), "unknown", 80);
-    const content = cleanLabel(url.searchParams.get("utm_content") || url.searchParams.get("content"), "", 120);
+    const suppliedContent = cleanLabel(url.searchParams.get("utm_content") || url.searchParams.get("content"), "", 72);
+    const content = cleanLabel([suppliedContent, "room-" + username].filter(Boolean).join(":"), "room-" + username, 120);
     const country = visitorCountry(req);
     const agent = String(req.headers["user-agent"] || "").toLowerCase();
     const device = /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop";
@@ -291,7 +295,9 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
       if (!target) target = "https://bongacams4.com/track?c=" + encodeURIComponent(BONGA_CAMPAIGN) + "&click_id=" + encodeURIComponent(clickId) + "&track=" + encodeURIComponent(src);
     } else {
       const built = buildChaturbateUrl({
-        roomUrl: room?.href || "",
+        // Use the canonical affiliate entry point and bind the destination room
+        // below. Feed URLs are deliberately not trusted as destination targets.
+        roomUrl: "",
         campaign: CAMPAIGN,
         tour: TOUR,
         track: src,
