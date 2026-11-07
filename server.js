@@ -277,22 +277,20 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const visitId = String(url.searchParams.get("vid") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
     const requestedLandingPath = String(url.searchParams.get("lp") || pathname);
     const landingPath = requestedLandingPath.startsWith("/") && !requestedLandingPath.startsWith("//") ? requestedLandingPath.slice(0, 255) : pathname;
+    const roomFeed = isBonga ? await rooms(req) : cache;
+    const room = roomFeed.rooms.find(r => r.platform === platform && r.username === username);
+    if (isBonga && !room) return send(res, 404, "Live room not found", "text/plain; charset=utf-8");
     await countClick({ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
-    const room = cache.rooms.find(r => r.platform === platform && r.username === username);
     let target;
     if (isBonga) {
-      const supplied = room?.href || "";
-      try {
-        const parsed = supplied ? new URL(supplied) : null;
-        if (parsed && /(^|\.)bongacams4?\.com$/i.test(parsed.hostname)) {
-          parsed.searchParams.set("click_id", clickId);
-          parsed.searchParams.set("source", source);
-          parsed.searchParams.set("campaign", campaign);
-          parsed.searchParams.set("track", src);
-          target = parsed.toString();
-        }
-      } catch (_) {}
-      if (!target) target = "https://bongacams4.com/track?c=" + encodeURIComponent(BONGA_CAMPAIGN) + "&click_id=" + encodeURIComponent(clickId) + "&track=" + encodeURIComponent(src);
+      // Exact account-generated BongaCash Direct Link pattern: type, version,
+      // campaign code, and models[] username. No unsupported click-ID macros.
+      const destination = new URL("https://bngprm.com/promo.php");
+      destination.searchParams.set("type", "direct_link");
+      destination.searchParams.set("v", "2");
+      destination.searchParams.set("c", BONGA_CAMPAIGN);
+      destination.searchParams.set("models[]", username);
+      target = destination.toString();
     } else {
       const built = buildChaturbateUrl({
         // Use the canonical affiliate entry point and bind the destination room
