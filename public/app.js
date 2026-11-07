@@ -12,6 +12,7 @@ if (localStorage.getItem("ncf18") === "1" && gate) gate.hidden = true;
 document.querySelector("#enter")?.addEventListener("click", () => {
   localStorage.setItem("ncf18", "1");
   document.documentElement.classList.add("ok");
+  document.documentElement.classList.remove("age-pending");
   gate.hidden = true;
 });
 
@@ -43,7 +44,7 @@ document.querySelectorAll("nav a").forEach((a) => {
 });
 
 const NAMES = { US:"United States", CA:"Canada", GB:"United Kingdom", IE:"Ireland", AU:"Australia", NZ:"New Zealand", DE:"Germany", AT:"Austria", CH:"Switzerland", FR:"France", BE:"Belgium", NL:"Netherlands", LU:"Luxembourg", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", IS:"Iceland", JP:"Japan", SG:"Singapore", BR:"Brazil", CO:"Colombia", MX:"Mexico", AR:"Argentina", CL:"Chile", PE:"Peru", VE:"Venezuela", PH:"Philippines", TH:"Thailand", CN:"China", RO:"Romania", UA:"Ukraine", IT:"Italy", ES:"Spain", PL:"Poland", CZ:"Czechia", HU:"Hungary", KE:"Kenya", KZ:"Kazakhstan", IN:"India", RU:"Russia", ZA:"South Africa" };
-const QUICK = ["US","GB","CA","AU","DE","FR","NL"];
+const QUICK = ["US","GB","CA","IE","AU","NZ","DE","FR","NL","SE","NO","DK","FI","CH","AT","BE","LU","IS"];
 
 const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
 const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
@@ -225,6 +226,7 @@ function card(room) {
   for (const [label, extra] of bits) {
     const span = document.createElement("span");
     span.className = extra ? "badge " + extra : "badge";
+    if (extra === "platform") span.classList.add(isBonga ? "bongacams" : "chaturbate");
     span.textContent = label;
     badges.append(span);
   }
@@ -282,6 +284,59 @@ function balanceCategoryRooms(rooms) {
   return mixed;
 }
 
+function renderHomeSections(rooms) {
+  const featuredPanel = document.querySelector("#featured-room");
+  const featuredWrap = document.querySelector(".featured-panel");
+  const categoryRows = document.querySelector("#category-rows");
+  if (!featuredPanel || !categoryRows) return;
+
+  const ranked = [...rooms].sort((a, b) => Number(b.viewerCount || 0) - Number(a.viewerCount || 0));
+  featuredPanel.replaceChildren();
+  categoryRows.replaceChildren();
+  grid.hidden = true;
+  featuredWrap.hidden = false;
+
+  if (ranked.length) {
+    const featured = card(ranked[0]);
+    featured.classList.add("featured-card");
+    featuredPanel.append(featured);
+  } else {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "No live rooms are available for this selection right now.";
+    featuredPanel.append(empty);
+  }
+
+  const groups = [["female", "Female"], ["male", "Male"], ["trans", "Trans"], ["couples", "Couples"]];
+  for (const [key, label] of groups) {
+    const matches = rooms.filter((room) => room.gender === key);
+    if (!matches.length) continue;
+    const section = document.createElement("section");
+    section.className = "home-group";
+    const heading = document.createElement("h2");
+    heading.className = "row-heading";
+    const title = document.createElement("span");
+    title.textContent = label;
+    const count = document.createElement("small");
+    count.textContent = matches.length + " listed";
+    const more = document.createElement("a");
+    more.href = "/" + key + "/";
+    more.textContent = "See all";
+    heading.append(title, count, more);
+    const row = document.createElement("div");
+    row.className = "category-row";
+    row.append(...pickHomeRooms(rooms, key).map(card));
+    section.append(heading, row);
+    categoryRows.append(section);
+  }
+  if (!categoryRows.children.length) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No live rooms match these filters right now.";
+    categoryRows.append(empty);
+  }
+}
+
 let timer;
 function schedule() { clearTimeout(timer); timer = setTimeout(load, 250); }
 
@@ -311,22 +366,22 @@ async function load() {
   syncOptions(regionSelect, data.regions, "All regions");
   syncOptions(languageSelect, data.languages, "All languages");
   const rooms = data.rooms || [];
-  if ((category === "all" || category === "live") && !q.value && !countrySelect.value) {
-    grid.replaceChildren();
-    for (const [key, label] of [["female","Top female"],["male","Top male"],["trans","Top trans"],["couples","Top couples"]]) {
-      const picked = pickHomeRooms(rooms, key);
-      if (!picked.length) continue;
-      const section = document.createElement("section");
-      section.className = "home-group";
-      const heading = document.createElement("h2");
-      heading.textContent = label;
-      const row = document.createElement("div");
-      row.className = "grid";
-      row.append(...picked.map(card));
-      section.append(heading, row);
-      grid.append(section);
-    }
+  const isUnfilteredHome = (category === "all" || category === "live") &&
+    !q.value && !countrySelect.value && !regionSelect.value && !languageSelect.value;
+  const countryHint = document.querySelector("#country-hint");
+  if (countryHint) {
+    countryHint.textContent = countrySelect.value
+      ? "Showing rooms with the partner-feed country code " + (NAMES[countrySelect.value] || countrySelect.value) + ". Country labels are not independently verified."
+      : "Choose a country to filter available rooms. Country and language details come from partner feeds.";
+  }
+  if (isUnfilteredHome) {
+    renderHomeSections(rooms);
   } else {
+    const featuredWrap = document.querySelector(".featured-panel");
+    const categoryRows = document.querySelector("#category-rows");
+    if (featuredWrap) featuredWrap.hidden = true;
+    if (categoryRows) categoryRows.replaceChildren();
+    grid.hidden = false;
     const displayed = balanceCategoryRooms(rooms);
     grid.replaceChildren(...displayed.map(card));
   }
@@ -340,6 +395,9 @@ countrySelect.addEventListener("change", load);
 regionSelect.addEventListener("change", load);
 languageSelect.addEventListener("change", load);
 q.addEventListener("input", schedule);
+document.querySelector("#quick-exit")?.addEventListener("click", () => {
+  location.replace("https://www.google.com");
+});
 partners();
 load().catch(() => {
   notice.hidden = false;
