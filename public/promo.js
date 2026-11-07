@@ -144,6 +144,13 @@
     return Array.isArray(data.rooms) ? data.rooms : [];
   }
 
+  async function loadLiveCount() {
+    const response = await fetch("/api/rooms?summary=1", { headers: { Accept: "application/json" }, cache: "no-store" });
+    if (!response.ok) throw new Error("Live room count unavailable");
+    const data = await response.json();
+    return Number.isFinite(Number(data.liveCount)) ? Number(data.liveCount) : 0;
+  }
+
   async function loadConfig() {
     try {
       const response = await fetch('/promo-config.json', { cache: 'no-store' });
@@ -152,28 +159,30 @@
     } catch (_) { return {}; }
   }
 
-  Promise.allSettled([loadPlatform('chaturbate'), loadPlatform('bongacams'), loadConfig()]).then(results => {
+  Promise.allSettled([loadPlatform('chaturbate'), loadPlatform('bongacams'), loadConfig(), loadLiveCount()]).then(results => {
     const cb = results[0].status === 'fulfilled' ? results[0].value : [];
     const bc = results[1].status === 'fulfilled' ? results[1].value : [];
     const config = results[2].status === 'fulfilled' ? results[2].value : {};
+    const liveCount = results[3].status === 'fulfilled' ? results[3].value : null;
 
     if (config.chaturbate?.enabled !== false) renderStrip(cbPromo, cb, 'Live on Chaturbate', 'Chaturbate');
     if (config.bongacams?.enabled !== false) renderStrip(bcPromo, bc, 'Live on BongaCams', 'BongaCams');
     renderBanner(config.chaturbate);
 
-    if (sticky) {
-      const room = [...cb, ...bc].sort((a, b) => Number(b.viewerCount || 0) - Number(a.viewerCount || 0))[0];
-      if (!room) return;
+    if (sticky && liveCount !== null) {
       sticky.innerHTML = '';
       const body = document.createElement('div');
-      body.innerHTML = `<span class="promo-dot"></span><strong>${room.displayName || room.username} is live</strong><small>${Number(room.viewerCount || 0).toLocaleString()} watching on ${room.platformName || room.platform}</small>`;
+      const label = document.createElement('strong');
+      label.textContent = `${liveCount.toLocaleString()} live rooms available`;
+      const detail = document.createElement('small');
+      detail.textContent = 'Across connected partner feeds. Availability changes.';
+      body.append(label, detail);
       const link = document.createElement('a');
       link.className = 'btn';
-      link.href = trackUrl(room, 'sticky');
-      link.target = '_blank';
-      link.rel = 'sponsored nofollow noopener';
-      link.textContent = 'Watch live';
+      link.href = '#grid';
+      link.textContent = 'Browse rooms';
       sticky.append(body, link);
+      sticky.hidden = liveCount === 0;
     }
   });
 
