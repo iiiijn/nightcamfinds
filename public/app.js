@@ -198,24 +198,27 @@ function partners(rooms = []) {
     cb.rel = "sponsored nofollow noopener";
     wrap.append(cb);
   }
-  const note = document.createElement("p");
-  note.className = "small-note";
-  note.textContent = "Choose a room above to continue. BongaCams room links are temporarily withheld until their room-specific affiliate format is verified.";
-  wrap.append(note);
+  const bonga = rooms.find((room) => room.platform === "bongacams");
+  if (bonga) {
+    const bc = document.createElement("a");
+    bc.className = "btn ghost";
+    bc.href = "/bgo/" + encodeURIComponent(bonga.id) + "?" + trackingQuery({ src: src + "-bongacams", cat: bonga.gender || "all" });
+    bc.textContent = "Open a BongaCams room";
+    bc.rel = "sponsored nofollow noopener";
+    wrap.append(bc);
+  }
 }
 
 function card(room) {
   const isBonga = room.platform === "bongacams";
-  const a = document.createElement(isBonga ? "article" : "a");
-  const redirect = "/go/";
-  a.className = isBonga ? "card card-unavailable" : "card";
-  if (!isBonga) {
-    a.href = redirect + encodeURIComponent(room.id) + "?" + trackingQuery({
-      src: placement(),
-      cat: room.gender || (category === "all" ? "all" : category)
-    });
-    a.rel = "sponsored nofollow noopener";
-  }
+  const a = document.createElement("a");
+  const redirect = isBonga ? "/bgo/" : "/go/";
+  a.className = "card";
+  a.href = redirect + encodeURIComponent(room.id) + "?" + trackingQuery({
+    src: placement(),
+    cat: room.gender || (category === "all" ? "all" : category)
+  });
+  a.rel = "sponsored nofollow noopener";
   const img = document.createElement(room.image ? "img" : "div");
   img.className = "thumb";
   if (room.image) {
@@ -242,8 +245,7 @@ function card(room) {
   subject.textContent = room.roomSubject || "Live room";
   const cta = document.createElement("span");
   cta.className = "btn";
-  cta.textContent = isBonga ? "BongaCash link pending verification" : "Watch on Chaturbate";
-  if (isBonga) cta.classList.add("btn-disabled");
+  cta.textContent = isBonga ? "Watch on BongaCams" : "Watch on Chaturbate";
   meta.append(badges, strong, subject, cta);
   a.append(img, meta);
   return a;
