@@ -11,6 +11,7 @@ const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash
 const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRateLimiter } = require("./src/services/traffic-quality.cjs");
 const clickOrigins = require("./src/services/click-origins.cjs");
 const campaignPerformance = require("./src/services/campaign-performance.cjs");
+const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const allowEngagement = createEngagementRateLimiter();
 
 const originalCreateServer = http.createServer;
