@@ -49,11 +49,11 @@ test("homepage presentation is rendered from live API rooms, not generated sampl
 test("room cards retain platform-specific buttons and internal redirect paths", () => {
   const app = read("public/app.js");
   const renderer = read("src/services/room-page-renderer.cjs");
-  assert.match(app, /const redirect = "\/go\/"/);
-  assert.match(app, /BongaCash link pending verification/);
+  assert.match(app, /const redirect = isBonga \? "\/bgo\/" : "\/go\/"/);
+  assert.match(app, /Watch on BongaCams/);
   assert.match(app, /Watch on Chaturbate/);
   assert.match(renderer, /platform bongacams/);
-  assert.match(renderer, /BongaCash link pending verification/);
+  assert.match(renderer, /Watch on BongaCams/);
   assert.doesNotMatch(renderer, /href="\\\$\{escapeHtml\(href\)\}"/);
   assert.match(renderer, /platform chaturbate/);
 });
