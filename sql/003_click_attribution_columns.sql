@@ -1,4 +1,12 @@
--- Add tracked click metadata to the canonical affiliate click ledger.
--- Migration 004 creates affiliate_clicks before this migration runs.
-ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS medium TEXT;
-ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS campaign TEXT;
+-- Legacy attribution columns are only relevant to installations that still
+-- have the retired `clicks` table. Current installations use affiliate_clicks,
+-- which already stores medium and campaign. Do not fail startup when the
+-- legacy table is absent.
+DO $$
+BEGIN
+  IF to_regclass('public.clicks') IS NOT NULL THEN
+    ALTER TABLE public.clicks ADD COLUMN IF NOT EXISTS traffic_medium TEXT;
+    ALTER TABLE public.clicks ADD COLUMN IF NOT EXISTS traffic_campaign TEXT;
+  END IF;
+END
+$$;
