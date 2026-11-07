@@ -166,7 +166,7 @@ test('promotional landing pages persist referral source and preserve explicit UT
   const path = require('node:path');
   const promo = fs.readFileSync(path.join(__dirname, '../public/promo.js'), 'utf8');
   assert.match(promo, /const explicitSource = url\.get\('utm_source'\) \|\| url\.get\('source'\) \|\| ''/);
-  assert.match(promo, /const source = explicitSource \|\| savedSource \|\| referral \|\| 'direct'/);
+  assert.match(promo, /const source = explicitSource || savedSource || referral || 'unknown'/);
   assert.match(promo, /if \(referralOnly \|\| explicitSource \|\| explicitMedium \|\| explicitCampaign \|\| explicitContent\)/);
   assert.match(promo, /localStorage\.setItem\('ncf_attribution', JSON\.stringify\(attribution\)\)/);
   assert.match(promo, /vid: currentVisitId/);
