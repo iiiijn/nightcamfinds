@@ -114,6 +114,9 @@ module.exports = { Pool };
     redirect: "manual", headers: { "cf-ipcountry": "US", "user-agent": "single-writer-test" }
   });
   assert.equal(cb.status, 302);
+  const cbTarget = new URL(cb.headers.get("location"));
+  assert.equal(cbTarget.searchParams.get("room"), "cbtestmodel");
+  assert.equal(cbTarget.searchParams.get("sid"), cbTarget.searchParams.get("click_id"));
 
   const bonga = await fetch(`${baseUrl}/bgo/bongatestmodel?src=bonga-single-writer&source=regression-test`, {
     redirect: "manual", headers: { "cf-ipcountry": "GB", "user-agent": "single-writer-test" }
@@ -132,4 +135,5 @@ module.exports = { Pool };
   assert.equal(cbLedger.length, 1, "the Chaturbate redirect must produce one Chaturbate ledger row");
   assert.equal(bongaLedger.length, 0, "unverified BongaCams traffic must not be recorded as a completed partner redirect");
   assert.equal(inserts[0].params[9], cbLedger[0].params[0], "Chaturbate ledger must reuse the primary click ID");
+  assert.equal(inserts[0].params[7], "room-cbtestmodel", "the existing content field must identify the clicked broadcaster");
 });
