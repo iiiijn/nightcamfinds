@@ -13,7 +13,7 @@ function buildQuery(filters) {
   if (parsed.error) return parsed;
   const base = clickOrigins.buildQuery(parsed.value);
   const whereStart = base.text.indexOf(' FROM affiliate_clicks ');
-  const whereClause = base.text.slice(whereStart, base.text.indexOf(' GROUP BY'));
+  const whereClause = base.text.slice(whereStart + ' FROM affiliate_clicks'.length, base.text.indexOf(' GROUP BY'));
   return {
     text: "SELECT UPPER(country) AS country, LOWER(platform) AS platform, COALESCE(NULLIF(LOWER(source), ''), 'unknown') AS source, COALESCE(NULLIF(LOWER(campaign), ''), 'unknown') AS campaign, COUNT(*)::int AS clicks FROM affiliate_clicks" + whereClause + " GROUP BY 1,2,3,4 ORDER BY clicks DESC, country ASC, platform ASC, source ASC, campaign ASC LIMIT 2000",
     params: base.params,
