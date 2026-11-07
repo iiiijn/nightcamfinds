@@ -283,3 +283,54 @@ footer span { flex: 1 1 100%; }
   .header-tools input { flex-basis: 50%; }
   .header-tools select { flex-basis: 40%; }
 }
+
+/* Mobile refinement: fit header controls and contain horizontal room rails. */
+@media (max-width: 640px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand age"
+      "country exit";
+    align-items: center;
+    column-gap: 10px;
+    row-gap: 8px;
+    padding: 10px 0;
+  }
+  .topbar .logo { grid-area: brand; min-width: 0; margin: 0; white-space: nowrap; }
+  .topbar .age-chip { grid-area: age; justify-self: end; }
+  .topbar #country {
+    grid-area: country;
+    width: 100%;
+    min-width: 0;
+    min-height: 42px;
+    font-size: 13px;
+  }
+  .topbar .quick-exit {
+    grid-area: exit;
+    justify-self: end;
+    min-width: 88px;
+    white-space: nowrap;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  .header-tools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 42%); gap: 8px; }
+  .header-tools input { width: 100%; min-width: 0; font-size: 13px; }
+  .header-tools select { width: 100%; min-width: 0; font-size: 13px; }
+  .category-row {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding-right: 10px;
+  }
+  .category-row .card { flex: 0 0 min(78vw, 290px); min-width: 0; }
+}
+@media (max-width: 380px) {
+  .topbar .logo { font-size: 19px; }
+  .topbar .quick-exit { min-width: 82px; padding-inline: 9px; }
+  .header-tools { grid-template-columns: minmax(0, 1fr) minmax(0, 40%); }
+  .header-tools input, .header-tools select { font-size: 12px; padding-inline: 8px; }
+}
