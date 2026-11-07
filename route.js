@@ -439,6 +439,7 @@ http.createServer = function routeDashboard(handler) {
             campaign: row.campaign,
             conversionType: row.conversion_type,
             currency: row.currency,
+            isTest: Boolean(row.is_test),
             conversions: Number(row.conversions || 0),
             matchedConversions: Number(row.matched_conversions || 0),
             unmatchedConversions: Number(row.unmatched_conversions || 0),
