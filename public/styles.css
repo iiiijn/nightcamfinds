@@ -334,3 +334,12 @@ footer span { flex: 1 1 100%; }
   .header-tools { grid-template-columns: minmax(0, 1fr) minmax(0, 40%); }
   .header-tools input, .header-tools select { font-size: 12px; padding-inline: 8px; }
 }
+
+/* Sticky header opacity correction: prevent page content showing through while scrolling. */
+.site-header {
+  background: #100817;
+  background-color: #100817;
+  opacity: 1;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
