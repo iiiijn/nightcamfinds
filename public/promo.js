@@ -18,8 +18,8 @@
     let referral = '';
     try {
       const referrer = document.referrer ? new URL(document.referrer) : null;
-      const host = String(referrer?.hostname || '').toLowerCase().replace(/^www\\./, '');
-      const currentHost = String(location.hostname || '').toLowerCase().replace(/^www\\./, '');
+      const host = String(referrer?.hostname || '').toLowerCase().replace(/^www\./, '');
+      const currentHost = String(location.hostname || '').toLowerCase().replace(/^www\./, '');
       if (host && host !== currentHost) referral = host;
     } catch (_) {}
     const explicitSource = url.get('utm_source') || url.get('source') || '';
