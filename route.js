@@ -10,6 +10,7 @@ const { validateCountryPlatformPayload } = require("./src/services/country-setti
 const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
 const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRateLimiter } = require("./src/services/traffic-quality.cjs");
 const clickOrigins = require("./src/services/click-origins.cjs");
+const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const allowEngagement = createEngagementRateLimiter();
 
 const originalCreateServer = http.createServer;
@@ -392,6 +393,33 @@ http.createServer = function routeDashboard(handler) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
         console.error("Traffic quality analytics failed:", err.message);
         return sendJson(res, 500, { error: "Could not load traffic quality analytics." });
+      }
+    }
+    if (incoming.pathname === "/api/campaign-performance") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const query = campaignPerformance.buildQuery(Object.fromEntries(incoming.searchParams.entries()));
+      if (query.error) return sendJson(res, 400, { error: query.error });
+      try {
+        const result = await pool.query(query.text, query.params);
+        return sendJson(res, 200, {
+          rows: result.rows.map(row => ({
+            country: row.country,
+            platform: row.platform,
+            source: row.source,
+            campaign: row.campaign,
+            clicks: Number(row.clicks || 0)
+          })),
+          filters: query.filters,
+          truncated: result.rows.length === 2000,
+          timezone: "UTC",
+          note: "Recorded affiliate redirects grouped by country, platform, source and campaign. These are not verified human visitors or confirmed conversions."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Campaign performance report requires the existing affiliate click attribution columns." });
+        console.error("Campaign performance analytics failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load campaign performance." });
       }
     }
     if (incoming.pathname === "/api/click-origins") {
