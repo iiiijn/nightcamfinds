@@ -70,9 +70,9 @@ let savedAttribution = {};
 try { savedAttribution = JSON.parse(localStorage.getItem("ncf_attribution") || "{}"); } catch (_) { savedAttribution = {}; }
 if (hasExplicitAttribution || hasReferralAttribution) {
   savedAttribution = {
-    source: incomingAttribution.source || (hasReferralAttribution ? referralSource : "direct"),
+    source: incomingAttribution.source || (hasReferralAttribution ? referralSource : "unknown"),
     medium: incomingAttribution.medium || (hasReferralAttribution ? "referral" : "unknown"),
-    campaign: incomingAttribution.campaign || (hasReferralAttribution ? "referral" : "organic"),
+    campaign: incomingAttribution.campaign || (hasReferralAttribution ? "referral" : "unknown"),
     content: incomingAttribution.content || "",
     landingPath: location.pathname,
     savedAt: Date.now()
@@ -80,8 +80,8 @@ if (hasExplicitAttribution || hasReferralAttribution) {
   try { localStorage.setItem("ncf_attribution", JSON.stringify(savedAttribution)); } catch (_) {}
 }
 const attributionFresh = Number(savedAttribution.savedAt || 0) > Date.now() - 30 * 24 * 60 * 60 * 1000;
-const trafficSource = String(incomingAttribution.source || (attributionFresh ? savedAttribution.source : "") || "direct").slice(0, 30);
-const trafficCampaign = String(incomingAttribution.campaign || (attributionFresh ? savedAttribution.campaign : "") || "organic").slice(0, 40);
+const trafficSource = String(incomingAttribution.source || (attributionFresh ? savedAttribution.source : "") || "unknown").slice(0, 30);
+const trafficCampaign = String(incomingAttribution.campaign || (attributionFresh ? savedAttribution.campaign : "") || "unknown").slice(0, 40);
 const trafficMedium = String(incomingAttribution.medium || (attributionFresh ? savedAttribution.medium : "") || "unknown").slice(0, 30);
 const trafficContent = String(incomingAttribution.content || (attributionFresh ? savedAttribution.content : "") || "").slice(0, 40);
 

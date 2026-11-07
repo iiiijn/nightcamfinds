@@ -156,7 +156,9 @@ test('main directory attributes external referrers and persists campaign context
   assert.match(app, /new URL\(document\.referrer\)/);
   assert.match(app, /referrerHost !== currentHost/);
   assert.match(app, /hasReferralAttribution = Boolean\(referralSource\) && !incomingAttribution\.source\.trim\(\)/);
-  assert.match(app, /source: incomingAttribution\.source \|\| \(hasReferralAttribution \? referralSource : "direct"\)/);
+  assert.match(app, /source: incomingAttribution\.source \|\| \(hasReferralAttribution \? referralSource : "unknown"\)/);
+  assert.match(app, /campaign: incomingAttribution.campaign \\|\\| \(hasReferralAttribution \\? "referral" : "unknown"\)/);
+  assert.match(app, /\|\| "unknown"\)\.slice\(0, 30\)/);
   assert.match(app, /localStorage\.setItem\("ncf_attribution", JSON\.stringify\(savedAttribution\)\)/);
   assert.match(app, /vid: visitId/);
 });
@@ -166,7 +168,7 @@ test('promotional landing pages persist referral source and preserve explicit UT
   const path = require('node:path');
   const promo = fs.readFileSync(path.join(__dirname, '../public/promo.js'), 'utf8');
   assert.match(promo, /const explicitSource = url\.get\('utm_source'\) \|\| url\.get\('source'\) \|\| ''/);
-  assert.match(promo, /const source = explicitSource \|\| savedSource \|\| referral \|\| 'direct'/);
+  assert.match(promo, /const source = explicitSource || savedSource || referral || 'unknown'/);
   assert.match(promo, /if \(referralOnly \|\| explicitSource \|\| explicitMedium \|\| explicitCampaign \|\| explicitContent\)/);
   assert.match(promo, /localStorage\.setItem\('ncf_attribution', JSON\.stringify\(attribution\)\)/);
   assert.match(promo, /vid: currentVisitId/);
