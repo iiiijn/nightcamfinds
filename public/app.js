@@ -65,7 +65,7 @@ try {
   }
 } catch (_) {}
 const hasExplicitAttribution = Object.values(incomingAttribution).some((value) => String(value).trim() !== "");
-const hasReferralAttribution = Boolean(referralSource) && !hasExplicitAttribution;
+const hasReferralAttribution = Boolean(referralSource) && !incomingAttribution.source.trim();
 let savedAttribution = {};
 try { savedAttribution = JSON.parse(localStorage.getItem("ncf_attribution") || "{}"); } catch (_) { savedAttribution = {}; }
 if (hasExplicitAttribution || hasReferralAttribution) {
