@@ -234,3 +234,23 @@ footer span { flex: 1 1 100%; }
   .card .btn { font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+
+/* Shared country landing pages and visibility/accessibility states */
+[hidden] { display: none !important; }
+.country-landing { max-width: 1180px; padding: 28px 0 48px; }
+.country-landing h1, .country-landing h2, .country-landing h3 { font-family: var(--serif); }
+.country-landing h1 { font-size: clamp(36px, 5vw, 58px); }
+.country-landing h2 { font-size: 28px; margin-top: 28px; }
+.country-landing p, .country-landing li { color: var(--muted); }
+.country-landing a { color: var(--lilac); }
+.country-landing .country-intro { max-width: 820px; padding: 26px 0; }
+.country-landing .country-live-rooms { padding: 18px 0; }
+.country-landing .country-faq-item { margin: 10px 0; padding: 14px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.country-landing .country-faq-item h3 { margin: 0 0 6px; font-size: 18px; }
+.country-landing .country-faq-item p { margin: 0; }
+.country-landing .country-disclosure { margin-top: 24px; padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; font-size: 13px; }
+.country-landing .breadcrumbs { display: flex; gap: 8px; padding: 0; list-style: none; color: var(--muted); font-size: 13px; }
+.country-landing .country-links { display: flex; gap: 12px 20px; flex-wrap: wrap; padding-left: 18px; }
+.featured-card { display: flex; }
+.featured-card .thumb { aspect-ratio: 16/9; }
