@@ -9,9 +9,9 @@ const migration = fs.readFileSync(
 );
 
 test("legacy click attribution migration safely skips when the retired clicks table is absent", () => {
-  assert.match(migration, /to_regclass\('public\.clicks'\) IS NOT NULL/i);
-  assert.match(migration, /ALTER TABLE public\.clicks ADD COLUMN IF NOT EXISTS traffic_medium/i);
-  assert.match(migration, /ALTER TABLE public\.clicks ADD COLUMN IF NOT EXISTS traffic_campaign/i);
+  assert.match(migration, /ALTER TABLE IF EXISTS public\.clicks/i);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS traffic_medium/i);
+  assert.match(migration, /ADD COLUMN IF NOT EXISTS traffic_campaign/i);
   assert.doesNotMatch(migration, /^ALTER TABLE clicks\b/im);
 });
 
