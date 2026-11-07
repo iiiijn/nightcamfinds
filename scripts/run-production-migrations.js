@@ -10,7 +10,10 @@ if (!DATABASE_URL) {
 }
 
 const branch = process.env.RENDER_GIT_BRANCH || "";
-const migrations = getMigrationPlan(branch);
+const migrations = getMigrationPlan(branch, {
+  allowProductionReconciliation:
+    process.env.NIGHTCAMFINDS_APPROVE_BONGACASH_RECONCILIATION_MIGRATION === "true"
+});
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
