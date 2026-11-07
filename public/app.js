@@ -8,12 +8,14 @@ const countrySelect = document.querySelector("#country");
 const regionSelect = document.querySelector("#region");
 const languageSelect = document.querySelector("#language");
 
-if (localStorage.getItem("ncf18") === "1" && gate) gate.hidden = true;
+let ageAccepted = false;
+try { ageAccepted = localStorage.getItem("ncf18") === "1"; } catch (_) {}
+if (ageAccepted && gate) gate.hidden = true;
 document.querySelector("#enter")?.addEventListener("click", () => {
-  localStorage.setItem("ncf18", "1");
+  try { localStorage.setItem("ncf18", "1"); } catch (_) {}
   document.documentElement.classList.add("ok");
   document.documentElement.classList.remove("age-pending");
-  gate.hidden = true;
+  if (gate) gate.hidden = true;
 });
 
 const PAGES = {
