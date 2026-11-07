@@ -61,7 +61,8 @@ let cache = { at: 0, rooms: [], notice: "" };
 
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { "User-Agent": "NightCamFinds/2.0", Accept: "application/json" } }, res => {
+    const transport = new URL(url).protocol === "http:" ? http : https;
+    transport.get(url, { headers: { "User-Agent": "NightCamFinds/2.0", Accept: "application/json" } }, res => {
       let body = ""; res.on("data", c => { body += c; });
       res.on("end", () => { if (res.statusCode >= 400) return reject(new Error("Feed " + res.statusCode)); try { resolve(JSON.parse(body)); } catch (err) { reject(err); } });
     }).on("error", reject);
