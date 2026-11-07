@@ -19,7 +19,7 @@ test("affiliate redirects have exactly one click attribution writer", () => {
 test("removing duplicate click tracking keeps Chaturbate postbacks enabled", () => {
   assert.match(start, /\/api\/chaturbate\/postback/);
   assert.match(start, /async function saveConversion\s*\(/);
-  assert.match(start, /await saveConversion\(params\)/);
+  assert.match(start, /await saveConversion\(removePostbackSecrets\(params\)\)/);
 });
 
 test("BongaCash postback endpoint explicitly directs to manual reconciliation", () => {

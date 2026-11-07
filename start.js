@@ -1,6 +1,6 @@
 const http = require("http");
 const crypto = require("crypto");
-const { normalizeChaturbatePostback } = require("./src/services/chaturbate-revshare.cjs");
+const { normalizeChaturbatePostback, removePostbackSecrets } = require("./src/services/chaturbate-revshare.cjs");
 
 const originalCreateServer = http.createServer;
 const databaseUrl = process.env.DATABASE_URL;
@@ -451,7 +451,7 @@ http.createServer = function wrappedCreateServer(handler) {
           user_id: event.userId,
           timestamp: event.timestamp
         });
-        await saveConversion(params);
+        await saveConversion(removePostbackSecrets(params));
         console.log("Chaturbate postback conversion received", JSON.stringify({
           type: event.type,
           clickIdPresent: true,
