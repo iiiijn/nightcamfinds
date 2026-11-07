@@ -31,11 +31,9 @@ function buildQuery(filters = {}) {
       COALESCE(NULLIF(LOWER(ac.campaign), ''), NULLIF(LOWER(bc.campaign), ''), NULLIF(LOWER(cc.campaign_id), ''), 'unknown') AS campaign,
       LOWER(COALESCE(NULLIF(cc.conversion_type, ''), 'unknown')) AS conversion_type,
       COALESCE(NULLIF(UPPER(cc.currency), ''), 'UNSPECIFIED') AS currency,
-      EXISTS (
-        SELECT 1
-        FROM jsonb_each_text(COALESCE(cc.raw_payload, '{}'::jsonb)) AS payload(key, value)
-        WHERE payload.value ~ '^\\{[A-Za-z][A-Za-z0-9_]*\\}$'
-      ) AS is_test,
+      (COALESCE(cc.raw_payload, '{}'::jsonb)::text ~ '\\{[A-Za-z][A-Za-z0-9_]*\\}') AS is_test,
+      (NULLIF(BTRIM(cc.click_id), '') IS NOT NULL) AS has_click_id,
+      (NULLIF(BTRIM(cc.currency), '') IS NOT NULL AND UPPER(BTRIM(cc.currency)) <> 'UNSPECIFIED') AS has_currency,
       COUNT(*)::int AS conversions,
       COUNT(*) FILTER (WHERE cc.matched_click IS TRUE)::int AS matched_conversions,
       COUNT(*) FILTER (WHERE cc.matched_click IS NOT TRUE)::int AS unmatched_conversions,
@@ -50,7 +48,7 @@ function buildQuery(filters = {}) {
       LIMIT 1
     ) ac ON TRUE
     ${where.length ? 'WHERE ' + where.join(' AND ') : ''}
-    GROUP BY 1,2,3,4,5,6,7
+    GROUP BY 1,2,3,4,5,6,7,8,9
     ORDER BY is_test ASC, conversions DESC, currency ASC, country ASC, source ASC, campaign ASC
     LIMIT 2000`,
     params,
