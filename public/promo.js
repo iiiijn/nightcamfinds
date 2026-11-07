@@ -15,10 +15,21 @@
     const fresh = Number(saved.savedAt || 0) > Date.now() - 30 * 24 * 60 * 60 * 1000;
     const url = new URLSearchParams(location.search);
     const clean = (v, fallback) => String(v || fallback).toLowerCase().replace(/[^a-z0-9._-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || fallback;
+    let referral = '';
+    try {
+      const referrer = document.referrer ? new URL(document.referrer) : null;
+      const host = String(referrer?.hostname || '').toLowerCase().replace(/^www\./, '');
+      const currentHost = String(location.hostname || '').toLowerCase().replace(/^www\./, '');
+      if (host && host !== currentHost) referral = host;
+    } catch (_) {}
+    const explicitSource = url.get('utm_source') || url.get('source') || '';
+    const savedSource = fresh ? saved.source : '';
+    const source = explicitSource || savedSource || referral || 'direct';
+    const referralOnly = !explicitSource && !savedSource && Boolean(referral);
     return {
-      source: clean(url.get('utm_source') || url.get('source') || (fresh ? saved.source : ''), 'direct'),
-      medium: clean(url.get('utm_medium') || url.get('medium') || (fresh ? saved.medium : ''), 'unknown'),
-      campaign: clean(url.get('utm_campaign') || url.get('campaign') || (fresh ? saved.campaign : ''), 'organic')
+      source: clean(source, 'direct'),
+      medium: clean(url.get('utm_medium') || url.get('medium') || (fresh ? saved.medium : '') || (referralOnly ? 'referral' : ''), 'unknown'),
+      campaign: clean(url.get('utm_campaign') || url.get('campaign') || (fresh ? saved.campaign : '') || (referralOnly ? 'referral' : ''), 'organic')
     };
   }
 
