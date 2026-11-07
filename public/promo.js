@@ -28,13 +28,13 @@
     const explicitContent = url.get('utm_content') || url.get('content') || '';
     const savedSource = fresh ? saved.source : '';
     const referralOnly = !explicitSource && !savedSource && Boolean(referral);
-    const source = explicitSource || savedSource || referral || 'direct';
+    const source = explicitSource || savedSource || referral || 'unknown';
     const medium = explicitMedium || (fresh ? saved.medium : '') || (referralOnly ? 'referral' : 'unknown');
-    const campaign = explicitCampaign || (fresh ? saved.campaign : '') || (referralOnly ? 'referral' : 'organic');
+    const campaign = explicitCampaign || (fresh ? saved.campaign : '') || (referralOnly ? 'referral' : 'unknown');
     const attribution = {
-      source: clean(source, 'direct'),
+      source: clean(source, 'unknown'),
       medium: clean(medium, 'unknown'),
-      campaign: clean(campaign, 'organic'),
+      campaign: clean(campaign, 'unknown'),
       content: clean(explicitContent || (fresh ? saved.content : ''), ''),
       landingPath: location.pathname,
       savedAt: Date.now()
