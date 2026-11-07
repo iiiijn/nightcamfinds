@@ -73,7 +73,7 @@ function normalizeChaturbatePostback(raw = {}) {
       transactionId: clean(transactionId, 255),
       type,
       payout,
-      currency: currency || "USD",
+      currency,
       amount,
       country: /^[A-Z]{2}$/.test(country) ? country : "UNKNOWN",
       track: get("track"),
@@ -89,6 +89,12 @@ function normalizeChaturbatePostback(raw = {}) {
       attempt: get("attempt")
     }
   };
+}
+
+function removePostbackSecrets(raw = {}) {
+  return Object.fromEntries(
+    Object.entries(raw).filter(([key]) => key.toLowerCase() !== "secret")
+  );
 }
 
 function buildChaturbateUrl(options = {}) {
@@ -126,4 +132,5 @@ function buildChaturbateUrl(options = {}) {
 
 exports.countryTier = countryTier;
 exports.normalizeChaturbatePostback = normalizeChaturbatePostback;
+exports.removePostbackSecrets = removePostbackSecrets;
 exports.buildChaturbateUrl = buildChaturbateUrl;

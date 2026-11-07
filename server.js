@@ -7,6 +7,7 @@ const { rankRoomsByPreferredPlatform } = require("./src/services/platform-rankin
 const { getCountryPage } = require("./country-pages.js");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
+const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
 
 let pgPool = null;
 try {
@@ -252,7 +253,70 @@ const server=http.createServer(async(req,res)=>{
   return send(res,200,JSON.stringify({rooms:list.slice(0,60),countries,platforms,notice:feed.notice,tier1:MARKETS.some(([,iso])=>iso===visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null}),"application/json");
 }
 if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms[Math.floor(Math.random()*Math.min(feed.rooms.length,40))]||null;return send(res,room?200:503,JSON.stringify({room}),"application/json");}
-  if(pathname.startsWith("/bgo/")||pathname.startsWith("/go/")){const isBonga=pathname.startsWith("/bgo/");const id=decodeURIComponent(pathname.slice(isBonga?5:4));const username=id.split(":").pop();const platform=isBonga?"bongacams":"chaturbate";const src=cleanLabel(url.searchParams.get("src"),isBonga?"bonga-card":"cb-card",80);const category=cleanLabel(url.searchParams.get("cat"),"unknown",40);const source=cleanLabel(url.searchParams.get("utm_source")||url.searchParams.get("source"),"direct",40);const medium=cleanLabel(url.searchParams.get("utm_medium")||url.searchParams.get("medium"),"unknown",80);const campaign=cleanLabel(url.searchParams.get("utm_campaign")||url.searchParams.get("campaign"),"unknown",80);const content=cleanLabel(url.searchParams.get("utm_content")||url.searchParams.get("content"),"",120);const country=visitorCountry(req);const agent=String(req.headers["user-agent"]||"").toLowerCase();const device=/mobile|android|iphone|ipad/.test(agent)?"mobile":"desktop";const clickId="ncf_"+Date.now().toString(36)+"_"+require("crypto").randomBytes(8).toString("hex");const visitId=String(url.searchParams.get("vid")||"").match(/^[a-f0-9]{32}$/i)?.[0]||null;const landingPath=String(url.searchParams.get("lp")||pathname).startsWith("/")&&!String(url.searchParams.get("lp")||pathname).startsWith("//")?String(url.searchParams.get("lp")||pathname).slice(0,255):pathname;await countClick({src,country,category,source,campaign,medium,content,device,clickId,platform,visitId,landingPath,trafficClass:classifyUserAgent(agent)});const room=cache.rooms.find(r=>r.platform===platform&&r.username===username);let target;if(isBonga){const supplied=room?.href||"";try{const parsed=supplied?new URL(supplied):null;if(parsed&&/(^|\.)bongacams4?\.com$/i.test(parsed.hostname)){parsed.searchParams.set("click_id",clickId);parsed.searchParams.set("source",source);parsed.searchParams.set("campaign",campaign);parsed.searchParams.set("track",src);target=parsed.toString();}}catch(_){}if(!target)target=`https://bongacams4.com/track?c=${encodeURIComponent(BONGA_CAMPAIGN)}&click_id=${encodeURIComponent(clickId)}&track=${encodeURIComponent(src)}`;}else{const fallback=`https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(src)}&room=${encodeURIComponent(username)}`;target=room?.href?withTrack(room.href,src):fallback;try{const parsed=new URL(target);parsed.searchParams.set("click_id",clickId);parsed.searchParams.set("source",source);parsed.searchParams.set("campaign",campaign);parsed.searchParams.set("medium",medium);target=parsed.toString();}catch(_){target=fallback;}}res.writeHead(302,{Location:target,"Cache-Control":"no-store","Referrer-Policy":"no-referrer"});return res.end();}
+  if (pathname.startsWith("/bgo/") || pathname.startsWith("/go/")) {
+    const isBonga = pathname.startsWith("/bgo/");
+    const id = decodeURIComponent(pathname.slice(isBonga ? 5 : 4));
+    const username = id.split(":").pop();
+    const platform = isBonga ? "bongacams" : "chaturbate";
+    const src = cleanLabel(url.searchParams.get("src"), isBonga ? "bonga-card" : "cb-card", 80);
+    const category = cleanLabel(url.searchParams.get("cat"), "unknown", 40);
+    const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "direct", 40);
+    const medium = cleanLabel(url.searchParams.get("utm_medium") || url.searchParams.get("medium"), "unknown", 80);
+    const campaign = cleanLabel(url.searchParams.get("utm_campaign") || url.searchParams.get("campaign"), "unknown", 80);
+    const content = cleanLabel(url.searchParams.get("utm_content") || url.searchParams.get("content"), "", 120);
+    const country = visitorCountry(req);
+    const agent = String(req.headers["user-agent"] || "").toLowerCase();
+    const device = /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop";
+    const clickId = "ncf_" + Date.now().toString(36) + "_" + require("crypto").randomBytes(8).toString("hex");
+    const visitId = String(url.searchParams.get("vid") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
+    const requestedLandingPath = String(url.searchParams.get("lp") || pathname);
+    const landingPath = requestedLandingPath.startsWith("/") && !requestedLandingPath.startsWith("//") ? requestedLandingPath.slice(0, 255) : pathname;
+    await countClick({ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
+    const room = cache.rooms.find(r => r.platform === platform && r.username === username);
+    let target;
+    if (isBonga) {
+      const supplied = room?.href || "";
+      try {
+        const parsed = supplied ? new URL(supplied) : null;
+        if (parsed && /(^|\.)bongacams4?\.com$/i.test(parsed.hostname)) {
+          parsed.searchParams.set("click_id", clickId);
+          parsed.searchParams.set("source", source);
+          parsed.searchParams.set("campaign", campaign);
+          parsed.searchParams.set("track", src);
+          target = parsed.toString();
+        }
+      } catch (_) {}
+      if (!target) target = "https://bongacams4.com/track?c=" + encodeURIComponent(BONGA_CAMPAIGN) + "&click_id=" + encodeURIComponent(clickId) + "&track=" + encodeURIComponent(src);
+    } else {
+      const built = buildChaturbateUrl({
+        roomUrl: room?.href || "",
+        campaign: CAMPAIGN,
+        tour: TOUR,
+        track: src,
+        clickId,
+        source,
+        medium,
+        utmCampaign: campaign
+      });
+      if (built.ok) {
+        const destination = new URL(built.url);
+        if (destination.pathname === "/in/") destination.searchParams.set("room", username);
+        target = destination.toString();
+      } else {
+        target = "https://chaturbate.com/in/?tour=" + encodeURIComponent(TOUR)
+          + "&campaign=" + encodeURIComponent(CAMPAIGN)
+          + "&track=" + encodeURIComponent(src)
+          + "&room=" + encodeURIComponent(username)
+          + "&click_id=" + encodeURIComponent(clickId)
+          + "&sid=" + encodeURIComponent(clickId)
+          + "&source=" + encodeURIComponent(source)
+          + "&utm_medium=" + encodeURIComponent(medium)
+          + "&utm_campaign=" + encodeURIComponent(campaign);
+      }
+    }
+    res.writeHead(302, { Location: target, "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" });
+    return res.end();
+  }
   const countryRoute = pathname.match(/^\/country\/([a-z]{2})\/$/i);
   if (countryRoute) {
     const feed = await rooms(req);

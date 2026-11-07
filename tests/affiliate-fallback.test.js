@@ -90,7 +90,8 @@ test("affiliate redirects survive database write failures and fall back to local
   assert.equal(target.hostname, "chaturbate.com");
   assert.equal(target.searchParams.get("room"), "fallbackmodel");
   assert.equal(target.searchParams.get("source"), "fallback-test");
-  assert.equal(target.searchParams.get("campaign"), "db-down");
+  assert.equal(target.searchParams.get("campaign"), "fallbackCampaign");
+  assert.equal(target.searchParams.get("utm_campaign"), "db-down");
   assert.match(target.searchParams.get("click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
 
   const stats = JSON.parse(fs.readFileSync(path.join(dataDir, "clicks.json"), "utf8"));
