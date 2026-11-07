@@ -20,8 +20,9 @@ test("Chaturbate and BongaCams use distinct tracked redirect paths", () => {
   assert.ok(serverSource.includes('pathname.startsWith("/bgo/")') && serverSource.includes('pathname.startsWith("/go/")'));
   assert.ok(serverSource.includes('isBonga?"bongacams":"chaturbate"') || serverSource.includes('isBonga ? "bongacams" : "chaturbate"'));
   assert.ok(serverSource.includes("chaturbate.com/in/"));
-  assert.ok(serverSource.includes("bongacams4.com/track") || serverSource.includes("bongacams.com/"));
-  assert.ok(serverSource.includes('searchParams.set("click_id",clickId)') || serverSource.includes('searchParams.set("click_id", clickId)'));
+  assert.ok(serverSource.includes("https://bngprm.com/promo.php"));
+  assert.ok(serverSource.includes('destination.searchParams.set("models[]", username)'));
+  assert.ok(serverSource.includes("await countClick("));
 });
 
 test("affiliate destinations keep separate campaign and tracking parameters", () => {
@@ -29,6 +30,6 @@ test("affiliate destinations keep separate campaign and tracking parameters", ()
   assert.ok(serverSource.includes("click_id"));
   assert.ok(serverSource.includes("tour=") && serverSource.includes("CAMPAIGN"));
   assert.ok(serverSource.includes("buildChaturbateUrl({"));
-  assert.ok(serverSource.includes('searchParams.set("source",source)') || serverSource.includes('searchParams.set("source", source)'));
-  assert.ok(serverSource.includes('searchParams.set("campaign",campaign)') || serverSource.includes('searchParams.set("campaign", campaign)'));
+  assert.ok(serverSource.includes('destination.searchParams.set("c", BONGA_CAMPAIGN)'));
+  assert.ok(serverSource.includes('destination.searchParams.set("models[]", username)'));
 });
