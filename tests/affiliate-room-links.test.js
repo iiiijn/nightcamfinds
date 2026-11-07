@@ -14,7 +14,8 @@ test("Chaturbate room cards and banners use real room IDs through the tracked re
   assert.match(promo, /a\.href = trackUrl\(room, 'banner'\)/);
   assert.match(promo, /function renderBanner\(config, rooms\)/);
   assert.doesNotMatch(promo, /chaturbate:featured/);
-  assert.match(renderer, /href="\\\$\{escapeHtml\(href\)\}"/);
+  assert.match(renderer, /const linkAttrs = isBonga \? "" :/);
+  assert.match(renderer, /const tag = isBonga \? "article" : "a"/);
   assert.match(renderer, /\/go\//);
 });
 
@@ -28,7 +29,7 @@ test("BongaCams cards are visible but cannot send traffic to an unverified desti
   assert.doesNotMatch(app, /\/bgo\//);
   assert.doesNotMatch(promo, /renderStrip\(bcPromo/);
   assert.match(renderer, /BongaCash link pending verification/);
-  assert.doesNotMatch(renderer, /href="\\\$\{escapeHtml\(href\)\}"/);
+  assert.match(renderer, /const linkAttrs = isBonga \? "" :/);
   assert.match(server, /if \(isBonga\) \{\s*return send\(res, 503/);
 });
 
