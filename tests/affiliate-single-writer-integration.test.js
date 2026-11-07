@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const net = require("node:net");
+const http = require("node:http");
 const { spawn, execFileSync } = require("node:child_process");
 
 async function freePort() {
@@ -30,8 +31,14 @@ async function waitForServer(baseUrl, child) {
   throw new Error("Test server did not become ready");
 }
 
-test("verified Chaturbate redirect records one click while unverified Bonga redirect fails closed", async t => {
+test("both verified partner redirects persist a click and platform ledger row", async t => {
   const port = await freePort();
+  const bongaFeedPort = await freePort();
+  const bongaFeed = http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify([{ username: "bongatestmodel", display_name: "Test Bonga Model", gender: "male" }]));
+  });
+  await new Promise(resolve => bongaFeed.listen(bongaFeedPort, "127.0.0.1", resolve));
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-single-writer-project-"));
   const stubRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-single-writer-modules-"));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-single-writer-data-"));
@@ -73,8 +80,6 @@ module.exports = { Pool };
 
   execFileSync(process.execPath, ["scripts/fix-server-syntax.js"], { cwd: projectDir, stdio: "pipe" });
   execFileSync(process.execPath, ["scripts/patch-spa-seo-routes.js"], { cwd: projectDir, stdio: "pipe" });
-  // Exercise the same Bonga redirect rewrite that production startup applies.
-  execFileSync(process.execPath, ["scripts/fix-bonga-affiliate.js"], { cwd: projectDir, stdio: "pipe" });
   const patchedServer = fs.readFileSync(path.join(projectDir, "server.js"), "utf8");
   assert.match(patchedServer, /const visitId\s*=\s*String\(url\.searchParams\.get\(["']vid["']\)/);
   assert.match(patchedServer, /landingPath/);
@@ -93,7 +98,8 @@ module.exports = { Pool };
       CB_TOUR: "testTour",
       CB_CAMPAIGN: "testCampaign",
       BONGACAMS_CAMPAIGN: "840970",
-      BONGACAMS_ENABLED: "false"
+      BONGACAMS_API_BASE: `http://127.0.0.1:${bongaFeedPort}/promo.php`,
+      BONGACAMS_ENABLED: "true"
     },
     stdio: ["ignore", "ignore", "pipe"]
   });
@@ -103,6 +109,7 @@ module.exports = { Pool };
 
   t.after(() => {
     if (child.exitCode === null) child.kill("SIGTERM");
+    bongaFeed.close();
     fs.rmSync(projectDir, { recursive: true, force: true });
     fs.rmSync(stubRoot, { recursive: true, force: true });
     fs.rmSync(dataDir, { recursive: true, force: true });
@@ -121,7 +128,10 @@ module.exports = { Pool };
   const bonga = await fetch(`${baseUrl}/bgo/bongatestmodel?src=bonga-single-writer&source=regression-test`, {
     redirect: "manual", headers: { "cf-ipcountry": "GB", "user-agent": "single-writer-test" }
   });
-  assert.equal(bonga.status, 503);
+  assert.equal(bonga.status, 302);
+  const bongaTarget = new URL(bonga.headers.get("location"));
+  assert.equal(bongaTarget.hostname, "bngprm.com");
+  assert.equal(bongaTarget.searchParams.get("models[]"), "bongatestmodel");
 
   await new Promise(resolve => setTimeout(resolve, 150));
   const queries = fs.readFileSync(queryLog, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line));
@@ -130,10 +140,12 @@ module.exports = { Pool };
   const cbLedger = queries.filter(q => /INSERT INTO cb_clicks/i.test(q.sql));
   const bongaLedger = queries.filter(q => /INSERT INTO bonga_clicks/i.test(q.sql));
 
-  assert.equal(attemptedInserts.length, 2, "only the verified Chaturbate redirect writes, including its visit-aware attempt and legacy fallback");
-  assert.equal(inserts.length, 1, "only one verified partner click must persist");
+  assert.equal(attemptedInserts.length, 4, "both redirects try the visit-aware write, then the legacy schema fallback");
+  assert.equal(inserts.length, 2, "both verified partner clicks must persist");
   assert.equal(cbLedger.length, 1, "the Chaturbate redirect must produce one Chaturbate ledger row");
-  assert.equal(bongaLedger.length, 0, "unverified BongaCams traffic must not be recorded as a completed partner redirect");
+  assert.equal(bongaLedger.length, 1, "the BongaCams redirect must produce one Bonga ledger row");
   assert.equal(inserts[0].params[9], cbLedger[0].params[0], "Chaturbate ledger must reuse the primary click ID");
-  assert.equal(inserts[0].params[7], "room-cbtestmodel", "the existing content field must identify the clicked broadcaster");
+  assert.equal(inserts[0].params[7], "room-cbtestmodel", "the existing content field must identify the Chaturbate broadcaster");
+  assert.equal(inserts[1].params[9], bongaLedger[0].params[1], "Bonga ledger must reuse the primary click ID");
+  assert.equal(inserts[1].params[7], "room-bongatestmodel", "the existing content field must identify the Bonga broadcaster");
 });
