@@ -149,12 +149,13 @@ test('engagement endpoint rate-limits and BongaCash remains manual-only', () => 
 });
 
 
-test('main directory attributes external referrers and persists first-touch campaign context', () => {
+test('main directory attributes external referrers and persists campaign context', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const app = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
   assert.match(app, /new URL\(document\.referrer\)/);
   assert.match(app, /referrerHost !== currentHost/);
+  assert.match(app, /hasReferralAttribution = Boolean\(referralSource\) && !incomingAttribution\.source\.trim\(\)/);
   assert.match(app, /source: incomingAttribution\.source \|\| \(hasReferralAttribution \? referralSource : "direct"\)/);
   assert.match(app, /localStorage\.setItem\("ncf_attribution", JSON\.stringify\(savedAttribution\)\)/);
   assert.match(app, /vid: visitId/);
