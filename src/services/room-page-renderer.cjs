@@ -59,10 +59,10 @@ function card(room, category = "all", pagePath = "/") {
     [Number(room.viewerCount || 0).toLocaleString() + " watching", ""],
     room.country ? [room.countryName || room.country, ""] : null
   ].filter(Boolean).map(([label, extra]) => `<span class="badge${extra ? " " + extra : ""}">${escapeHtml(label)}</span>`).join("");
-  const tag = isBonga ? "article" : "a";
-  const linkAttrs = isBonga ? "" : ` href="${escapeHtml(href)}" rel="sponsored nofollow noopener"`;
-  const cardClass = isBonga ? "card card-unavailable" : "card";
-  const action = isBonga ? "BongaCash link pending verification" : "Watch on Chaturbate";
+  const tag = "a";
+  const linkAttrs = ` href="${escapeHtml(href)}" rel="sponsored nofollow noopener"`;
+  const cardClass = "card";
+  const action = isBonga ? "Watch on BongaCams" : "Watch on Chaturbate";
   return `<${tag} class="${cardClass}"${linkAttrs}>${image ? `<img class="thumb" src="${escapeHtml(image)}" alt="${escapeHtml(room.displayName || room.username)} live room preview" loading="lazy" decoding="async">` : '<div class="thumb" aria-hidden="true"></div>'}<div class="meta"><div class="badges">${badges}</div><strong>${escapeHtml(room.displayName || room.username)}</strong><p class="muted subject">${escapeHtml(room.roomSubject || "Live room")}</p><span class="${isBonga ? "btn-disabled" : "btn"}">${action}</span></div></${tag}>`;
 }
 
