@@ -78,7 +78,7 @@ module.exports = { Pool };
   const patchedServer = fs.readFileSync(path.join(projectDir, "server.js"), "utf8");
   assert.match(patchedServer, /const visitId\s*=\s*String\(url\.searchParams\.get\(["']vid["']\)/);
   assert.match(patchedServer, /landingPath/);
-  assert.match(patchedServer, /trafficClass:classifyUserAgent\(agent\)/);
+  assert.match(patchedServer, /trafficClass:\s*classifyUserAgent\(agent\)/);
 
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["-e", "require('./route.js')"], {
