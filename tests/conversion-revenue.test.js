@@ -9,6 +9,11 @@ test('groups payouts by currency and separates macro-placeholder callbacks', () 
   assert.match(built.text, /GROUP BY 1,2,3,4,5,6,7/);
   assert.match(built.text, /jsonb_each_text/);
   assert.match(built.text, /AS is_test/);
+  assert.match(built.text, /AS match_status/);
+  assert.match(built.text, /missing_click_id/);
+  assert.match(built.text, /click_id_not_found/);
+  assert.match(built.text, /cc\.matched_click IS TRUE/);
+  assert.match(built.text, /GROUP BY 1,2,3,4,5,6,7,8/);
   assert.match(built.text, /matched_conversions/);
   assert.match(built.text, /unmatched_conversions/);
   assert.match(built.text, /SUM\(cc\.payout\)/);
