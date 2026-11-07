@@ -268,3 +268,18 @@ footer span { flex: 1 1 100%; }
     z-index: auto;
   }
 }
+
+/* Mobile polish: hide empty partner promo shells and protect compact header labels. */
+.promo-strip:empty { display: none; }
+@media (max-width: 640px) {
+  .topbar select { flex: 0 0 118px; min-width: 0; font-size: 12px; padding-left: 8px; padding-right: 6px; }
+  .header-tools { gap: 8px; }
+  .header-tools input { flex: 1 1 52%; min-width: 0; }
+  .header-tools select { flex: 1 1 38%; min-width: 0; font-size: 12px; padding-left: 8px; padding-right: 6px; }
+  .site-header { backdrop-filter: none; }
+}
+@media (max-width: 380px) {
+  .topbar select { flex-basis: 104px; }
+  .header-tools input { flex-basis: 50%; }
+  .header-tools select { flex-basis: 40%; }
+}
