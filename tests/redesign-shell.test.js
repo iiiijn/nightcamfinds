@@ -28,10 +28,13 @@ test("age gate blurs real room thumbnails until the visitor accepts", () => {
   const html = read("public/index.html");
   const css = read("public/styles.css");
   const app = read("public/app.js");
+  const countryPages = read("country-pages.js");
   assert.match(html, /age-pending/);
   assert.match(css, /\.age-pending \.thumb\s*\{\s*filter:\s*blur\(/);
   assert.match(app, /classList\.remove\("age-pending"\)/);
   assert.match(app, /localStorage\.setItem\("ncf18", "1"\)/);
+  assert.match(countryPages, /class="age-gate"/);
+  assert.match(countryPages, /classList\.remove\("age-pending"\)/);
 });
 
 test("homepage presentation is rendered from live API rooms, not generated sample profiles", () => {
