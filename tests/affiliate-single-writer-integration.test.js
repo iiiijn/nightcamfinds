@@ -36,7 +36,7 @@ test("both verified partner redirects persist a click and platform ledger row", 
   const bongaFeedPort = await freePort();
   const bongaFeed = http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify([{ username: "bongatestmodel", display_name: "Test Bonga Model", gender: "male" }]));
+    res.end(JSON.stringify([{ username: "bongatestmodel", display_name: "Test Bonga Model", gender: "male", room_url: "https://www.bongacams.com/bongatestmodel" }]));
   });
   await new Promise(resolve => bongaFeed.listen(bongaFeedPort, "127.0.0.1", resolve));
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-single-writer-project-"));
