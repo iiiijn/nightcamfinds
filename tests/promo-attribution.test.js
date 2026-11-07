@@ -33,8 +33,8 @@ test("directory room cards keep referral and visit attribution on outbound redir
 test("room actions identify the destination affiliate platform", () => {
   const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
   const renderer = fs.readFileSync(path.join(__dirname, "../src/services/room-page-renderer.cjs"), "utf8");
-  assert.match(app, /Watch on BongaCams/);
+  assert.match(app, /BongaCash link pending verification/);
   assert.match(app, /Watch on Chaturbate/);
-  assert.match(renderer, /Watch on BongaCams/);
+  assert.match(renderer, /BongaCash link pending verification/);
   assert.match(renderer, /Watch on Chaturbate/);
 });
