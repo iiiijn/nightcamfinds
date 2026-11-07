@@ -91,6 +91,12 @@ function normalizeChaturbatePostback(raw = {}) {
   };
 }
 
+function removePostbackSecrets(raw = {}) {
+  return Object.fromEntries(
+    Object.entries(raw).filter(([key]) => key.toLowerCase() !== "secret")
+  );
+}
+
 function buildChaturbateUrl(options = {}) {
   const campaign = clean(options.campaign, 80);
   const tour = clean(options.tour, 80);
@@ -126,4 +132,5 @@ function buildChaturbateUrl(options = {}) {
 
 exports.countryTier = countryTier;
 exports.normalizeChaturbatePostback = normalizeChaturbatePostback;
+exports.removePostbackSecrets = removePostbackSecrets;
 exports.buildChaturbateUrl = buildChaturbateUrl;
