@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const migration = fs.readFileSync(path.join(__dirname, "../sql/005_bongacash_daily_reconciliation.sql"), "utf8");
 const route = fs.readFileSync(path.join(__dirname, "../route.js"), "utf8");
-const startup = fs.readFileSync(path.join(__dirname, "../scripts/run-production-migrations.js"), "utf8");
+const { getMigrationPlan } = require("../scripts/migration-plan");
 
 test("BongaCash reconciliation migration matches the API table contract", () => {
   const match = migration.match(/CREATE TABLE IF NOT EXISTS bongacash_daily_reconciliation\s*\(([\s\S]*?)\n\);/i);
