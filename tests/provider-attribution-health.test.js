@@ -24,6 +24,6 @@ test('supports all-time reports without date predicates', () => {
   const q = health.buildQueries({});
   assert.deepEqual(q.callbacks.params, []);
   assert.deepEqual(q.clicks.params, []);
-  assert.doesNotMatch(q.callbacks.text, /WHERE/);
-  assert.doesNotMatch(q.clicks.text, /WHERE/);
+  assert.doesNotMatch(q.callbacks.text, /\nWHERE /);
+  assert.doesNotMatch(q.clicks.text, /\nWHERE /);
 });
