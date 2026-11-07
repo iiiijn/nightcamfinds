@@ -54,14 +54,25 @@ const incomingAttribution = {
   campaign: queryParams.get("utm_campaign") || queryParams.get("campaign") || "",
   content: queryParams.get("utm_content") || queryParams.get("content") || ""
 };
-const hasIncomingAttribution = Object.values(incomingAttribution).some((value) => String(value).trim() !== "");
+let referralSource = "";
+try {
+  const referrer = document.referrer ? new URL(document.referrer) : null;
+  const normalizeReferralHost = (hostname) => String(hostname || "").toLowerCase().replace(/^www\./, "");
+  const referrerHost = referrer ? normalizeReferralHost(referrer.hostname) : "";
+  const currentHost = normalizeReferralHost(location.hostname);
+  if (referrerHost && referrerHost !== currentHost) {
+    referralSource = referrerHost.slice(0, 30);
+  }
+} catch (_) {}
+const hasExplicitAttribution = Object.values(incomingAttribution).some((value) => String(value).trim() !== "");
+const hasReferralAttribution = Boolean(referralSource) && !hasExplicitAttribution;
 let savedAttribution = {};
 try { savedAttribution = JSON.parse(localStorage.getItem("ncf_attribution") || "{}"); } catch (_) { savedAttribution = {}; }
-if (hasIncomingAttribution) {
+if (hasExplicitAttribution || hasReferralAttribution) {
   savedAttribution = {
-    source: incomingAttribution.source || "direct",
-    medium: incomingAttribution.medium || "unknown",
-    campaign: incomingAttribution.campaign || "organic",
+    source: incomingAttribution.source || (hasReferralAttribution ? referralSource : "direct"),
+    medium: incomingAttribution.medium || (hasReferralAttribution ? "referral" : "unknown"),
+    campaign: incomingAttribution.campaign || (hasReferralAttribution ? "referral" : "organic"),
     content: incomingAttribution.content || "",
     landingPath: location.pathname,
     savedAt: Date.now()
