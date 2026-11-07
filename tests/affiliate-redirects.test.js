@@ -90,6 +90,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   assert.equal(chaturbateTarget.searchParams.get("source"), "redirect-test");
   assert.equal(chaturbateTarget.searchParams.get("utm_medium"), "unit-test");
   assert.match(chaturbateTarget.searchParams.get("click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
+  assert.equal(chaturbateTarget.searchParams.get("sid"), chaturbateTarget.searchParams.get("click_id"));
 
   const placeholderResponse = await fetch(
     `${baseUrl}/go/directory?src=placeholder-test`,
