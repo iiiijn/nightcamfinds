@@ -20,7 +20,9 @@ test("BongaCash reconciliation migration matches the API table contract", () => 
 test("BongaCash reconciliation migration is registered for approved production startup", () => {
   assert.match(migration, /separate explicit approval/i);
   const productionPlan = getMigrationPlan("main");
-  assert.ok(productionPlan.some(item =>
+  assert.ok(!productionPlan.some(item => item.version === "005_bongacash_daily_reconciliation"));
+  const approvedProductionPlan = getMigrationPlan("main", { allowProductionReconciliation: true });
+  assert.ok(approvedProductionPlan.some(item =>
     item.version === "005_bongacash_daily_reconciliation" &&
     item.file === "005_bongacash_daily_reconciliation.sql"
   ));
