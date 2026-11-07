@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const start = fs.readFileSync(path.join(__dirname, "../start.js"), "utf8");
 const helper = fs.readFileSync(path.join(__dirname, "../src/services/chaturbate-revshare.cjs"), "utf8");
+const { removePostbackSecrets } = require("../src/services/chaturbate-revshare.cjs");
 
 test("Chaturbate postbacks accept GET and POST form or JSON payloads", () => {
   assert.ok(start.includes('req.method !== "GET" && req.method !== "POST"'));
@@ -29,6 +30,22 @@ test("normalizer rejects unsupported events and missing transaction data", () =>
   assert.ok(helper.includes("missing_click_id"));
   assert.ok(helper.includes("missing_transaction_id"));
   assert.ok(helper.includes("missing_or_invalid_payout"));
+});
+
+test("postback authentication secrets are removed before conversion persistence", () => {
+  const safe = removePostbackSecrets({
+    click_id: "ncf_test",
+    transaction_id: "tx-1",
+    secret: "do-not-store",
+    Secret: "also-do-not-store",
+    payout: "1.25"
+  });
+  assert.deepEqual(safe, {
+    click_id: "ncf_test",
+    transaction_id: "tx-1",
+    payout: "1.25"
+  });
+  assert.ok(start.includes("saveConversion(removePostbackSecrets(params))"));
 });
 
 test("Chaturbate currency is not silently assumed to be USD", () => {
