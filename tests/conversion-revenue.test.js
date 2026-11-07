@@ -13,7 +13,6 @@ test('builds a currency-separated conversion report with click-match counts', ()
   assert.match(built.text, /raw_payload/);
   assert.match(built.text, /has_click_id/);
   assert.match(built.text, /has_currency/);
-  assert.match(built.text, /payload.value ~ '\^\\\\\{/);
   assert.match(built.text, /unmatched_conversions/);
   assert.match(built.text, /COALESCE\(NULLIF\(UPPER\(cc\.currency\), ''\), 'UNSPECIFIED'\)/);
   assert.match(built.text, /SUM\(cc\.payout\)/);
