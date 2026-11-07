@@ -14,6 +14,7 @@ const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
+const { cleanRoomTitle, filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const allowEngagement = createEngagementRateLimiter();
 
 const originalCreateServer = http.createServer;
@@ -89,13 +90,16 @@ function imageFrom(room) {
 function normalizeBonga(room) {
   const username = text(room.username || room.user_name || room.nickname || room.model || room.id);
   if (!username) return null;
-  const rawGender = String(room.gender || room.sex || "female").toLowerCase();
-  const gender = rawGender.includes("trans") || rawGender === "t" ? "trans" : rawGender.includes("male") || rawGender === "m" ? "male" : rawGender.includes("couple") || rawGender === "c" ? "couples" : "female";
+  const rawGender = String(room.gender || room.sex || "").trim().toLowerCase();
+  const gender = /^(?:trans|transgender|t)$/.test(rawGender) ? "trans"
+    : /^(?:male|man|men|m)$/.test(rawGender) ? "male"
+    : /^(?:female|woman|women|f)$/.test(rawGender) ? "female"
+    : /^(?:couple|couples|c)$/.test(rawGender) ? "couples" : "";
   const country = String(room.homecountry || room.country || room.country_code || "").toUpperCase().match(/^[A-Z]{2}$/)?.[0] || "";
   const viewers = Number(room.members_count ?? room.num_users ?? room.viewers ?? room.viewer_count ?? 0) || 0;
-  const topic = text(room.chat_topic || room.room_subject || room.topic || (Array.isArray(room.tags) ? room.tags.join(", ") : room.tags));
+  const topic = cleanRoomTitle(text(room.chat_topic || room.room_subject || room.topic || (Array.isArray(room.tags) ? room.tags.join(", ") : room.tags)));
   const href = room.chat_url || room.direct_chat_url || room.room_url || room.url || "";
-  return { id: `bongacams:${username}`, platform: "bongacams", platformName: "BongaCams", username, displayName: text(room.display_name || room.name || username) || username, gender, country, countryName: country, location: text(room.hometown || room.location || room.homecountry), viewerCount: viewers, isHd: Boolean(room.hd_cam || room.hd || /\bhd\b/i.test(topic)), isNew: Boolean(room.is_new || room.new), image: imageFrom(room), roomSubject: topic, languages: text(room.primary_language || room.language || room.languages), href };
+  return { id: `bongacams:${username}`, platform: "bongacams", platformName: "BongaCams", username, displayName: cleanRoomTitle(text(room.display_name || room.name || username)) || username, gender, country, countryName: country, location: text(room.hometown || room.location || room.homecountry), viewerCount: viewers, isHd: Boolean(room.hd_cam || room.hd || /\bhd\b/i.test(topic)), isNew: Boolean(room.is_new || room.new), image: imageFrom(room), roomSubject: topic, languages: text(room.primary_language || room.language || room.languages), href };
 }
 
 async function bongaRooms() {
@@ -103,8 +107,9 @@ async function bongaRooms() {
   const query = new URLSearchParams({ c: BONGA_CAMPAIGN, type: "api", api_v: "1", limit: "10", api_type: "json" });
   const data = await getJson(`${api}?${query.toString()}`);
   const rows = Array.isArray(data) ? data : (data.results || data.rooms || data.data || data.models || []);
-  const rooms = rows.map(normalizeBonga).filter(Boolean).filter(r => r.href || r.username);
-  console.log(`BongaCams API returned ${rooms.length} rooms`);
+  const normalized = rows.map(normalizeBonga).filter(Boolean);
+  const rooms = filterDisplayableRooms(normalized);
+  console.log(`BongaCams API returned ${rooms.length} validated rooms`);
   return rooms;
 }
 
