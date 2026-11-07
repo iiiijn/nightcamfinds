@@ -76,7 +76,7 @@ module.exports = { Pool };
   // Exercise the same Bonga redirect rewrite that production startup applies.
   execFileSync(process.execPath, ["scripts/fix-bonga-affiliate.js"], { cwd: projectDir, stdio: "pipe" });
   const patchedServer = fs.readFileSync(path.join(projectDir, "server.js"), "utf8");
-  assert.match(patchedServer, /const visitId=String\(url\.searchParams\.get\(["']vid["']\)/);
+  assert.match(patchedServer, /const visitId\s*=\s*String\(url\.searchParams\.get\(["']vid["']\)/);
   assert.match(patchedServer, /landingPath/);
   assert.match(patchedServer, /trafficClass:classifyUserAgent\(agent\)/);
 
