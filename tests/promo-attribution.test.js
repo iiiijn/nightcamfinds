@@ -38,3 +38,11 @@ test("room actions identify the destination affiliate platform", () => {
   assert.match(renderer, /Watch on BongaCams/);
   assert.match(renderer, /Watch on Chaturbate/);
 });
+
+test("sticky live-count promo stays hidden until the full hero has scrolled out of view", () => {
+  const promo = fs.readFileSync(path.join(__dirname, "../public/promo.js"), "utf8");
+  assert.match(promo, /const hero = document\.querySelector\('\.hero'\)/);
+  assert.match(promo, /hero\.getBoundingClientRect\(\)\.bottom <= 0/);
+  assert.match(promo, /heroHasPassed && window\.scrollY > 100/);
+  assert.match(promo, /window\.addEventListener\('scroll', reveal, \{ passive: true \}\)/);
+});
