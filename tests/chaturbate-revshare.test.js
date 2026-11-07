@@ -29,6 +29,38 @@ test("accepts a RevShare purchase and preserves the actual payout", () => {
   assert.equal(result.event.amount, 12.5);
 });
 
+test("accepts the campaign macro used by Chaturbate dynamic postbacks", () => {
+  const result = normalizeChaturbatePostback({
+    click_id: "ncf_abc123",
+    transaction_id: "tx-campaign",
+    type: "revshare_purchase",
+    payout: "2.50",
+    amount: "12.50",
+    currency: "USD",
+    country: "US",
+    campaign: "nightcam-tier-one",
+    source: "x",
+    track: "nightcamfinds"
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.event.campaignId, "nightcam-tier-one");
+  assert.equal(result.event.source, "x");
+  assert.equal(result.event.track, "nightcamfinds");
+});
+
+test("prefers campaign_id when both campaign fields are present", () => {
+  const result = normalizeChaturbatePostback({
+    click_id: "ncf_abc123",
+    transaction_id: "tx-campaign-precedence",
+    type: "revshare_purchase",
+    payout: "1",
+    campaign_id: "canonical-id",
+    campaign: "fallback-name"
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.event.campaignId, "canonical-id");
+});
+
 test("accepts negative payout adjustments and rejects malformed events", () => {
   const adjustment = normalizeChaturbatePostback({
     click_id: "ncf_abc123",
