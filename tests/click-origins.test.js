@@ -26,7 +26,7 @@ test('accepts historical source labels containing spaces and punctuation', () =>
 });
 
 test('keeps source filter values parameterized even when they resemble SQL', () => {
-  const source = "x' OR 1=1 --";
+  const source = "x' or 1=1 --";
   const parsed = origins.parseFilters(new URLSearchParams('source=' + encodeURIComponent(source)));
   assert.equal(parsed.value.source, source);
   const built = origins.buildQuery(parsed.value);
