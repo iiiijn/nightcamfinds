@@ -122,7 +122,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
 
   const statsPath = path.join(dataDir, "clicks.json");
   const stats = JSON.parse(fs.readFileSync(statsPath, "utf8"));
-  assert.equal(stats.total, 1);
+  assert.equal(stats.total, 2);
   assert.equal(stats.byPlatform.chaturbate, 1);
   assert.equal(stats.byPlatform.bongacams, 1);
   assert.equal(stats.countries.US, 1);
