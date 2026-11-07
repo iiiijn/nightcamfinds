@@ -28,7 +28,7 @@ test("affiliate destinations keep separate campaign and tracking parameters", ()
   assert.ok(serverSource.includes("BONGA_CAMPAIGN"));
   assert.ok(serverSource.includes("click_id"));
   assert.ok(serverSource.includes("tour=") && serverSource.includes("CAMPAIGN"));
-  assert.ok(serverSource.includes("withTrack(room.href,src)") || serverSource.includes("withTrack(room.href, src)"));
+  assert.ok(serverSource.includes("buildChaturbateUrl({"));
   assert.ok(serverSource.includes('searchParams.set("source",source)') || serverSource.includes('searchParams.set("source", source)'));
   assert.ok(serverSource.includes('searchParams.set("campaign",campaign)') || serverSource.includes('searchParams.set("campaign", campaign)'));
 });

@@ -73,7 +73,7 @@ function normalizeChaturbatePostback(raw = {}) {
       transactionId: clean(transactionId, 255),
       type,
       payout,
-      currency: currency || "USD",
+      currency,
       amount,
       country: /^[A-Z]{2}$/.test(country) ? country : "UNKNOWN",
       track: get("track"),

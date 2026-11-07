@@ -12,7 +12,7 @@ test("affiliate redirects have exactly one click attribution writer", () => {
   assert.match(server, /async function countClick\s*\(/);
   assert.match(server, /await countClick\(\{[\s\S]*?clickId/);
   assert.match(server, /visitId/);
-  assert.match(server, /trafficClass:classifyUserAgent\(agent\)/);
+  assert.match(server, /trafficClass:\s*classifyUserAgent\(agent\)/);
   assert.match(server, /searchParams\.set\(["']click_id["'],\s*clickId\)/);
 });
 

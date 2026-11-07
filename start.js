@@ -1,5 +1,6 @@
 const http = require("http");
 const crypto = require("crypto");
+const { normalizeChaturbatePostback } = require("./src/services/chaturbate-revshare.cjs");
 
 const originalCreateServer = http.createServer;
 const databaseUrl = process.env.DATABASE_URL;
@@ -390,29 +391,72 @@ http.createServer = function wrappedCreateServer(handler) {
     }
     if (incoming.pathname === "/api/chaturbate/postback" || incoming.pathname === "/cb/postback") {
       try {
-        const params = Object.fromEntries(incoming.searchParams.entries());
-        const configuredSecret = String(process.env.CB_POSTBACK_SECRET || "").trim();
-        // Chaturbate Dynamic Postbacks do not send a generic `secret` macro.
-        // Keep legacy secret support only when Chaturbate actually supplies one.
-        if (configuredSecret && (!params.secret || !safeEqual(params.secret, configuredSecret))) {
-          console.warn("Chaturbate postback rejected: missing or invalid secret");
-          return json(res, 403, { error: "Invalid postback secret." });
+        if (req.method !== "GET" && req.method !== "POST") {
+          return json(res, 405, { error: "Method not allowed." }, { Allow: "GET, POST" });
         }
-        // Chaturbate's URL tester can send literal macro placeholders.
-        // A validation probe must never be stored as a real affiliate conversion.
+        const params = Object.fromEntries(incoming.searchParams.entries());
+        if (req.method === "POST") {
+          const rawBody = await readBody(req);
+          const contentType = String(req.headers["content-type"] || "").split(";")[0].trim().toLowerCase();
+          let bodyParams = {};
+          if (contentType === "application/x-www-form-urlencoded") {
+            bodyParams = Object.fromEntries(new URLSearchParams(rawBody).entries());
+          } else if (contentType === "application/json") {
+            try {
+              bodyParams = JSON.parse(rawBody || "{}");
+              if (!bodyParams || typeof bodyParams !== "object" || Array.isArray(bodyParams)) {
+                return json(res, 400, { error: "Postback JSON must be an object." });
+              }
+            } catch {
+              return json(res, 400, { error: "Invalid postback JSON." });
+            }
+          } else {
+            return json(res, 415, { error: "Unsupported postback content type." });
+          }
+          Object.assign(params, bodyParams);
+        }
         const macroPlaceholder = value => /^\{[a-z_]+\}$/i.test(String(value || "").trim());
         if (macroPlaceholder(params.click_id) || macroPlaceholder(params.transaction_id) || macroPlaceholder(params.type)) {
           console.log("Chaturbate postback test acknowledged; no conversion recorded");
           res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
           return res.end("OK");
         }
-        // Require the identifiers needed for safe attribution and idempotency.
-        if (!params.click_id || !params.transaction_id) {
-          console.warn("Chaturbate postback rejected: missing click_id or transaction_id");
-          return json(res, 400, { error: "Missing click_id or transaction_id." });
+        const normalized = normalizeChaturbatePostback(params);
+        if (!normalized.ok) {
+          console.warn("Chaturbate postback rejected:", normalized.reason);
+          return json(res, 400, { error: "Invalid postback event.", reason: normalized.reason });
         }
+        const configuredSecret = String(process.env.CB_POSTBACK_SECRET || "").trim();
+        if (!configuredSecret) {
+          console.warn("Chaturbate postback rejected: CB_POSTBACK_SECRET is not configured");
+          return json(res, 503, { error: "Postback authentication is not configured." });
+        }
+        if (!params.secret || !safeEqual(params.secret, configuredSecret)) {
+          console.warn("Chaturbate postback rejected: missing or invalid shared secret");
+          return json(res, 403, { error: "Invalid postback authentication." });
+        }
+        const event = normalized.event;
+        Object.assign(params, {
+          click_id: event.clickId,
+          transaction_id: event.transactionId,
+          type: event.type,
+          payout: event.payout,
+          amount: event.amount,
+          currency: event.currency,
+          country: event.country,
+          track: event.track,
+          source: event.source,
+          campaign_id: event.campaignId,
+          program_id: event.programId,
+          user_id: event.userId,
+          timestamp: event.timestamp
+        });
         await saveConversion(params);
-        console.log("Chaturbate postback conversion recorded", JSON.stringify({ type: params.type || "", clickIdPresent: true, transactionIdPresent: true }));
+        console.log("Chaturbate postback conversion received", JSON.stringify({
+          type: event.type,
+          clickIdPresent: true,
+          transactionIdPresent: true
+        }));
         res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
         return res.end("OK");
       } catch (err) {
