@@ -1,6 +1,6 @@
 "use strict";
 
-const UNSAFE_ROOM_TEXT = /\\b(?:underage|preteen|teen(?:age)?|child(?:ren)?|kids?|lolita|barely\\s*legal|18\\s*yo|19\\s*yo)\\b/i;
+const UNSAFE_ROOM_TEXT = /\b(?:underage|preteen|teen(?:age)?|child(?:ren)?|kids?|lolita|barely\s*legal|18\s*yo|19\s*yo)\b/i;
 
 function isDisplayableRoom(room, rawText = "") {
   if (!room || typeof room !== "object") return false;
@@ -23,8 +23,8 @@ function isDisplayableRoom(room, rawText = "") {
   if (destination.protocol !== "https:") return false;
   const host = destination.hostname.toLowerCase();
   const validHost = platform === "chaturbate"
-    ? /(^|\\.)chaturbate\\.com$/.test(host)
-    : /(^|\\.)bongacams4?\\.com$/.test(host);
+    ? /(^|\.)chaturbate\.com$/.test(host)
+    : /(^|\.)bongacams4?\.com$/.test(host);
   if (!validHost) return false;
 
   const displayText = [rawText, room.displayName, room.roomSubject].join(" ");
