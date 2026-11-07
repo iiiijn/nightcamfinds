@@ -13,7 +13,10 @@ test("affiliate redirects have exactly one click attribution writer", () => {
   assert.match(server, /await countClick\(\{[\s\S]*?clickId/);
   assert.match(server, /visitId/);
   assert.match(server, /trafficClass:\s*classifyUserAgent\(agent\)/);
-  assert.match(server, /searchParams\.set\(["']click_id["'],\s*clickId\)/);
+  const helper = fs.readFileSync(path.join(__dirname, "../src/services/chaturbate-revshare.cjs"), "utf8");
+  assert.match(helper, /searchParams\.set\(["']click_id["'],\s*clickId\)/);
+  assert.match(server, /destination\.searchParams\.set\(["']models\[\]["'],\s*username\)/);
+  assert.doesNotMatch(server, /destination\.searchParams\.set\(["']click_id["'],\s*clickId\)/);
 });
 
 test("removing duplicate click tracking keeps Chaturbate postbacks enabled", () => {
