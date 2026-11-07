@@ -7,8 +7,11 @@ test('builds a currency-separated conversion report with click-match counts', ()
   const built = conversionRevenue.buildQuery({ from: '2026-11-01', to: '2026-11-07' });
   assert.equal(built.error, undefined);
   assert.deepEqual(built.params, ['2026-11-01', '2026-11-07']);
-  assert.match(built.text, /GROUP BY 1,2,3,4,5,6/);
+  assert.match(built.text, /GROUP BY 1,2,3,4,5,6,7/);
   assert.match(built.text, /matched_conversions/);
+  assert.match(built.text, /is_test/);
+  assert.match(built.text, /jsonb_each_text/);
+  assert.match(built.text, /payload.value ~ '\^\\\\\{/);
   assert.match(built.text, /unmatched_conversions/);
   assert.match(built.text, /COALESCE\(NULLIF\(UPPER\(cc\.currency\), ''\), 'UNSPECIFIED'\)/);
   assert.match(built.text, /SUM\(cc\.payout\)/);
@@ -29,6 +32,6 @@ test('uses parameterized UTC date filters', () => {
 
 test('does not combine different currencies into a single aggregate group', () => {
   const built = conversionRevenue.buildQuery({});
-  assert.match(built.text, /GROUP BY 1,2,3,4,5,6/);
+  assert.match(built.text, /GROUP BY 1,2,3,4,5,6,7/);
   assert.match(built.text, /UNSPECIFIED/);
 });
