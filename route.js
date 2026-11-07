@@ -12,6 +12,7 @@ const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRa
 const clickOrigins = require("./src/services/click-origins.cjs");
 const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
+const providerHealth = require("./src/services/provider-attribution-health.cjs");
 const allowEngagement = createEngagementRateLimiter();
 
 const originalCreateServer = http.createServer;
@@ -394,6 +395,46 @@ http.createServer = function routeDashboard(handler) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
         console.error("Traffic quality analytics failed:", err.message);
         return sendJson(res, 500, { error: "Could not load traffic quality analytics." });
+      }
+    }
+    if (incoming.pathname === "/api/provider-attribution-health") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const queries = providerHealth.buildQueries(Object.fromEntries(incoming.searchParams.entries()));
+      if (queries.error) return sendJson(res, 400, { error: queries.error });
+      try {
+        const [callbacks, clicks] = await Promise.all([
+          pool.query(queries.callbacks.text, queries.callbacks.params),
+          pool.query(queries.clicks.text, queries.clicks.params)
+        ]);
+        const c = callbacks.rows[0] || {};
+        const byPlatform = { chaturbate: 0, bongacams: 0, other: 0 };
+        for (const row of clicks.rows) {
+          const platform = String(row.platform || "").toLowerCase();
+          const count = Number(row.clicks || 0);
+          if (platform === "chaturbate") byPlatform.chaturbate += count;
+          else if (platform === "bongacams") byPlatform.bongacams += count;
+          else byPlatform.other += count;
+        }
+        return sendJson(res, 200, {
+          callbacks: {
+            total: Number(c.total || 0), real: Number(c.real || 0), test: Number(c.test || 0),
+            matched: Number(c.matched || 0), missingClickId: Number(c.missing_click_id || 0),
+            clickIdNotFound: Number(c.click_id_not_found || 0)
+          },
+          clicks: byPlatform,
+          filters: queries.filters,
+          timezone: "UTC",
+          notes: {
+            chaturbate: "Callback counts describe received postback rows, not verified cash received. Duplicate transaction IDs are prevented by the existing unique constraint.",
+            bongacash: "BongaCash clicks are recorded redirects only. No automatic conversion postback is configured; use the separate manual reconciliation report."
+          }
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Attribution health requires the existing affiliate click and Chaturbate conversion tables." });
+        console.error("Provider attribution health failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load provider attribution health." });
       }
     }
     if (incoming.pathname === "/api/campaign-performance") {
