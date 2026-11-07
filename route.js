@@ -422,6 +422,38 @@ http.createServer = function routeDashboard(handler) {
         return sendJson(res, 500, { error: "Could not load campaign performance." });
       }
     }
+    if (incoming.pathname === "/api/conversion-revenue") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const query = conversionRevenue.buildQuery(Object.fromEntries(incoming.searchParams.entries()));
+      if (query.error) return sendJson(res, 400, { error: query.error });
+      try {
+        const result = await pool.query(query.text, query.params);
+        return sendJson(res, 200, {
+          rows: result.rows.map(row => ({
+            country: row.country,
+            platform: row.platform,
+            source: row.source,
+            campaign: row.campaign,
+            conversionType: row.conversion_type,
+            currency: row.currency,
+            conversions: Number(row.conversions || 0),
+            matchedConversions: Number(row.matched_conversions || 0),
+            unmatchedConversions: Number(row.unmatched_conversions || 0),
+            reportedPayout: String(row.reported_payout || "0")
+          })),
+          filters: query.filters,
+          truncated: result.rows.length === 2000,
+          timezone: "UTC",
+          note: "Chaturbate postback events only. Payouts remain separated by currency. Matched means the stored postback was linked to a tracked click ID. BongaCash manual daily reconciliation is displayed separately and is not included in this event report."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Conversion report requires the existing Chaturbate postback tables and click attribution schema." });
+        console.error("Conversion revenue report failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load conversion and revenue report." });
+      }
+    }
     if (incoming.pathname === "/api/click-origins") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
       if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
