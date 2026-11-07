@@ -19,17 +19,20 @@ test("Chaturbate room cards and banners use real room IDs through the tracked re
   assert.match(renderer, /\/go\//);
 });
 
-test("BongaCams cards are visible but cannot send traffic to an unverified destination", () => {
+test("BongaCams room cards use the tracked room redirect and account-generated Direct Link target", () => {
   const app = read("public/app.js");
   const promo = read("public/promo.js");
   const renderer = read("src/services/room-page-renderer.cjs");
   const server = read("server.js");
-  assert.match(app, /BongaCash link pending verification/);
-  assert.match(app, /document\.createElement\(isBonga \? "article" : "a"\)/);
-  assert.doesNotMatch(app, /\/bgo\//);
-  assert.doesNotMatch(promo, /renderStrip\(bcPromo/);
-  assert.match(renderer, /BongaCash link pending verification/);
-  assert.match(renderer, /const linkAttrs = isBonga \? "" :/);
+  assert.match(app, /const redirect = isBonga \? "\/bgo\/" : "\/go\/"/);
+  assert.match(app, /Watch on BongaCams/);
+  assert.match(promo, /renderStrip\(bcPromo, bc, 'Live on BongaCams'/);
+  assert.match(renderer, /const redirect = isBonga \? "\/bgo\/" : "\/go\/"/);
+  assert.match(renderer, /Watch on BongaCams/);
+  assert.match(server, /destination\.searchParams\.set\("type", "direct_link"\)/);
+  assert.match(server, /destination\.searchParams\.set\("models\[\]", username\)/);
+  assert.match(server, /destination\.searchParams\.set\("c", BONGA_CAMPAIGN\)/);
+  assert.match(server, /await countClick\(\{ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
   assert.match(server, /if \(isBonga\) \{\s*return send\(res, 503/);
 });
 
