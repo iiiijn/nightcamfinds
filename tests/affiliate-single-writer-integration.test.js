@@ -30,7 +30,7 @@ async function waitForServer(baseUrl, child) {
   throw new Error("Test server did not become ready");
 }
 
-test("each production affiliate redirect writes one click and one matching platform ledger row", async t => {
+test("verified Chaturbate redirect records one click while unverified Bonga redirect fails closed", async t => {
   const port = await freePort();
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-single-writer-project-"));
   const stubRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-single-writer-modules-"));
@@ -118,7 +118,7 @@ module.exports = { Pool };
   const bonga = await fetch(`${baseUrl}/bgo/bongatestmodel?src=bonga-single-writer&source=regression-test`, {
     redirect: "manual", headers: { "cf-ipcountry": "GB", "user-agent": "single-writer-test" }
   });
-  assert.equal(bonga.status, 302);
+  assert.equal(bonga.status, 503);
 
   await new Promise(resolve => setTimeout(resolve, 150));
   const queries = fs.readFileSync(queryLog, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line));
@@ -127,10 +127,9 @@ module.exports = { Pool };
   const cbLedger = queries.filter(q => /INSERT INTO cb_clicks/i.test(q.sql));
   const bongaLedger = queries.filter(q => /INSERT INTO bonga_clicks/i.test(q.sql));
 
-  assert.equal(attemptedInserts.length, 4, "each redirect tries the visit-aware write, then the legacy schema fallback");
-  assert.equal(inserts.length, 2, "two redirects must persist exactly two primary click rows using the legacy schema");
+  assert.equal(attemptedInserts.length, 2, "only the verified Chaturbate redirect writes, including its visit-aware attempt and legacy fallback");
+  assert.equal(inserts.length, 1, "only one verified partner click must persist");
   assert.equal(cbLedger.length, 1, "the Chaturbate redirect must produce one Chaturbate ledger row");
-  assert.equal(bongaLedger.length, 1, "the BongaCams redirect must produce one Bonga ledger row");
+  assert.equal(bongaLedger.length, 0, "unverified BongaCams traffic must not be recorded as a completed partner redirect");
   assert.equal(inserts[0].params[9], cbLedger[0].params[0], "Chaturbate ledger must reuse the primary click ID");
-  assert.equal(inserts[1].params[9], bongaLedger[0].params[1], "Bonga ledger must reuse the primary click ID");
 });
