@@ -217,13 +217,18 @@
 
   if (sticky) {
     let shown = false;
+    const hero = document.querySelector('.hero');
     const reveal = () => {
       if (shown || sticky.innerHTML.trim() === '') return;
-      if (window.scrollY > Math.max(500, document.body.scrollHeight * 0.35)) {
+      // Keep the fixed live-count promo out of the first-screen hero area.
+      // Reveal it only after the visitor has scrolled past the full hero.
+      const heroHasPassed = !hero || hero.getBoundingClientRect().bottom <= 0;
+      if (heroHasPassed && window.scrollY > 100) {
         shown = true;
         sticky.hidden = false;
       }
     };
     window.addEventListener('scroll', reveal, { passive: true });
+    reveal();
   }
 })();
