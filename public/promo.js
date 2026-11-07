@@ -195,7 +195,7 @@
     const liveCount = results[3].status === 'fulfilled' ? results[3].value : null;
 
     if (config.chaturbate?.enabled !== false) renderStrip(cbPromo, cb, 'Live on Chaturbate', 'Chaturbate');
-    // BongaCams room links stay hidden until the account-generated room deeplink format is verified.
+    if (config.bongacams?.enabled !== false) renderStrip(bcPromo, bc, 'Live on BongaCams', 'BongaCams');
     renderBanner(config.chaturbate, cb);
 
     if (sticky && liveCount !== null) {
