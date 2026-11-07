@@ -52,7 +52,7 @@ function card(room, category = "all", pagePath = "/") {
   const href = redirect + encodeURIComponent(room.id) + "?" + params.toString();
   const image = safeImage(room.image);
   const badges = [
-    [isBonga ? "BongaCams" : "Chaturbate", "platform"],
+    [isBonga ? "BongaCams" : "Chaturbate", isBonga ? "platform bongacams" : "platform chaturbate"],
     ["Live", "live"],
     room.isHd ? ["HD", ""] : null,
     room.isNew ? ["New", ""] : null,
