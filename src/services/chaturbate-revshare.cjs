@@ -78,7 +78,7 @@ function normalizeChaturbatePostback(raw = {}) {
       country: /^[A-Z]{2}$/.test(country) ? country : "UNKNOWN",
       track: get("track"),
       source: get("source"),
-      campaignId: get("campaign_id"),
+      campaignId: get("campaign_id", "campaign"),
       programId: get("program_id"),
       programName: get("program_name"),
       userId: get("user_id"),
