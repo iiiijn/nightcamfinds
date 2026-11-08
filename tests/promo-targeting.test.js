@@ -86,3 +86,32 @@ test('BongaCash static banner configuration validates campaign, creative and 300
   assert.match(promo, /bonga_static_banner_viewable/);
   assert.match(index, /id="bonga-static-banners"/);
 });
+
+
+test('BongaCash category widget uses the exact account-generated campaign URL and safe placement', () => {
+  const widget = config.bongacams.categoryWidget;
+  assert.equal(config.version, 5);
+  assert.equal(widget.enabled, true);
+  assert.equal(widget.campaignId, '840970');
+  assert.equal(widget.format, 'category_widget');
+  assert.equal(widget.language, 'user_ip');
+  assert.equal(widget.section, 'straight');
+  assert.equal(widget.width, 200);
+  assert.equal(widget.layout, 'button1');
+  const url = new URL(widget.scriptUrl);
+  assert.equal(url.protocol, 'https:');
+  assert.equal(url.hostname, 'bngprm.com');
+  assert.equal(url.pathname, '/promo.php');
+  assert.equal(url.searchParams.get('c'), '840970');
+  assert.equal(url.searchParams.get('type'), 'category_widget');
+  assert.equal(url.searchParams.get('bg_color'), '#ffffff');
+  assert.equal(url.searchParams.get('btn_color'), '#690034');
+  assert.equal(url.searchParams.get('font_size'), '14');
+  assert.equal(url.searchParams.get('font_color'), '#ccd0d0');
+  assert.equal(url.searchParams.get('section'), 'straight');
+  assert.match(promo, /renderBongaCategoryWidget\(config\.bongacams\?\.categoryWidget\)/);
+  assert.match(promo, /source\.searchParams\.get\('type'\) !== 'category_widget'/);
+  assert.match(promo, /bonga_category_widget_loaded/);
+  assert.match(promo, /bonga_category_widget_viewable/);
+  assert.match(index, /id="bonga-category-widget"/);
+});
