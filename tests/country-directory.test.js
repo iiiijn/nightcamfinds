@@ -65,3 +65,12 @@ test("all 18 configured market landing pages have unique slugs and country codes
   assert.equal(slug,country.code.toLowerCase());
  }
 });
+
+test("dynamic sitemap can publish every configured market when each has enough valid rooms",()=>{
+ const entries=Object.entries(COUNTRIES).map(([slug,country])=>({slug,code:country.code}));
+ const rooms=entries.flatMap(({code,slug})=>Array.from({length:10},(_,i)=>({
+  id:slug+":"+i,platform:i%2?"bongacams":"chaturbate",country:code
+ })));
+ const xml=buildCountrySitemap("https://nightcamfinds.com",rooms,entries);
+ for(const {slug} of entries)assert.ok(xml.includes("/country/"+slug+"/"),"missing sitemap URL for "+slug);
+});
