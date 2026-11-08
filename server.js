@@ -33,7 +33,7 @@ const TOUR = process.env.CB_TOUR || "LQps";
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || process.env.BONGACASH_CAMPAIGN || "840970";
 const BONGA_API_BASE = process.env.BONGACAMS_API_BASE || "https://bngprm.com/promo.php";
 const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
-const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 500)));
+const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
 const CHATURBATE_PAGE_SIZE = 500;
 const CHATURBATE_MAX_PAGES = Math.max(1, Math.min(20, Number(process.env.CHATURBATE_MAX_PAGES || 10)));
 const CONTACT = process.env.CONTACT_EMAIL || "bunnybelle188@gmail.com";
