@@ -55,15 +55,22 @@ function normalizeBongaRoom(room){
  replaceOnce('    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended").slice(0, 60);\n    const roomMarkup = renderRoomCards(countryRooms, { category: "all", pagePath: pathname });\n    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, countryRooms.length > 0);',
   '    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended");\n    const roomMarkup = renderRoomCards(countryRooms.slice(0, 60), { category: "all", pagePath: pathname });\n    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, isIndexableCountryRooms(countryRooms));',
   "country room threshold");
- replaceOnce('  const country=(url.searchParams.get("country")||"").toUpperCase();\n  const platform=(url.searchParams.get("platform")||"").toLowerCase();',
-  '  const country=normalizeCountryCode(url.searchParams.get("country"));\n  const region=(url.searchParams.get("region")||"").trim().toLowerCase();\n  const language=(url.searchParams.get("language")||"").trim().toLowerCase();\n  const platform=(url.searchParams.get("platform")||"").toLowerCase();',
-  "room API location filters");
- replaceOnce('  if(country)list=list.filter(r=>r.country===country);\n  if(["chaturbate","bongacams"].includes(platform))',
-  '  if(country)list=list.filter(r=>r.country===country);\n  if(region)list=list.filter(r=>String(r.region||"").toLowerCase()===region);\n  if(language)list=list.filter(r=>String(r.languages||"").toLowerCase().split(/[,;|]/).some(item=>item.trim()===language));\n  if(["chaturbate","bongacams"].includes(platform))',
-  "room API region and language filters");
- replaceOnce('  const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();\n  if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,notice:feed.notice}),"application/json");\n  return send(res,200,JSON.stringify({rooms:list.slice(0,60),liveCount:list.length,countries,platforms,notice:feed.notice,',
-  '  const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();\n  const regions=[...new Set(feed.rooms.map(r=>r.region).filter(Boolean))].sort();\n  const languages=[...new Set(feed.rooms.flatMap(r=>String(r.languages||"").split(/[,;|]/).map(v=>v.trim()).filter(Boolean)))].sort();\n  if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,notice:feed.notice}),"application/json");\n  return send(res,200,JSON.stringify({rooms:list.slice(0,60),liveCount:list.length,countries,regions,languages,platforms,notice:feed.notice,',
-  "room API discovery facets");
+ if (!source.includes('const region=(url.searchParams.get("region")||"").trim();') ||
+     !source.includes('const language=(url.searchParams.get("language")||"").trim().toLowerCase();')) {
+  replaceOnce('  const country=(url.searchParams.get("country")||"").toUpperCase();\n  const platform=(url.searchParams.get("platform")||"").toLowerCase();',
+   '  const country=normalizeCountryCode(url.searchParams.get("country"));\n  const region=(url.searchParams.get("region")||"").trim().toLowerCase();\n  const language=(url.searchParams.get("language")||"").trim().toLowerCase();\n  const platform=(url.searchParams.get("platform")||"").toLowerCase();',
+   "room API location filters");
+ }
+ if (!source.includes('if(region)list=list.filter') || !source.includes('if(language)list=list.filter')) {
+  replaceOnce('  if(country)list=list.filter(r=>r.country===country);\n  if(["chaturbate","bongacams"].includes(platform))',
+   '  if(country)list=list.filter(r=>r.country===country);\n  if(region)list=list.filter(r=>String(r.region||"").toLowerCase()===region);\n  if(language)list=list.filter(r=>String(r.languages||"").toLowerCase().split(/[,;|]/).some(item=>item.trim()===language));\n  if(["chaturbate","bongacams"].includes(platform))',
+   "room API region and language filters");
+ }
+ if (!source.includes('const regions=')) {
+  replaceOnce('  const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();\n  if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,notice:feed.notice}),"application/json");\n  return send(res,200,JSON.stringify({rooms:list.slice(0,60),liveCount:list.length,countries,platforms,notice:feed.notice,',
+   '  const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();\n  const regions=[...new Set(feed.rooms.map(r=>r.region).filter(Boolean))].sort();\n  const languages=[...new Set(feed.rooms.flatMap(r=>String(r.languages||"").split(/[,;|]/).map(v=>v.trim()).filter(Boolean)))].sort();\n  if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,notice:feed.notice}),"application/json");\n  return send(res,200,JSON.stringify({rooms:list.slice(0,60),liveCount:list.length,countries,regions,languages,platforms,notice:feed.notice,',
+   "room API discovery facets");
+ }
  return "// "+MARKER+"\n"+source;
 }
 if(require.main===module){
