@@ -36,7 +36,7 @@ test("sitemap includes lastmod only when an explicit valid page modification dat
 });
 test("server patch preserves region and language discovery facets in the rooms API",()=>{
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
- assert.match(patched,/const regions=\[\.\.\.new Set\(feed\.rooms\.map\(r=>r\.region\)\.filter\(Boolean\)\)\]\.sort\(\)/);
+ assert.match(patched,/const regions=\[\.\.\.new Set\(feed\.rooms\.map\(r=>r\.region\|\|regionFor\(r\.country\)\)\)\]\.sort\(\)/);
  assert.match(patched,/const languages=\[\.\.\.new Set\(feed\.rooms\.flatMap/);
  assert.match(patched,/rooms:list\.slice\(0,60\),liveCount:list\.length,countries,regions,languages,platforms,notice:feed\.notice/);
  assert.match(patched,/url\.searchParams\.get\("summary"\)\s*===\s*"1"/);
