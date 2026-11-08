@@ -5,9 +5,12 @@ function clean(value, fallback = "", max = 255) {
   return v || fallback;
 }
 
-function number(value) {
-  const n = Number.parseFloat(String(value ?? "").replace(/[^0-9.-]/g, ""));
-  return Number.isFinite(n) ? n : 0;
+function money(value) {
+  if (value == null || String(value).trim() === "") return null;
+  const normalized = String(value).replace(/[$,\s]/g, "");
+  if (!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) return null;
+  const amount = Number(normalized);
+  return Number.isFinite(amount) ? amount : null;
 }
 
 function first(params, names, fallback = "") {
@@ -41,8 +44,8 @@ function normalizePostback(params) {
   const type = normalizeType(first(params, ["type", "event", "event_type", "conversion_type", "action", "status"]));
   const payoutRaw = first(params, ["payout", "commission", "earnings", "revenue", "profit"]);
   const amountRaw = first(params, ["amount", "purchase_amount", "sale_amount", "spend"]);
-  const payout = number(payoutRaw);
-  const amount = number(amountRaw);
+  const payout = money(payoutRaw);
+  const amount = money(amountRaw);
   const currency = clean(first(params, ["currency", "currency_code"], "USD"), "USD", 16).toUpperCase();
   const country = clean(first(params, ["country", "country_code", "geo"], "UNKNOWN"), "UNKNOWN", 16).toUpperCase();
   const track = clean(first(params, ["track", "tracking", "placement", "subid2"]), "", 255);
@@ -57,7 +60,9 @@ function normalizePostback(params) {
   if (!["registration", "purchase", "refund"].includes(type)) return { ok: false, reason: "unsupported_event_type" };
   if (!currency || !/^[A-Z]{3,8}$/.test(currency)) return { ok: false, reason: "invalid_currency" };
   if (type !== "registration" && payoutRaw === "") return { ok: false, reason: "missing_payout" };
-  if (type !== "registration" && !Number.isFinite(payout)) return { ok: false, reason: "invalid_payout" };
+  if (payoutRaw !== "" && payout === null) return { ok: false, reason: "invalid_payout" };
+  if (type !== "registration" && payout === null) return { ok: false, reason: "invalid_payout" };
+  if (amountRaw !== "" && amount === null) return { ok: false, reason: "invalid_amount" };
 
   return {
     ok: true,
@@ -65,8 +70,8 @@ function normalizePostback(params) {
       clickId: clean(clickId, "", 128),
       transactionId: clean(transactionId, "", 255),
       type,
-      payout: type === "refund" ? -Math.abs(payout) : payout,
-      amount: type === "refund" ? -Math.abs(amount) : amount,
+      payout: type === "refund" ? -Math.abs(payout) : (payout ?? 0),
+      amount: type === "refund" ? -Math.abs(amount ?? 0) : (amount ?? 0),
       currency,
       country: /^[A-Z]{2}$/.test(country) ? country : "UNKNOWN",
       track,
