@@ -6,6 +6,16 @@
   if (!cbPromo && !bcPromo && !banner && !sticky) return;
 
   const metaCountry = String(document.querySelector('meta[name="ncf-country"]')?.content || 'UNKNOWN').toUpperCase();
+  const targetingParams = new URLSearchParams(location.search);
+  const targetPlatform = String(targetingParams.get('ncf_platform') || 'all').toLowerCase();
+  const targetCountry = String(targetingParams.get('ncf_country') || 'all').toUpperCase();
+  const targetCategory = String(targetingParams.get('ncf_category') || location.pathname.split('/').filter(Boolean)[0] || 'all').toLowerCase();
+  const campaignPlacement = String(targetingParams.get('ncf_placement') || '').toLowerCase().replace(/[^a-z0-9._-]/g, '-').slice(0, 70);
+  const validPlatforms = new Set(['all', 'chaturbate', 'bongacams']);
+  const validCategories = new Set(['all', 'female', 'male', 'trans', 'couples', 'hd', 'new', 'popular']);
+  const safeTargetPlatform = validPlatforms.has(targetPlatform) ? targetPlatform : 'all';
+  const safeTargetCategory = validCategories.has(targetCategory) ? targetCategory : 'all';
+  const audienceMatches = targetCountry === 'ALL' || !/^[A-Z]{2}$/.test(targetCountry) || targetCountry === metaCountry;
   const tier1 = new Set(['US','CA','GB','IE','AU','NZ','DE','FR','NL','SE','NO','DK','FI','CH','AT','BE']);
   const names = { US:'the US', CA:'Canada', GB:'the UK', IE:'Ireland', AU:'Australia', NZ:'New Zealand', DE:'Germany', FR:'France', NL:'the Netherlands', SE:'Sweden', NO:'Norway', DK:'Denmark', FI:'Finland', CH:'Switzerland', AT:'Austria', BE:'Belgium' };
 
@@ -25,7 +35,7 @@
     const explicitSource = url.get('utm_source') || url.get('source') || '';
     const explicitMedium = url.get('utm_medium') || url.get('medium') || '';
     const explicitCampaign = url.get('utm_campaign') || url.get('campaign') || '';
-    const explicitContent = url.get('utm_content') || url.get('content') || '';
+    const explicitContent = url.get('utm_content') || url.get('ncf_placement') || url.get('content') || '';
     const savedSource = fresh ? saved.source : '';
     const referralOnly = !explicitSource && !savedSource && Boolean(referral);
     const source = explicitSource || savedSource || referral || 'unknown';
@@ -95,11 +105,11 @@
     const attr = getMarketingAttribution();
     const params = new URLSearchParams({
       src: `${platform}-${placement}`,
-      cat: 'promo',
+      cat: room.gender || (safeTargetCategory !== 'all' ? safeTargetCategory : 'promo'),
       source: attr.source,
       medium: attr.medium,
       campaign: attr.campaign,
-      content: placement,
+      content: campaignPlacement ? `${campaignPlacement}:${placement}` : placement,
       vid: currentVisitId,
       lp: originalLandingPath.slice(0, 255)
     });
@@ -156,8 +166,9 @@
   }
 
   function renderBanner(config, rooms) {
-    const room = (rooms || []).find((item) => item.platform === 'chaturbate');
-    if (!banner || !config?.bannerUrl || !room) return;
+    const platform = config?.platform || 'chaturbate';
+    const room = (rooms || []).find((item) => item.platform === platform);
+    if (!banner || config?.enabled === false || !config?.bannerUrl || !room) return;
     banner.hidden = false;
     banner.innerHTML = '';
     const a = document.createElement('a');
@@ -168,12 +179,15 @@
     img.src = config.bannerUrl;
     img.alt = config.bannerAlt || 'Chaturbate live cams';
     img.loading = 'lazy';
+    img.onerror = () => { banner.hidden = true; };
     a.append(img);
     banner.append(a);
   }
 
   async function loadPlatform(platform) {
-    const response = await fetch(`/api/rooms?platform=${platform}&sort=viewers`, { headers: { Accept: 'application/json' } });
+    const params = new URLSearchParams({ platform, sort: 'viewers', limit: '60' });
+    if (safeTargetCategory !== 'all') params.set('category', safeTargetCategory);
+    const response = await fetch(`/api/rooms?${params.toString()}`, { headers: { Accept: 'application/json' } });
     if (!response.ok) throw new Error(`${platform} feed unavailable`);
     const data = await response.json();
     return Array.isArray(data.rooms) ? data.rooms : [];
@@ -200,9 +214,18 @@
     const config = results[2].status === 'fulfilled' ? results[2].value : {};
     const liveCount = results[3].status === 'fulfilled' ? results[3].value : null;
 
-    if (config.chaturbate?.enabled !== false) renderStrip(cbPromo, cb, 'Live on Chaturbate', 'Chaturbate');
-    if (config.bongacams?.enabled !== false) renderStrip(bcPromo, bc, 'Live on BongaCams', 'BongaCams');
-    renderBanner(config.chaturbate, cb);
+    if (!audienceMatches) {
+      if (cbPromo) cbPromo.hidden = true;
+      if (bcPromo) bcPromo.hidden = true;
+      if (banner) banner.hidden = true;
+    } else {
+      if (cbPromo) cbPromo.hidden = safeTargetPlatform === 'bongacams';
+      if (bcPromo) bcPromo.hidden = safeTargetPlatform === 'chaturbate';
+      if (safeTargetPlatform !== 'bongacams' && config.chaturbate?.enabled !== false) renderStrip(cbPromo, cb, 'Live on Chaturbate', 'Chaturbate');
+      if (safeTargetPlatform !== 'chaturbate' && config.bongacams?.enabled !== false) renderStrip(bcPromo, bc, 'Live on BongaCams', 'BongaCams');
+      if (safeTargetPlatform === 'bongacams') renderBanner({ ...config.bongacams, platform: 'bongacams' }, bc);
+      else renderBanner({ ...config.chaturbate, platform: 'chaturbate' }, cb);
+    }
 
     if (sticky && liveCount !== null) {
       sticky.innerHTML = '';

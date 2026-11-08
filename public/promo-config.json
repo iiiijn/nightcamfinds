@@ -1,10 +1,24 @@
 {
+  "version": 2,
   "chaturbate": {
     "enabled": true,
     "bannerUrl": "",
     "bannerAlt": "Chaturbate live cams"
   },
   "bongacams": {
-    "enabled": true
+    "enabled": true,
+    "bannerUrl": "",
+    "bannerAlt": "BongaCams live cams"
+  },
+  "targeting": {
+    "urlParameters": [
+      "ncf_platform",
+      "ncf_country",
+      "ncf_category",
+      "ncf_placement"
+    ],
+    "defaultPlatform": "all",
+    "defaultCountry": "all",
+    "defaultCategory": "all"
   }
 }
