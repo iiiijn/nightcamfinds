@@ -29,7 +29,7 @@ const pool = databaseUrl ? new Pool({
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
-const TIER1 = new Set(["US","GB","NO","CH","SE","DK","AU","CA","DE","NL","FR","IE","FI","AT","BE","NZ","IS","LU"]);
+const { isPriorityMarket } = require("./src/config/market-countries.cjs");
 
 async function ensureAffiliateSchema() {
   if (!pool) return;
@@ -206,7 +206,7 @@ async function dashboardStats(incoming) {
   try {
     const r = await pool.query(`SELECT platform, country, COUNT(*)::int AS clicks FROM affiliate_clicks ${cb.where} GROUP BY platform, country`, cb.params);
     for (const row of r.rows) {
-      if (!TIER1.has(String(row.country || "").toUpperCase())) continue;
+      if (!isPriorityMarket(row.country)) continue;
       if (String(row.platform).toLowerCase() === "bongacams") bongaTier1 += Number(row.clicks || 0);
       if (String(row.platform).toLowerCase() === "chaturbate") cbTier1 += Number(row.clicks || 0);
     }
