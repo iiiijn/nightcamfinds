@@ -11,6 +11,7 @@ const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs")
 const { isPriorityMarket, MARKET_META } = require("./src/config/market-countries.cjs");
 const { fetchPagedResults } = require("./src/services/paged-feed.cjs");
 const { filterDisplayableRooms } = require("./src/services/room-quality.cjs");
+const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalRoomGroups } = require("./src/services/regional-discovery.cjs");
 
 let pgPool = null;
 try {
@@ -36,6 +37,7 @@ const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
 const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
 const CHATURBATE_PAGE_SIZE = 500;
 const CHATURBATE_MAX_PAGES = Math.max(1, Math.min(20, Number(process.env.CHATURBATE_MAX_PAGES || 10)));
+const CHATURBATE_REGION_MAX_PAGES = Math.max(1, Math.min(10, Number(process.env.CHATURBATE_REGION_MAX_PAGES || Math.min(2, CHATURBATE_MAX_PAGES))));
 const CONTACT = process.env.CONTACT_EMAIL || "bunnybelle188@gmail.com";
 const PUBLIC = path.join(__dirname, "public");
 
@@ -61,7 +63,7 @@ const NAMES = {
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, "data");
 const STATS = path.join(DATA_DIR, "clicks.json");
 const STATS_KEY = process.env.STATS_KEY || "";
-let cache = { at: 0, rooms: [], notice: "" };
+const roomCache = new Map();
 
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
@@ -189,9 +191,44 @@ function clientIp(req) { const fwd=String(req.headers["x-forwarded-for"]||"").sp
 function normalizeChaturbateRoom(room) { return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,displayName:clean(room.display_name||room.username)||room.username,gender:GENDER[room.gender]||"female",country:(room.country||"").toUpperCase(),countryName:NAMES[(room.country||"").toUpperCase()]||room.country||"",location:clean(room.location),viewerCount:Number(room.num_users||0),isHd:!!room.is_hd,isNew:!!room.is_new,image:room.image_url_360x270||room.image_url||"",roomSubject:clean(room.room_subject),languages:room.spoken_languages||"",href:room.chat_room_url_revshare||room.chat_room_url||""}; }
 function bongaGender(value) { const v=String(value||"").toLowerCase(); if(v.includes("female")||v==="f")return"female"; if(v.includes("male")||v==="m")return"male"; if(v.includes("trans")||v==="t")return"trans"; if(v.includes("couple")||v==="c")return"couples"; return"female"; }
 function normalizeBongaRoom(room) { const username=clean(room.username||room.user_name||room.nickname||room.model||room.id); if(!username)return null; const rawImages=room.profile_images||room.images||{}; const images=typeof rawImages==="string"?{}:rawImages; const age=Number(room.display_age||room.age||0); const tags=plainText(room.tags); if(Number.isFinite(age)&&age>0&&age<18)return null; const country=String(room.homecountry||room.country||room.country_code||"").toUpperCase(); const viewers=Number(room.members_count??room.num_users??room.viewers??room.viewer_count??0)||0; const image=(typeof rawImages==="string"?rawImages:"")||images.profile_image||images.thumbnail_image_big||images.thumbnail_image_medium||images.thumbnail_image_small||images.thumbnail_image_big_live||images.thumbnail_image_medium_live||room.image_url||room.thumbnail||room.avatar||""; return {id:"bongacams:"+username,platform:"bongacams",platformName:"BongaCams",username,displayName:clean(room.display_name||room.name||username)||username,gender:bongaGender(room.gender||room.sex),country:country.match(/^[A-Z]{2}$/)?.[0]||"",countryName:NAMES[country]||clean(country),location:clean(room.hometown||room.location||country),viewerCount:viewers,isHd:!!room.hd_cam||!!room.hd||/\bhd\b/i.test(tags),isNew:!!room.is_new||!!room.new,image,roomSubject:clean(room.chat_topic||room.room_subject||room.topic||tags),languages:clean([room.primary_language,room.secondary_language,room.language].map(plainText).filter(Boolean).join(", ")),href:room.chat_url||room.direct_chat_url||room.room_url||room.url||""}; }
-async function fetchChaturbateRooms(req) { const ip=encodeURIComponent(clientIp(req)); const pages=await fetchPagedResults(async ({offset,limit})=>{ const data=await fetchJson(`https://chaturbate.com/api/public/affiliates/onlinerooms/?wm=${encodeURIComponent(CAMPAIGN)}&client_ip=${ip}&format=json&limit=${limit}&offset=${offset}`); if(!data||!Array.isArray(data.results))throw new TypeError("Chaturbate feed response did not contain a results array."); return data.results; },{pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_MAX_PAGES,getKey:room=>room&&room.username}); if(pages.truncated)console.warn("Chaturbate feed reached the configured page safety limit; more live rooms may be available."); return filterDisplayableRooms(pages.items.map(room => ({ normalized: normalizeChaturbateRoom(room), rawText: [room.username, room.display_name, room.room_subject].filter(Boolean).join(" ") }))); }
+async function fetchChaturbateRegion(req,apiRegion) {
+ const ip=encodeURIComponent(clientIp(req));
+ const pages=await fetchPagedResults(async ({offset,limit})=>{
+  const data=await fetchJson(`https://chaturbate.com/api/public/affiliates/onlinerooms/?wm=${encodeURIComponent(CAMPAIGN)}&client_ip=${ip}&format=json&limit=${limit}&offset=${offset}&region=${encodeURIComponent(apiRegion)}`);
+  if(!data||!Array.isArray(data.results))throw new TypeError("Chaturbate regional feed response did not contain a results array.");
+  return data.results;
+ },{pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES,getKey:room=>room&&room.username});
+ if(pages.truncated)console.warn("Chaturbate "+apiRegion+" feed reached its configured page ceiling.");
+ return filterDisplayableRooms(pages.items.map(room=>({normalized:normalizeChaturbateRoom(room,apiRegion),rawText:[room.username,room.display_name,room.room_subject].filter(Boolean).join(" ")})));
+}
+async function fetchChaturbateRooms(req) {
+ const results=await Promise.allSettled(CHATURBATE_API_REGIONS.map(apiRegion=>fetchChaturbateRegion(req,apiRegion)));
+ const successful=results.filter(result=>result.status==="fulfilled");
+ const failed=results.map((result,index)=>result.status==="rejected"?CHATURBATE_API_REGIONS[index]:null).filter(Boolean);
+ if(!successful.length)throw new Error("All Chaturbate regional feeds failed.");
+ const unique=new Map();
+ for(const result of successful)for(const room of result.value)if(room&&room.id&&!unique.has(room.id))unique.set(room.id,room);
+ return {rooms:[...unique.values()],notice:failed.length?"Some Chaturbate regional feeds are temporarily unavailable: "+failed.join(", "):""};
+}
 async function fetchBongaRooms() { if(!BONGA_ENABLED)return[]; const params=new URLSearchParams({c:BONGA_CAMPAIGN,type:"api",api_v:"1",limit:String(BONGA_LIMIT),api_type:"json"}); const data=await fetchJson(`${BONGA_API_BASE}?${params.toString()}`); const candidateRows=Array.isArray(data)?data:(data.results||data.rooms||data.data||data.models||[]); return filterDisplayableRooms((Array.isArray(candidateRows)?candidateRows:[]).map(room => ({ normalized: normalizeBongaRoom(room), rawText: [room.username, room.user_name, room.nickname, room.display_name, room.name, room.chat_topic, room.room_subject, room.topic, room.tags].filter(Boolean).map(value => plainText(value)).join(" ") }))); }
-async function rooms(req) { if(Date.now()-cache.at<20000&&cache.rooms.length)return cache; const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms()]); const ch=results[0].status==="fulfilled"?results[0].value:[]; const bc=results[1].status==="fulfilled"?results[1].value:[]; const notices=[]; if(results[0].status==="rejected")notices.push("Chaturbate feed unavailable"); if(results[1].status==="rejected"&&BONGA_ENABLED)notices.push("BongaCams feed unavailable"); const combined=filterDisplayableRooms([...ch,...bc].map(normalized => ({ normalized, rawText: "" }))); cache={at:Date.now(),rooms:combined,notice:combined.length?"":(notices.join(" · ")||"Live rooms are temporarily unavailable. Please check again shortly.")}; return cache; }
+async function rooms(req) {
+ const visitor=visitorCountry(req);
+ const cacheKey=visitor!=="UNKNOWN"?visitor:clientIp(req);
+ const cached=roomCache.get(cacheKey);
+ if(cached&&Date.now()-cached.at<20000&&cached.rooms.length)return cached;
+ const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms()]);
+ const ch=results[0].status==="fulfilled"?results[0].value.rooms:[];
+ const bc=results[1].status==="fulfilled"?results[1].value:[];
+ const notices=[];
+ if(results[0].status==="rejected")notices.push("Chaturbate regional feeds unavailable");
+ else if(results[0].value.notice)notices.push(results[0].value.notice);
+ if(results[1].status==="rejected"&&BONGA_ENABLED)notices.push("BongaCams feed unavailable");
+ const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
+ const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly.")};
+ roomCache.set(cacheKey,entry);
+ if(roomCache.size>50)roomCache.delete(roomCache.keys().next().value);
+ return entry;
+}
 async function approvedCountryPlatformPreference(countryCode) {
   const country = String(countryCode || "").trim().toUpperCase();
   if (!pgPool || !["US", "GB", "CA", "AU", "DE", "FR", "NL"].includes(country)) return null;
@@ -250,25 +287,26 @@ const server=http.createServer(async(req,res)=>{
   const limit=Math.max(1,Math.min(60,Number.parseInt(url.searchParams.get("limit")||"60",10)||60));
   const offset=Math.max(0,Math.min(100000,Number.parseInt(url.searchParams.get("offset")||"0",10)||0));
   const preferredPlatform=sort==="recommended"?await approvedCountryPlatformPreference(visitorCountry(req)):null;
-  const regionFor=code=>MARKET_META[String(code||"").toLowerCase()]?.regionGroup||"Other";
+  const regionFor=room=>getDiscoveryRegion({country:room.country,partnerRegion:room.partnerRegion,apiRegion:room.apiRegion});
   const languagesFor=room=>String(room.languages||"").split(/[,;|]/).map(value=>value.trim()).filter(Boolean);
   let list=feed.rooms.slice();
   if(["female","male","trans","couples"].includes(category))list=list.filter(r=>r.gender===category);
   if(category==="hd")list=list.filter(r=>r.isHd);
   if(category==="new")list=list.filter(r=>r.isNew);
   if(country)list=list.filter(r=>r.country===country);
-  if(region)list=list.filter(r=>(r.region||regionFor(r.country))===region);
+  if(region)list=list.filter(r=>(r.region||regionFor(r))===region);
   if(language)list=list.filter(r=>languagesFor(r).some(value=>value.toLowerCase()===language));
   if(["chaturbate","bongacams"].includes(platform))list=list.filter(r=>r.platform===platform);
   if(q)list=list.filter(r=>`${r.displayName} ${r.roomSubject} ${r.country} ${r.location} ${r.platformName} ${r.languages}`.toLowerCase().includes(q));
   list=rankRoomsByPreferredPlatform(list,preferredPlatform,sort);
   const countries=[...new Set(feed.rooms.map(r=>r.country).filter(Boolean))].sort();
   const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();
-  const regions=[...new Set(feed.rooms.map(r=>r.region||regionFor(r.country)))].sort();
+  const regions=[...new Set(feed.rooms.map(r=>r.region||regionFor(r)))].sort((a,b)=>{const ai=REGION_ORDER.indexOf(a),bi=REGION_ORDER.indexOf(b);return (ai<0?REGION_ORDER.length:ai)-(bi<0?REGION_ORDER.length:bi)||a.localeCompare(b);});
   const languages=[...new Set(feed.rooms.flatMap(languagesFor))].sort((a,b)=>a.localeCompare(b));
   if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,regions,languages,notice:feed.notice}),"application/json");
   const page=list.slice(offset,offset+limit);
-  return send(res,200,JSON.stringify({rooms:page,liveCount:list.length,offset,limit,hasMore:offset+page.length<list.length,countries,platforms,regions,languages,notice:feed.notice,tier1:isPriorityMarket(visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null}),"application/json");
+  const regionalRooms=buildRegionalRoomGroups(list,sort,8);
+  return send(res,200,JSON.stringify({rooms:page,regionalRooms,liveCount:list.length,offset,limit,hasMore:offset+page.length<list.length,countries,platforms,regions,languages,notice:feed.notice,tier1:isPriorityMarket(visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null}),"application/json");
 }
 if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms[Math.floor(Math.random()*Math.min(feed.rooms.length,40))]||null;return send(res,room?200:503,JSON.stringify({room}),"application/json");}
   if (pathname.startsWith("/bgo/") || pathname.startsWith("/go/")) {
@@ -294,8 +332,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const visitId = String(url.searchParams.get("vid") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
     const requestedLandingPath = String(url.searchParams.get("lp") || pathname);
     const landingPath = requestedLandingPath.startsWith("/") && !requestedLandingPath.startsWith("//") ? requestedLandingPath.slice(0, 255) : pathname;
-    const roomFeed = isBonga ? await rooms(req) : cache;
-    const room = roomFeed.rooms.find(r => r.platform === platform && r.username === username);
+    const room = isBonga ? (await rooms(req)).rooms.find(r => r.platform === platform && r.username === username) : null;
     if (isBonga && !room) return send(res, 404, "Live room not found", "text/plain; charset=utf-8");
     await countClick({ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
     let target;

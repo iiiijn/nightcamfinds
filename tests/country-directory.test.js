@@ -34,11 +34,16 @@ test("sitemap includes lastmod only when an explicit valid page modification dat
  assert.match(xml,/<loc>https:\/\/nightcamfinds\.com\/about<\/loc><lastmod>2026-11-01T10:00:00\.000Z<\/lastmod>/);
  assert.match(xml,/<loc>https:\/\/nightcamfinds\.com\/privacy<\/loc><\/url>/);
 });
+test("server patch normalizes partner countries and regions for regional discovery",()=>{
+ const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
+ assert.match(patched,/getDiscoveryRegion\(\{country,partnerRegion:normalizeRegion/);
+ assert.match(patched,/normalizeCountryCode\(room\.homecountry/);
+});
 test("server patch preserves region and language discovery facets in the rooms API",()=>{
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
- assert.match(patched,/const regions=\[\.\.\.new Set\(feed\.rooms\.map\(r=>r\.region\|\|regionFor\(r\.country\)\)\)\]\.sort\(\)/);
+ assert.match(patched,/const regions=\[\.\.\.new Set\(feed\.rooms\.map\(r=>r\.region\|\|regionFor\(r\)\)\)\]\.sort\(/);
  assert.match(patched,/const languages=\[\.\.\.new Set\(feed\.rooms\.flatMap/);
- assert.match(patched,/rooms:page,liveCount:list\.length,offset,limit,hasMore:offset\+page\.length<list\.length,countries,platforms,regions,languages,notice:feed\.notice/);
+ assert.match(patched,/rooms:page,regionalRooms,liveCount:list\.length,offset,limit,hasMore:offset\+page\.length<list\.length,countries,platforms,regions,languages,notice:feed\.notice/);
  assert.match(patched,/url\.searchParams\.get\("summary"\)\s*===\s*"1"/);
 });
 test("server patch uses room-quality checks and does not invent sitemap modification dates",()=>{

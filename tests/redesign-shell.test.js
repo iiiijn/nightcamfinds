@@ -40,9 +40,9 @@ test("age gate blurs real room thumbnails until the visitor accepts", () => {
 test("homepage presentation is rendered from live API rooms, not generated sample profiles", () => {
   const app = read("public/app.js");
   assert.match(app, /fetch\("\/api\/rooms\?/);
-  assert.match(app, /renderHomeSections\(rooms\)/);
+  assert.match(app, /renderRegionalSections\(data\.regionalRooms/);
   assert.match(app, /featuredPanel\.append\(featured\)/);
-  assert.match(app, /pickHomeRooms\(rooms, key\)/);
+  assert.match(app, /rooms\.map\(card\)/);
   assert.doesNotMatch(app, /var NAMES=\[|function rnd\(\)|Math\.floor\(300\s*\+/);
 });
 

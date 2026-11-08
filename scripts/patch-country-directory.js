@@ -15,33 +15,36 @@ function patchServerSource(input){
   "country page import");
  const normalizers=/function normalizeChaturbateRoom\(room\) \{[^\n]*\}\nfunction bongaGender\(value\) \{[^\n]*\}\nfunction normalizeBongaRoom\(room\) \{[^\n]*\}/;
  if(!normalizers.test(source))throw new Error("Country directory patch could not locate both partner normalizers");
- source=source.replace(normalizers,`function normalizeChaturbateRoom(room) {
-  const country=normalizeCountryCode(room.country);
-  return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,
-   displayName:clean(room.display_name||room.username)||room.username,gender:GENDER[room.gender]||"female",
-   country,countryName:NAMES[country]||country,
-   region:normalizeRegion(room.region||room.region_name||room.state||room.province)||MARKET_META[country.toLowerCase()]?.regionGroup||"Other",
-   location:clean(room.location),viewerCount:Number(room.num_users||0),isHd:!!room.is_hd,isNew:!!room.is_new,
-   image:room.image_url_360x270||room.image_url||"",roomSubject:clean(room.room_subject),
-   languages:normalizeLanguages(room.spoken_languages||room.languages||room.language),
-   href:room.chat_room_url_revshare||room.chat_room_url||""};
-}
-function bongaGender(value){const v=String(value||"").toLowerCase();if(v.includes("female")||v==="f")return"female";if(v.includes("male")||v==="m")return"male";if(v.includes("trans")||v==="t")return"trans";if(v.includes("couple")||v==="c")return"couples";return"female";}
-function normalizeBongaRoom(room){
- const username=clean(room.username||room.user_name||room.nickname||room.model||room.id);if(!username)return null;
- const rawImages=room.profile_images||room.images||{};const images=typeof rawImages==="string"?{}:rawImages;
- const age=Number(room.display_age||room.age||0);const tags=plainText(room.tags);if(Number.isFinite(age)&&age>0&&age<18)return null;
- const country=normalizeCountryCode(room.homecountry||room.country||room.country_code);
- const viewers=Number(room.members_count??room.num_users??room.viewers??room.viewer_count??0)||0;
- const image=(typeof rawImages==="string"?rawImages:"")||images.profile_image||images.thumbnail_image_big||images.thumbnail_image_medium||images.thumbnail_image_small||images.thumbnail_image_big_live||images.thumbnail_image_medium_live||room.image_url||room.thumbnail||room.avatar||"";
- return {id:"bongacams:"+username,platform:"bongacams",platformName:"BongaCams",username,
-  displayName:clean(room.display_name||room.name||username)||username,gender:bongaGender(room.gender||room.sex),
-  country,countryName:NAMES[country]||country,region:normalizeRegion(room.region||room.region_name||room.state||room.province),
-  location:clean(room.hometown||room.location||country),viewerCount:viewers,isHd:!!room.hd_cam||!!room.hd||/\\bhd\\b/i.test(tags),
-  isNew:!!room.is_new||!!room.new,image,roomSubject:clean(room.chat_topic||room.room_subject||room.topic||tags),
-  languages:normalizeLanguages([room.primary_language,room.secondary_language,room.language,room.languages]),
-  href:room.chat_url||room.direct_chat_url||room.room_url||room.url||""};
-}`);
+ const normalizedPartnerCode = [
+  'function normalizeChaturbateRoom(room,apiRegion="") {',
+  '  const country=normalizeCountryCode(room.country);',
+  '  return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,',
+  '   displayName:clean(room.display_name||room.username)||room.username,gender:GENDER[room.gender]||"female",',
+  '   country,countryName:NAMES[country]||country,',
+  '   region:getDiscoveryRegion({country,partnerRegion:normalizeRegion(room.region||room.region_name||room.state||room.province),apiRegion}),',
+  '   location:clean(room.location),viewerCount:Number(room.num_users||0),isHd:!!room.is_hd,isNew:!!room.is_new,',
+  '   image:room.image_url_360x270||room.image_url||"",roomSubject:clean(room.room_subject),',
+  '   languages:normalizeLanguages(room.spoken_languages||room.languages||room.language),',
+  '   href:room.chat_room_url_revshare||room.chat_room_url||""};',
+  '}',
+  'function bongaGender(value){const v=String(value||"").toLowerCase();if(v.includes("female")||v==="f")return"female";if(v.includes("male")||v==="m")return"male";if(v.includes("trans")||v==="t")return"trans";if(v.includes("couple")||v==="c")return"couples";return"female";}',
+  'function normalizeBongaRoom(room){',
+  ' const username=clean(room.username||room.user_name||room.nickname||room.model||room.id);if(!username)return null;',
+  ' const rawImages=room.profile_images||room.images||{};const images=typeof rawImages==="string"?{}:rawImages;',
+  ' const age=Number(room.display_age||room.age||0);const tags=plainText(room.tags);if(Number.isFinite(age)&&age>0&&age<18)return null;',
+  ' const country=normalizeCountryCode(room.homecountry||room.country||room.country_code);',
+  ' const viewers=Number(room.members_count??room.num_users??room.viewers??room.viewer_count??0)||0;',
+  ' const image=(typeof rawImages==="string"?rawImages:"")||images.profile_image||images.thumbnail_image_big||images.thumbnail_image_medium||images.thumbnail_image_small||images.thumbnail_image_big_live||images.thumbnail_image_medium_live||room.image_url||room.thumbnail||room.avatar||"";',
+  ' return {id:"bongacams:"+username,platform:"bongacams",platformName:"BongaCams",username,',
+  '  displayName:clean(room.display_name||room.name||username)||username,gender:bongaGender(room.gender||room.sex),',
+  '  country,countryName:NAMES[country]||country,region:getDiscoveryRegion({country,partnerRegion:normalizeRegion(room.region||room.region_name||room.state||room.province)}),',
+  '  location:clean(room.hometown||room.location||country),viewerCount:viewers,isHd:!!room.hd_cam||!!room.hd||/\\bhd\\b/i.test(tags),',
+  '  isNew:!!room.is_new||!!room.new,image,roomSubject:clean(room.chat_topic||room.room_subject||room.topic||tags),',
+  '  languages:normalizeLanguages([room.primary_language,room.secondary_language,room.language,room.languages]),',
+  '  href:room.chat_url||room.direct_chat_url||room.room_url||room.url||""};',
+  '}'
+ ].join("\n");
+ source=source.replace(normalizers,normalizedPartnerCode);
  const earlyStart=source.indexOf("  const countryMatch = pathname.match(");
  const earlyEnd=source.indexOf("  if(pages[pathname])",earlyStart);
  if(earlyStart<0||earlyEnd<0)throw new Error("Country directory patch could not locate the early duplicate country route");
