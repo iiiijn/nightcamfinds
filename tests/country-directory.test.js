@@ -5,6 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const {normalizeCountryCode,normalizeRegion,normalizeLanguages,isValidCountryRoom,isIndexableCountryRooms,buildCountrySitemap}=require("../src/services/country-directory.cjs");
 const {patchServerSource}=require("../scripts/patch-country-directory.js");
+const {COUNTRIES}=require("../country-pages.js");
 test("country values normalize ISO codes and explicit country names only",()=>{
  assert.equal(normalizeCountryCode(" gb "),"GB");assert.equal(normalizeCountryCode("United States"),"US");
  assert.equal(normalizeCountryCode("The Netherlands"),"NL");assert.equal(normalizeCountryCode("Nairobi"),"");assert.equal(normalizeCountryCode(""),"");
@@ -49,4 +50,27 @@ test("server patch uses room-quality checks and does not invent sitemap modifica
  assert.ok(patched.includes('url.searchParams.get("region")'));
  assert.ok(!patched.includes("new Date().toISOString());"));
  assert.equal(patchServerSource(patched),patched);
+});
+
+test("all 18 configured market landing pages have unique slugs and country codes",()=>{
+ const entries=Object.entries(COUNTRIES);
+ assert.equal(entries.length,18,"the configured market directory should contain 18 pages");
+ const slugs=entries.map(([slug])=>slug);
+ const codes=entries.map(([,country])=>country.code);
+ assert.equal(new Set(slugs).size,18,"market slugs must be unique");
+ assert.equal(new Set(codes).size,18,"market country codes must be unique");
+ for(const [slug,country] of entries){
+  assert.match(slug,/^[a-z]{2}$/);
+  assert.match(country.code,/^[A-Z]{2}$/);
+  assert.equal(slug,country.code.toLowerCase());
+ }
+});
+
+test("dynamic sitemap can publish every configured market when each has enough valid rooms",()=>{
+ const entries=Object.entries(COUNTRIES).map(([slug,country])=>({slug,code:country.code}));
+ const rooms=entries.flatMap(({code,slug})=>Array.from({length:10},(_,i)=>({
+  id:slug+":"+i,platform:i%2?"bongacams":"chaturbate",country:code
+ })));
+ const xml=buildCountrySitemap("https://nightcamfinds.com",rooms,entries);
+ for(const {slug} of entries)assert.ok(xml.includes("/country/"+slug+"/"),"missing sitemap URL for "+slug);
 });
