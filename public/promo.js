@@ -211,9 +211,30 @@
     frame.referrerPolicy = 'strict-origin-when-cross-origin';
     frame.scrolling = 'no';
     frame.setAttribute('frameborder', '0');
+    let viewableRecorded = false;
+    let viewableTimer;
+    const visibilityObserver = typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver(entries => {
+          const entry = entries[0];
+          if (!entry) return;
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5 && !viewableRecorded) {
+            clearTimeout(viewableTimer);
+            viewableTimer = setTimeout(() => {
+              if (document.visibilityState === 'visible' && !viewableRecorded) {
+                viewableRecorded = true;
+                recordEngagement('bonga_banner_viewable', { platform: 'bongacams', placement: 'bongacash_dynamic_banner', content: 'campaign_840970' });
+                visibilityObserver.disconnect();
+              }
+            }, 1000);
+          } else {
+            clearTimeout(viewableTimer);
+          }
+        }, { threshold: [0, 0.5, 1] })
+      : null;
     frame.addEventListener('load', () => {
       // A load is an iframe-load signal, not proof of a human view or affiliate click.
       recordEngagement('bonga_banner_loaded', { platform: 'bongacams', placement: 'bongacash_dynamic_banner', content: 'campaign_840970' });
+      if (visibilityObserver) visibilityObserver.observe(bongaDynamicBanner);
     }, { once: true });
     bongaDynamicBanner.replaceChildren(heading, frame);
     bongaDynamicBanner.hidden = false;
