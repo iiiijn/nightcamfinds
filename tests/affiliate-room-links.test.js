@@ -52,3 +52,12 @@ test("Chaturbate redirect uses the canonical affiliate entry point with unique c
   assert.match(helper, /url\.searchParams\.set\("sid", clickId\)/);
   assert.match(helper, /url\.searchParams\.set\("track", clean\(options\.track/);
 });
+
+test("recent room click report recognizes room IDs when promo content is also present", () => {
+  const route = read("route.js");
+  const server = read("server.js");
+  assert.match(route, /LOWER\(content\) LIKE 'room-%' OR LOWER\(content\) LIKE '%:room-%'/);
+  assert.match(route, /match\(\/(?:\^\|:\)room-/);
+  assert.match(server, /\["room-" \+ username, suppliedContent\]/);
+  assert.match(server, /room-\(\[a-z0-9_-\]\{1,64\}\)\(\?:\|\$\)/);
+});
