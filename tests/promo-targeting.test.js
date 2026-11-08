@@ -88,6 +88,17 @@ test('BongaCash static banner configuration validates campaign, creative and 300
 });
 
 
+test('BongaCash sidebar promotions stay in normal document flow without overlap', () => {
+  const styles = fs.readFileSync(path.join(__dirname, '../public/styles.css'), 'utf8');
+  const dynamicRule = styles.match(/\.bonga-dynamic-banner\s*\{([^}]*)\}/);
+  assert.ok(dynamicRule, 'dynamic banner sidebar rule exists');
+  assert.match(dynamicRule[1], /position:\s*static/);
+  assert.doesNotMatch(dynamicRule[1], /position:\s*sticky|fixed/);
+  assert.match(styles, /\.bonga-promo-sidebar\s*\{[^}]*display:\s*grid/s);
+  assert.match(styles, /\.bonga-static-banners\s*\{/);
+  assert.match(styles, /\.bonga-category-widget\s*\{/);
+});
+
 test('BongaCash category widget uses the exact account-generated campaign URL and safe placement', () => {
   const widget = config.bongacams.categoryWidget;
   assert.equal(config.version, 5);
