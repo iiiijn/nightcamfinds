@@ -4,7 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { COUNTRIES, getCountryPage } = require("../country-pages");
 
-const slugs = ["us", "gb", "ca", "au", "de", "fr", "nl"];
+const slugs = ["us", "gb", "ca", "au", "de", "fr", "nl", "no", "ch", "is", "lu", "cz", "ae", "za", "br", "md"];
 
 function introWords(html) {
   const match = html.match(/<header class="country-intro">([\s\S]*?)<\/header>/i);
@@ -14,7 +14,7 @@ function introWords(html) {
 
 test("all priority country pages render distinct content and canonical URLs", () => {
   const pages = slugs.map((slug) => getCountryPage(slug));
-  assert.equal(pages.length, 7);
+  assert.equal(pages.length, 16);
   assert.ok(pages.every(Boolean));
   assert.equal(new Set(pages).size, 7);
 
@@ -51,4 +51,17 @@ test("country pages index only when server-rendered rooms are available", () => 
   assert.match(populated, /country-live-rooms/);
   assert.match(populated, /href="\/go\/example"/);
   assert.match(empty, /<meta name="robots" content="noindex,follow">/);
+});
+
+test("new market pages render unique metadata and preserve noindex until enough rooms exist",()=>{
+ for(const slug of ["is","lu","cz","ae","za","br","md"]){
+  const country=COUNTRIES[slug];
+  assert.ok(country,slug+" config should exist");
+  assert.ok(country.regionGroup);
+  assert.ok(country.priority);
+  const html=getCountryPage(slug,"https://nightcamfinds.com","",false);
+  assert.match(html,new RegExp("<h1>"+country.name+" Live Cams</h1>"));
+  assert.match(html,/content="noindex,follow"/);
+  assert.match(html,new RegExp("More "+country.regionGroup+" markets"));
+ }
 });
