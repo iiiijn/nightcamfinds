@@ -32,8 +32,8 @@ test("region and language selectors are backed by server-side filtering and opti
   assert.match(server, /if\(region\)list=list\.filter/);
   assert.match(server, /if\(language\)list=list\.filter/);
   assert.match(server, /regions,languages,notice/);
-  assert.match(app, /params\.set\("region",regionSelect\.value\)/);
-  assert.match(app, /params\.set\("language",languageSelect\.value\)/);
+  assert.match(app, /params\.set\("region",\s*regionSelect\.value\)/);
+  assert.match(app, /params\.set\("language",\s*languageSelect\.value\)/);
 });
 
 test("directory UI exposes a working load-more control for additional room pages", () => {
