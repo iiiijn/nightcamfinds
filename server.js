@@ -37,7 +37,7 @@ const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
 const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
 const CHATURBATE_PAGE_SIZE = 500;
 const CHATURBATE_MAX_PAGES = Math.max(1, Math.min(20, Number(process.env.CHATURBATE_MAX_PAGES || 10)));
-const CHATURBATE_REGION_MAX_PAGES = Math.max(1, Math.min(10, Number(process.env.CHATURBATE_REGION_MAX_PAGES || Math.min(2, CHATURBATE_MAX_PAGES)));
+const CHATURBATE_REGION_MAX_PAGES = Math.max(1, Math.min(10, Number(process.env.CHATURBATE_REGION_MAX_PAGES || Math.min(2, CHATURBATE_MAX_PAGES))));
 const CONTACT = process.env.CONTACT_EMAIL || "bunnybelle188@gmail.com";
 const PUBLIC = path.join(__dirname, "public");
 
