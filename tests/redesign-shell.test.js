@@ -78,11 +78,15 @@ test("unavailable partner thumbnails fall back to the branded static preview", (
   assert.match(promo, /img\.onerror = null/);
 });
 
-test("BongaCash dynamic banner sits beside the room directory on desktop", () => {
+
+
+test("BongaCash static and dynamic promotions share a dedicated responsive sidebar", () => {
   const html = read("public/index.html");
   const css = read("public/styles.css");
-  assert.match(html, /<div class="directory-layout">[\s\S]*?<div class="directory-main">[\s\S]*?id="category-rows"[\s\S]*?id="load-more"[\s\S]*?<\/div>\s*<aside id="bonga-dynamic-banner"/);
-  assert.match(css, /\.directory-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+190px/s);
-  assert.match(css, /\.bonga-dynamic-banner\s*\{[^}]*position:\s*sticky/s);
-  assert.match(css, /@media\s*\(max-width:\s*720px\)[\s\S]*?\.bonga-dynamic-banner\s*\{\s*display:\s*none/s);
+  assert.match(html, /<div class="directory-layout">[\s\S]*?<div class="directory-main">[\s\S]*?<\/div>\s*<aside class="bonga-promo-sidebar"[\s\S]*?id="bonga-dynamic-banner"[\s\S]*?id="bonga-static-banners"[\s\S]*?<\/aside>/);
+  assert.doesNotMatch(html, /<section id="bonga-static-banners"[^>]*><\/section>\s*<section class="loyalty-section"/);
+  assert.match(css, /\.directory-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(300px,\s*320px\)/s);
+  assert.match(css, /\.bonga-promo-sidebar\s*\{[^}]*display:\s*grid/s);
+  assert.match(css, /@media\s*\(max-width:\s*720px\)[\s\S]*?\.bonga-promo-sidebar\s*\{\s*margin-top:\s*18px/s);
+  assert.match(css, /\.bonga-static-banner iframe\s*\{[^}]*width:\s*300px[^}]*height:\s*250px/s);
 });

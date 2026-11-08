@@ -382,11 +382,12 @@ footer span { flex: 1 1 100%; }
 /* Phase 12: provider-hosted BongaCash dynamic banner. */
 .directory-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 190px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 320px);
   align-items: start;
   gap: 22px;
 }
 .directory-main { min-width: 0; }
+.bonga-promo-sidebar { min-width: 0; display: grid; align-content: start; gap: 14px; }
 .bonga-dynamic-banner {
   position: sticky;
   top: 18px;
@@ -413,10 +414,11 @@ footer span { flex: 1 1 100%; }
   background: var(--panel-2);
 }
 @media (max-width: 900px) {
-  .directory-layout { grid-template-columns: minmax(0, 1fr) 190px; gap: 14px; }
+  .directory-layout { grid-template-columns: minmax(0, 1fr) minmax(300px, 320px); gap: 14px; }
 }
 @media (max-width: 720px) {
   .directory-layout { display: block; }
+  .bonga-promo-sidebar { margin-top: 18px; }
   .bonga-dynamic-banner { display: none !important; }
 }
 
@@ -425,10 +427,10 @@ footer span { flex: 1 1 100%; }
  .bonga-static-banners[hidden] { display: none; }
 .bonga-static-banners {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
-  margin: 20px 0;
+  margin: 0;
 }
  .bonga-static-heading { grid-column: 1 / -1; margin: 0; }
 .bonga-static-banner {
