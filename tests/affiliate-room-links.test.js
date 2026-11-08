@@ -57,7 +57,7 @@ test("recent room click report recognizes room IDs when promo content is also pr
   const route = read("route.js");
   const server = read("server.js");
   assert.match(route, /LOWER\(content\) LIKE 'room-%' OR LOWER\(content\) LIKE '%:room-%'/);
-  assert.match(route, /match\(\/(?:\^\|:\)room-/);
+  assert.match(route, /room-\(\[a-z0-9_-\]\{1,64\}\)/);
   assert.match(server, /\["room-" \+ username, suppliedContent\]/);
   assert.match(server, /room-\(\[a-z0-9_-\]\{1,64\}\)\(\?:\|\$\)/);
 });
