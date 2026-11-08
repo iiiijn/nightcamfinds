@@ -210,3 +210,13 @@ test('accepts BongaCash static-banner load and viewable events', () => {
     });
   }
 });
+
+
+test('accepts BongaCash category-widget load and viewable events separately', () => {
+  const visitId = 'e'.repeat(32);
+  for (const eventType of ['bonga_category_widget_loaded', 'bonga_category_widget_viewable']) {
+    assert.deepEqual(normalizeEvent({ visitId, eventType, pagePath: '/' }), {
+      value: { visitId, eventType, pagePath: '/' }
+    });
+  }
+});
