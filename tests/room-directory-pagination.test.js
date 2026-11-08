@@ -28,7 +28,7 @@ test("rooms API supports bounded pagination and reports remaining results", () =
   assert.match(server, /hasMore:offset\+page\.length<list\.length/);
 });
 
-test("region and language selectors are backed by server-side filtering and options", () => {
+test("all room categories receive regional top-room groups from the filtered feed", () => {\n  assert.match(server, /buildRegionalRoomGroups\\(list,sort,8\\)/);\n  assert.match(server, /regionalRooms,liveCount:list.length/);\n  assert.match(app, /renderRegionalSections\\(data\\.regionalRooms/);\n  assert.match(app, /\\["all","live","female","male","trans","couples","hd","new","popular"\\]\\.includes\\(category\\)/);\n});\n\ntest("region and language selectors are backed by server-side filtering and options", () => {
   assert.match(server, /if\(region\)list=list\.filter/);
   assert.match(server, /if\(language\)list=list\.filter/);
   assert.match(server, /regions,languages,notice/);
