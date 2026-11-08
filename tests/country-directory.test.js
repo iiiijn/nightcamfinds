@@ -36,8 +36,8 @@ test("sitemap includes lastmod only when an explicit valid page modification dat
 });
 test("server patch normalizes partner countries and regions for regional discovery",()=>{
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
- assert.match(patched,/getDiscoveryRegion\\(\\{country,partnerRegion:normalizeRegion/);
- assert.match(patched,/normalizeCountryCode\\(room\\.homecountry/);
+ assert.match(patched,/getDiscoveryRegion\(\{country,partnerRegion:normalizeRegion/);
+ assert.match(patched,/normalizeCountryCode\(room\.homecountry/);
 });
 test("server patch preserves region and language discovery facets in the rooms API",()=>{
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
