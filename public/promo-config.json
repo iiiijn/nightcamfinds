@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "chaturbate": {
     "enabled": true,
     "bannerUrl": "",
@@ -57,7 +57,18 @@
         "requiresCategoryMapping": true,
         "iframeUrl": "https://bngprm.com/promo.php?c=840970&type=banner&size=300x250&name=st_dominant"
       }
-    ]
+    ],
+    "categoryWidget": {
+      "enabled": true,
+      "campaignId": "840970",
+      "format": "category_widget",
+      "placement": "bongacash_category_widget",
+      "language": "user_ip",
+      "section": "straight",
+      "width": 200,
+      "layout": "button1",
+      "scriptUrl": "https://bngprm.com/promo.php?c=840970&type=category_widget&bg_color=%23ffffff&width=200&layout=button1&btn_color=%23690034&font_size=14&font_color=%23ccd0d0&section=straight"
+    }
   },
   "targeting": {
     "urlParameters": [
