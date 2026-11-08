@@ -36,6 +36,6 @@ test('reports click ID generation and local provider-ledger coverage separately'
   assert.match(q.clicks.text, /local_ledger_entries/);
   assert.match(q.clicks.text, /LEFT JOIN cb_clicks cb/);
   assert.match(q.clicks.text, /LEFT JOIN bonga_clicks bc/);
-  assert.match(q.clicks.text, /ac\\.clicked_at >=/);
+  assert.ok(q.clicks.text.includes('ac.clicked_at >='));
   assert.deepEqual(q.clicks.params, ['2026-11-01']);
 });
