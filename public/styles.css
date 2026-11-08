@@ -389,8 +389,7 @@ footer span { flex: 1 1 100%; }
 .directory-main { min-width: 0; }
 .bonga-promo-sidebar { min-width: 0; display: grid; align-content: start; gap: 14px; }
 .bonga-dynamic-banner {
-  position: sticky;
-  top: 18px;
+  position: static;
   width: 100%;
   max-width: 190px;
   margin: 0 auto 22px;
