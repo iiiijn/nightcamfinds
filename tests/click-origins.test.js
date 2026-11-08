@@ -73,15 +73,18 @@ test('click origins API is protected by dashboard session and validates GET filt
   assert.ok(block.includes('pool.query(query.text, query.params)'));
 });
 
-test('fresh login loads the click origins report', () => {
+test('fresh login loads the click origins report through shared dashboard initialization', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const html = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
+  const loaderStart = html.indexOf('async function loadDashboardData()');
+  const checkStart = html.indexOf('async function check()', loaderStart);
   const loginStart = html.indexOf('async function login(e)');
   const loginEnd = html.indexOf('async function logout()', loginStart);
+  assert.ok(loaderStart >= 0 && checkStart > loaderStart);
   assert.ok(loginStart >= 0 && loginEnd > loginStart);
-  const loginHandler = html.slice(loginStart, loginEnd);
-  assert.match(loginHandler, /loadClickOrigins\(\)/);
+  assert.match(html.slice(loaderStart, checkStart), /loadClickOrigins\(\)/);
+  assert.match(html.slice(loginStart, loginEnd), /await loadDashboardData\(\)/);
 });
 
 test('recent room clicks endpoint is session-protected, read-only, bounded and excludes raw visitor identifiers', () => {
