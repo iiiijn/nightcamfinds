@@ -30,7 +30,7 @@ test("campaign placement is preserved in affiliate click placement attribution",
   const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
   assert.match(app, /const campaignPlacement = String\(queryParams\.get\("ncf_placement"\)/);
   assert.match(app, /if \(campaignPlacement\) return campaignPlacement/);
-  assert.match(app, /placement: extra\.placement \|\| src/);
+  assert.match(app, /placement: extra\.placement \|\| placement\(\)/);
   assert.match(app, /placement: placement\(\)/);
 });
 
