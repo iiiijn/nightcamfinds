@@ -12,7 +12,7 @@ test('headline Chaturbate totals exclude macro-placeholder callbacks and non-USD
   assert.ok(routeSource.includes("p.value ~ '^[{][A-Za-z][A-Za-z0-9_]*[}]$'"));
   assert.match(routeSource, /UPPER\(COALESCE\(currency,''\)\)='USD'/);
   assert.match(routeSource, /const conversionWhere = conv\.where \? conv\.where \+ " AND " \+ testCallbackExclusion : "WHERE " \+ testCallbackExclusion/);
-  assert.match(routeSource, /FROM cb_conversions",\s*"\s*\",\s*conversionWhere/);
+  assert.match(routeSource, /"FROM cb_conversions",\\s*conversionWhere/);
 });
 
 test('conversion detail report identifies placeholder callbacks without assigning a false match', () => {
