@@ -165,7 +165,8 @@
     el.append(cards);
   }
 
-  function renderBanner(config, rooms, platform) {
+  function renderBanner(config, rooms) {
+    const platform = config?.platform || 'chaturbate';
     const room = (rooms || []).find((item) => item.platform === platform);
     if (!banner || config?.enabled === false || !config?.bannerUrl || !room) return;
     banner.hidden = false;
@@ -222,8 +223,8 @@
       if (bcPromo) bcPromo.hidden = safeTargetPlatform === 'chaturbate';
       if (safeTargetPlatform !== 'bongacams' && config.chaturbate?.enabled !== false) renderStrip(cbPromo, cb, 'Live on Chaturbate', 'Chaturbate');
       if (safeTargetPlatform !== 'chaturbate' && config.bongacams?.enabled !== false) renderStrip(bcPromo, bc, 'Live on BongaCams', 'BongaCams');
-      if (safeTargetPlatform === 'bongacams') renderBanner(config.bongacams, bc, 'bongacams');
-      else renderBanner(config.chaturbate, cb, 'chaturbate');
+      if (safeTargetPlatform === 'bongacams') renderBanner({ ...config.bongacams, platform: 'bongacams' }, bc);
+      else renderBanner({ ...config.chaturbate, platform: 'chaturbate' }, cb);
     }
 
     if (sticky && liveCount !== null) {
