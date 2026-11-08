@@ -52,6 +52,8 @@ test('official banner assets are optional for both partners and a banner slot ex
   assert.equal(config.bongacams.format, 'dynamic_banner');
   assert.equal(new URL(config.bongacams.iframeUrl).hostname, 'bngdin.com');
   assert.equal(new URL(config.bongacams.iframeUrl).searchParams.get('c'), '840970');
+  assert.equal(new URL(config.bongacams.iframeUrl).searchParams.get('db[models_by_geo]'), '1');
+  assert.equal(config.bongacams.modelsByGeo, true);
   assert.match(promo, /renderBongaDynamicBanner\(config\.bongacams\)/);
   assert.match(promo, /bonga_banner_loaded/);
   assert.match(promo, /source\.hostname !== 'bngdin\.com'/);
