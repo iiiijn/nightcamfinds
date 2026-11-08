@@ -13,5 +13,8 @@ test('headline Chaturbate revenue excludes test callbacks and non-USD payouts', 
 test('dashboard country summary contains click geography only', () => {
   const source = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
   assert.match(source, /const combinedCountries = \{ \.\.\.countries \};/);
-  assert.doesNotMatch(source, /for \(const row of bonga\.byCountry\) combinedCountries/);
+  const countryStart = source.indexOf('  const combinedCountries = { ...countries };');
+  const countryEnd = source.indexOf('  return {', countryStart);
+  const countrySummary = source.slice(countryStart, countryEnd);
+  assert.doesNotMatch(countrySummary, /bonga\\.byCountry|bongacash.*country/i);
 });
