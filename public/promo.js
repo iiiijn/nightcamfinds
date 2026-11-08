@@ -3,6 +3,7 @@
   const bcPromo = document.querySelector('#bonga-live-promo');
   const banner = document.querySelector('#cb-banner-promo');
   const bongaDynamicBanner = document.querySelector('#bonga-dynamic-banner');
+  const bongaStaticBanners = document.querySelector('#bonga-static-banners');
   const sticky = document.querySelector('#stickyPromo');
   if (!cbPromo && !bcPromo && !banner && !sticky) return;
 
@@ -185,6 +186,64 @@
     banner.append(a);
   }
 
+  function renderBongaStaticBanners(config) {
+    if (!bongaStaticBanners || !Array.isArray(config?.staticBanners)) return;
+    const active = config.staticBanners.filter(item => item?.enabled === true && item?.targetCategory === 'all');
+    if (!active.length) return;
+    bongaStaticBanners.replaceChildren();
+    const heading = document.createElement('h2');
+    heading.className = 'bonga-static-heading';
+    heading.textContent = 'Featured BongaCams promotions';
+    bongaStaticBanners.append(heading);
+    for (const item of active) {
+      let source;
+      try {
+        source = new URL(item.iframeUrl);
+        if (source.protocol !== 'https:' || source.hostname !== 'bngprm.com' ||
+            source.pathname !== '/promo.php' || source.searchParams.get('type') !== 'banner' ||
+            source.searchParams.get('c') !== '840970' || source.searchParams.get('size') !== '300x250' ||
+            source.searchParams.get('name') !== item.id || item.width !== 300 || item.height !== 250) continue;
+      } catch (_) { continue; }
+      const card = document.createElement('article');
+      card.className = 'bonga-static-banner';
+      const title = document.createElement('h3');
+      title.textContent = item.label || 'BongaCams promotion';
+      const frame = document.createElement('iframe');
+      frame.width = '300';
+      frame.height = '250';
+      frame.loading = 'lazy';
+      frame.scrolling = 'no';
+      frame.referrerPolicy = 'strict-origin-when-cross-origin';
+      frame.title = item.label || 'BongaCams promotional banner';
+      frame.setAttribute('frameborder', '0');
+      frame.src = source.toString();
+      frame.addEventListener('load', () => {
+        recordEngagement('bonga_static_banner_loaded', { platform: 'bongacams', placement: item.placement, content: item.id });
+      }, { once: true });
+      let viewableRecorded = false;
+      let timer;
+      if (typeof IntersectionObserver === 'function') {
+        const observer = new IntersectionObserver(entries => {
+          const entry = entries[0];
+          if (entry?.isIntersecting && entry.intersectionRatio >= 0.5 && !viewableRecorded) {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+              if (document.visibilityState === 'visible' && !viewableRecorded) {
+                viewableRecorded = true;
+                recordEngagement('bonga_static_banner_viewable', { platform: 'bongacams', placement: item.placement, content: item.id });
+                observer.disconnect();
+              }
+            }, 1000);
+          } else clearTimeout(timer);
+        }, { threshold: [0, 0.5, 1] });
+        frame.addEventListener('load', () => observer.observe(card), { once: true });
+      }
+      card.append(title, frame);
+      bongaStaticBanners.append(card);
+    }
+    bongaStaticBanners.hidden = bongaStaticBanners.querySelectorAll('iframe').length === 0;
+  }
+
   function renderBongaDynamicBanner(config) {
     if (!bongaDynamicBanner || config?.enabled === false || !config?.iframeUrl) return;
     // Accept only the exact provider-hosted HTTPS BongaCash dynamic-banner endpoint.
@@ -274,6 +333,7 @@
       if (bcPromo) bcPromo.hidden = true;
       if (banner) banner.hidden = true;
       if (bongaDynamicBanner) bongaDynamicBanner.hidden = true;
+      if (bongaStaticBanners) bongaStaticBanners.hidden = true;
     } else {
       if (cbPromo) cbPromo.hidden = safeTargetPlatform === 'bongacams';
       if (bcPromo) bcPromo.hidden = safeTargetPlatform === 'chaturbate';
@@ -282,6 +342,7 @@
       if (safeTargetPlatform === 'bongacams') renderBanner({ ...config.bongacams, platform: 'bongacams' }, bc);
       else renderBanner({ ...config.chaturbate, platform: 'chaturbate' }, cb);
       if (safeTargetPlatform !== 'chaturbate' && config.bongacams?.enabled !== false) renderBongaDynamicBanner(config.bongacams);
+      if (safeTargetPlatform !== 'chaturbate' && config.bongacams?.enabled !== false) renderBongaStaticBanners(config.bongacams);
     }
 
     if (sticky && liveCount !== null) {
