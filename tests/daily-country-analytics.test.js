@@ -6,8 +6,12 @@ const analytics = require('../src/services/daily-country-analytics.cjs');
 test('Tier 1 analytics list contains all 18 configured country markets', () => {
   assert.equal(analytics.TIER1_COUNTRIES.length, 18);
   assert.equal(new Set(analytics.TIER1_COUNTRIES).size, 18);
-  assert.ok(analytics.TIER1_COUNTRIES.includes('JP'));
-  assert.ok(analytics.TIER1_COUNTRIES.includes('SG'));
+  assert.ok(analytics.TIER1_COUNTRIES.includes('NO'));
+  assert.ok(analytics.TIER1_COUNTRIES.includes('CH'));
+  assert.ok(analytics.TIER1_COUNTRIES.includes('IS'));
+  assert.ok(analytics.TIER1_COUNTRIES.includes('LU'));
+  assert.ok(!analytics.TIER1_COUNTRIES.includes('JP'));
+  assert.ok(!analytics.TIER1_COUNTRIES.includes('SG'));
 });
 
 test('daily filters accept valid date, country and Tier 1 filters', () => {
