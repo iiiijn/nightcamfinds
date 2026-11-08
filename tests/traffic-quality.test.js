@@ -41,6 +41,15 @@ test('accepts the BongaCash dynamic-banner iframe load event for attribution', (
   }), { value: { visitId, eventType: 'bonga_banner_loaded', pagePath: '/' } });
 });
 
+test('accepts a viewable BongaCash banner event separately from iframe load', () => {
+  const visitId = 'c'.repeat(32);
+  assert.deepEqual(normalizeEvent({
+    visitId,
+    eventType: 'bonga_banner_viewable',
+    pagePath: '/'
+  }), { value: { visitId, eventType: 'bonga_banner_viewable', pagePath: '/' } });
+});
+
 test('affiliate redirect writes preserve the strongest visit classification', () => {
   const fs = require('node:fs');
   const path = require('node:path');
