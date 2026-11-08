@@ -416,12 +416,20 @@ http.createServer = function routeDashboard(handler) {
         ]);
         const c = callbacks.rows[0] || {};
         const byPlatform = { chaturbate: 0, bongacams: 0, other: 0 };
+        const clickTracking = {
+          chaturbate: { clicks: 0, clickIdsGenerated: 0, clicksWithoutClickId: 0, localLedgerEntries: 0 },
+          bongacams: { clicks: 0, clickIdsGenerated: 0, clicksWithoutClickId: 0, localLedgerEntries: 0 },
+          other: { clicks: 0, clickIdsGenerated: 0, clicksWithoutClickId: 0, localLedgerEntries: 0 }
+        };
         for (const row of clicks.rows) {
           const platform = String(row.platform || "").toLowerCase();
           const count = Number(row.clicks || 0);
-          if (platform === "chaturbate") byPlatform.chaturbate += count;
-          else if (platform === "bongacams") byPlatform.bongacams += count;
-          else byPlatform.other += count;
+          const key = Object.prototype.hasOwnProperty.call(clickTracking, platform) ? platform : "other";
+          byPlatform[key] += count;
+          clickTracking[key].clicks += count;
+          clickTracking[key].clickIdsGenerated += Number(row.click_ids_generated || 0);
+          clickTracking[key].clicksWithoutClickId += Number(row.clicks_without_click_id || 0);
+          clickTracking[key].localLedgerEntries += Number(row.local_ledger_entries || 0);
         }
         return sendJson(res, 200, {
           callbacks: {
@@ -430,12 +438,14 @@ http.createServer = function routeDashboard(handler) {
             clickIdNotFound: Number(c.click_id_not_found || 0)
           },
           clicks: byPlatform,
+          clickTracking,
           filters: queries.filters,
           timezone: "UTC",
           notes: {
-            chaturbate: "Callback counts describe received postback rows, not verified cash received. Duplicate transaction IDs are prevented by the existing unique constraint.",
-            bongacash: "BongaCash clicks are recorded redirects only. No automatic conversion postback is configured; use the separate manual reconciliation report."
-          }
+            chaturbate: "Callback counts describe received postback rows, not verified cash received. A matched callback must return the exact NightCamFinds click ID. Local click-ledger coverage is shown separately from partner acceptance.",
+            bongacash: "Automatic BongaCash postbacks are disabled. The current model-specific Direct Link carries the campaign and model name but does not pass the locally generated click ID. BongaCash's public FAQ points affiliates to account-specific Promo Tools but does not document a unique click-ID parameter or callback macro. Do not append guessed parameters; use manual daily reconciliation until BongaCash confirms the exact inbound tracking field and outbound callback macros."
+          },
+          bongacashPostback: { enabled: false, clickIdPassThroughConfigured: false, reconciliation: "manual" }
         });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Attribution health requires the existing affiliate click and Chaturbate conversion tables." });
