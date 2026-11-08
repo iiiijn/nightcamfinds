@@ -36,6 +36,14 @@ test('outbound promo cards retain tracked redirects and campaign placement label
   assert.match(promo, /\/go\/\$\{encodeURIComponent\(room\.id\)\}/);
 });
 
+test('BongaCash banner distinguishes iframe load from a viewable placement', () => {
+  assert.match(promo, /bonga_banner_loaded/);
+  assert.match(promo, /bonga_banner_viewable/);
+  assert.match(promo, /intersectionRatio >= 0\.5/);
+  assert.match(promo, /}, 1000\)/);
+  assert.match(promo, /visibilityObserver\.disconnect\(\)/);
+});
+
 test('official banner assets are optional for both partners and a banner slot exists', () => {
   assert.equal(config.version, 3);
   assert.equal(config.chaturbate.bannerUrl, '');
