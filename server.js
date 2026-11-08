@@ -332,8 +332,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const visitId = String(url.searchParams.get("vid") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
     const requestedLandingPath = String(url.searchParams.get("lp") || pathname);
     const landingPath = requestedLandingPath.startsWith("/") && !requestedLandingPath.startsWith("//") ? requestedLandingPath.slice(0, 255) : pathname;
-    const roomFeed = isBonga ? await rooms(req) : cache;
-    const room = roomFeed.rooms.find(r => r.platform === platform && r.username === username);
+    const room = isBonga ? (await rooms(req)).rooms.find(r => r.platform === platform && r.username === username) : null;
     if (isBonga && !room) return send(res, 404, "Live room not found", "text/plain; charset=utf-8");
     await countClick({ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
     let target;
