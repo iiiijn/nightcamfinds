@@ -1,4 +1,6 @@
 const grid = document.querySelector("#grid");
+const loadMoreButton = document.querySelector("#load-more");
+let currentOffset = 0;
 const notice = document.querySelector("#notice");
 const gate = document.querySelector("#gate");
 const countEl = document.querySelector("#result-count");
@@ -355,8 +357,8 @@ function renderHomeSections(rooms) {
 let timer;
 function schedule() { clearTimeout(timer); timer = setTimeout(load, 250); }
 
-async function load() {
-  const params = new URLSearchParams({ category, sort: sort.value, q: q.value });
+async function load(offset = 0, append = false) {
+  const params = new URLSearchParams({ category, sort: sort.value, q: q.value, limit: "60", offset: String(offset) });
   if (countrySelect.value) params.set("country", countrySelect.value);
   if (regionSelect.value) params.set("region", regionSelect.value);
   if (languageSelect.value) params.set("language", languageSelect.value);
@@ -381,6 +383,20 @@ async function load() {
   syncOptions(regionSelect, data.regions, "All regions");
   syncOptions(languageSelect, data.languages, "All languages");
   const rooms = data.rooms || [];
+  if (append) {
+    const displayed = balanceCategoryRooms(rooms);
+    grid.append(...displayed.map(card));
+    currentOffset = offset + rooms.length;
+    if (loadMoreButton) {
+      loadMoreButton.hidden = !data.hasMore;
+      loadMoreButton.disabled = false;
+    }
+    countEl.textContent = (data.liveCount || 0) + " live rooms · showing " + currentOffset;
+    notice.hidden = !data.notice;
+    notice.textContent = data.notice || "";
+    return;
+  }
+  currentOffset = rooms.length;
   partners(rooms);
   const isUnfilteredHome = (category === "all" || category === "live") &&
     !q.value && !countrySelect.value && !regionSelect.value && !languageSelect.value;
@@ -401,10 +417,24 @@ async function load() {
     const displayed = balanceCategoryRooms(rooms);
     grid.replaceChildren(...displayed.map(card));
   }
-  countEl.textContent = (rooms.length ? rooms.length + " live rooms" : "No rooms match that filter.") + " · updated " + new Date().toLocaleTimeString();
+  countEl.textContent = (data.liveCount ? data.liveCount + " live rooms" : "No rooms match that filter.") +
+    (isUnfilteredHome ? "" : " · showing " + rooms.length) + " · updated " + new Date().toLocaleTimeString();
+  if (loadMoreButton) {
+    loadMoreButton.hidden = isUnfilteredHome || !data.hasMore;
+    loadMoreButton.disabled = false;
+  }
   notice.hidden = !data.notice;
   notice.textContent = data.notice || "";
 }
+
+loadMoreButton?.addEventListener("click", () => {
+  loadMoreButton.disabled = true;
+  load(currentOffset, true).catch(() => {
+    loadMoreButton.disabled = false;
+    notice.hidden = false;
+    notice.textContent = "Could not load more rooms. Please try again.";
+  });
+});
 
 sort.addEventListener("change", load);
 countrySelect.addEventListener("change", load);
