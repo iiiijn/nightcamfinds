@@ -4,8 +4,9 @@
   const banner = document.querySelector('#cb-banner-promo');
   const bongaDynamicBanner = document.querySelector('#bonga-dynamic-banner');
   const bongaStaticBanners = document.querySelector('#bonga-static-banners');
+  const bongaCategoryWidget = document.querySelector('#bonga-category-widget');
   const sticky = document.querySelector('#stickyPromo');
-  if (!cbPromo && !bcPromo && !banner && !sticky) return;
+  if (!cbPromo && !bcPromo && !banner && !sticky && !bongaCategoryWidget) return;
 
   const metaCountry = String(document.querySelector('meta[name="ncf-country"]')?.content || 'UNKNOWN').toUpperCase();
   const targetingParams = new URLSearchParams(location.search);
@@ -244,6 +245,58 @@
     bongaStaticBanners.hidden = bongaStaticBanners.querySelectorAll('iframe').length === 0;
   }
 
+
+  function renderBongaCategoryWidget(config) {
+    if (!bongaCategoryWidget || config?.enabled === false || !config?.scriptUrl) return;
+    let source;
+    try {
+      source = new URL(config.scriptUrl);
+      if (source.protocol !== 'https:' || source.hostname !== 'bngprm.com' ||
+          source.pathname !== '/promo.php' || source.searchParams.get('type') !== 'category_widget' ||
+          source.searchParams.get('c') !== '840970' || source.searchParams.get('section') !== 'straight' ||
+          source.searchParams.get('width') !== '200' || source.searchParams.get('layout') !== 'button1') return;
+    } catch (_) { return; }
+    bongaCategoryWidget.replaceChildren();
+    const heading = document.createElement('h2');
+    heading.className = 'bonga-category-widget-heading';
+    heading.textContent = 'Browse BongaCams categories';
+    const mount = document.createElement('div');
+    mount.id = 'bc_cw';
+    mount.className = 'bonga-category-widget-content';
+    bongaCategoryWidget.append(heading, mount);
+    let viewableRecorded = false;
+    let viewableTimer;
+    const observer = typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver(entries => {
+          const entry = entries[0];
+          if (entry?.isIntersecting && entry.intersectionRatio >= 0.5 && !viewableRecorded) {
+            clearTimeout(viewableTimer);
+            viewableTimer = setTimeout(() => {
+              if (document.visibilityState === 'visible' && !viewableRecorded) {
+                viewableRecorded = true;
+                recordEngagement('bonga_category_widget_viewable', { platform: 'bongacams', placement: 'bongacash_category_widget', content: 'campaign_840970' });
+                observer.disconnect();
+              }
+            }, 1000);
+          } else clearTimeout(viewableTimer);
+        }, { threshold: [0, 0.5, 1] })
+      : null;
+    if (observer) observer.observe(bongaCategoryWidget);
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.async = true;
+    script.src = source.toString();
+    script.addEventListener('load', () => {
+      recordEngagement('bonga_category_widget_loaded', { platform: 'bongacams', placement: 'bongacash_category_widget', content: 'campaign_840970' });
+    }, { once: true });
+    script.addEventListener('error', () => {
+      observer?.disconnect();
+      bongaCategoryWidget.hidden = true;
+    }, { once: true });
+    mount.append(script);
+    bongaCategoryWidget.hidden = false;
+  }
+
   function renderBongaDynamicBanner(config) {
     if (!bongaDynamicBanner || config?.enabled === false || !config?.iframeUrl) return;
     // Accept only the exact provider-hosted HTTPS BongaCash dynamic-banner endpoint.
@@ -343,6 +396,7 @@
       else renderBanner({ ...config.chaturbate, platform: 'chaturbate' }, cb);
       if (safeTargetPlatform !== 'chaturbate' && config.bongacams?.enabled !== false) renderBongaDynamicBanner(config.bongacams);
       if (safeTargetPlatform !== 'chaturbate' && config.bongacams?.enabled !== false) renderBongaStaticBanners(config.bongacams);
+      if (safeTargetPlatform !== 'chaturbate' && config.bongacams?.enabled !== false) renderBongaCategoryWidget(config.bongacams?.categoryWidget);
     }
 
     if (sticky && liveCount !== null) {
