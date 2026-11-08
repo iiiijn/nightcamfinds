@@ -135,7 +135,7 @@ test('banner affiliate links retain the visit ID and original landing path', () 
   const promo = fs.readFileSync(path.join(__dirname, '../public/promo.js'), 'utf8');
   assert.match(promo, /vid: currentVisitId/);
   assert.match(promo, /lp: originalLandingPath\.slice\(0, 255\)/);
-  assert.match(promo, /chaturbate-banner/);
+  assert.match(promo, /trackUrl/);
 });
 
 test('engagement endpoint rate-limits and BongaCash remains manual-only', () => {

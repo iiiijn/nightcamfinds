@@ -34,7 +34,7 @@ test("home page renders grouped server-side room sections", () => {
   assert.match(html, /Top female/);
   assert.match(html, /Top male/);
   assert.match(html, /\/go\//);
-  assert.match(html, /\/bgo\//);
+  assert.match(html, /href="\/bgo\//);
 });
 
 test("empty room lists render a useful empty state", () => {

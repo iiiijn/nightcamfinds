@@ -83,3 +83,30 @@ test('fresh login loads the click origins report', () => {
   const loginHandler = html.slice(loginStart, loginEnd);
   assert.match(loginHandler, /loadClickOrigins\(\)/);
 });
+
+test('recent room clicks endpoint is session-protected, read-only, bounded and excludes raw visitor identifiers', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('if (incoming.pathname === "/api/recent-room-clicks")');
+  const end = route.indexOf('if (incoming.pathname === "/api/health")', start);
+  assert.ok(start >= 0 && end > start);
+  const block = route.slice(start, end);
+  assert.ok(block.includes('validDashboardSession(req)'));
+  assert.ok(block.includes('req.method !== "GET"'));
+  assert.ok(block.includes('limit > 100'));
+  assert.ok(block.includes("LOWER(content) LIKE 'room-%'"));
+  assert.ok(block.includes('click_id'));
+  assert.doesNotMatch(block, /ip_address|user_agent|email|full_name/i);
+});
+
+test('dashboard exposes and refreshes recent room clicks', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const html = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
+  for (const id of ['recentRoomPlatform','recentRoomRefresh','recentRoomStatus','recentRoomTable']) {
+    assert.match(html, new RegExp('id="' + id + '"'));
+  }
+  assert.ok(html.includes('/api/recent-room-clicks'));
+  assert.ok(html.includes('loadRecentRoomClicks()'));
+});

@@ -280,9 +280,22 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}">
 <meta name="robots" content="${hasRooms ? "index,follow" : "noindex,follow"}"><link rel="canonical" href="${escapeHtml(canonical)}">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script>
+try { if (localStorage.getItem("ncf18") === "1") document.documentElement.classList.add("ok"); else document.documentElement.classList.add("age-pending"); }
+catch (_) { document.documentElement.classList.add("age-pending"); }
+</script>
 </head>
-<body><main class="wrap legal country-landing">
+<body>
+<div class="age-gate" id="gate"><div class="panel">
+<p class="eyebrow">Adults only</p><h2>This site is for people 18 or older.</h2>
+<p class="muted">NightCamFinds is an independent directory. It does not host video. You must be 18 or the age of majority where you live.</p>
+<div class="actions"><button id="enter" type="button">I am 18 or older</button><a class="btn ghost" href="https://www.google.com">Leave</a></div>
+</div></div>
+<main class="wrap legal country-landing">
 <nav aria-label="Breadcrumb"><ol class="breadcrumbs"><li><a href="/">Home</a></li><li aria-current="page">${escapeHtml(country.name)}</li></ol></nav>
 <header class="country-intro"><p class="eyebrow">NightCamFinds country directory</p><h1>${escapeHtml(country.name)} Live Cams</h1>
 ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
@@ -292,7 +305,17 @@ ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
 <section aria-labelledby="country-faq"><h2 id="country-faq">Frequently asked questions</h2>${faqHtml}</section>
 <p class="country-disclosure">NightCamFinds is an independent directory. Room listings and country information are supplied by partner feeds and may be incomplete or out of date. Some links are affiliate links.</p>
 <p><a class="btn" href="/live/">Browse live rooms</a></p>
-</main></body></html>`;
+</main>
+<script>
+const gate = document.getElementById("gate");
+document.getElementById("enter")?.addEventListener("click", () => {
+  try { localStorage.setItem("ncf18", "1"); } catch (_) {}
+  document.documentElement.classList.add("ok");
+  document.documentElement.classList.remove("age-pending");
+  if (gate) gate.hidden = true;
+});
+</script>
+</body></html>`;
 }
 
 module.exports = { COUNTRIES, getCountryPage };

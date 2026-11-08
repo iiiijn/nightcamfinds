@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const net = require("node:net");
+const http = require("node:http");
 const { spawn, execFileSync } = require("node:child_process");
 
 async function freePort() {
@@ -34,6 +35,12 @@ async function waitForServer(baseUrl, child) {
 
 test("affiliate redirect endpoints return tracked provider URLs and record click attribution", async t => {
   const port = await freePort();
+  const bongaFeedPort = await freePort();
+  const bongaFeed = http.createServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify([{ username: "testbongamodel", display_name: "Test Bonga Model", gender: "male", room_url: "https://www.bongacams.com/testbongamodel" }]));
+  });
+  await new Promise(resolve => bongaFeed.listen(bongaFeedPort, "127.0.0.1", resolve));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-stats-"));
   const stubRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-modules-"));
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-project-"));
@@ -58,7 +65,8 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
       CB_TOUR: "testTour",
       CB_CAMPAIGN: "testCampaign",
       BONGACAMS_CAMPAIGN: "testBongaCampaign",
-      BONGACAMS_ENABLED: "false"
+      BONGACAMS_API_BASE: `http://127.0.0.1:${bongaFeedPort}/promo.php`,
+      BONGACAMS_ENABLED: "true"
     },
     stdio: ["ignore", "ignore", "pipe"]
   });
@@ -67,6 +75,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   child.stderr.on("data", chunk => { child.testStderr += chunk; });
   t.after(() => {
     if (child.exitCode === null) child.kill("SIGTERM");
+    bongaFeed.close();
     fs.rmSync(dataDir, { recursive: true, force: true });
     fs.rmSync(stubRoot, { recursive: true, force: true });
     fs.rmSync(projectDir, { recursive: true, force: true });
@@ -90,6 +99,13 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   assert.equal(chaturbateTarget.searchParams.get("source"), "redirect-test");
   assert.equal(chaturbateTarget.searchParams.get("utm_medium"), "unit-test");
   assert.match(chaturbateTarget.searchParams.get("click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
+  assert.equal(chaturbateTarget.searchParams.get("sid"), chaturbateTarget.searchParams.get("click_id"));
+
+  const placeholderResponse = await fetch(
+    `${baseUrl}/go/directory?src=placeholder-test`,
+    { redirect: "manual", headers: { "user-agent": "NightCamFinds redirect test" } }
+  );
+  assert.equal(placeholderResponse.status, 404);
 
   const bongaResponse = await fetch(
     `${baseUrl}/bgo/testbongamodel?utm_source=redirect-test&utm_medium=unit-test&utm_campaign=bonga-check&src=bonga-test-card&cat=male`,
@@ -97,24 +113,12 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   );
   assert.equal(bongaResponse.status, 302);
   const bongaTarget = new URL(bongaResponse.headers.get("location"));
-  // The production patch chain can route Bonga through either the direct room
-  // URL or the legacy tracking endpoint. Both are valid, tracked destinations.
-  assert.ok(
-    ["bongacams.com", "bongacams4.com"].includes(bongaTarget.hostname),
-    `Unexpected Bonga host: ${bongaTarget.hostname}`
-  );
-  if (bongaTarget.hostname === "bongacams.com") {
-    assert.equal(bongaTarget.pathname, "/testbongamodel");
-    assert.equal(bongaTarget.searchParams.get("ncf_source"), "redirect-test");
-    assert.equal(bongaTarget.searchParams.get("ncf_campaign"), "bonga-check");
-    assert.equal(bongaTarget.searchParams.get("ncf_placement"), "bonga-test-card");
-    assert.match(bongaTarget.searchParams.get("ncf_click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
-  } else {
-    assert.equal(bongaTarget.pathname, "/track");
-    assert.equal(bongaTarget.searchParams.get("c"), "testBongaCampaign");
-    assert.equal(bongaTarget.searchParams.get("track"), "bonga-test-card");
-    assert.match(bongaTarget.searchParams.get("click_id") || "", /^ncf_[a-z0-9]+_[a-f0-9]+$/);
-  }
+  assert.equal(bongaTarget.hostname, "bngprm.com");
+  assert.equal(bongaTarget.pathname, "/promo.php");
+  assert.equal(bongaTarget.searchParams.get("type"), "direct_link");
+  assert.equal(bongaTarget.searchParams.get("v"), "2");
+  assert.equal(bongaTarget.searchParams.get("c"), "testBongaCampaign");
+  assert.equal(bongaTarget.searchParams.get("models[]"), "testbongamodel");
 
   const statsPath = path.join(dataDir, "clicks.json");
   const stats = JSON.parse(fs.readFileSync(statsPath, "utf8"));
@@ -126,4 +130,6 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   assert.equal(stats.bySource["redirect-test"], 2);
   assert.equal(stats.byPlacement["chaturbate:cb-test-card"], 1);
   assert.equal(stats.byPlacement["bongacams:bonga-test-card"], 1);
+  assert.equal(stats.byRoom["chaturbate:testmodel"], 1);
+  assert.equal(stats.byRoom["bongacams:testbongamodel"], 1);
 });

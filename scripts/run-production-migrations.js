@@ -1,25 +1,25 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { Pool } = require("pg");
+const { getMigrationPlan } = require("./migration-plan");
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {
-  console.log("DATABASE_URL not configured; skipping production migrations");
+  console.log("DATABASE_URL not configured; skipping database migrations");
   process.exit(0);
 }
+
+const branch = process.env.RENDER_GIT_BRANCH || "";
+const migrations = getMigrationPlan(branch, {
+  allowProductionReconciliation:
+    process.env.NIGHTCAMFINDS_APPROVE_BONGACASH_RECONCILIATION_MIGRATION === "true"
+});
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
   ssl: process.env.DATABASE_SSL === "false" ? false : { rejectUnauthorized: false },
   max: 2
 });
-
-const migrations = [
-  { version: "003_click_attribution_columns", file: "003_click_attribution_columns.sql" },
-  { version: "004_country_platform_routing", file: "004_country_platform_routing.sql" },
-  { version: "005_bongacash_daily_reconciliation", file: "005_bongacash_daily_reconciliation.sql" },
-  { version: "006_traffic_quality_engagement", file: "006_traffic_quality_engagement.sql" }
-];
 
 (async () => {
   const client = await pool.connect();
@@ -40,7 +40,7 @@ const migrations = [
         [migration.version]
       );
       if (existing.rowCount) {
-        console.log(`Production migration ${migration.version} already applied`);
+        console.log(`Database migration ${migration.version} already applied`);
         continue;
       }
 
@@ -57,14 +57,14 @@ const migrations = [
           [migration.version]
         );
         await client.query("COMMIT");
-        console.log(`Production migration ${migration.version} applied`);
+        console.log(`Database migration ${migration.version} applied`);
       } catch (err) {
         await client.query("ROLLBACK");
         throw err;
       }
     }
   } catch (err) {
-    console.error("Production migration failed:", err.message);
+    console.error("Database migration failed:", err.message);
     process.exitCode = 1;
   } finally {
     try { await client.query("SELECT pg_advisory_unlock(741920260)"); } catch {}

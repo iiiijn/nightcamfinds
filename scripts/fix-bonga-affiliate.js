@@ -9,6 +9,13 @@ if (source.includes("NIGHTCAMFINDS_BONGA_BCS_V1")) {
   process.exit(0);
 }
 
+// The verified Direct Link builder supersedes the old feed-URL/BCS patch.
+// It deliberately does not add undocumented BongaCash click-ID parameters.
+if (source.includes('destination.searchParams.set("models[]", username)')) {
+  console.log("Verified BongaCash Direct Link builder detected; legacy BCS patch skipped");
+  process.exit(0);
+}
+
 const marker = 'const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));';
 if (!source.includes(marker)) throw new Error("Bonga configuration marker not found in server.js");
 if (!source.includes('buildChaturbateUrl({')) {

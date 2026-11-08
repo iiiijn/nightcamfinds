@@ -113,8 +113,15 @@
     el.innerHTML = '';
     const title = document.createElement('div');
     title.className = 'promo-title';
-    const market = tier1.has(metaCountry) ? `Popular with viewers in ${names[metaCountry] || 'your market'}` : 'Fresh rooms online now';
-    title.innerHTML = `<span class="promo-dot"></span><strong>${label}</strong><span class="promo-sub">${market}</span>`;
+    const market = 'Live rooms from partner feeds';
+    const dot = document.createElement('span');
+    dot.className = 'promo-dot';
+    const titleText = document.createElement('strong');
+    titleText.textContent = label;
+    const subtitle = document.createElement('span');
+    subtitle.className = 'promo-sub';
+    subtitle.textContent = market;
+    title.append(dot, titleText, subtitle);
     el.append(title);
 
     const cards = document.createElement('div');
@@ -130,26 +137,25 @@
       img.alt = `${room.displayName || room.username} live`;
       img.src = room.image || '/og.svg';
       const body = document.createElement('span');
+      const name = document.createElement('strong');
+      name.textContent = room.displayName || room.username;
+      const detail = document.createElement('small');
       const viewers = Number(room.viewerCount || 0).toLocaleString();
-      body.innerHTML = `<strong>${room.displayName || room.username}</strong><small>${viewers} watching · ${platform}</small>`;
+      detail.textContent = `${viewers} watching · ${platform}`;
+      body.append(name, detail);
       a.append(img, body);
       cards.append(a);
     }
     el.append(cards);
   }
 
-  function renderBanner(config) {
-    if (!banner || !config?.bannerUrl) return;
+  function renderBanner(config, rooms) {
+    const room = (rooms || []).find((item) => item.platform === 'chaturbate');
+    if (!banner || !config?.bannerUrl || !room) return;
     banner.hidden = false;
     banner.innerHTML = '';
     const a = document.createElement('a');
-    const attr = getMarketingAttribution();
-    const params = new URLSearchParams({
-      src: 'chaturbate-banner', cat: 'promo', source: attr.source, medium: attr.medium,
-      campaign: attr.campaign, content: 'banner', vid: currentVisitId,
-      lp: originalLandingPath.slice(0, 255)
-    });
-    a.href = `/go/chaturbate:featured?${params.toString()}`;
+    a.href = trackUrl(room, 'banner');
     a.target = '_blank';
     a.rel = 'sponsored nofollow noopener';
     const img = document.createElement('img');
@@ -190,7 +196,7 @@
 
     if (config.chaturbate?.enabled !== false) renderStrip(cbPromo, cb, 'Live on Chaturbate', 'Chaturbate');
     if (config.bongacams?.enabled !== false) renderStrip(bcPromo, bc, 'Live on BongaCams', 'BongaCams');
-    renderBanner(config.chaturbate);
+    renderBanner(config.chaturbate, cb);
 
     if (sticky && liveCount !== null) {
       sticky.innerHTML = '';
@@ -202,7 +208,7 @@
       body.append(label, detail);
       const link = document.createElement('a');
       link.className = 'btn';
-      link.href = '#grid';
+      link.href = '#category-rows';
       link.textContent = 'Browse rooms';
       sticky.append(body, link);
       sticky.hidden = liveCount === 0;
@@ -211,13 +217,18 @@
 
   if (sticky) {
     let shown = false;
+    const hero = document.querySelector('.hero');
     const reveal = () => {
       if (shown || sticky.innerHTML.trim() === '') return;
-      if (window.scrollY > Math.max(500, document.body.scrollHeight * 0.35)) {
+      // Keep the fixed live-count promo out of the first-screen hero area.
+      // Reveal it only after the visitor has scrolled past the full hero.
+      const heroHasPassed = !hero || hero.getBoundingClientRect().bottom <= 0;
+      if (heroHasPassed && window.scrollY > 100) {
         shown = true;
         sticky.hidden = false;
       }
     };
     window.addEventListener('scroll', reveal, { passive: true });
+    reveal();
   }
 })();

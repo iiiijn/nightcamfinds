@@ -61,7 +61,8 @@ let cache = { at: 0, rooms: [], notice: "" };
 
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, { headers: { "User-Agent": "NightCamFinds/2.0", Accept: "application/json" } }, res => {
+    const transport = new URL(url).protocol === "http:" ? http : https;
+    transport.get(url, { headers: { "User-Agent": "NightCamFinds/2.0", Accept: "application/json" } }, res => {
       let body = ""; res.on("data", c => { body += c; });
       res.on("end", () => { if (res.statusCode >= 400) return reject(new Error("Feed " + res.statusCode)); try { resolve(JSON.parse(body)); } catch (err) { reject(err); } });
     }).on("error", reject);
@@ -177,7 +178,7 @@ async function countClick({ src, country, category="unknown", source="direct", c
       if (client) client.release();
     }
   }
-  const stats=readStats(); stats.total=(stats.total||0)+1; stats.countries=stats.countries||{}; stats.countries[country]=(stats.countries[country]||0)+1; stats.byCategory=stats.byCategory||{}; stats.byCategory[category]=(stats.byCategory[category]||0)+1; stats.byCountryCategory=stats.byCountryCategory||{}; stats.byCountryCategory[`${country}:${category}`]=(stats.byCountryCategory[`${country}:${category}`]||0)+1; stats.bySource=stats.bySource||{}; stats.bySource[source]=(stats.bySource[source]||0)+1; stats.byCampaign=stats.byCampaign||{}; stats.byCampaign[campaign]=(stats.byCampaign[campaign]||0)+1; stats.byCountrySource=stats.byCountrySource||{}; stats.byCountrySource[`${country}:${source}`]=(stats.byCountrySource[`${country}:${source}`]||0)+1; stats.byCountryCampaign=stats.byCountryCampaign||{}; stats.byCountryCampaign[`${country}:${campaign}`]=(stats.byCountryCampaign[`${country}:${campaign}`]||0)+1; stats.byPlacement=stats.byPlacement||{}; stats.byPlacement[`${platform}:${src}`]=(stats.byPlacement[`${platform}:${src}`]||0)+1; stats.byPlatform=stats.byPlatform||{}; stats.byPlatform[platform]=(stats.byPlatform[platform]||0)+1; stats.byMedium=stats.byMedium||{}; stats.byMedium[medium]=(stats.byMedium[medium]||0)+1; stats.byDevice=stats.byDevice||{}; stats.byDevice[device]=(stats.byDevice[device]||0)+1; stats.updatedAt=new Date().toISOString(); writeStats(stats);
+  const stats=readStats(); stats.total=(stats.total||0)+1; stats.countries=stats.countries||{}; stats.countries[country]=(stats.countries[country]||0)+1; stats.byCategory=stats.byCategory||{}; stats.byCategory[category]=(stats.byCategory[category]||0)+1; stats.byCountryCategory=stats.byCountryCategory||{}; stats.byCountryCategory[`${country}:${category}`]=(stats.byCountryCategory[`${country}:${category}`]||0)+1; stats.bySource=stats.bySource||{}; stats.bySource[source]=(stats.bySource[source]||0)+1; stats.byCampaign=stats.byCampaign||{}; stats.byCampaign[campaign]=(stats.byCampaign[campaign]||0)+1; stats.byCountrySource=stats.byCountrySource||{}; stats.byCountrySource[`${country}:${source}`]=(stats.byCountrySource[`${country}:${source}`]||0)+1; stats.byCountryCampaign=stats.byCountryCampaign||{}; stats.byCountryCampaign[`${country}:${campaign}`]=(stats.byCountryCampaign[`${country}:${campaign}`]||0)+1; stats.byPlacement=stats.byPlacement||{}; stats.byPlacement[`${platform}:${src}`]=(stats.byPlacement[`${platform}:${src}`]||0)+1; stats.byPlatform=stats.byPlatform||{}; stats.byPlatform[platform]=(stats.byPlatform[platform]||0)+1; stats.byMedium=stats.byMedium||{}; stats.byMedium[medium]=(stats.byMedium[medium]||0)+1; stats.byRoom=stats.byRoom||{}; const roomMatch=String(content||"").match(/(?:^|:)room-([a-z0-9_-]{1,64})(?::|$)/i); if(roomMatch) stats.byRoom[`${platform}:${roomMatch[1]}`]=(stats.byRoom[`${platform}:${roomMatch[1]}`]||0)+1; stats.byDevice=stats.byDevice||{}; stats.byDevice[device]=(stats.byDevice[device]||0)+1; stats.updatedAt=new Date().toISOString(); writeStats(stats);
 }
 async function statsFromDb() { if (!pgPool) return null; try { await ensureTrackingTable(); const q=async(sql,params=[]) => (await pgPool.query(sql,params)).rows; const countries={}; for(const r of await q("SELECT country, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country ORDER BY count DESC")) countries[r.country]=r.count; const byCountryCategory={}; for(const r of await q("SELECT country, category, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, category ORDER BY count DESC")) byCountryCategory[`${r.country}:${r.category}`]=r.count; const byCountrySource={}; for(const r of await q("SELECT country, source, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, source ORDER BY count DESC")) byCountrySource[`${r.country}:${r.source}`]=r.count; const byPlatform={}; for(const r of await q("SELECT platform, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY platform ORDER BY count DESC")) byPlatform[r.platform]=r.count; const total=Number((await q("SELECT COUNT(*)::int AS count FROM affiliate_clicks"))[0]?.count||0); const updated=await q("SELECT MAX(clicked_at) AS updated_at FROM affiliate_clicks"); return {total,countries,byCountryCategory,byCountrySource,byPlatform,updatedAt:updated[0]?.updated_at||null,persistent:true}; } catch(err) { console.error("Postgres stats read failed:",err.message); return null; } }
 function clientIp(req) { const fwd=String(req.headers["x-forwarded-for"]||"").split(",")[0].trim(); if (/^\d{1,3}(\.\d{1,3}){3}$/.test(fwd)||fwd.includes(":")) return fwd; return "8.8.8.8"; }
@@ -260,12 +261,17 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const id = decodeURIComponent(pathname.slice(isBonga ? 5 : 4));
     const username = id.split(":").pop();
     const platform = isBonga ? "bongacams" : "chaturbate";
-    const src = cleanLabel(url.searchParams.get("src"), isBonga ? "bonga-card" : "cb-card", 80);
+    if (!username || ["directory", "featured"].includes(username.toLowerCase()) || username.length > 64 || !/^[a-z0-9_-]+$/i.test(username)) {
+      return send(res, 404, "Room not found", "text/plain; charset=utf-8");
+    }
+    const src = cleanLabel(url.searchParams.get("src"), "cb-card", 80);
     const category = cleanLabel(url.searchParams.get("cat"), "unknown", 40);
     const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "direct", 40);
     const medium = cleanLabel(url.searchParams.get("utm_medium") || url.searchParams.get("medium"), "unknown", 80);
     const campaign = cleanLabel(url.searchParams.get("utm_campaign") || url.searchParams.get("campaign"), "unknown", 80);
-    const content = cleanLabel(url.searchParams.get("utm_content") || url.searchParams.get("content"), "", 120);
+    const suppliedContent = cleanLabel(url.searchParams.get("utm_content") || url.searchParams.get("content"), "", 72);
+    // Keep the room identifier first so long promo labels cannot truncate it.
+    const content = cleanLabel(["room-" + username, suppliedContent].filter(Boolean).join(":"), "room-" + username, 120);
     const country = visitorCountry(req);
     const agent = String(req.headers["user-agent"] || "").toLowerCase();
     const device = /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop";
@@ -273,25 +279,25 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const visitId = String(url.searchParams.get("vid") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
     const requestedLandingPath = String(url.searchParams.get("lp") || pathname);
     const landingPath = requestedLandingPath.startsWith("/") && !requestedLandingPath.startsWith("//") ? requestedLandingPath.slice(0, 255) : pathname;
+    const roomFeed = isBonga ? await rooms(req) : cache;
+    const room = roomFeed.rooms.find(r => r.platform === platform && r.username === username);
+    if (isBonga && !room) return send(res, 404, "Live room not found", "text/plain; charset=utf-8");
     await countClick({ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
-    const room = cache.rooms.find(r => r.platform === platform && r.username === username);
     let target;
     if (isBonga) {
-      const supplied = room?.href || "";
-      try {
-        const parsed = supplied ? new URL(supplied) : null;
-        if (parsed && /(^|\.)bongacams4?\.com$/i.test(parsed.hostname)) {
-          parsed.searchParams.set("click_id", clickId);
-          parsed.searchParams.set("source", source);
-          parsed.searchParams.set("campaign", campaign);
-          parsed.searchParams.set("track", src);
-          target = parsed.toString();
-        }
-      } catch (_) {}
-      if (!target) target = "https://bongacams4.com/track?c=" + encodeURIComponent(BONGA_CAMPAIGN) + "&click_id=" + encodeURIComponent(clickId) + "&track=" + encodeURIComponent(src);
+      // Exact account-generated BongaCash Direct Link pattern: type, version,
+      // campaign code, and models[] username. No unsupported click-ID macros.
+      const destination = new URL("https://bngprm.com/promo.php");
+      destination.searchParams.set("type", "direct_link");
+      destination.searchParams.set("v", "2");
+      destination.searchParams.set("c", BONGA_CAMPAIGN);
+      destination.searchParams.set("models[]", username);
+      target = destination.toString();
     } else {
       const built = buildChaturbateUrl({
-        roomUrl: room?.href || "",
+        // Use the canonical affiliate entry point and bind the destination room
+        // below. Feed URLs are deliberately not trusted as destination targets.
+        roomUrl: "",
         campaign: CAMPAIGN,
         tour: TOUR,
         track: src,

@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const migration = fs.readFileSync(path.join(__dirname, "../sql/005_bongacash_daily_reconciliation.sql"), "utf8");
 const route = fs.readFileSync(path.join(__dirname, "../route.js"), "utf8");
-const startup = fs.readFileSync(path.join(__dirname, "../scripts/run-production-migrations.js"), "utf8");
+const { getMigrationPlan } = require("../scripts/migration-plan");
 
 test("BongaCash reconciliation migration matches the API table contract", () => {
   const match = migration.match(/CREATE TABLE IF NOT EXISTS bongacash_daily_reconciliation\s*\(([\s\S]*?)\n\);/i);
@@ -19,10 +19,13 @@ test("BongaCash reconciliation migration matches the API table contract", () => 
 
 test("BongaCash reconciliation migration is registered for approved production startup", () => {
   assert.match(migration, /separate explicit approval/i);
-  assert.match(startup, /version: "005_bongacash_daily_reconciliation"/i);
-  assert.match(startup, /file: "005_bongacash_daily_reconciliation\.sql"/i);
-  assert.match(startup, /SELECT 1 FROM schema_migrations WHERE version = \$1/i);
-  assert.match(startup, /INSERT INTO schema_migrations \(version\) VALUES \(\$1\)/i);
+  const productionPlan = getMigrationPlan("main");
+  assert.ok(!productionPlan.some(item => item.version === "005_bongacash_daily_reconciliation"));
+  const approvedProductionPlan = getMigrationPlan("main", { allowProductionReconciliation: true });
+  assert.ok(approvedProductionPlan.some(item =>
+    item.version === "005_bongacash_daily_reconciliation" &&
+    item.file === "005_bongacash_daily_reconciliation.sql"
+  ));
   assert.match(route, /Production migration 005 has not been applied/i);
   assert.doesNotMatch(route, /CREATE TABLE IF NOT EXISTS bongacash_daily_reconciliation/i);
 });

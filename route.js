@@ -569,6 +569,46 @@ http.createServer = function routeDashboard(handler) {
         return sendJson(res, 500, { error: "Could not load click origins report." });
       }
     }
+    if (incoming.pathname === "/api/recent-room-clicks") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const platform = String(incoming.searchParams.get("platform") || "ALL").trim().toLowerCase();
+      if (!["all", "chaturbate", "bongacams"].includes(platform)) return sendJson(res, 400, { error: "Platform must be ALL, chaturbate or bongacams." });
+      const rawLimit = incoming.searchParams.get("limit");
+      const limit = rawLimit === null ? 50 : Number(rawLimit);
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) return sendJson(res, 400, { error: "Limit must be a whole number from 1 to 100." });
+      const params = [];
+      const platformClause = platform === "all" ? "" : (params.push(platform), " AND LOWER(platform) = $" + params.length);
+      params.push(limit);
+      try {
+        const result = await pool.query(
+          "SELECT clicked_at, country, category, LOWER(platform) AS platform, source, campaign, placement, content, landing_path, click_id FROM affiliate_clicks WHERE (LOWER(content) LIKE 'room-%' OR LOWER(content) LIKE '%:room-%')" + platformClause + " ORDER BY clicked_at DESC, id DESC LIMIT $" + params.length,
+          params
+        );
+        return sendJson(res, 200, {
+          rows: result.rows.map(row => ({
+            clickedAt: row.clicked_at,
+            country: row.country,
+            category: row.category,
+            platform: row.platform,
+            source: row.source,
+            campaign: row.campaign,
+            placement: row.placement,
+            room: (String(row.content || "").match(/(?:^|:)room-([a-z0-9_-]{1,64})(?::|$)/i) || [])[1] || "",
+            landingPath: row.landing_path || null,
+            clickId: row.click_id || null
+          })),
+          limit,
+          timezone: "UTC",
+          note: "Recent room-level affiliate redirects only. These are recorded clicks, not verified human visitors or confirmed conversions. No IP address or raw user-agent data is exposed."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Recent room clicks require the current affiliate click attribution schema." });
+        console.error("Recent room click report failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load recent room clicks." });
+      }
+    }
     if (incoming.pathname === "/api/health") {
       return sendJson(res, 200, {
         ok: true,
