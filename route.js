@@ -204,7 +204,14 @@ async function dashboardStats(incoming) {
       COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment') AND UPPER(COALESCE(currency,''))='USD'),0)::numeric AS earnings
       FROM cb_conversions
       ${conv.where ? conv.where + " AND " : "WHERE "}
-      NOT EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE(cb_conversions.raw_payload, '{}'::jsonb)) AS p(key,value) WHERE p.value ~ '^\\\\{[A-Za-z][A-Za-z0-9_]*\\\\}
+      NOT EXISTS (
+        SELECT 1
+        FROM jsonb_each_text(COALESCE(cb_conversions.raw_payload, '{}'::jsonb)) AS p(key,value)
+        WHERE p.value ~ '^\\\\{[A-Za-z][A-Za-z0-9_]*\\\\}$'
+      )`, conv.params);
+    cbRegs = Number(r.rows[0]?.registrations || 0);
+    cbPurchases = Number(r.rows[0]?.purchases || 0);
+    cbEarnings = Number(r.rows[0]?.earnings || 0);
   } catch {}
 
   let cbTier1 = 0, bongaTier1 = 0;
