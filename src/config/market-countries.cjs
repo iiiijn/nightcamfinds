@@ -18,4 +18,5 @@ faqs:[
 [`Are partner-platform features included in this directory?`,`No. Browsing NightCamFinds is free. Partner platforms set their own availability, prices and terms for optional paid features.`]
 ]
 }]));
-module.exports={COUNTRIES,MARKET_META,MARKET_PRIORITY_CODES,REGION_GROUPS};
+function isPriorityMarket(value){return MARKET_PRIORITY_CODES.includes(String(value||"").trim().toUpperCase());}
+module.exports={COUNTRIES,MARKET_META,MARKET_PRIORITY_CODES,REGION_GROUPS,isPriorityMarket};
