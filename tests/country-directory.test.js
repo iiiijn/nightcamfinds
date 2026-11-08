@@ -41,7 +41,7 @@ test("server patch normalizes partner countries and regions for regional discove
 });
 test("server patch preserves region and language discovery facets in the rooms API",()=>{
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
- assert.match(patched,/const regions=\[\.\.\.new Set\(feed\.rooms\.map\(r=>r\.region\|\|regionFor\(r\.country\)\)\)\]\.sort\(\)/);
+ assert.match(patched,/const regions=\[\.\.\.new Set\(feed\.rooms\.map\(r=>r\.region\|\|regionFor\(r\)\)\)\]\.sort\(/);
  assert.match(patched,/const languages=\[\.\.\.new Set\(feed\.rooms\.flatMap/);
  assert.match(patched,/rooms:page,liveCount:list\.length,offset,limit,hasMore:offset\+page\.length<list\.length,countries,platforms,regions,languages,notice:feed\.notice/);
  assert.match(patched,/url\.searchParams\.get\("summary"\)\s*===\s*"1"/);
