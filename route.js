@@ -583,7 +583,7 @@ http.createServer = function routeDashboard(handler) {
       params.push(limit);
       try {
         const result = await pool.query(
-          "SELECT clicked_at, country, category, LOWER(platform) AS platform, source, campaign, placement, content, landing_path, click_id FROM affiliate_clicks WHERE LOWER(content) LIKE 'room-%'" + platformClause + " ORDER BY clicked_at DESC, id DESC LIMIT $" + params.length,
+          "SELECT clicked_at, country, category, LOWER(platform) AS platform, source, campaign, placement, content, landing_path, click_id FROM affiliate_clicks WHERE (LOWER(content) LIKE 'room-%' OR LOWER(content) LIKE '%:room-%')" + platformClause + " ORDER BY clicked_at DESC, id DESC LIMIT $" + params.length,
           params
         );
         return sendJson(res, 200, {
@@ -595,7 +595,7 @@ http.createServer = function routeDashboard(handler) {
             source: row.source,
             campaign: row.campaign,
             placement: row.placement,
-            room: String(row.content || "").replace(/^room-/i, ""),
+            room: (String(row.content || "").match(/(?:^|:)room-([a-z0-9_-]{1,64})(?::|$)/i) || [])[1] || "",
             landingPath: row.landing_path || null,
             clickId: row.click_id || null
           })),
