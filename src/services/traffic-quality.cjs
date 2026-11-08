@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 
 const KNOWN_BOT = /bot|crawler|spider|slurp|preview|facebookexternalhit|twitterbot|linkedinbot|discordbot|telegrambot|whatsapp|google-inspectiontool|bingpreview|headlesschrome|phantomjs|selenium|playwright|puppeteer/i;
 const SUSPICIOUS = /curl|wget|python-requests|httpclient|axios|go-http-client|libwww-perl|scrapy/i;
-const ALLOWED_EVENTS = new Set(['active_10s', 'scroll_50', 'bonga_banner_loaded', 'bonga_banner_viewable']);
+const ALLOWED_EVENTS = new Set(['active_10s', 'scroll_50', 'bonga_banner_loaded', 'bonga_banner_viewable', 'bonga_static_banner_loaded', 'bonga_static_banner_viewable']);
 
 function classifyUserAgent(value) {
   const ua = String(value || '').trim();

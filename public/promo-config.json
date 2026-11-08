@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "chaturbate": {
     "enabled": true,
     "bannerUrl": "",
@@ -16,7 +16,48 @@
     "campaignId": "840970",
     "mobileFallback": "bonga-live-promo",
     "impressionEvent": "bonga_banner_loaded",
-    "modelsByGeo": true
+    "modelsByGeo": true,
+    "staticBanners": [
+      {
+        "id": "st_tatoo",
+        "enabled": true,
+        "label": "BongaCams featured banner",
+        "placement": "bongacash_static_general",
+        "width": 300,
+        "height": 250,
+        "format": "static_banner",
+        "campaignId": "840970",
+        "targetCategory": "all",
+        "requiresGeoVerification": true,
+        "iframeUrl": "https://bngprm.com/promo.php?c=840970&type=banner&size=300x250&name=st_tatoo"
+      },
+      {
+        "id": "g_ornot2022_jpeg",
+        "enabled": false,
+        "label": "BongaCams category creative",
+        "placement": "bongacash_static_g_ornot2022_jpeg",
+        "width": 300,
+        "height": 250,
+        "format": "static_banner",
+        "campaignId": "840970",
+        "targetCategory": null,
+        "requiresCategoryMapping": true,
+        "iframeUrl": "https://bngprm.com/promo.php?c=840970&type=banner&size=300x250&name=g_ornot2022_jpeg"
+      },
+      {
+        "id": "st_dominant",
+        "enabled": false,
+        "label": "BongaCams category creative",
+        "placement": "bongacash_static_st_dominant",
+        "width": 300,
+        "height": 250,
+        "format": "static_banner",
+        "campaignId": "840970",
+        "targetCategory": null,
+        "requiresCategoryMapping": true,
+        "iframeUrl": "https://bngprm.com/promo.php?c=840970&type=banner&size=300x250&name=st_dominant"
+      }
+    ]
   },
   "targeting": {
     "urlParameters": [

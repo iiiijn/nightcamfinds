@@ -419,3 +419,37 @@ footer span { flex: 1 1 100%; }
   .directory-layout { display: block; }
   .bonga-dynamic-banner { display: none !important; }
 }
+
+
+/* Phase 14: account-generated BongaCash 300x250 static banners. */
+ .bonga-static-banners[hidden] { display: none; }
+.bonga-static-banners {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+  align-items: start;
+  margin: 20px 0;
+}
+ .bonga-static-heading { grid-column: 1 / -1; margin: 0; }
+.bonga-static-banner {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.bonga-static-banner h3 {
+  margin: 0 0 9px;
+  font-size: 14px;
+}
+.bonga-static-banner iframe {
+  display: block;
+  width: 300px;
+  height: 250px;
+  max-width: 100%;
+  margin: 0 auto;
+  border: 0;
+}
+@media (max-width: 640px) {
+  .bonga-static-banners { grid-template-columns: minmax(0, 1fr); }
+}
