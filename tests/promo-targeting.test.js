@@ -1,4 +1,5 @@
 'use strict';
+// Regression coverage for campaign-driven promotion targeting.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
