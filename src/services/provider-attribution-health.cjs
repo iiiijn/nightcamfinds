@@ -10,11 +10,11 @@ function buildQueries(filters = {}) {
   const clickParams = [], clickWhere = [];
   if (from) {
     callbackParams.push(from); callbackWhere.push("cc.received_at >= ($" + callbackParams.length + "::date AT TIME ZONE 'UTC')");
-    clickParams.push(from); clickWhere.push("clicked_at >= ($" + clickParams.length + "::date AT TIME ZONE 'UTC')");
+    clickParams.push(from); clickWhere.push("ac.clicked_at >= ($" + clickParams.length + "::date AT TIME ZONE 'UTC')");
   }
   if (to) {
     callbackParams.push(to); callbackWhere.push("cc.received_at < (($" + callbackParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
-    clickParams.push(to); clickWhere.push("clicked_at < (($" + clickParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
+    clickParams.push(to); clickWhere.push("ac.clicked_at < (($" + clickParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
   }
   const callbacks = [
     'SELECT COUNT(*)::int AS total,',
@@ -27,10 +27,15 @@ function buildQueries(filters = {}) {
     callbackWhere.length ? 'WHERE ' + callbackWhere.join(' AND ') : ''
   ].filter(Boolean).join('\n');
   const clicks = [
-    'SELECT LOWER(platform) AS platform, COUNT(*)::int AS clicks',
-    'FROM affiliate_clicks',
+    'SELECT LOWER(ac.platform) AS platform, COUNT(*)::int AS clicks,',
+    "COUNT(*) FILTER (WHERE NULLIF(BTRIM(ac.click_id), '') IS NOT NULL)::int AS click_ids_generated,",
+    "COUNT(*) FILTER (WHERE NULLIF(BTRIM(ac.click_id), '') IS NULL)::int AS clicks_without_click_id,",
+    "COUNT(*) FILTER (WHERE (LOWER(ac.platform) = 'chaturbate' AND cb.click_id IS NOT NULL) OR (LOWER(ac.platform) = 'bongacams' AND bc.click_id IS NOT NULL))::int AS local_ledger_entries",
+    'FROM affiliate_clicks ac',
+    'LEFT JOIN cb_clicks cb ON cb.click_id = ac.click_id',
+    'LEFT JOIN bonga_clicks bc ON bc.click_id = ac.click_id',
     clickWhere.length ? 'WHERE ' + clickWhere.join(' AND ') : '',
-    'GROUP BY LOWER(platform)'
+    'GROUP BY LOWER(ac.platform)'
   ].filter(Boolean).join('\n');
   return { callbacks: { text: callbacks, params: callbackParams }, clicks: { text: clicks, params: clickParams }, filters: { from, to } };
 }

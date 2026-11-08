@@ -8,6 +8,7 @@ const { getCountryPage } = require("./country-pages.js");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
+const { isPriorityMarket } = require("./src/config/market-countries.cjs");
 const { filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 
 let pgPool = null;
@@ -253,7 +254,7 @@ const server=http.createServer(async(req,res)=>{
   const countries=[...new Set(feed.rooms.map(r=>r.country).filter(Boolean))].sort();
   const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();
   if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,notice:feed.notice}),"application/json");
-  return send(res,200,JSON.stringify({rooms:list.slice(0,60),liveCount:list.length,countries,platforms,notice:feed.notice,tier1:MARKETS.some(([,iso])=>iso===visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null}),"application/json");
+  return send(res,200,JSON.stringify({rooms:list.slice(0,60),liveCount:list.length,countries,platforms,notice:feed.notice,tier1:isPriorityMarket(visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null}),"application/json");
 }
 if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms[Math.floor(Math.random()*Math.min(feed.rooms.length,40))]||null;return send(res,room?200:503,JSON.stringify({room}),"application/json");}
   if (pathname.startsWith("/bgo/") || pathname.startsWith("/go/")) {
