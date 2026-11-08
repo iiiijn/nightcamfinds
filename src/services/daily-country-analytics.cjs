@@ -1,6 +1,6 @@
 'use strict';
 
-const TIER1_COUNTRIES = Object.freeze(['US','GB','CA','AU','DE','FR','NL','IE','NZ','SE','NO','DK','FI','CH','AT','BE','JP','SG']);
+const TIER1_COUNTRIES = Object.freeze(['US','GB','NO','CH','SE','DK','AU','CA','DE','NL','FR','IE','FI','AT','BE','NZ','IS','LU']);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function validDate(value) {
