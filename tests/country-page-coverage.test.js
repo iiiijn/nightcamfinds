@@ -4,13 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { COUNTRIES, getCountryPage } = require("../country-pages");
 
-const expectedCountries = [
-  ["us", "US"], ["gb", "GB"], ["ca", "CA"], ["au", "AU"],
-  ["de", "DE"], ["fr", "FR"], ["nl", "NL"], ["ie", "IE"],
-  ["nz", "NZ"], ["se", "SE"], ["no", "NO"], ["dk", "DK"],
-  ["fi", "FI"], ["ch", "CH"], ["at", "AT"], ["be", "BE"],
-  ["jp", "JP"], ["sg", "SG"]
-];
+const expectedCountries = Object.entries(COUNTRIES).map(([slug, country]) => [slug, country.code]);
 
 function introWordCount(html) {
   const match = html.match(/<header class="country-intro">([\s\S]*?)<\/header>/i);
@@ -18,7 +12,7 @@ function introWordCount(html) {
   return match[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().split(" ").length;
 }
 
-test("all 18 supported country pages render distinct, substantive content", () => {
+test("all 56 supported country pages render distinct, substantive content", () => {
   assert.deepEqual(
     expectedCountries.map(([slug]) => slug).sort(),
     Object.keys(COUNTRIES).sort()
