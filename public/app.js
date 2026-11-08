@@ -225,6 +225,12 @@ function card(room) {
     img.alt = room.displayName + " live room preview";
     img.src = room.image;
     img.loading = "lazy";
+    img.onerror = () => {
+      img.onerror = null;
+      img.src = "/og.svg";
+      img.classList.add("image-fallback");
+      img.alt = "NightCamFinds room preview unavailable";
+    };
   }
   const meta = document.createElement("div");
   meta.className = "meta";

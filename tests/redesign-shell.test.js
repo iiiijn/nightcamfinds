@@ -66,3 +66,14 @@ test("redesign includes responsive layout and distinct partner badge colours", (
   assert.match(css, /\.badge\.platform\.bongacams\s*\{/);
   assert.match(css, /@media\s*\(max-width:\s*640px\)/);
 });
+
+test("unavailable partner thumbnails fall back to the branded static preview", () => {
+  const app = read("public/app.js");
+  const promo = read("public/promo.js");
+  assert.match(app, /img\.onerror = \(\) => \{/);
+  assert.match(app, /img\.src = "\/og\.svg"/);
+  assert.match(promo, /img\.onerror = \(\) => \{/);
+  assert.match(promo, /img\.src = '\/og\.svg'/);
+  assert.match(app, /img\.onerror = null/);
+  assert.match(promo, /img\.onerror = null/);
+});
