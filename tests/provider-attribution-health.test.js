@@ -27,3 +27,15 @@ test('supports all-time reports without date predicates', () => {
   assert.doesNotMatch(q.callbacks.text, /\nWHERE /);
   assert.doesNotMatch(q.clicks.text, /\nWHERE /);
 });
+
+
+test('reports click ID generation and local provider-ledger coverage separately', () => {
+  const q = health.buildQueries({ from: '2026-11-01' });
+  assert.match(q.clicks.text, /click_ids_generated/);
+  assert.match(q.clicks.text, /clicks_without_click_id/);
+  assert.match(q.clicks.text, /local_ledger_entries/);
+  assert.match(q.clicks.text, /LEFT JOIN cb_clicks cb/);
+  assert.match(q.clicks.text, /LEFT JOIN bonga_clicks bc/);
+  assert.match(q.clicks.text, /ac\\.clicked_at >=/);
+  assert.deepEqual(q.clicks.params, ['2026-11-01']);
+});
