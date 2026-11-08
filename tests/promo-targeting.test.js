@@ -64,7 +64,7 @@ test('official banner assets are optional for both partners and a banner slot ex
 });
 
 test('BongaCash static banner configuration validates campaign, creative and 300x250 dimensions', () => {
-  assert.equal(config.version, 4);
+  assert.equal(config.version, 5);
   assert.equal(config.bongacams.staticBanners.length, 3);
   const [general, categoryOne, categoryTwo] = config.bongacams.staticBanners;
   assert.equal(general.enabled, true);
