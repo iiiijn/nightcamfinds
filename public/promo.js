@@ -2,6 +2,7 @@
   const cbPromo = document.querySelector('#chaturbate-live-promo');
   const bcPromo = document.querySelector('#bonga-live-promo');
   const banner = document.querySelector('#cb-banner-promo');
+  const bongaDynamicBanner = document.querySelector('#bonga-dynamic-banner');
   const sticky = document.querySelector('#stickyPromo');
   if (!cbPromo && !bcPromo && !banner && !sticky) return;
 
@@ -70,7 +71,7 @@
   const currentVisitId = visitId();
   let originalLandingPath = location.pathname;
   try { originalLandingPath = sessionStorage.getItem("ncf_landing_path") || location.pathname; sessionStorage.setItem("ncf_landing_path", originalLandingPath); } catch (_) {}
-  function recordEngagement(eventType) {
+  function recordEngagement(eventType, details = {}) {
     if (!currentVisitId) return;
     const attr = getMarketingAttribution();
     fetch('/api/engage', {
@@ -78,8 +79,8 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         visitId: currentVisitId, eventType, pagePath: location.pathname, landingPath: originalLandingPath,
-        platform: 'directory', source: attr.source, medium: attr.medium,
-        campaign: attr.campaign, placement: 'promo'
+        platform: details.platform || 'directory', source: attr.source, medium: attr.medium,
+        campaign: attr.campaign, content: details.content || attr.content, placement: details.placement || 'promo'
       })
     }).catch(() => {});
   }
@@ -184,6 +185,60 @@
     banner.append(a);
   }
 
+  function renderBongaDynamicBanner(config) {
+    if (!bongaDynamicBanner || config?.enabled === false || !config?.iframeUrl) return;
+    // Accept only the exact provider-hosted HTTPS BongaCash dynamic-banner endpoint.
+    let source;
+    try {
+      source = new URL(config.iframeUrl);
+      if (source.protocol !== 'https:' || source.hostname !== 'bngdin.com' ||
+          source.pathname !== '/promo.php' || source.searchParams.get('type') !== 'dynamic_banner' ||
+          source.searchParams.get('c') !== '840970') return;
+    } catch (_) { return; }
+    // The supplied 160x650 creative is a desktop sidebar. Mobile visitors keep the responsive room strip.
+    if (window.matchMedia?.('(max-width: 640px)').matches) return;
+    bongaDynamicBanner.innerHTML = '';
+    const heading = document.createElement('h2');
+    heading.className = 'bonga-dynamic-title';
+    heading.textContent = 'Live on BongaCams';
+    const frame = document.createElement('iframe');
+    frame.className = 'bonga-dynamic-frame';
+    frame.width = '160';
+    frame.height = '650';
+    frame.src = source.toString();
+    frame.title = 'BongaCams live models';
+    frame.loading = 'lazy';
+    frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    frame.scrolling = 'no';
+    frame.setAttribute('frameborder', '0');
+    let viewableRecorded = false;
+    let viewableTimer;
+    const visibilityObserver = typeof IntersectionObserver === 'function'
+      ? new IntersectionObserver(entries => {
+          const entry = entries[0];
+          if (!entry) return;
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5 && !viewableRecorded) {
+            clearTimeout(viewableTimer);
+            viewableTimer = setTimeout(() => {
+              if (document.visibilityState === 'visible' && !viewableRecorded) {
+                viewableRecorded = true;
+                recordEngagement('bonga_banner_viewable', { platform: 'bongacams', placement: 'bongacash_dynamic_banner', content: 'campaign_840970' });
+                visibilityObserver.disconnect();
+              }
+            }, 1000);
+          } else {
+            clearTimeout(viewableTimer);
+          }
+        }, { threshold: [0, 0.5, 1] })
+      : null;
+    frame.addEventListener('load', () => {
+      // A load is an iframe-load signal, not proof of a human view or affiliate click.
+      recordEngagement('bonga_banner_loaded', { platform: 'bongacams', placement: 'bongacash_dynamic_banner', content: 'campaign_840970' });
+      if (visibilityObserver) visibilityObserver.observe(bongaDynamicBanner);
+    }, { once: true });
+    bongaDynamicBanner.replaceChildren(heading, frame);
+    bongaDynamicBanner.hidden = false;
+  }
   async function loadPlatform(platform) {
     const params = new URLSearchParams({ platform, sort: 'viewers', limit: '60' });
     if (safeTargetCategory !== 'all') params.set('category', safeTargetCategory);
@@ -218,6 +273,7 @@
       if (cbPromo) cbPromo.hidden = true;
       if (bcPromo) bcPromo.hidden = true;
       if (banner) banner.hidden = true;
+      if (bongaDynamicBanner) bongaDynamicBanner.hidden = true;
     } else {
       if (cbPromo) cbPromo.hidden = safeTargetPlatform === 'bongacams';
       if (bcPromo) bcPromo.hidden = safeTargetPlatform === 'chaturbate';
@@ -225,6 +281,7 @@
       if (safeTargetPlatform !== 'chaturbate' && config.bongacams?.enabled !== false) renderStrip(bcPromo, bc, 'Live on BongaCams', 'BongaCams');
       if (safeTargetPlatform === 'bongacams') renderBanner({ ...config.bongacams, platform: 'bongacams' }, bc);
       else renderBanner({ ...config.chaturbate, platform: 'chaturbate' }, cb);
+      if (safeTargetPlatform !== 'chaturbate' && config.bongacams?.enabled !== false) renderBongaDynamicBanner(config.bongacams);
     }
 
     if (sticky && liveCount !== null) {

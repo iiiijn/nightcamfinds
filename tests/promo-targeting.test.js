@@ -36,10 +36,29 @@ test('outbound promo cards retain tracked redirects and campaign placement label
   assert.match(promo, /\/go\/\$\{encodeURIComponent\(room\.id\)\}/);
 });
 
+test('BongaCash banner distinguishes iframe load from a viewable placement', () => {
+  assert.match(promo, /bonga_banner_loaded/);
+  assert.match(promo, /bonga_banner_viewable/);
+  assert.match(promo, /intersectionRatio >= 0\.5/);
+  assert.match(promo, /}, 1000\)/);
+  assert.match(promo, /visibilityObserver\.disconnect\(\)/);
+});
+
 test('official banner assets are optional for both partners and a banner slot exists', () => {
-  assert.equal(config.version, 2);
+  assert.equal(config.version, 3);
   assert.equal(config.chaturbate.bannerUrl, '');
   assert.equal(config.bongacams.bannerUrl, '');
+  assert.equal(config.bongacams.campaignId, '840970');
+  assert.equal(config.bongacams.format, 'dynamic_banner');
+  assert.equal(new URL(config.bongacams.iframeUrl).hostname, 'bngdin.com');
+  assert.equal(new URL(config.bongacams.iframeUrl).searchParams.get('c'), '840970');
+  assert.equal(new URL(config.bongacams.iframeUrl).searchParams.get('db[models_by_geo]'), '1');
+  assert.equal(config.bongacams.modelsByGeo, true);
+  assert.match(promo, /renderBongaDynamicBanner\(config\.bongacams\)/);
+  assert.match(promo, /bonga_banner_loaded/);
+  assert.match(promo, /source\.hostname !== 'bngdin\.com'/);
   assert.match(index, /id="cb-banner-promo"/);
+  assert.match(index, /id="bonga-dynamic-banner"/);
+  assert.match(fs.readFileSync(path.join(__dirname, '../public/styles.css'), 'utf8'), /bonga-dynamic-frame/);
   for (const country of ['us','gb','no','ch','se','dk','au','ca','de','nl','fr','ie','fi','at','be','nz','is','lu']) assert.match(campaignCenter, new RegExp(`value="${country}"`));
 });

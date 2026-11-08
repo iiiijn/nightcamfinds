@@ -378,3 +378,31 @@ footer span { flex: 1 1 100%; }
 .category-row .loyalty-card-wrap{flex:0 0 232px;scroll-snap-align:start}
 .featured-panel .loyalty-card-wrap{width:100%}
 @media(max-width:640px){.loyalty-section{padding:14px}.loyalty-heading{align-items:flex-start;flex-direction:column}.loyalty-columns{grid-template-columns:1fr}.loyalty-panel{padding:11px}.category-row .loyalty-card-wrap{flex-basis:220px}}
+
+/* Phase 12: provider-hosted BongaCash dynamic banner. */
+.bonga-dynamic-banner {
+  width: 100%;
+  max-width: 190px;
+  margin: 18px auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  text-align: center;
+}
+.bonga-dynamic-title {
+  margin: 0 0 10px;
+  font: 800 15px var(--sans);
+}
+.bonga-dynamic-frame {
+  display: block;
+  width: 160px;
+  height: 650px;
+  max-width: 100%;
+  margin: 0 auto;
+  border: 0;
+  background: var(--panel-2);
+}
+@media (max-width: 640px) {
+  .bonga-dynamic-banner { display: none !important; }
+}
