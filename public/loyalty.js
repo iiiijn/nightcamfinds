@@ -36,6 +36,14 @@
     renderCollection(favoritesGrid,favorites,"favorites");renderCollection(recentGrid,recent,"recent");
     const fc=document.querySelector("#favorites-count"),rc=document.querySelector("#recent-count");
     if(fc)fc.textContent=String(favorites.length);if(rc)rc.textContent=String(recent.length);
+    document.querySelectorAll(".favorite-toggle").forEach(button=>{
+      const card=button.parentElement?.querySelector("a.card");
+      const room=card&&roomFromCard(card);
+      if(!room)return;
+      const saved=favorites.some(x=>x.id===room.id&&x.platform===room.platform);
+      button.textContent=saved?"★ Saved":"☆ Save";
+      button.setAttribute("aria-pressed",String(saved));
+    });
   }
   function enhance(card){
     if(card.dataset.loyaltyReady==="1")return;
