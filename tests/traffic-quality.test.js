@@ -201,3 +201,12 @@ test('affiliate redirect handler accepts source attribution and validates visit 
   assert.match(server, /match\(\/\^\[a-f0-9\]\{32\}\$\/i\)\?\.\[0\]/);
   assert.match(server, /countClick\(\{ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
 });
+
+test('accepts BongaCash static-banner load and viewable events', () => {
+  const visitId = 'd'.repeat(32);
+  for (const eventType of ['bonga_static_banner_loaded', 'bonga_static_banner_viewable']) {
+    assert.deepEqual(normalizeEvent({ visitId, eventType, pagePath: '/' }), {
+      value: { visitId, eventType, pagePath: '/' }
+    });
+  }
+});
