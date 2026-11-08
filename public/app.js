@@ -53,7 +53,11 @@ const QUICK = ["US","GB","CA","IE","AU","NZ","DE","FR","NL","SE","NO","DK","FI",
 const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
 const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
 const queryParams = new URLSearchParams(location.search);
-const initialFilters = { country: queryParams.get("country") || "", region: queryParams.get("region") || "", language: queryParams.get("language") || "", q: queryParams.get("q") || "" };
+const campaignCountry = /^[a-z]{2}$/i.test(queryParams.get("ncf_country") || "") ? queryParams.get("ncf_country").toUpperCase() : "";
+const campaignPlatform = ["chaturbate", "bongacams"].includes((queryParams.get("ncf_platform") || "").toLowerCase()) ? queryParams.get("ncf_platform").toLowerCase() : "";
+const campaignCategory = ["all", "live", "female", "male", "trans", "couples", "hd", "new"].includes((queryParams.get("ncf_category") || "").toLowerCase()) ? queryParams.get("ncf_category").toLowerCase() : "";
+const campaignPlacement = String(queryParams.get("ncf_placement") || "").trim().replace(/[^a-z0-9._-]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
+const initialFilters = { country: queryParams.get("country") || campaignCountry, region: queryParams.get("region") || "", language: queryParams.get("language") || "", q: queryParams.get("q") || "" };
 let initialFiltersApplied = false;
 if (initialFilters.q) q.value = initialFilters.q;
 const incomingAttribution = {
@@ -123,6 +127,7 @@ for (const iso of QUICK) {
 }
 
 function placement() {
+  if (campaignPlacement) return campaignPlacement;
   const country = countrySelect.value ? "country-" + countrySelect.value.toLowerCase() : "";
   const base = category === "all" ? "home" : category;
   return country || base + "-card";
@@ -154,7 +159,7 @@ function sendEngagement(eventType) {
       visitId, eventType, pagePath: location.pathname, landingPath: visitLandingPath,
       platform: "directory", source: trafficSource, medium: trafficMedium,
       campaign: trafficCampaign, content: trafficContent,
-      placement: category === "all" ? "home" : category
+      placement: placement()
     })
   }).catch(() => {});
 }
@@ -362,7 +367,8 @@ let timer;
 function schedule() { clearTimeout(timer); timer = setTimeout(load, 250); }
 
 async function load(offset = 0, append = false) {
-  const params = new URLSearchParams({ category, sort: sort.value, q: q.value, limit: "60", offset: String(offset) });
+  const params = new URLSearchParams({ category: campaignCategory || category, sort: sort.value, q: q.value, limit: "60", offset: String(offset) });
+  if (campaignPlatform) params.set("platform", campaignPlatform);
   if (countrySelect.value) params.set("country", countrySelect.value);
   if (regionSelect.value) params.set("region", regionSelect.value);
   if (languageSelect.value) params.set("language", languageSelect.value);
@@ -388,7 +394,10 @@ async function load(offset = 0, append = false) {
   syncOptions(regionSelect, data.regions, "All regions");
   syncOptions(languageSelect, data.languages, "All languages");
   if (!initialFiltersApplied) {
-    if (initialFilters.country && (data.countries || []).includes(initialFilters.country)) countrySelect.value = initialFilters.country;
+    if (initialFilters.country) {
+      if (![...countrySelect.options].some(option => option.value === initialFilters.country)) countrySelect.add(new Option(NAMES[initialFilters.country] || initialFilters.country, initialFilters.country));
+      countrySelect.value = initialFilters.country;
+    }
     if (initialFilters.region && [...regionSelect.options].some(option => option.value === initialFilters.region)) regionSelect.value = initialFilters.region;
     if (initialFilters.language && [...languageSelect.options].some(option => option.value === initialFilters.language)) languageSelect.value = initialFilters.language;
     initialFiltersApplied = true;
