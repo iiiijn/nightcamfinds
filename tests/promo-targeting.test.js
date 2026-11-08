@@ -45,7 +45,7 @@ test('BongaCash banner distinguishes iframe load from a viewable placement', () 
 });
 
 test('official banner assets are optional for both partners and a banner slot exists', () => {
-  assert.equal(config.version, 4);
+  assert.equal(config.version, 5);
   assert.equal(config.chaturbate.bannerUrl, '');
   assert.equal(config.bongacams.bannerUrl, '');
   assert.equal(config.bongacams.campaignId, '840970');
