@@ -198,8 +198,19 @@ async function dashboardStats(incoming) {
   const bonga = await bongacash.stats(pool, incoming.searchParams.get("from"), incoming.searchParams.get("to"));
   let cbRegs = 0, cbPurchases = 0, cbEarnings = 0;
   try {
-    const r = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment')),0)::numeric AS earnings FROM cb_conversions ${conv.where}`, conv.params);
-    cbRegs = Number(r.rows[0]?.registrations || 0); cbPurchases = Number(r.rows[0]?.purchases || 0); cbEarnings = Number(r.rows[0]?.earnings || 0);
+    const testCallbackExclusion = "NOT EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE(cb_conversions.raw_payload, '{}'::jsonb)) AS p(key,value) WHERE p.value ~ '^[{][A-Za-z][A-Za-z0-9_]*[}]$')";
+    const conversionWhere = conv.where ? conv.where + " AND " + testCallbackExclusion : "WHERE " + testCallbackExclusion;
+    const conversionSql = [
+      "SELECT COUNT(*) FILTER (WHERE conversion_type='revshare_signup-referral')::int AS registrations,",
+      "COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS purchases,",
+      "COALESCE(SUM(payout) FILTER (WHERE conversion_type IN ('revshare_purchase','revshare_payout-adjustment') AND UPPER(COALESCE(currency,''))='USD'),0)::numeric AS earnings",
+      "FROM cb_conversions",
+      conversionWhere
+    ].join(" ");
+    const r = await pool.query(conversionSql, conv.params);
+    cbRegs = Number(r.rows[0]?.registrations || 0);
+    cbPurchases = Number(r.rows[0]?.purchases || 0);
+    cbEarnings = Number(r.rows[0]?.earnings || 0);
   } catch {}
 
   let cbTier1 = 0, bongaTier1 = 0;
@@ -263,7 +274,6 @@ async function dashboardStats(incoming) {
   }
 
   const combinedCountries = { ...countries };
-  for (const row of bonga.byCountry) combinedCountries[row.name] = (combinedCountries[row.name] || 0) + row.conversions;
   return {
     totalClicks,
     chaturbateClicks: cbClicks,
