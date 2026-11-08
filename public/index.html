@@ -80,6 +80,13 @@
     <section class="promo-strip" id="chatubate-live-promo" aria-label="Chaturbate live promotion"></section>
     <section class="promo-strip" id="bonga-live-promo" aria-label="BongaCams live promotion"></section>
 
+    <section class="loyalty-section" aria-labelledby="loyalty-title">
+      <div class="loyalty-heading"><div><p class="eyebrow">Your NightCamFinds</p><h2 id="loyalty-title">Pick up where you left off</h2><p class="muted">Your favourites and recent rooms stay on this device. No account or email address is required.</p></div><button id="share-site" class="btn ghost" type="button">Share NightCamFinds</button></div>
+      <div class="loyalty-columns">
+        <section class="loyalty-panel" aria-labelledby="favorites-title"><div class="loyalty-subheading"><h3 id="favorites-title">Saved rooms</h3><span id="favorites-count" class="loyalty-count">0</span></div><div id="favorite-rooms" class="loyalty-list" aria-live="polite"></div></section>
+        <section class="loyalty-panel" aria-labelledby="recent-title"><div class="loyalty-subheading"><h3 id="recent-title">Recently viewed</h3><span id="recent-count" class="loyalty-count">0</span></div><div id="recent-rooms" class="loyalty-list" aria-live="polite"></div><button id="clear-recent" class="btn ghost loyalty-clear" type="button">Clear history</button></section>
+      </div>
+    </section>
     <section class="directory-section" aria-label="Live room directory">
       <div class="section-heading">
         <div><p class="eyebrow">Live directory</p><h2>Find a room</h2></div>
@@ -137,6 +144,7 @@
   </main>
   <aside id="stickyPromo" class="sticky-promo" aria-label="Live promotion" hidden></aside>
   <script src="/app.js" defer></script>
+  <script src="/loyalty.js" defer></script>
   <script src="/promo.js" defer></script>
 </body>
 </html>
