@@ -9,11 +9,13 @@ const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
 const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
 const html = fs.readFileSync(path.join(__dirname, "../public/index.html"), "utf8");
 
-test("Chaturbate feed requests bounded pages and deduplicates partner results", () => {
+test("Chaturbate feed requests bounded regional pages and deduplicates partner results", () => {
   assert.match(server, /fetchPagedResults/);
   assert.match(server, /CHATURBATE_PAGE_SIZE = 500/);
   assert.match(server, /CHATURBATE_MAX_PAGES/);
-  assert.match(server, /&limit=\$\{limit\}&offset=\$\{offset\}&region=\$\{encodeURIComponent\(apiRegion\)\}/);\n  assert.match(server, /CHATURBATE_REGION_MAX_PAGES/);\n  assert.match(server, /CHATURBATE_API_REGIONS\.map\(apiRegion=>fetchChaturbateRegion/);
+  assert.match(server, /CHATURBATE_REGION_MAX_PAGES/);
+  assert.match(server, /&limit=\$\{limit\}&offset=\$\{offset\}&region=\$\{encodeURIComponent\(apiRegion\)\}/);
+  assert.match(server, /CHATURBATE_API_REGIONS\.map\(apiRegion=>fetchChaturbateRegion/);
   assert.match(server, /room&&room\.username/);
 });
 
