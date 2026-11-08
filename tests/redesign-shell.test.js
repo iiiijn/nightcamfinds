@@ -77,3 +77,12 @@ test("unavailable partner thumbnails fall back to the branded static preview", (
   assert.match(app, /img\.onerror = null/);
   assert.match(promo, /img\.onerror = null/);
 });
+
+test("BongaCash dynamic banner sits beside the room directory on desktop", () => {
+  const html = read("public/index.html");
+  const css = read("public/styles.css");
+  assert.match(html, /<div class="directory-layout">[\s\S]*?<div class="directory-main">[\s\S]*?id="category-rows"[\s\S]*?id="load-more"[\s\S]*?<\/div>\s*<aside id="bonga-dynamic-banner"/);
+  assert.match(css, /\.directory-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+190px/s);
+  assert.match(css, /\.bonga-dynamic-banner\s*\{[^}]*position:\s*sticky/s);
+  assert.match(css, /@media\s*\(max-width:\s*720px\)[\s\S]*?\.bonga-dynamic-banner\s*\{\s*display:\s*none/s);
+});
