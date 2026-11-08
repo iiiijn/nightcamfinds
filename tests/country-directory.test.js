@@ -6,6 +6,7 @@ const path=require("node:path");
 const {normalizeCountryCode,normalizeRegion,normalizeLanguages,isValidCountryRoom,isIndexableCountryRooms,buildCountrySitemap}=require("../src/services/country-directory.cjs");
 const {patchServerSource}=require("../scripts/patch-country-directory.js");
 const {COUNTRIES}=require("../country-pages.js");
+const {MARKET_META,MARKET_PRIORITY_CODES,REGION_GROUPS}=require("../src/config/market-countries.cjs");
 test("country values normalize ISO codes and explicit country names only",()=>{
  assert.equal(normalizeCountryCode(" gb "),"GB");assert.equal(normalizeCountryCode("United States"),"US");
  assert.equal(normalizeCountryCode("The Netherlands"),"NL");assert.equal(normalizeCountryCode("Nairobi"),"");assert.equal(normalizeCountryCode(""),"");
@@ -52,17 +53,19 @@ test("server patch uses room-quality checks and does not invent sitemap modifica
  assert.equal(patchServerSource(patched),patched);
 });
 
-test("all 18 configured market landing pages have unique slugs and country codes",()=>{
+test("all worldwide market landing pages have unique slugs, ISO codes, region groups and priorities",()=>{
  const entries=Object.entries(COUNTRIES);
- assert.equal(entries.length,18,"the configured market directory should contain 18 pages");
+ assert.equal(entries.length,56,"the worldwide directory should contain all 56 requested countries");
  const slugs=entries.map(([slug])=>slug);
  const codes=entries.map(([,country])=>country.code);
- assert.equal(new Set(slugs).size,18,"market slugs must be unique");
- assert.equal(new Set(codes).size,18,"market country codes must be unique");
+ assert.equal(new Set(slugs).size,56,"market slugs must be unique");
+ assert.equal(new Set(codes).size,56,"market country codes must be unique");
  for(const [slug,country] of entries){
   assert.match(slug,/^[a-z]{2}$/);
   assert.match(country.code,/^[A-Z]{2}$/);
   assert.equal(slug,country.code.toLowerCase());
+  assert.ok(country.regionGroup, slug + " must have a region group");
+  assert.ok(country.priority, slug + " must have a market priority");
  }
 });
 
@@ -73,4 +76,25 @@ test("dynamic sitemap can publish every configured market when each has enough v
  })));
  const xml=buildCountrySitemap("https://nightcamfinds.com",rooms,entries);
  for(const {slug} of entries)assert.ok(xml.includes("/country/"+slug+"/"),"missing sitemap URL for "+slug);
+});
+
+test("priority markets and regional groups are explicit and non-overlapping",()=>{
+ assert.equal(MARKET_PRIORITY_CODES.length,18);
+ assert.equal(new Set(MARKET_PRIORITY_CODES).size,18);
+ assert.ok(MARKET_PRIORITY_CODES.includes("NO"));
+ assert.ok(MARKET_PRIORITY_CODES.includes("CH"));
+ assert.ok(MARKET_PRIORITY_CODES.includes("IS"));
+ assert.ok(MARKET_PRIORITY_CODES.includes("LU"));
+ const grouped=Object.values(REGION_GROUPS).flat();
+ assert.equal(new Set(grouped).size,56);
+ assert.equal(grouped.length,56);
+ for(const [slug,meta] of Object.entries(MARKET_META)){
+  assert.ok(["Tier 1","Tier 2","Tier 3"].includes(meta.priority),slug);
+  assert.ok(meta.regionGroup,slug);
+ }
+});
+test("country-name normalization covers newly added markets and official long-form names",()=>{
+ for(const [name,code] of [["Norway","NO"],["Switzerland","CH"],["Czechia","CZ"],["Estonia","EE"],["United Arab Emirates","AE"],["Hashemite Kingdom of Jordan","JO"],["Republic of Moldova","MD"],["Bosnia and Herzegovina","BA"],["North Macedonia","MK"]]){
+  assert.equal(normalizeCountryCode(name),code,name);
+ }
 });

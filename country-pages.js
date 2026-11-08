@@ -255,6 +255,14 @@ const COUNTRIES = {
   },
 };
 
+// NIGHTCAMFINDS_WORLDWIDE_MARKETS_V1
+const worldwideMarkets = require("./src/config/market-countries.cjs");
+Object.assign(COUNTRIES, worldwideMarkets.COUNTRIES);
+for (const [slug, country] of Object.entries(COUNTRIES)) {
+  const metadata = worldwideMarkets.MARKET_META[slug];
+  if (metadata) Object.assign(country, metadata);
+}
+
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
 }[char]));
@@ -269,7 +277,7 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
   const links = [
     ["Female live rooms", "/female/"], ["Male live rooms", "/male/"],
     ["Trans live rooms", "/trans/"], ["Couples live rooms", "/couples/"],
-    ["All live rooms", "/live/"], ["Browse countries", "/countries/"]
+    ["All live rooms", "/live/"], ["Browse countries", "/countries/"], ...(country.regionGroup ? [[`More ${country.regionGroup} markets`, `/#markets-${country.regionGroup.toLowerCase().replace(/[^a-z]+/g, "-")}`]] : [])
   ];
   const faqHtml = country.faqs.map(([question, answer]) =>
     `<section class="country-faq-item"><h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p></section>`
