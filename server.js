@@ -270,7 +270,8 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const medium = cleanLabel(url.searchParams.get("utm_medium") || url.searchParams.get("medium"), "unknown", 80);
     const campaign = cleanLabel(url.searchParams.get("utm_campaign") || url.searchParams.get("campaign"), "unknown", 80);
     const suppliedContent = cleanLabel(url.searchParams.get("utm_content") || url.searchParams.get("content"), "", 72);
-    // Keep the room identifier first so long promo labels cannot truncate it.\n    const content = cleanLabel(["room-" + username, suppliedContent].filter(Boolean).join(":"), "room-" + username, 120);
+    // Keep the room identifier first so long promo labels cannot truncate it.
+    const content = cleanLabel(["room-" + username, suppliedContent].filter(Boolean).join(":"), "room-" + username, 120);
     const country = visitorCountry(req);
     const agent = String(req.headers["user-agent"] || "").toLowerCase();
     const device = /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop";
