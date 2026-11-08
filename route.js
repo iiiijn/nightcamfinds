@@ -29,7 +29,7 @@ const pool = databaseUrl ? new Pool({
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
-const TIER1 = new Set(["US","CA","GB","IE","AU","NZ","DE","FR","NL","SE","NO","DK","FI","CH","AT","BE"]);
+const TIER1 = new Set(["US","GB","NO","CH","SE","DK","AU","CA","DE","NL","FR","IE","FI","AT","BE","NZ","IS","LU"]);
 
 async function ensureAffiliateSchema() {
   if (!pool) return;
