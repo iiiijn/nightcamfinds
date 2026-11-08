@@ -167,7 +167,7 @@
 
   function renderBanner(config, rooms, platform) {
     const room = (rooms || []).find((item) => item.platform === platform);
-    if (!banner || !config?.bannerUrl || !room) return;
+    if (!banner || config?.enabled === false || !config?.bannerUrl || !room) return;
     banner.hidden = false;
     banner.innerHTML = '';
     const a = document.createElement('a');
@@ -178,6 +178,7 @@
     img.src = config.bannerUrl;
     img.alt = config.bannerAlt || 'Chaturbate live cams';
     img.loading = 'lazy';
+    img.onerror = () => { banner.hidden = true; };
     a.append(img);
     banner.append(a);
   }

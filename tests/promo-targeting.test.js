@@ -26,6 +26,7 @@ test('promotion loader respects selected platform and audience country', () => {
   assert.match(promo, /safeTargetPlatform === 'bongacams'/);
   assert.match(promo, /safeTargetPlatform === 'chaturbate'/);
   assert.match(promo, /targetCountry === metaCountry/);
+  assert.match(promo, /config\?\.enabled === false/);
 });
 
 test('outbound promo cards retain tracked redirects and campaign placement labels', () => {
@@ -39,4 +40,5 @@ test('official banner assets are optional for both partners and a banner slot ex
   assert.equal(config.chaturbate.bannerUrl, '');
   assert.equal(config.bongacams.bannerUrl, '');
   assert.match(index, /id="cb-banner-promo"/);
+  for (const country of ['us','gb','no','ch','se','dk','au','ca','de','nl','fr','ie','fi','at','be','nz','is','lu']) assert.match(campaignCenter, new RegExp(`value="${country}"`));
 });
