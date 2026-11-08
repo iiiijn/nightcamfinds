@@ -257,14 +257,14 @@ const server=http.createServer(async(req,res)=>{
   if(category==="hd")list=list.filter(r=>r.isHd);
   if(category==="new")list=list.filter(r=>r.isNew);
   if(country)list=list.filter(r=>r.country===country);
-  if(region)list=list.filter(r=>regionFor(r.country)===region);
+  if(region)list=list.filter(r=>(r.region||regionFor(r.country))===region);
   if(language)list=list.filter(r=>languagesFor(r).some(value=>value.toLowerCase()===language));
   if(["chaturbate","bongacams"].includes(platform))list=list.filter(r=>r.platform===platform);
   if(q)list=list.filter(r=>`${r.displayName} ${r.roomSubject} ${r.country} ${r.location} ${r.platformName} ${r.languages}`.toLowerCase().includes(q));
   list=rankRoomsByPreferredPlatform(list,preferredPlatform,sort);
   const countries=[...new Set(feed.rooms.map(r=>r.country).filter(Boolean))].sort();
   const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();
-  const regions=[...new Set(feed.rooms.map(r=>regionFor(r.country)))].sort();
+  const regions=[...new Set(feed.rooms.map(r=>r.region||regionFor(r.country)))].sort();
   const languages=[...new Set(feed.rooms.flatMap(languagesFor))].sort((a,b)=>a.localeCompare(b));
   if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,regions,languages,notice:feed.notice}),"application/json");
   const page=list.slice(offset,offset+limit);
