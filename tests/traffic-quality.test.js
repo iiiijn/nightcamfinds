@@ -32,6 +32,15 @@ test('engagement endpoint uses the persisted effective classification before cou
   assert.match(endpoint, /eligibleForEngagementMetrics: effectiveTrafficClass === "unverified"/);
 });
 
+test('accepts the BongaCash dynamic-banner iframe load event for attribution', () => {
+  const visitId = 'b'.repeat(32);
+  assert.deepEqual(normalizeEvent({
+    visitId,
+    eventType: 'bonga_banner_loaded',
+    pagePath: '/'
+  }), { value: { visitId, eventType: 'bonga_banner_loaded', pagePath: '/' } });
+});
+
 test('affiliate redirect writes preserve the strongest visit classification', () => {
   const fs = require('node:fs');
   const path = require('node:path');
