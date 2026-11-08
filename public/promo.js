@@ -136,6 +136,12 @@
       img.loading = 'lazy';
       img.alt = `${room.displayName || room.username} live`;
       img.src = room.image || '/og.svg';
+      img.onerror = () => {
+        img.onerror = null;
+        img.src = '/og.svg';
+        img.classList.add('image-fallback');
+        img.alt = 'NightCamFinds room preview unavailable';
+      };
       const body = document.createElement('span');
       const name = document.createElement('strong');
       name.textContent = room.displayName || room.username;
