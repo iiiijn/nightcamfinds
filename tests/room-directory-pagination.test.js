@@ -13,7 +13,7 @@ test("Chaturbate feed requests bounded pages and deduplicates partner results", 
   assert.match(server, /fetchPagedResults/);
   assert.match(server, /CHATURBATE_PAGE_SIZE = 500/);
   assert.match(server, /CHATURBATE_MAX_PAGES/);
-  assert.match(server, /&limit=\$\{limit\}&offset=\$\{offset\}/);
+  assert.match(server, /&limit=\$\{limit\}&offset=\$\{offset\}&region=\$\{encodeURIComponent\(apiRegion\)\}/);\n  assert.match(server, /CHATURBATE_REGION_MAX_PAGES/);\n  assert.match(server, /CHATURBATE_API_REGIONS\.map\(apiRegion=>fetchChaturbateRegion/);
   assert.match(server, /room&&room\.username/);
 });
 
