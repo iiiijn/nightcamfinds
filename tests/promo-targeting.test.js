@@ -62,3 +62,27 @@ test('official banner assets are optional for both partners and a banner slot ex
   assert.match(fs.readFileSync(path.join(__dirname, '../public/styles.css'), 'utf8'), /bonga-dynamic-frame/);
   for (const country of ['us','gb','no','ch','se','dk','au','ca','de','nl','fr','ie','fi','at','be','nz','is','lu']) assert.match(campaignCenter, new RegExp(`value="${country}"`));
 });
+
+test('BongaCash static banner configuration validates campaign, creative and 300x250 dimensions', () => {
+  assert.equal(config.version, 4);
+  assert.equal(config.bongacams.staticBanners.length, 3);
+  const [general, categoryOne, categoryTwo] = config.bongacams.staticBanners;
+  assert.equal(general.enabled, true);
+  assert.equal(general.targetCategory, 'all');
+  assert.equal(categoryOne.enabled, false);
+  assert.equal(categoryTwo.enabled, false);
+  for (const item of config.bongacams.staticBanners) {
+    const url = new URL(item.iframeUrl);
+    assert.equal(url.hostname, 'bngprm.com');
+    assert.equal(url.searchParams.get('c'), '840970');
+    assert.equal(url.searchParams.get('type'), 'banner');
+    assert.equal(url.searchParams.get('size'), '300x250');
+    assert.equal(url.searchParams.get('name'), item.id);
+    assert.equal(item.width, 300);
+    assert.equal(item.height, 250);
+  }
+  assert.match(promo, /renderBongaStaticBanners\(config\.bongacams\)/);
+  assert.match(promo, /bonga_static_banner_loaded/);
+  assert.match(promo, /bonga_static_banner_viewable/);
+  assert.match(index, /id="bonga-static-banners"/);
+});
