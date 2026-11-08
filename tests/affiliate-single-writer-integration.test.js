@@ -132,6 +132,11 @@ module.exports = { Pool };
   const bongaTarget = new URL(bonga.headers.get("location"));
   assert.equal(bongaTarget.hostname, "bngprm.com");
   assert.equal(bongaTarget.searchParams.get("models[]"), "bongatestmodel");
+  // BongaCash's documented Direct Link does not expose a verified click-ID
+  // macro. Keep the ID in NightCamFinds' local ledger, but do not guess a
+  // provider parameter that could break the affiliate destination.
+  assert.equal(bongaTarget.searchParams.has("click_id"), false);
+  assert.equal(bongaTarget.searchParams.has("sid"), false);
 
   await new Promise(resolve => setTimeout(resolve, 150));
   const queries = fs.readFileSync(queryLog, "utf8").trim().split("\n").filter(Boolean).map(line => JSON.parse(line));
