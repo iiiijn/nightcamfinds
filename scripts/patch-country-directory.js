@@ -20,7 +20,7 @@ function patchServerSource(input){
   return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,
    displayName:clean(room.display_name||room.username)||room.username,gender:GENDER[room.gender]||"female",
    country,countryName:NAMES[country]||country,
-   region:normalizeRegion(room.region||room.region_name||room.state||room.province),
+   region:normalizeRegion(room.region||room.region_name||room.state||room.province)||MARKET_META[country.toLowerCase()]?.regionGroup||"Other",
    location:clean(room.location),viewerCount:Number(room.num_users||0),isHd:!!room.is_hd,isNew:!!room.is_new,
    image:room.image_url_360x270||room.image_url||"",roomSubject:clean(room.room_subject),
    languages:normalizeLanguages(room.spoken_languages||room.languages||room.language),
