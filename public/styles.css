@@ -472,3 +472,15 @@ footer span { flex: 1 1 100%; }
 @media (max-width: 720px) {
   .bonga-category-widget { margin-top: 4px; }
 }
+
+
+/* Chaturbate category discovery promotion */
+.cb-category-promo{margin:14px 0 20px;padding:16px;background:linear-gradient(135deg,#25192b,#1b1424);border:1px solid var(--line);border-radius:18px}
+.cb-category-promo[hidden]{display:none}
+.cb-category-promo h2{margin:0 0 5px;font-size:22px}
+.cb-category-promo p{margin:0 0 12px;color:var(--muted);font-size:13px}
+.cb-category-links{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.cb-category-link{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);text-decoration:none;font-weight:800;font-size:13px}
+.cb-category-link span:last-child{color:var(--amber)}
+.cb-category-link:hover{border-color:var(--accent);color:var(--amber)}
+@media(max-width:640px){.cb-category-promo{padding:12px}.cb-category-links{grid-template-columns:repeat(2,minmax(0,1fr))}.cb-category-link{padding:10px;font-size:12px}}
