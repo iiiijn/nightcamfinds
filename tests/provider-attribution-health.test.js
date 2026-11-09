@@ -39,3 +39,31 @@ test('reports click ID generation and local provider-ledger coverage separately'
   assert.ok(q.clicks.text.includes('ac.clicked_at >='));
   assert.deepEqual(q.clicks.params, ['2026-11-01']);
 });
+
+const fs = require('node:fs');
+const path = require('node:path');
+const routeSource = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+const serverSource = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+const dashboardSource = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
+
+test('exposes missing BongaCams local-ledger entries and coverage in provider health', () => {
+  assert.match(routeSource, /clickIdsMissingFromLedger = Math\.max\(0, entry\.clickIdsGenerated - entry\.localLedgerEntries\)/);
+  assert.match(routeSource, /ledgerCoveragePercent/);
+  assert.match(dashboardSource, /missing local entries:/);
+  assert.match(dashboardSource, /ledgerCoveragePercent/);
+});
+
+test('BongaCams primary click and platform ledger writes share one transaction', () => {
+  const start = serverSource.indexOf('async function countClick(');
+  const end = serverSource.indexOf('async function statsFromDb()', start);
+  assert.ok(start >= 0 && end > start, 'click writer is present');
+  const writer = serverSource.slice(start, end);
+  const begin = writer.indexOf('await client.query("BEGIN")');
+  const primary = writer.indexOf('INSERT INTO affiliate_clicks');
+  const ledger = writer.indexOf('INSERT INTO bonga_clicks');
+  const commit = writer.indexOf('await client.query("COMMIT")');
+  const rollback = writer.indexOf('await client.query("ROLLBACK")');
+  assert.ok(begin >= 0 && primary > begin && ledger > primary && commit > ledger);
+  assert.ok(rollback > begin, 'failed writes roll back the transaction');
+  assert.match(writer, /ON CONFLICT \(click_id\) DO NOTHING/);
+});
