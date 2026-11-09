@@ -116,3 +116,45 @@ test("server sitemap market list exactly follows the canonical 18 Tier 1 markets
  assert.ok(configuredCodes.includes("IS"));
  assert.ok(configuredCodes.includes("LU"));
 });
+
+
+test("country page robots directives follow the live-room quality threshold",()=>{
+ const indexed=getCountryPage("us","https://nightcamfinds.com",'<a href="/go/chaturbate%3Aone">Room</a>',true);
+ const thin=getCountryPage("us","https://nightcamfinds.com","",false);
+ assert.match(indexed,/<meta name="robots" content="index,follow">/);
+ assert.match(indexed,/<a href="\/go\/chaturbate%3Aone">Room<\/a>/);
+ assert.match(thin,/<meta name="robots" content="noindex,follow">/);
+ assert.match(indexed,/<link rel="canonical" href="https:\/\/nightcamfinds\.com\/country\/us\/">/);
+});
+
+test("country pages publish valid FAQPage structured data from their visible FAQs",()=>{
+ const html=getCountryPage("is","https://nightcamfinds.com","",true);
+ const match=html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+ assert.ok(match,"country page should include JSON-LD FAQ data");
+ const schema=JSON.parse(match[1]);
+ assert.equal(schema["@context"],"https://schema.org");
+ assert.equal(schema["@type"],"FAQPage");
+ assert.equal(schema.mainEntity.length,COUNTRIES.is.faqs.length);
+ for(const [index,[question,answer]] of COUNTRIES.is.faqs.entries()){
+  assert.equal(schema.mainEntity[index]["@type"],"Question");
+  assert.equal(schema.mainEntity[index].name,question);
+  assert.equal(schema.mainEntity[index].acceptedAnswer.text,answer);
+ }
+});
+
+test("country startup patch renders live room cards, applies the ten-room robots gate and builds a feed-backed sitemap",()=>{
+ const source=fs.readFileSync(path.join(__dirname,"..","scripts","patch-country-directory.js"),"utf8");
+ assert.match(source,/rankRoomsByPreferredPlatform\(feed\.rooms\.filter\(\(room\) => room\.country === iso\)/);
+ assert.match(source,/renderRoomCards\(countryRooms\.slice\(0, 60\)/);
+ assert.match(source,/getCountryPage\(countryRoute\[1\], pageOrigin\(req\), roomMarkup, isIndexableCountryRooms\(countryRooms\)\)/);
+ assert.match(source,/function sitemap\(origin,feedRooms\)\{return buildCountrySitemap/);
+ assert.match(source,/const feed=await rooms\(req\);return send\(res,200,sitemap\(pageOrigin\(req\),feed\.rooms\)/);
+});
+
+test("production startup applies country SEO and SPA route patches before serving traffic",()=>{
+ const pkg=JSON.parse(fs.readFileSync(path.join(__dirname,"..","package.json"),"utf8"));
+ assert.match(pkg.scripts.start,/patch-country-directory\.js/);
+ assert.match(pkg.scripts.start,/patch-spa-seo-routes\.js/);
+ assert.ok(pkg.scripts.start.indexOf("patch-country-directory.js")<pkg.scripts.start.indexOf("route.js"));
+ assert.ok(pkg.scripts.start.indexOf("patch-spa-seo-routes.js")<pkg.scripts.start.indexOf("route.js"));
+});
