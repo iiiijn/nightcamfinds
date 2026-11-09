@@ -261,6 +261,8 @@ Object.assign(COUNTRIES, worldwideMarkets.COUNTRIES);
 for (const [slug, country] of Object.entries(COUNTRIES)) {
   const metadata = worldwideMarkets.MARKET_META[slug];
   if (metadata) Object.assign(country, metadata);
+  const seo = worldwideMarkets.TIER1_SEO[slug];
+  if (seo) Object.assign(country, seo);
 }
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
@@ -271,7 +273,7 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
   const country = COUNTRIES[String(slug || "").toLowerCase()];
   if (!country) return null;
   const canonical = `${origin.replace(/\/$/, "")}/country/${String(slug).toLowerCase()}/`;
-  const title = `${country.name} Live Cams | NightCamFinds`;
+  const title = country.seoTitle || `${country.name} Live Cams | NightCamFinds`;
   const description = country.metaDescription || `Browse public live rooms associated with ${country.name}. Compare categories and current activity on NightCamFinds.`;
   const paragraphs = [country.intro, ...country.paragraphs];
   const links = [
@@ -324,6 +326,77 @@ ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
 <p class="country-disclosure">NightCamFinds is an independent directory. Room listings and country information are supplied by partner feeds and may be incomplete or out of date. Some links are affiliate links.</p>
 <p><a class="btn" href="/live/">Browse live rooms</a></p>
 </main>
+<script>
+(() => {
+  const countrySlug = "${String(slug).toLowerCase()}";
+  let visitId = "";
+  try {
+    visitId = sessionStorage.getItem("ncf_visit_id") || "";
+    if (!/^[a-f0-9]{32}$/i.test(visitId)) {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      visitId = [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
+      sessionStorage.setItem("ncf_visit_id", visitId);
+    }
+  } catch (_) {}
+  if (!visitId) return;
+  let landingPath = location.pathname;
+  try {
+    landingPath = sessionStorage.getItem("ncf_landing_path") || location.pathname;
+    sessionStorage.setItem("ncf_landing_path", landingPath);
+  } catch (_) {}
+  const incoming = new URLSearchParams(location.search);
+  let referral = "";
+  try {
+    const referrer = document.referrer ? new URL(document.referrer) : null;
+    if (referrer && referrer.hostname !== location.hostname) referral = referrer.hostname.toLowerCase().replace(/^www\./, "").slice(0, 40);
+  } catch (_) {}
+  const attribution = {
+    source: incoming.get("utm_source") || incoming.get("source") || referral || "unknown",
+    medium: incoming.get("utm_medium") || incoming.get("medium") || (referral ? "referral" : "unknown"),
+    campaign: incoming.get("utm_campaign") || incoming.get("campaign") || (referral ? "referral" : "unknown"),
+    content: incoming.get("utm_content") || incoming.get("content") || ""
+  };
+  const placement = "country-" + countrySlug;
+  const trackParams = new URLSearchParams({
+    src: placement, cat: "all", source: attribution.source, medium: attribution.medium,
+    campaign: attribution.campaign, content: attribution.content, placement,
+    lp: landingPath.slice(0, 255), vid: visitId
+  });
+  document.querySelectorAll('a[href^="/go/"],a[href^="/bgo/"]').forEach((link) => {
+    try {
+      const target = new URL(link.href, location.origin);
+      for (const [key, value] of trackParams) target.searchParams.set(key, value);
+      link.href = target.pathname + target.search;
+    } catch (_) {}
+  });
+  const sendEngagement = (eventType) => fetch("/api/engage", {
+    method: "POST", credentials: "same-origin", keepalive: true,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      visitId, eventType, pagePath: location.pathname, landingPath,
+      platform: "directory", source: attribution.source, medium: attribution.medium,
+      campaign: attribution.campaign, content: attribution.content, placement
+    })
+  }).catch(() => {});
+  let activeTimer;
+  const scheduleActive = () => {
+    clearTimeout(activeTimer);
+    if (!document.hidden) activeTimer = setTimeout(() => sendEngagement("active_10s"), 10000);
+  };
+  document.addEventListener("visibilitychange", scheduleActive);
+  scheduleActive();
+  let scrolled = false;
+  window.addEventListener("scroll", () => {
+    if (scrolled) return;
+    const height = document.documentElement.scrollHeight - window.innerHeight;
+    if (height > 0 && window.scrollY / height >= 0.5) {
+      scrolled = true;
+      sendEngagement("scroll_50");
+    }
+  }, { passive: true });
+})();
+</script>
 <script>
 const gate = document.getElementById("gate");
 document.getElementById("enter")?.addEventListener("click", () => {
