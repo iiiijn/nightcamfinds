@@ -326,25 +326,13 @@ ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
 <p class="country-disclosure">NightCamFinds is an independent directory. Room listings and country information are supplied by partner feeds and may be incomplete or out of date. Some links are affiliate links.</p>
 <p><a class="btn" href="/live/">Browse live rooms</a></p>
 </main>
+<script src="/visit-tracking.js"></script>
 <script>
 (() => {
   const countrySlug = "${country.code.toLowerCase()}";
-  let visitId = "";
-  try {
-    visitId = sessionStorage.getItem("ncf_visit_id") || "";
-    if (!/^[a-f0-9]{32}$/i.test(visitId)) {
-      const bytes = new Uint8Array(16);
-      crypto.getRandomValues(bytes);
-      visitId = [...bytes].map((value) => value.toString(16).padStart(2, "0")).join("");
-      sessionStorage.setItem("ncf_visit_id", visitId);
-    }
-  } catch (_) {}
+  const visitId = window.NCFVisitTracking ? window.NCFVisitTracking.getVisitId() : "";
   if (!visitId) return;
-  let landingPath = location.pathname;
-  try {
-    landingPath = sessionStorage.getItem("ncf_landing_path") || location.pathname;
-    sessionStorage.setItem("ncf_landing_path", landingPath);
-  } catch (_) {}
+  const landingPath = window.NCFVisitTracking ? window.NCFVisitTracking.getLandingPath(location.pathname) : location.pathname;
   const incoming = new URLSearchParams(location.search);
   let referral = "";
   try {
