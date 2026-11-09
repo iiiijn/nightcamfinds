@@ -2,7 +2,8 @@ const PRODUCTION_BRANCH = "main";
 
 const PRODUCTION_MIGRATIONS = [
   { version: "006_traffic_quality_engagement", file: "006_traffic_quality_engagement.sql" },
-  { version: "007_engagement_event_integrity", file: "007_engagement_event_integrity.sql" }
+  { version: "007_engagement_event_integrity", file: "007_engagement_event_integrity.sql" },
+  { version: "008_chaturbate_conversion_metadata", file: "008_chaturbate_conversion_metadata.sql" }
 ];
 
 const PRODUCTION_RECONCILIATION_MIGRATION = {
