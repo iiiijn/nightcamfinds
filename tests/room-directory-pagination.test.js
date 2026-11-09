@@ -32,7 +32,7 @@ test("rooms API supports bounded pagination and reports remaining results", () =
 
 test("all room categories receive regional top-room groups from the filtered feed", () => {
   assert.match(server, /buildRegionalRoomGroups\(list,sort,8\)/);
-  assert.match(server, /regionalRooms,liveCount:list.length/);
+  assert.match(server, /regionalRooms,topChaturbateByCategory,liveCount:list.length/);
   assert.match(app, /renderRegionalSections\(data\.regionalRooms/);
   assert.match(app, /\["all","live","female","male","trans","couples","hd","new","popular"\]\.includes\(category\)/);
 });
@@ -50,4 +50,18 @@ test("directory UI exposes a working load-more control for additional room pages
   assert.match(app, /loadMoreButton\?\.addEventListener\("click"/);
   assert.match(app, /load\(currentOffset, true\)/);
   assert.match(app, /grid\.append/);
+});
+
+test("homepage global Chaturbate category picks are sourced from all partner-feed rooms and ranked by viewers", () => {
+  assert.match(server, /topChaturbateByCategory\[gender\] = feed\.rooms/);
+  assert.match(server, /room\.platform === "chaturbate" && room\.gender === gender/);
+  assert.match(server, /Number\(b\.viewerCount \|\| 0\) - Number\(a\.viewerCount \|\| 0\)/);
+  assert.match(server, /topChaturbateByCategory,liveCount:list\.length/);
+  assert.match(app, /Popular Chaturbate /);
+  assert.match(app, /Top " \+ rooms\.length \+ " worldwide by current viewers/);
+});
+
+test("homepage is global by default while explicit country landing pages retain their country filter", () => {
+  assert.match(app, /if \(!countrySelect\.value && forced && \(data\.countries \|\| \[\]\)\.includes\(forced\)\)/);
+  assert.doesNotMatch(app, /if \(!countrySelect\.value && \(forced \|\| hinted\)/);
 });
