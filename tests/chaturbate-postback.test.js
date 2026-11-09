@@ -45,10 +45,30 @@ test("postback authentication secrets are removed before conversion persistence"
     transaction_id: "tx-1",
     payout: "1.25"
   });
-  assert.ok(start.includes("saveConversion(removePostbackSecrets(params))"));
+  assert.ok(start.includes("saveConversion(removePostbackSecrets(params))") === false);
+  assert.ok(start.includes("const saved = await saveConversion(removePostbackSecrets(params))"));
+  assert.ok(start.includes("matchedClick: saved.matchedClick"));
+  assert.ok(start.includes("duplicate: !saved.inserted"));
 });
 
 test("Chaturbate currency is not silently assumed to be USD", () => {
   assert.ok(helper.includes("currency,"));
   assert.ok(!helper.includes('currency: currency || "USD"'));
+});
+
+test("conversion persistence records whether a click matched and ignores duplicate transaction IDs", () => {
+  assert.ok(start.includes("SELECT EXISTS(SELECT 1 FROM cb_clicks WHERE click_id = $1::varchar(128)) AS matched"));
+  assert.ok(start.includes("ON CONFLICT (transaction_id) DO NOTHING"));
+  assert.ok(start.includes("RETURNING id"));
+  assert.ok(start.includes("return { matchedClick, inserted: inserted.rowCount === 1 }"));
+});
+
+test("dashboard verified revenue includes only matched supported Chaturbate event types", () => {
+  assert.ok(start.includes("WHERE matched_click IS TRUE"));
+  assert.ok(start.includes("tokens_signup-referral"));
+  assert.ok(start.includes("ppr_signup-referral"));
+  assert.ok(start.includes("revshare_broadcaster-referral"));
+  assert.ok(start.includes("revshare_webmaster-commission"));
+  assert.ok(start.includes("revshare_payout-adjustment"));
+  assert.ok(start.includes("AND cc.matched_click IS TRUE"));
 });
