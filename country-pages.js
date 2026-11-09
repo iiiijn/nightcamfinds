@@ -328,7 +328,7 @@ ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
 </main>
 <script>
 (() => {
-  const countrySlug = "${String(slug).toLowerCase()}";
+  const countrySlug = "${country.code.toLowerCase()}";
   let visitId = "";
   try {
     visitId = sessionStorage.getItem("ncf_visit_id") || "";
