@@ -65,3 +65,35 @@ test("new market pages render unique metadata and preserve noindex until enough 
   assert.match(html,new RegExp("More "+country.regionGroup+" markets"));
  }
 });
+
+test("all 18 Tier 1 pages have distinct SEO titles and descriptions", () => {
+  const tierOne = require("../src/config/market-countries.cjs").MARKET_PRIORITY_CODES.map((code) => code.toLowerCase());
+  const titles = [];
+  const descriptions = [];
+  for (const slug of tierOne) {
+    const country = COUNTRIES[slug];
+    const html = getCountryPage(slug, "https://nightcamfinds.com", "", false);
+    assert.ok(country.seoTitle, slug + " should define an SEO title");
+    assert.ok(country.metaDescription, slug + " should define a meta description");
+    titles.push(country.seoTitle);
+    descriptions.push(country.metaDescription);
+    assert.ok(html.includes("<title>" + country.seoTitle + "</title>"));
+    const escapedDescription = country.metaDescription.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    assert.ok(html.includes('name="description" content="' + escapedDescription + '"'));
+  }
+  assert.equal(new Set(titles).size, 18);
+  assert.equal(new Set(descriptions).size, 18);
+});
+
+test("country landing pages create privacy-conscious engagement and preserve landing attribution on partner links", () => {
+  const html = getCountryPage("is", "https://nightcamfinds.com", '<a href="/go/chaturbate:sample">Room</a>', true);
+  assert.match(html, /sessionStorage\.getItem\("ncf_visit_id"\)/);
+  assert.match(html, /sendEngagement\("active_10s"\)/);
+  assert.match(html, /sendEngagement\("scroll_50"\)/);
+  assert.match(html, /fetch\("\/api\/engage"/);
+  assert.match(html, /landingPath,\s*platform: "directory"/);
+  assert.match(html, /trackParams/);
+  assert.match(html, /vid: visitId/);
+  assert.match(html, /lp: landingPath\.slice\(0, 255\)/);
+  assert.match(html, /const placement = "country-" \+ countrySlug/);
+});
