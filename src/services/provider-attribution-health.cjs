@@ -37,6 +37,34 @@ function buildQueries(filters = {}) {
     clickWhere.length ? 'WHERE ' + clickWhere.join(' AND ') : '',
     'GROUP BY LOWER(ac.platform)'
   ].filter(Boolean).join('\n');
-  return { callbacks: { text: callbacks, params: callbackParams }, clicks: { text: clicks, params: clickParams }, filters: { from, to } };
+  const orphanParams = [];
+  const orphanCbWhere = [];
+  const orphanBongaWhere = [];
+  if (from) {
+    orphanParams.push(from);
+    const p = orphanParams.length;
+    orphanCbWhere.push("cb.clicked_at >= ($" + p + "::date AT TIME ZONE 'UTC')");
+    orphanBongaWhere.push("bc.clicked_at >= ($" + p + "::date AT TIME ZONE 'UTC')");
+  }
+  if (to) {
+    orphanParams.push(to);
+    const p = orphanParams.length;
+    orphanCbWhere.push("cb.clicked_at < (($" + p + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
+    orphanBongaWhere.push("bc.clicked_at < (($" + p + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
+  }
+  const orphans = [
+    "SELECT 'chaturbate'::text AS platform, COUNT(*)::int AS orphaned_ledger_entries",
+    "FROM cb_clicks cb",
+    "WHERE NULLIF(BTRIM(cb.click_id), '') IS NOT NULL",
+    "AND NOT EXISTS (SELECT 1 FROM affiliate_clicks ac WHERE ac.click_id = cb.click_id AND LOWER(ac.platform) = 'chaturbate')",
+    orphanCbWhere.length ? 'AND ' + orphanCbWhere.join(' AND ') : '',
+    "UNION ALL",
+    "SELECT 'bongacams'::text AS platform, COUNT(*)::int AS orphaned_ledger_entries",
+    "FROM bonga_clicks bc",
+    "WHERE NULLIF(BTRIM(bc.click_id), '') IS NOT NULL",
+    "AND NOT EXISTS (SELECT 1 FROM affiliate_clicks ac WHERE ac.click_id = bc.click_id AND LOWER(ac.platform) = 'bongacams')",
+    orphanBongaWhere.length ? 'AND ' + orphanBongaWhere.join(' AND ') : ''
+  ].filter(Boolean).join('\n');
+  return { callbacks: { text: callbacks, params: callbackParams }, clicks: { text: clicks, params: clickParams }, orphans: { text: orphans, params: orphanParams }, filters: { from, to } };
 }
 module.exports = { buildQueries };
