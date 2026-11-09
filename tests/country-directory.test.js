@@ -5,7 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const {normalizeCountryCode,normalizeRegion,normalizeLanguages,isValidCountryRoom,isIndexableCountryRooms,buildCountrySitemap}=require("../src/services/country-directory.cjs");
 const {patchServerSource}=require("../scripts/patch-country-directory.js");
-const {COUNTRIES}=require("../country-pages.js");
+const {COUNTRIES,getCountryPage}=require("../country-pages.js");
 const {MARKET_META,MARKET_PRIORITY_CODES,REGION_GROUPS}=require("../src/config/market-countries.cjs");
 test("country values normalize ISO codes and explicit country names only",()=>{
  assert.equal(normalizeCountryCode(" gb "),"GB");assert.equal(normalizeCountryCode("United States"),"US");
