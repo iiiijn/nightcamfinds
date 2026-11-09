@@ -128,6 +128,7 @@ async function ensurePostbackTables() {
       program_id VARCHAR(255),
       user_id VARCHAR(255),
       event_timestamp VARCHAR(100),
+      event_time VARCHAR(32),
       device VARCHAR(32),
       language VARCHAR(32),
       token VARCHAR(80),
@@ -143,6 +144,7 @@ async function ensurePostbackTables() {
   await pool.query("ALTER TABLE cb_conversions ALTER COLUMN country TYPE VARCHAR(16)");
   await pool.query("CREATE INDEX IF NOT EXISTS cb_clicks_clicked_at_idx ON cb_clicks(clicked_at)");
   await pool.query("ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS matched_click BOOLEAN NOT NULL DEFAULT FALSE");
+  await pool.query("ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS event_time VARCHAR(32)");
   await pool.query("ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS device VARCHAR(32)");
   await pool.query("ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS language VARCHAR(32)");
   await pool.query("ALTER TABLE cb_conversions ADD COLUMN IF NOT EXISTS token VARCHAR(80)");
@@ -188,8 +190,8 @@ async function saveConversion(params) {
   const amount = Number.parseFloat(params.amount);
   const inserted = await pool.query(
     `INSERT INTO cb_conversions
-     (click_id,transaction_id,conversion_type,payout,currency,amount,country,track,source,campaign_id,program_id,program_name,user_id,event_timestamp,device,language,token,referral,attempt,region,raw_payload,matched_click)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22)
+     (click_id,transaction_id,conversion_type,payout,currency,amount,country,track,source,campaign_id,program_id,program_name,user_id,event_timestamp,event_time,device,language,token,referral,attempt,region,raw_payload,matched_click)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22::jsonb,$23)
      ON CONFLICT (transaction_id) DO NOTHING
      RETURNING id`,
     [
@@ -198,7 +200,7 @@ async function saveConversion(params) {
       Number.isFinite(amount) ? amount : null, clean(params.country, "UNKNOWN", 16).toUpperCase(),
       clean(params.track, "", 255), clean(params.source, "", 255), clean(params.campaign_id, "", 255),
       clean(params.program_id, "", 255), clean(params.program_name, "", 255), clean(params.user_id, "", 255),
-      clean(params.timestamp, "", 100), clean(params.device, "", 32), clean(params.language, "", 32),
+      clean(params.timestamp, "", 100), clean(params.time, "", 32), clean(params.device, "", 32), clean(params.language, "", 32),
       clean(params.token, "", 80), clean(params.referral, "", 2048), clean(params.attempt, "", 32),
       clean(params.region, "", 255), JSON.stringify(params), matchedClick
     ]
@@ -500,6 +502,7 @@ http.createServer = function wrappedCreateServer(handler) {
           program_name: event.programName,
           user_id: event.userId,
           timestamp: event.timestamp,
+          time: event.time,
           device: event.device,
           language: event.language,
           token: event.token,
