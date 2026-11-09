@@ -106,3 +106,30 @@ test("affiliate destination helper rejects untrusted room URLs and missing click
   }).ok, false);
   assert.equal(buildChaturbateUrl({ campaign: "C6yxN", tour: "uhEc" }).ok, false);
 });
+
+test("accepts every documented Chaturbate conversion type with an explicit payout and currency", () => {
+  const types = [
+    "tokens_signup-referral",
+    "tokens_broadcaster-referral",
+    "ppr_signup-referral",
+    "ppr_broadcaster-referral",
+    "revshare_signup-referral",
+    "revshare_broadcaster-referral",
+    "revshare_purchase",
+    "revshare_webmaster-commission",
+    "revshare_payout-adjustment"
+  ];
+  for (const [index, type] of types.entries()) {
+    const result = normalizeChaturbatePostback({
+      click_id: `ncf_click_${index}`,
+      transaction_id: `tx_${index}`,
+      type,
+      payout: index === 8 ? "-0.25" : "0.75",
+      currency: "USD"
+    });
+    assert.equal(result.ok, true, type);
+    assert.equal(result.event.type, type);
+    assert.equal(result.event.currency, "USD");
+    assert.equal(result.event.payout, index === 8 ? -0.25 : 0.75);
+  }
+});
