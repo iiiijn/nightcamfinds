@@ -6,7 +6,8 @@ test("production startup excludes staging-only and unapproved reconciliation mig
   const plan = getMigrationPlan("main");
   assert.deepEqual(plan.map(item => item.version), [
     "006_traffic_quality_engagement",
-    "007_engagement_event_integrity"
+    "007_engagement_event_integrity",
+    "008_chaturbate_conversion_metadata"
   ]);
   assert.ok(plan.every(item => !["003_click_attribution_columns", "004_country_platform_routing", "005_bongacash_daily_reconciliation"].includes(item.version)));
 });
@@ -16,7 +17,8 @@ test("production reconciliation migration requires explicit opt-in", () => {
   assert.deepEqual(plan.map(item => item.version), [
     "005_bongacash_daily_reconciliation",
     "006_traffic_quality_engagement",
-    "007_engagement_event_integrity"
+    "007_engagement_event_integrity",
+    "008_chaturbate_conversion_metadata"
   ]);
 });
 
@@ -26,7 +28,8 @@ test("feature branch staging creates the affiliate schema before dependent migra
     "004_country_platform_routing",
     "005_bongacash_daily_reconciliation",
     "006_traffic_quality_engagement",
-    "007_engagement_event_integrity"
+    "007_engagement_event_integrity",
+    "008_chaturbate_conversion_metadata"
   ]);
   assert.ok(plan.every(item => item.version !== "003_click_attribution_columns"));
 });
