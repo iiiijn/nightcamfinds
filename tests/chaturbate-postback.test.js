@@ -5,7 +5,77 @@ const path = require("node:path");
 
 const start = fs.readFileSync(path.join(__dirname, "../start.js"), "utf8");
 const helper = fs.readFileSync(path.join(__dirname, "../src/services/chaturbate-revshare.cjs"), "utf8");
+const migration = fs.readFileSync(path.join(__dirname, "../sql/008_chaturbate_conversion_metadata.sql"), "utf8");
 const { removePostbackSecrets } = require("../src/services/chaturbate-revshare.cjs");
+
+const { normalizeChaturbatePostback } = require("../src/services/chaturbate-revshare.cjs");
+
+test("normalizer preserves all documented Chaturbate conversion metadata", () => {
+  const result = normalizeChaturbatePostback({
+    click_id: "ncf_test_click_12345678",
+    transaction_id: "tx-2026-001",
+    type: "revshare_purchase",
+    payout: "1.25",
+    currency: "USD",
+    amount: "5.00",
+    time: "12:00:00",
+    token: "25",
+    program_name: "RevShare",
+    device: "mobile",
+    language: "en",
+    referral: "https://example.test/source",
+    attempt: "1",
+    region: "California"
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual({
+    time: result.event.time,
+    token: result.event.token,
+    programName: result.event.programName,
+    device: result.event.device,
+    language: result.event.language,
+    referral: result.event.referral,
+    attempt: result.event.attempt,
+    region: result.event.region
+  }, {
+    time: "12:00:00",
+    token: "25",
+    programName: "RevShare",
+    device: "mobile",
+    language: "en",
+    referral: "https://example.test/source",
+    attempt: "1",
+    region: "California"
+  });
+});
+
+test("runtime persists documented metadata columns instead of retaining them only in raw payload", () => {
+  for (const column of ["program_name", "event_time", "device", "language", "token", "referral", "attempt", "region"]) {
+    assert.ok(start.includes(column), "missing persisted field: " + column);
+  }
+  assert.ok(start.includes('clean(params.referral, "", 2048)'));
+  assert.ok(start.includes("JSON.stringify(params), matchedClick"));
+});
+
+
+
+test("Chaturbate metadata migration is additive and safe when the conversion ledger is absent", () => {
+  assert.ok(migration.includes("CREATE TABLE IF NOT EXISTS cb_conversions"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS event_time"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS program_name"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS token"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS referral"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS attempt"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS region"));
+  assert.ok(!migration.includes("UPDATE cb_conversions"));
+});
+
+test("the production request chain loads the Chaturbate postback handler", () => {
+  const route = fs.readFileSync(path.join(__dirname, "../route.js"), "utf8");
+  assert.ok(route.includes('require("./start.js")'));
+  assert.ok(start.includes('require("./server.js")'));
+  assert.ok(start.includes('incoming.pathname === "/api/chaturbate/postback"'));
+});
 
 test("Chaturbate postbacks accept GET and POST form or JSON payloads", () => {
   assert.ok(start.includes('req.method !== "GET" && req.method !== "POST"'));

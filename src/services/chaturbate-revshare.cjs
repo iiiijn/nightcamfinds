@@ -83,8 +83,11 @@ function normalizeChaturbatePostback(raw = {}) {
       programName: get("program_name"),
       userId: get("user_id"),
       timestamp: get("timestamp") || get("date"),
+      time: get("time"),
+      token: get("token"),
       device: get("device"),
       language: get("language"),
+      referral: get("referral"),
       region: get("region"),
       attempt: get("attempt")
     }
