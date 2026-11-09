@@ -18,6 +18,7 @@ test("normalizer preserves all documented Chaturbate conversion metadata", () =>
     payout: "1.25",
     currency: "USD",
     amount: "5.00",
+    time: "12:00:00",
     token: "25",
     program_name: "RevShare",
     device: "mobile",
@@ -28,6 +29,7 @@ test("normalizer preserves all documented Chaturbate conversion metadata", () =>
   });
   assert.equal(result.ok, true);
   assert.deepEqual({
+    time: result.event.time,
     token: result.event.token,
     programName: result.event.programName,
     device: result.event.device,
@@ -47,7 +49,7 @@ test("normalizer preserves all documented Chaturbate conversion metadata", () =>
 });
 
 test("runtime persists documented metadata columns instead of retaining them only in raw payload", () => {
-  for (const column of ["program_name", "device", "language", "token", "referral", "attempt", "region"]) {
+  for (const column of ["program_name", "event_time", "device", "language", "token", "referral", "attempt", "region"]) {
     assert.ok(start.includes(column), "missing persisted field: " + column);
   }
   assert.ok(start.includes('clean(params.referral, "", 2048)'));
@@ -63,7 +65,7 @@ test("Chaturbate metadata migration is additive and safe when the conversion led
   assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS referral"));
   assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS attempt"));
   assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS region"));
-  assert.ok(!/UPDATE\\s+cb_conversions/i.test(migration));
+  assert.ok(!migration.includes("UPDATE cb_conversions"));
 });
 
 test("the production request chain loads the Chaturbate postback handler", () => {
