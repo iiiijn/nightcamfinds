@@ -24,7 +24,7 @@ test('conversion detail report identifies placeholder callbacks without assignin
 });
 
 test('dashboard country summary contains affiliate click geography only', () => {
-  assert.match(routeSource, /FROM affiliate_clicks \$\{cb\.where\}[\s\S]*?countries\[country\]/);
+  assert.match(routeSource, /FROM affiliate_clicks \$\{businessClickWhere\}[\s\S]*?countries\[country\]/);
   assert.match(routeSource, /const combinedCountries = \{ \.\.\.countries \};/);
   const countryStart = routeSource.indexOf('  const combinedCountries = { ...countries };');
   const countryEnd = routeSource.indexOf('  return {', countryStart);

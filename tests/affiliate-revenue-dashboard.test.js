@@ -28,3 +28,14 @@ test('revenue calculations exclude test events and unsupported conversion types'
   assert.match(attribution, /LOWER\(cc\.conversion_type\) IN/);
   assert.match(attribution, /cc\.matched_click IS TRUE/);
 });
+
+test('dashboard business statistics exclude known internal test and audit clicks', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('async function dashboardStats(incoming) {');
+  const end = route.indexOf('\n}\n', start);
+  const stats = route.slice(start, end);
+  assert.match(stats, /businessClickWhere/);
+  assert.match(stats, /source, ''\)\) <> 'test'/);
+  assert.match(stats, /test_female_01', 'revshare_audit_01/);
+  assert.match(stats, /const where = x\.where \? x\.where \+ " AND " \+ internalTrafficExclusion/);
+});
