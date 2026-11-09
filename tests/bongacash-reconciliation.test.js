@@ -42,9 +42,8 @@ test("rejects invalid counts, negative earnings and excessive notes", () => {
 
 test("revenue dashboard provides a protected manual BongaCash daily report form", () => {
   const fs = require("node:fs");
-  const path = require("node:path");
-  const html = fs.readFileSync(path.join(__dirname, "../public/revenue.html"), "utf8");
-  const route = fs.readFileSync(path.join(__dirname, "../route.js"), "utf8");
+  const html = fs.readFileSync(new URL("../public/revenue.html", import.meta.url), "utf8");
+  const route = fs.readFileSync(new URL("../route.js", import.meta.url), "utf8");
   assert.match(html, /id="bongaReportForm"/);
   assert.match(html, /id="bongaDate"[^>]*type="date"/);
   assert.match(html, /id="bongaEarnings"[^>]*type="number"/);
