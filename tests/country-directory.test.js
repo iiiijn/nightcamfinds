@@ -103,3 +103,16 @@ test("country-name normalization covers newly added markets and official long-fo
   assert.equal(normalizeCountryCode(name),code,name);
  }
 });
+
+test("server sitemap market list exactly follows the canonical 18 Tier 1 markets",()=>{
+ const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");
+ assert.match(source,/const MARKETS = MARKET_PRIORITY_CODES\.map\(\(code\) => \[code\.toLowerCase\(\), code, MARKET_NAMES\[code\]\]\);/);
+ const names=source.match(/const MARKET_NAMES = Object\.freeze\(\{([\s\S]*?)\}\);/);
+ assert.ok(names,"server must define display names for every priority market");
+ const configuredCodes=[...names[1].matchAll(/\b([A-Z]{2}):\s*"/g)].map(match=>match[1]);
+ assert.deepEqual(configuredCodes,MARKET_PRIORITY_CODES);
+ assert.ok(!configuredCodes.includes("JP"));
+ assert.ok(!configuredCodes.includes("SG"));
+ assert.ok(configuredCodes.includes("IS"));
+ assert.ok(configuredCodes.includes("LU"));
+});
