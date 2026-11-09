@@ -1,5 +1,6 @@
 (() => {
   const cbPromo = document.querySelector('#chaturbate-live-promo');
+  const cbCategoryPromo = document.querySelector('#chaturbate-category-promo');
   const bcPromo = document.querySelector('#bonga-live-promo');
   const banner = document.querySelector('#cb-banner-promo');
   const bongaDynamicBanner = document.querySelector('#bonga-dynamic-banner');
@@ -351,6 +352,50 @@
     bongaDynamicBanner.replaceChildren(heading, frame);
     bongaDynamicBanner.hidden = false;
   }
+
+  function renderChaturbateCategoryPromo() {
+    if (!cbCategoryPromo) return;
+    const categories = [
+      { id: 'female', label: 'Female rooms' },
+      { id: 'male', label: 'Male rooms' },
+      { id: 'trans', label: 'Trans rooms' },
+      { id: 'couples', label: 'Couples rooms' }
+    ];
+    cbCategoryPromo.replaceChildren();
+    const heading = document.createElement('h2');
+    heading.textContent = 'Explore Chaturbate categories';
+    const intro = document.createElement('p');
+    intro.textContent = 'Choose a category to discover currently live public rooms.';
+    const links = document.createElement('div');
+    links.className = 'cb-category-links';
+    for (const category of categories) {
+      const link = document.createElement('a');
+      link.className = 'cb-category-link';
+      const params = new URLSearchParams({ ncf_platform: 'chaturbate', ncf_category: category.id, ncf_placement: 'cb-category-' + category.id });
+      if (/^[A-Z]{2}$/.test(metaCountry)) params.set('ncf_country', metaCountry);
+      link.href = '/'+category.id+'/?'+params.toString();
+      link.rel = 'nofollow';
+      const label = document.createElement('span');
+      label.textContent = category.label;
+      const arrow = document.createElement('span');
+      arrow.textContent = 'Explore';
+      link.append(label, arrow);
+      link.addEventListener('click', () => recordEngagement('chaturbate_category_click', { platform: 'chaturbate', placement: 'cb_category_' + category.id, content: category.id }));
+      links.append(link);
+    }
+    cbCategoryPromo.append(heading, intro, links);
+    cbCategoryPromo.hidden = false;
+    if (typeof IntersectionObserver === 'function') {
+      const observer = new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= 0.5)) {
+          recordEngagement('chaturbate_category_promo_viewable', { platform: 'chaturbate', placement: 'cb_category_promo', content: 'female_male_trans_couples' });
+          observer.disconnect();
+        }
+      }, { threshold: [0.5] });
+      observer.observe(cbCategoryPromo);
+    }
+  }
+
   async function loadPlatform(platform) {
     const params = new URLSearchParams({ platform, sort: 'viewers', limit: '60' });
     if (safeTargetCategory !== 'all') params.set('category', safeTargetCategory);
@@ -390,7 +435,10 @@
     } else {
       if (cbPromo) cbPromo.hidden = safeTargetPlatform === 'bongacams';
       if (bcPromo) bcPromo.hidden = safeTargetPlatform === 'chaturbate';
-      if (safeTargetPlatform !== 'bongacams' && config.chaturbate?.enabled !== false) renderStrip(cbPromo, cb, 'Live on Chaturbate', 'Chaturbate');
+      if (safeTargetPlatform !== 'bongacams' && config.chaturbate?.enabled !== false) {
+        renderStrip(cbPromo, cb, 'Live on Chaturbate', 'Chaturbate');
+        renderChaturbateCategoryPromo();
+      }
       if (safeTargetPlatform !== 'chaturbate' && config.bongacams?.enabled !== false) renderStrip(bcPromo, bc, 'Live on BongaCams', 'BongaCams');
       if (safeTargetPlatform === 'bongacams') renderBanner({ ...config.bongacams, platform: 'bongacams' }, bc);
       else renderBanner({ ...config.chaturbate, platform: 'chaturbate' }, cb);
