@@ -48,7 +48,7 @@ test("revenue dashboard provides a protected manual BongaCash daily report form"
   assert.match(html, /id="bongaReportForm"/);
   assert.match(html, /id="bongaDate"[^>]*type="date"/);
   assert.match(html, /id="bongaEarnings"[^>]*type="number"/);
-  assert.match(html, /fetch\\('\\/api\\/bongacash-reconciliation',\\{method:'POST'/);
+  assert.match(html, /fetch\('\/api\/bongacash-reconciliation',\{method:'POST'/);
   assert.match(html, /not click-attributed/i);
   assert.match(route, /incoming\.pathname === "\/api\/bongacash-reconciliation"/);
   assert.match(route, /validDashboardSession\(req\)/);
