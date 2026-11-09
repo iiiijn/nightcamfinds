@@ -37,13 +37,13 @@
 <section class="panel"><h2>Conversion event integrity</h2><div id="integrity"></div></section>
 <section class="panel"><h2>BongaCash daily reconciliation</h2>
 <p class="note">Enter the figures exactly as shown in your BongaCash affiliate statistics for the selected reporting date. These are manually reported totals, not automatic postbacks and not click-attributed. Do not enter estimated earnings.</p>
-<form id="bongaReportForm" class="form-grid">
+<form id="bongaReportForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0">
 <label>Report date<input id="bongaDate" name="date" type="date" required></label>
 <label>Registrations<input id="bongaRegistrations" name="registrations" type="number" min="0" max="100000000" step="1" required value="0"></label>
 <label>Purchases<input id="bongaPurchases" name="purchases" type="number" min="0" max="100000000" step="1" required value="0"></label>
 <label>Reported earnings (USD)<input id="bongaEarnings" name="earnings" type="number" min="0" max="1000000000000" step="0.01" required value="0.00"></label>
-<label class="wide">Source / notes<input id="bongaNotes" name="notes" type="text" maxlength="500" placeholder="Example: BongaCash Statistics, campaign 840970"></label>
-<div class="wide"><button type="submit" id="saveBongaReport">Save daily report</button><span id="bongaFormStatus" class="muted" role="status" aria-live="polite"></span></div>
+<label style="grid-column:1/-1">Source / notes<input id="bongaNotes" name="notes" type="text" maxlength="500" placeholder="Example: BongaCash Statistics, campaign 840970"></label>
+<div style="grid-column:1/-1"><button type="submit" id="saveBongaReport">Save daily report</button><span id="bongaFormStatus" class="muted" role="status" aria-live="polite"></span></div>
 </form>
 <div id="bongaReconciliation"></div></section>
 <p class="foot">All date filters use UTC calendar dates. Duplicate Chaturbate transaction IDs are prevented by the database uniqueness constraint. Unmatched and test callbacks are kept out of attributed earnings.</p>
