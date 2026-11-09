@@ -72,3 +72,12 @@ test("dashboard verified revenue includes only matched supported Chaturbate even
   assert.ok(start.includes("revshare_payout-adjustment"));
   assert.ok(start.includes("AND cc.matched_click IS TRUE"));
 });
+
+test("dashboard keeps matched Chaturbate earnings separated by currency", () => {
+  const dashboard = fs.readFileSync(path.join(__dirname, "../public/dashboard.html"), "utf8");
+  assert.ok(start.includes("GROUP BY 1"));
+  assert.ok(start.includes("earningsByCurrency"));
+  assert.ok(start.includes("const cbUsdEarnings = Number(earningsByCurrency.USD?.earnings || 0)"));
+  assert.ok(dashboard.includes("currencyBreakdown(j.earningsByCurrency)"));
+  assert.ok(dashboard.includes("Matched payout by currency"));
+});
