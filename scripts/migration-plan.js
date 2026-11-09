@@ -1,7 +1,8 @@
 const PRODUCTION_BRANCH = "main";
 
 const PRODUCTION_MIGRATIONS = [
-  { version: "006_traffic_quality_engagement", file: "006_traffic_quality_engagement.sql" }
+  { version: "006_traffic_quality_engagement", file: "006_traffic_quality_engagement.sql" },
+  { version: "007_engagement_event_integrity", file: "007_engagement_event_integrity.sql" }
 ];
 
 const PRODUCTION_RECONCILIATION_MIGRATION = {
@@ -12,7 +13,8 @@ const PRODUCTION_RECONCILIATION_MIGRATION = {
 const STAGING_MIGRATIONS = [
   { version: "004_country_platform_routing", file: "004_country_platform_routing.sql" },
   PRODUCTION_RECONCILIATION_MIGRATION,
-  { version: "006_traffic_quality_engagement", file: "006_traffic_quality_engagement.sql" }
+  { version: "006_traffic_quality_engagement", file: "006_traffic_quality_engagement.sql" },
+  { version: "007_engagement_event_integrity", file: "007_engagement_event_integrity.sql" }
 ];
 
 function getMigrationPlan(branch, options = {}) {
