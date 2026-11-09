@@ -217,13 +217,26 @@ async function dashboardStats(incoming) {
   const deviceRows = await q(`SELECT device, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY device`);
   const mediums = await q(`SELECT medium, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY medium`);
   const earningsRows = await pool.query(`SELECT
+    COALESCE(NULLIF(UPPER(currency), ''), 'UNSPECIFIED') AS currency,
     COUNT(*) FILTER (WHERE conversion_type IN ('tokens_signup-referral','ppr_signup-referral','revshare_signup-referral'))::int AS registrations,
     COUNT(*) FILTER (WHERE conversion_type='revshare_purchase')::int AS purchases,
     COUNT(*)::int AS credited_events,
     COALESCE(SUM(payout),0)::numeric AS earnings
     FROM cb_conversions
     WHERE matched_click IS TRUE
-      AND conversion_type IN ('tokens_signup-referral','tokens_broadcaster-referral','ppr_signup-referral','ppr_broadcaster-referral','revshare_signup-referral','revshare_broadcaster-referral','revshare_purchase','revshare_webmaster-commission','revshare_payout-adjustment')`);
+      AND conversion_type IN ('tokens_signup-referral','tokens_broadcaster-referral','ppr_signup-referral','ppr_broadcaster-referral','revshare_signup-referral','revshare_broadcaster-referral','revshare_purchase','revshare_webmaster-commission','revshare_payout-adjustment')
+    GROUP BY 1`);
+  const earningsByCurrency = Object.fromEntries(earningsRows.rows.map(row => [row.currency, {
+    registrations: Number(row.registrations || 0),
+    purchases: Number(row.purchases || 0),
+    creditedEvents: Number(row.credited_events || 0),
+    earnings: Number(row.earnings || 0)
+  }]));
+  const cbRegistrations = Object.values(earningsByCurrency).reduce((sum, row) => sum + row.registrations, 0);
+  const cbPurchases = Object.values(earningsByCurrency).reduce((sum, row) => sum + row.purchases, 0);
+  // The legacy dashboard money cards are USD-denominated. Never add payouts
+  // from different currencies into one number; expose the full breakdown too.
+  const cbUsdEarnings = Number(earningsByCurrency.USD?.earnings || 0);
   const bongacash = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='registration')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type='purchase'),0)::numeric AS earnings FROM bonga_conversions`).catch(() => ({rows:[{}]}));
   const platforms = Object.fromEntries(platformRows.map(r => [r.platform || "unknown", Number(r.n)]));
   const sources = Object.fromEntries(sourceRows.map(r => [`${r.platform}:${r.source}`, Number(r.n)]));
@@ -298,8 +311,7 @@ async function dashboardStats(incoming) {
     persistent: true, totalClicks: total, chaturbateClicks: cbClicks, bongacamsClicks: bcClicks,
     tier1Clicks: Number(tierRows.rows[0]?.n || 0), bongaTier1Clicks: Number(tierRows.rows[0]?.bonga || 0),
     today: await countSince(1), week: await countSince(7), month: await countSince(30),
-    registrations: Number(earningsRows.rows[0]?.registrations || 0), purchases: Number(earningsRows.rows[0]?.purchases || 0),
-    earnings: Number(earningsRows.rows[0]?.earnings || 0), bongacamsRegistrations: Number(bongacash.rows[0]?.registrations || 0),
+    registrations: cbRegistrations, purchases: cbPurchases, earnings: cbUsdEarnings, earningsByCurrency, bongacamsRegistrations: Number(bongacash.rows[0]?.registrations || 0),
     bongacamsPurchases: Number(bongacash.rows[0]?.purchases || 0), bongacamsEarnings: Number(bongacash.rows[0]?.earnings || 0),
     bongacashConnected: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
     platforms, countries, sources, placements, campaigns, devices, mediums,
