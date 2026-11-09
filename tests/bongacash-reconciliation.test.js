@@ -39,3 +39,17 @@ test("rejects invalid counts, negative earnings and excessive notes", () => {
   assert.match(validateDailyEntry({ ...base, notes: "x".repeat(501) }).error, /500 characters/);
   assert.match(validateDailyEntry({ ...base, date: "2026-02-30" }).error, /valid reporting date/);
 });
+
+test("revenue dashboard provides a protected manual BongaCash daily report form", () => {
+  const fs = require("node:fs");
+  const html = fs.readFileSync(new URL("../public/revenue.html", import.meta.url), "utf8");
+  const route = fs.readFileSync(new URL("../route.js", import.meta.url), "utf8");
+  assert.match(html, /id="bongaReportForm"/);
+  assert.match(html, /id="bongaDate"[^>]*type="date"/);
+  assert.match(html, /id="bongaEarnings"[^>]*type="number"/);
+  assert.match(html, /fetch\('\/api\/bongacash-reconciliation',\{method:'POST'/);
+  assert.match(html, /not click-attributed/i);
+  assert.match(route, /incoming\.pathname === "\/api\/bongacash-reconciliation"/);
+  assert.match(route, /validDashboardSession\(req\)/);
+  assert.match(route, /isSameOriginRequest\(req\.headers\)/);
+});

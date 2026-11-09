@@ -23,7 +23,7 @@
 <div class="stat"><small>Chaturbate attributed USD</small><strong id="cbUsd">$0.00</strong></div>
 <div class="stat"><small>BongaCash manual USD</small><strong id="bongaUsd">$0.00</strong></div>
 <div class="stat"><small>Combined USD reported</small><strong id="combinedUsd">$0.00</strong></div>
-<div class="stat"><small>USD earnings per click</small><strong id="epc">$0.00</strong></div>
+<div class="stat"><small>Blended reported USD per tracked click (not attribution)</small><strong id="epc">$0.00</strong></div>
 </div>
 <p class="note">These are partner-reported and/or manually reconciled figures, not proof that funds have been paid into your account. Chaturbate revenue is counted only for eligible event types with a matched NightCamFinds click ID. BongaCash is shown from your manually entered daily reports. Different currencies are never added together.</p>
 <div class="grid">
@@ -35,7 +35,17 @@
 <section class="panel"><h2>Campaign and source performance</h2><p class="note">Compare source and campaign combinations. BongaCash earnings are not attributed to campaigns automatically.</p><div id="campaigns"></div></section>
 </div>
 <section class="panel"><h2>Conversion event integrity</h2><div id="integrity"></div></section>
-<section class="panel"><h2>BongaCash daily reconciliation</h2><p class="note">These totals come from daily figures manually entered from your BongaCash affiliate reports. They are not automatic postbacks and are not click-attributed.</p><div id="bongaReconciliation"></div></section>
+<section class="panel"><h2>BongaCash daily reconciliation</h2>
+<p class="note">Enter the figures exactly as shown in your BongaCash affiliate statistics for the selected reporting date. These are manually reported totals, not automatic postbacks and not click-attributed. Do not enter estimated earnings.</p>
+<form id="bongaReportForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0">
+<label>Report date<input id="bongaDate" name="date" type="date" required></label>
+<label>Registrations<input id="bongaRegistrations" name="registrations" type="number" min="0" max="100000000" step="1" required value="0"></label>
+<label>Purchases<input id="bongaPurchases" name="purchases" type="number" min="0" max="100000000" step="1" required value="0"></label>
+<label>Reported earnings (USD)<input id="bongaEarnings" name="earnings" type="number" min="0" max="1000000000000" step="0.01" required value="0.00"></label>
+<label style="grid-column:1/-1">Source / notes<input id="bongaNotes" name="notes" type="text" maxlength="500" placeholder="Example: BongaCash Statistics, campaign 840970"></label>
+<div style="grid-column:1/-1"><button type="submit" id="saveBongaReport">Save daily report</button><span id="bongaFormStatus" class="muted" role="status" aria-live="polite"></span></div>
+</form>
+<div id="bongaReconciliation"></div></section>
 <p class="foot">All date filters use UTC calendar dates. Duplicate Chaturbate transaction IDs are prevented by the database uniqueness constraint. Unmatched and test callbacks are kept out of attributed earnings.</p>
 </section></main>
 <script src="/revenue-summary.js"></script>
@@ -65,6 +75,29 @@ async function load(){ $('status').textContent='Loading';const qs=query();try{
  $('bongaReconciliation').innerHTML='<p><strong>'+fmt(bonga.totals?.registrations)+' registrations</strong> · <strong>'+fmt(bonga.totals?.purchases)+' purchases</strong> · <strong>'+money(bongaUsd)+' reported earnings</strong> · '+fmt(bonga.totals?.days_reported)+' days reported</p>'+(bonga.entries?.length?'<table class="table"><thead><tr><th>Date</th><th>Registrations</th><th>Purchases</th><th>USD</th><th>Updated</th></tr></thead><tbody>'+bonga.entries.map(e=>'<tr><td>'+esc(String(e.report_date).slice(0,10))+'</td><td>'+fmt(e.registrations)+'</td><td>'+fmt(e.purchases)+'</td><td>'+money(e.earnings)+'</td><td>'+esc(e.updated_at?new Date(e.updated_at).toLocaleString():'—')+'</td></tr>').join('')+'</tbody></table>':'<p class="muted">No BongaCash daily reports have been entered for this period.</p>');
  $('status').textContent='Updated';$('status').className='status ok';
  }catch(e){if(e.message!=='Session expired'){$('status').textContent='Report error';$('status').className='status bad';$('integrity').textContent=e.message;console.error(e)}}}
+$('bongaDate').value=new Date().toISOString().slice(0,10);
+$('bongaReportForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const status=$('bongaFormStatus'),button=$('saveBongaReport');
+ status.textContent='Saving report…';button.disabled=true;
+ const payload={
+  date:$('bongaDate').value,
+  registrations:Number($('bongaRegistrations').value),
+  purchases:Number($('bongaPurchases').value),
+  earnings:Number($('bongaEarnings').value),
+  notes:$('bongaNotes').value.trim()
+ };
+ try{
+  const response=await fetch('/api/bongacash-reconciliation',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const result=await response.json();
+  if(response.status===401){showLogin('Your session expired. Sign in again.');return}
+  if(!response.ok)throw Error(result.error||'Could not save daily report');
+  $('bongaRegistrations').value='0';$('bongaPurchases').value='0';$('bongaEarnings').value='0.00';$('bongaNotes').value='';
+  await load();
+  status.textContent='Daily report saved.';
+ }catch(error){status.textContent=error.message;status.className='status bad'}
+ finally{button.disabled=false}
+});
 function showLogin(message){$('login').hidden=false;$('app').hidden=true;$('loginError').textContent=message||''}
 async function auth(){try{const j=await get('/api/auth/me');if(j.authenticated){$('login').hidden=true;$('app').hidden=false;await load()}else showLogin('')}catch(e){showLogin(e.message)}}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();const r=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value,password:$('password').value})});const j=await r.json();if(r.ok&&j.authenticated){$('login').hidden=true;$('app').hidden=false;load()}else $('loginError').textContent=j.error||'Sign in failed'});
