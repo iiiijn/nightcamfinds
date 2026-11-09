@@ -133,21 +133,8 @@ function placement() {
   return country || base + "-card";
 }
 
-function trafficVisitId() {
-  try {
-    let id = sessionStorage.getItem("ncf_visit_id");
-    if (!/^[a-f0-9]{32}$/i.test(id || "")) {
-      const bytes = new Uint8Array(16);
-      crypto.getRandomValues(bytes);
-      id = [...bytes].map(x => x.toString(16).padStart(2, "0")).join("");
-      sessionStorage.setItem("ncf_visit_id", id);
-    }
-    return id;
-  } catch (_) { return ""; }
-}
-const visitId = trafficVisitId();
-let visitLandingPath = location.pathname;
-try { visitLandingPath = sessionStorage.getItem("ncf_landing_path") || location.pathname; sessionStorage.setItem("ncf_landing_path", visitLandingPath); } catch (_) {}
+const visitId = window.NCFVisitTracking ? window.NCFVisitTracking.getVisitId() : "";
+const visitLandingPath = window.NCFVisitTracking ? window.NCFVisitTracking.getLandingPath(location.pathname) : location.pathname;
 function sendEngagement(eventType) {
   if (!visitId) return;
   fetch("/api/engage", {

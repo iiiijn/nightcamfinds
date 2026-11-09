@@ -87,7 +87,8 @@ test("all 18 Tier 1 pages have distinct SEO titles and descriptions", () => {
 
 test("country landing pages create privacy-conscious engagement and preserve landing attribution on partner links", () => {
   const html = getCountryPage("is", "https://nightcamfinds.com", '<a href="/go/chaturbate:sample">Room</a>', true);
-  assert.match(html, /sessionStorage\.getItem\("ncf_visit_id"\)/);
+  assert.match(html, /<script src="\/visit-tracking\.js"><\/script>/);
+  assert.match(html, /NCFVisitTracking\.getVisitId\(\)/);
   assert.match(html, /sendEngagement\("active_10s"\)/);
   assert.match(html, /sendEngagement\("scroll_50"\)/);
   assert.match(html, /fetch\("\/api\/engage"/);
