@@ -91,7 +91,7 @@ test("country landing pages create privacy-conscious engagement and preserve lan
   assert.match(html, /sendEngagement\("active_10s"\)/);
   assert.match(html, /sendEngagement\("scroll_50"\)/);
   assert.match(html, /fetch\("\/api\/engage"/);
-  assert.match(html, /landingPath,\\s*platform: "directory"/);
+  assert.match(html, /landingPath,\s*platform: "directory"/);
   assert.match(html, /trackParams/);
   assert.match(html, /vid: visitId/);
   assert.match(html, /lp: landingPath\.slice\(0, 255\)/);
