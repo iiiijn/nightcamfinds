@@ -282,12 +282,22 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
   const faqHtml = country.faqs.map(([question, answer]) =>
     `<section class="country-faq-item"><h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p></section>`
   ).join("");
+  const faqStructuredData = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": country.faqs.map(([question, answer]) => ({
+      "@type": "Question",
+      "name": question,
+      "acceptedAnswer": { "@type": "Answer", "text": answer }
+    }))
+  }).replace(/</g, "\\u003c");
   return `<!doctype html>
 <html lang="${country.language || (country.code === "DE" ? "de" : country.code === "FR" ? "fr" : country.code === "NL" ? "nl" : "en")}">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}">
 <meta name="robots" content="${hasRooms ? "index,follow" : "noindex,follow"}"><link rel="canonical" href="${escapeHtml(canonical)}">
+<script type="application/ld+json">${faqStructuredData}</script>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
