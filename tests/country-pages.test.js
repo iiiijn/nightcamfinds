@@ -95,5 +95,5 @@ test("country landing pages create privacy-conscious engagement and preserve lan
   assert.match(html, /trackParams/);
   assert.match(html, /vid: visitId/);
   assert.match(html, /lp: landingPath\.slice\(0, 255\)/);
-  assert.match(html, /country-is/);
+  assert.match(html, /const placement = "country-" \+ countrySlug/);
 });
