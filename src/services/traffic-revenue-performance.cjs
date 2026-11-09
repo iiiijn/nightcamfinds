@@ -25,6 +25,8 @@ function buildQuery(filters = {}) {
     conversionWhere.push("cc.received_at < (($" + conversionParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
   }
 
+  const internalTrafficExclusion = "LOWER(COALESCE(ac.source, '')) <> 'test' AND LOWER(COALESCE(ac.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')";
+
   const text = [
     'WITH click_groups AS (',
     '  SELECT UPPER(COALESCE(NULLIF(ac.country, \'\'), \'UNKNOWN\')) AS country,',
@@ -33,7 +35,7 @@ function buildQuery(filters = {}) {
     '         COALESCE(NULLIF(LOWER(ac.campaign), \'\'), \'unknown\') AS campaign,',
     '         COUNT(*)::int AS clicks',
     '  FROM affiliate_clicks ac',
-    clickWhere.length ? '  WHERE ' + clickWhere.join(' AND ') : '',
+    '  WHERE ' + [...clickWhere, internalTrafficExclusion].join(' AND '),
     '  GROUP BY 1,2,3,4',
     '), matched_by_currency AS (',
     '  SELECT UPPER(COALESCE(NULLIF(cc.currency, \'\'), \'UNSPECIFIED\')) AS currency,',
@@ -46,7 +48,7 @@ function buildQuery(filters = {}) {
     '  FROM cb_conversions cc',
     '  JOIN LATERAL (',
     '    SELECT country, source, campaign FROM affiliate_clicks',
-    '    WHERE click_id = cc.click_id AND LOWER(platform) = \'chaturbate\'',
+    '    WHERE click_id = cc.click_id AND LOWER(platform) = \'chaturbate\' AND LOWER(COALESCE(source, \'\')) <> \'test\' AND LOWER(COALESCE(campaign, \'\')) NOT IN (\'test_female_01\', \'revshare_audit_01\')',
     '    ORDER BY clicked_at ASC, id ASC LIMIT 1',
     '  ) ac ON TRUE',
     '  WHERE cc.matched_click IS TRUE',
