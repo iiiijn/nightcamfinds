@@ -334,6 +334,30 @@ function renderRegionalSections(regionalRooms) {
       featuredPanel.append(empty);
     }
   }
+  if (homeLike) {
+    const topByCategory = window.__ncfTopChaturbateByCategory || {};
+    for (const [gender, label] of [["female", "Female"], ["male", "Male"], ["trans", "Trans"], ["couples", "Couples"]]) {
+      const rooms = Array.isArray(topByCategory[gender]) ? topByCategory[gender] : [];
+      if (!rooms.length) continue;
+      const section = document.createElement("section");
+      section.className = "home-group global-chaturbate-group";
+      const heading = document.createElement("h2");
+      heading.className = "row-heading";
+      const title = document.createElement("span");
+      title.textContent = "Popular Chaturbate " + label + " Rooms";
+      const count = document.createElement("small");
+      count.textContent = "Top " + rooms.length + " worldwide by current viewers";
+      const more = document.createElement("a");
+      more.href = "/" + gender + "/?platform=chaturbate&sort=viewers";
+      more.textContent = "See all";
+      heading.append(title, count, more);
+      const row = document.createElement("div");
+      row.className = "category-row";
+      row.append(...rooms.map(card));
+      section.append(heading, row);
+      categoryRows.append(section);
+    }
+  }
   for (const region of regions) {
     const rooms = Array.isArray(groups[region]) ? groups[region] : [];
     if (!rooms.length) continue;
@@ -380,7 +404,8 @@ async function load(offset = 0, append = false) {
       opt.textContent = NAMES[iso] || iso;
       countrySelect.append(opt);
     }
-    if (!countrySelect.value && (forced || hinted) && (data.countries || []).includes(forced || hinted)) countrySelect.value = forced || hinted;
+    // Only explicit country landing pages force a country filter. The homepage stays global by default.
+    if (!countrySelect.value && forced && (data.countries || []).includes(forced)) countrySelect.value = forced;
     if (countrySelect.value) return load();
   }
   const syncOptions = (select, values, label) => {
@@ -404,6 +429,7 @@ async function load(offset = 0, append = false) {
     if (countrySelect.value || regionSelect.value || languageSelect.value || q.value) return load();
   }
   const rooms = data.rooms || [];
+  window.__ncfTopChaturbateByCategory = data.topChaturbateByCategory || {};
   if (append) {
     const displayed = balanceCategoryRooms(rooms);
     grid.append(...displayed.map(card));
