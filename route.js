@@ -177,20 +177,22 @@ async function dashboardStats(incoming) {
   await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_click_id_idx ON affiliate_clicks(click_id)");
 
   const cb = rangeClause(incoming, "clicked_at");
+  const internalTrafficExclusion = "LOWER(COALESCE(source, '')) <> 'test' AND LOWER(COALESCE(campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')";
+  const businessClickWhere = cb.where ? cb.where + " AND " + internalTrafficExclusion : "WHERE " + internalTrafficExclusion;
   const conv = rangeClause(incoming, "received_at");
   await bongacash.ensureTable(pool);
 
   let cbClicks = 0;
   let bongaClicks = 0;
   try {
-    const r = await pool.query(`SELECT platform, COUNT(*)::int AS clicks FROM affiliate_clicks ${cb.where} GROUP BY platform`, cb.params);
+    const r = await pool.query(`SELECT platform, COUNT(*)::int AS clicks FROM affiliate_clicks ${businessClickWhere} GROUP BY platform`, cb.params);
     for (const row of r.rows) {
       if (String(row.platform).toLowerCase() === "bongacams") bongaClicks = Number(row.clicks || 0);
       if (String(row.platform).toLowerCase() === "chaturbate") cbClicks = Number(row.clicks || 0);
     }
   } catch {
     try {
-      const r = await pool.query(`SELECT COUNT(*)::int AS clicks FROM cb_clicks ${cb.where}`, cb.params);
+      const r = await pool.query(`SELECT COUNT(*)::int AS clicks FROM cb_clicks ${businessClickWhere}`, cb.params);
       cbClicks = Number(r.rows[0]?.clicks || 0);
     } catch {}
   }
@@ -215,7 +217,7 @@ async function dashboardStats(incoming) {
 
   let cbTier1 = 0, bongaTier1 = 0;
   try {
-    const r = await pool.query(`SELECT platform, country, COUNT(*)::int AS clicks FROM affiliate_clicks ${cb.where} GROUP BY platform, country`, cb.params);
+    const r = await pool.query(`SELECT platform, country, COUNT(*)::int AS clicks FROM affiliate_clicks ${businessClickWhere} GROUP BY platform, country`, cb.params);
     for (const row of r.rows) {
       if (!isPriorityMarket(row.country)) continue;
       if (String(row.platform).toLowerCase() === "bongacams") bongaTier1 += Number(row.clicks || 0);
@@ -231,7 +233,8 @@ async function dashboardStats(incoming) {
   const thirty = new URL(incoming); const d30 = new Date(now); d30.setDate(d30.getDate()-29); thirty.searchParams.set("from", iso(d30)); thirty.searchParams.set("to", iso(now));
   const countClicks = async u => {
     const x = rangeClause(u, "clicked_at");
-    try { const r = await pool.query(`SELECT COUNT(*)::int AS clicks FROM affiliate_clicks ${x.where}`, x.params); return Number(r.rows[0]?.clicks || 0); } catch { return 0; }
+    const where = x.where ? x.where + " AND " + internalTrafficExclusion : "WHERE " + internalTrafficExclusion;
+    try { const r = await pool.query(`SELECT COUNT(*)::int AS clicks FROM affiliate_clicks ${where}`, x.params); return Number(r.rows[0]?.clicks || 0); } catch { return 0; }
   };
 
   const sources = {};
@@ -240,7 +243,7 @@ async function dashboardStats(incoming) {
   const devices = {};
   try {
     const r = await pool.query(`SELECT platform, source, country, placement, device, COUNT(*)::int AS clicks
-      FROM affiliate_clicks ${cb.where}
+      FROM affiliate_clicks ${businessClickWhere}
       GROUP BY platform, source, country, placement, device`, cb.params);
     for (const row of r.rows) {
       const platform = String(row.platform || "unknown");
@@ -258,7 +261,7 @@ async function dashboardStats(incoming) {
     // Keep dashboard operational if expanded metadata has not been migrated yet.
     try {
       const r = await pool.query(`SELECT platform, source, country, placement, COUNT(*)::int AS clicks
-        FROM affiliate_clicks ${cb.where}
+        FROM affiliate_clicks ${businessClickWhere}
         GROUP BY platform, source, country, placement`, cb.params);
       for (const row of r.rows) {
         const platform = String(row.platform || "unknown");
