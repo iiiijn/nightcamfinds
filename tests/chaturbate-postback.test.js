@@ -38,6 +38,7 @@ test("normalizer preserves all documented Chaturbate conversion metadata", () =>
     attempt: result.event.attempt,
     region: result.event.region
   }, {
+    time: "12:00:00",
     token: "25",
     programName: "RevShare",
     device: "mobile",
@@ -60,6 +61,7 @@ test("runtime persists documented metadata columns instead of retaining them onl
 
 test("Chaturbate metadata migration is additive and safe when the conversion ledger is absent", () => {
   assert.ok(migration.includes("CREATE TABLE IF NOT EXISTS cb_conversions"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS event_time"));
   assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS program_name"));
   assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS token"));
   assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS referral"));
