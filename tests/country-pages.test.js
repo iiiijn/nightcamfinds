@@ -78,7 +78,8 @@ test("all 18 Tier 1 pages have distinct SEO titles and descriptions", () => {
     titles.push(country.seoTitle);
     descriptions.push(country.metaDescription);
     assert.ok(html.includes("<title>" + country.seoTitle + "</title>"));
-    assert.ok(html.includes('name="description" content="'));
+    const escapedDescription = country.metaDescription.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    assert.ok(html.includes('name="description" content="' + escapedDescription + '"'));
   }
   assert.equal(new Set(titles).size, 18);
   assert.equal(new Set(descriptions).size, 18);
