@@ -22,9 +22,9 @@ test('builds a read-only, date-filtered two-way orphan ledger audit', () => {
   assert.match(q.orphans.text, /FROM bonga_clicks bc/);
   assert.match(q.orphans.text, /NOT EXISTS/);
   assert.match(q.orphans.text, /affiliate_clicks ac/);
-  assert.match(q.orphans.text, /cb\\.clicked_at/);
-  assert.match(q.orphans.text, /bc\\.clicked_at/);
-  assert.doesNotMatch(q.orphans.text, /\\b(?:INSERT|UPDATE|DELETE)\\b/i);
+  assert.match(q.orphans.text, /cb\.clicked_at/);
+  assert.match(q.orphans.text, /bc\.clicked_at/);
+  assert.doesNotMatch(q.orphans.text, /\b(?:INSERT|UPDATE|DELETE)\b/i);
 });
 
 test('rejects invalid and reversed dates', () => {
@@ -81,7 +81,7 @@ test('BongaCams primary click and platform ledger writes share one transaction',
 });
 
 test('provider health endpoint includes two-way orphan counts without changing click totals', () => {
-  assert.match(routeSource, /queries\\.orphans\\.text, queries\\.orphans\\.params/);
-  assert.match(routeSource, /orphanedLedgerEntries \\+= Number\\(row\\.orphaned_ledger_entries \\|\\| 0\\)/);
+  assert.match(routeSource, /queries\.orphans\.text, queries\.orphans\.params/);
+  assert.match(routeSource, /orphanedLedgerEntries \+= Number\(row\.orphaned_ledger_entries \|\| 0\)/);
   assert.match(dashboardSource, /orphaned ledger rows:/);
 });
