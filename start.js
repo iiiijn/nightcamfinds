@@ -166,7 +166,7 @@ async function saveConversion(params) {
   const clickId = clean(params.click_id, "", 128);
   const transactionId = clean(params.transaction_id, "", 255);
   const matchedResult = await pool.query(
-    "SELECT EXISTS(SELECT 1 FROM cb_clicks WHERE click_id = $1::varchar(128)) AS matched",
+    "SELECT EXISTS(SELECT 1 FROM cb_clicks WHERE click_id = $1::varchar(128) UNION ALL SELECT 1 FROM affiliate_clicks WHERE click_id = $1::varchar(128) AND platform = 'chaturbate') AS matched",
     [clickId]
   );
   const matchedClick = Boolean(matchedResult.rows[0]?.matched);
@@ -452,8 +452,20 @@ http.createServer = function wrappedCreateServer(handler) {
           console.warn("Chaturbate postback rejected: CB_POSTBACK_SECRET is not configured");
           return json(res, 503, { error: "Postback authentication is not configured." });
         }
-        if (!params.secret || !safeEqual(params.secret, configuredSecret)) {
-          console.warn("Chaturbate postback rejected: missing or invalid shared secret");
+        const suppliedSecret = String(params.secret || "");
+        const callbackShape = {
+          hasClickId: Boolean(params.click_id),
+          hasTransactionId: Boolean(params.transaction_id),
+          hasType: Boolean(params.type),
+          hasPayout: Boolean(params.payout),
+          hasTokenField: Boolean(params.token || params.validation || params.validation_token)
+        };
+        if (!suppliedSecret) {
+          console.warn("Chaturbate postback rejected: missing secret", JSON.stringify(callbackShape));
+          return json(res, 403, { error: "Invalid postback authentication." });
+        }
+        if (!safeEqual(suppliedSecret, configuredSecret)) {
+          console.warn("Chaturbate postback rejected: invalid secret", JSON.stringify(callbackShape));
           return json(res, 403, { error: "Invalid postback authentication." });
         }
         const event = normalized.event;
