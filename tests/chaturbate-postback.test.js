@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const start = fs.readFileSync(path.join(__dirname, "../start.js"), "utf8");
 const helper = fs.readFileSync(path.join(__dirname, "../src/services/chaturbate-revshare.cjs"), "utf8");
+const migration = fs.readFileSync(path.join(__dirname, "../sql/008_chaturbate_conversion_metadata.sql"), "utf8");
 const { removePostbackSecrets } = require("../src/services/chaturbate-revshare.cjs");
 
 const { normalizeChaturbatePostback } = require("../src/services/chaturbate-revshare.cjs");
@@ -53,6 +54,24 @@ test("runtime persists documented metadata columns instead of retaining them onl
   assert.ok(start.includes("JSON.stringify(params), matchedClick"));
 });
 
+
+
+test("Chaturbate metadata migration is additive and safe when the conversion ledger is absent", () => {
+  assert.ok(migration.includes("CREATE TABLE IF NOT EXISTS cb_conversions"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS program_name"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS token"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS referral"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS attempt"));
+  assert.ok(migration.includes("ADD COLUMN IF NOT EXISTS region"));
+  assert.ok(!/UPDATE\\s+cb_conversions/i.test(migration));
+});
+
+test("the production request chain loads the Chaturbate postback handler", () => {
+  const route = fs.readFileSync(path.join(__dirname, "../route.js"), "utf8");
+  assert.ok(route.includes('require("./start.js")'));
+  assert.ok(start.includes('require("./server.js")'));
+  assert.ok(start.includes('incoming.pathname === "/api/chaturbate/postback"'));
+});
 
 test("Chaturbate postbacks accept GET and POST form or JSON payloads", () => {
   assert.ok(start.includes('req.method !== "GET" && req.method !== "POST"'));
