@@ -10,6 +10,7 @@ test('builds a click-to-matched-conversion report with currency-separated payout
   assert.match(built.text, /FROM affiliate_clicks ac/);
   assert.match(built.text, /FROM cb_conversions cc/);
   assert.match(built.text, /cc\.matched_click IS TRUE/);
+  assert.match(built.text, /LOWER\(cc\.conversion_type\) IN/);
   assert.match(built.text, /jsonb_object_agg\(currency, reported_payout\)/);
   assert.match(built.text, /reported_payouts_by_currency/);
   assert.match(built.text, /LIMIT 2000/);
