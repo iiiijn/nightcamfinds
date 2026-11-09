@@ -78,5 +78,5 @@ test("URL query parameters are initialized before their first use during directo
   assert.notEqual(declaration, -1);
   assert.notEqual(firstUse, -1);
   assert.ok(declaration < firstUse, "queryParams must be initialized before any query string is read");
-  assert.equal((app.match(/const queryParams = new URLSearchParams\\(location\\.search\\);/g) || []).length, 1);
+  assert.equal(app.split("const queryParams = new URLSearchParams(location.search);").length - 1, 1);
 });
