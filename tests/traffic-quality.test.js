@@ -116,13 +116,13 @@ test('traffic quality analytics separates bot, unverified and unclassified affil
   assert.match(route, /missing_visit_id/);
   assert.match(route, /missing_visit_record/);
   assert.match(route, /legacy records from before visit tracking was introduced/);
-  assert.match(route, /COUNT\\(DISTINCT e\\.visit_id\\) FILTER/);
-  assert.match(route, /event_type IN \\('active_10s','scroll_50'\\)/);
+  assert.match(route, /COUNT\(DISTINCT e\.visit_id\) FILTER/);
+  assert.match(route, /event_type IN \('active_10s','scroll_50'\)/);
   assert.match(route, /engaged_visits_with_affiliate_click/);
-  assert.match(route, /EXISTS \\(\\s*SELECT 1 FROM affiliate_clicks c/);
+  assert.match(route, /EXISTS \(\s*SELECT 1 FROM affiliate_clicks c/);
   assert.match(route, /bongaBannerEvents/);
   assert.match(dashboard, /engagedWithClicks/);
-  assert.match(dashboard, /BongaCash banner signals \\(separate\\)/);
+  assert.match(dashboard, /BongaCash banner signals \(separate\)/);
   const migration = fs.readFileSync(path.join(__dirname, '../sql/007_engagement_event_integrity.sql'), 'utf8');
   assert.match(migration, /bonga_category_widget_viewable/);
   assert.match(migration, /DROP CONSTRAINT IF EXISTS traffic_engagement_events_event_type_check/);
@@ -194,7 +194,7 @@ test('main directory attributes external referrers and persists campaign context
   assert.match(app, /referrerHost !== currentHost/);
   assert.match(app, /hasReferralAttribution = Boolean\(referralSource\) && !incomingAttribution\.source\.trim\(\)/);
   assert.match(app, /source: incomingAttribution\.source \|\| \(hasReferralAttribution \? referralSource : "unknown"\)/);
-  assert.match(app, /campaign: incomingAttribution.campaign \\|\\| \(hasReferralAttribution \\? "referral" : "unknown"\)/);
+  assert.match(app, /campaign: incomingAttribution.campaign \|\| \(hasReferralAttribution \? "referral" : "unknown"\)/);
   assert.match(app, /\|\| "unknown"\)\.slice\(0, 30\)/);
   assert.match(app, /localStorage\.setItem\("ncf_attribution", JSON\.stringify\(savedAttribution\)\)/);
   assert.match(app, /vid: visitId/);
