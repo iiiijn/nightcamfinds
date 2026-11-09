@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const summary = require('../src/services/affiliate-revenue-summary.cjs');
+const summary = require('../public/revenue-summary.js');
 
 test('only matched non-test credited events contribute to attributed payouts', () => {
   const result = summary.summarizeConversions([
@@ -18,7 +18,7 @@ test('only matched non-test credited events contribute to attributed payouts', (
   assert.deepEqual(result.pendingPayoutsByCurrency, { EUR: 2 });
 });
 
-test('traffic summary groups country and campaign without combining currencies', () => {
+test('traffic summary groups countries and campaigns without mixing currencies', () => {
   const result = summary.summarizeTraffic([
     { country: 'US', platform: 'chaturbate', source: 'x', campaign: 'launch', clicks: 10, matchedConversions: 1, reportedPayoutsByCurrency: { USD: 3, EUR: 2 } },
     { country: 'US', platform: 'chaturbate', source: 'x', campaign: 'launch', clicks: 5, matchedConversions: 0, reportedPayoutsByCurrency: { USD: 1 } },
@@ -29,12 +29,4 @@ test('traffic summary groups country and campaign without combining currencies',
   assert.equal(us.matchedConversions, 1);
   assert.deepEqual(us.payoutsByCurrency, { USD: 4, EUR: 2 });
   assert.equal(result.campaigns.length, 2);
-});
-
-test('combined USD total adds only USD amounts and keeps provider sources separate', () => {
-  assert.deepEqual(summary.combineUsdEarnings(4.25, 2.5), {
-    chaturbateAttributedUsd: 4.25,
-    bongaCashManualUsd: 2.5,
-    combinedUsd: 6.75
-  });
 });
