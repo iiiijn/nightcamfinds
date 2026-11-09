@@ -423,16 +423,17 @@ http.createServer = function routeDashboard(handler) {
       const queries = providerHealth.buildQueries(Object.fromEntries(incoming.searchParams.entries()));
       if (queries.error) return sendJson(res, 400, { error: queries.error });
       try {
-        const [callbacks, clicks] = await Promise.all([
+        const [callbacks, clicks, orphans] = await Promise.all([
           pool.query(queries.callbacks.text, queries.callbacks.params),
-          pool.query(queries.clicks.text, queries.clicks.params)
+          pool.query(queries.clicks.text, queries.clicks.params),
+          pool.query(queries.orphans.text, queries.orphans.params)
         ]);
         const c = callbacks.rows[0] || {};
         const byPlatform = { chaturbate: 0, bongacams: 0, other: 0 };
         const clickTracking = {
-          chaturbate: { clicks: 0, clickIdsGenerated: 0, clicksWithoutClickId: 0, localLedgerEntries: 0 },
-          bongacams: { clicks: 0, clickIdsGenerated: 0, clicksWithoutClickId: 0, localLedgerEntries: 0 },
-          other: { clicks: 0, clickIdsGenerated: 0, clicksWithoutClickId: 0, localLedgerEntries: 0 }
+          chaturbate: { clicks: 0, clickIdsGenerated: 0, clicksWithoutClickId: 0, localLedgerEntries: 0, orphanedLedgerEntries: 0 },
+          bongacams: { clicks: 0, clickIdsGenerated: 0, clicksWithoutClickId: 0, localLedgerEntries: 0, orphanedLedgerEntries: 0 },
+          other: { clicks: 0, clickIdsGenerated: 0, clicksWithoutClickId: 0, localLedgerEntries: 0, orphanedLedgerEntries: 0 }
         };
         for (const row of clicks.rows) {
           const platform = String(row.platform || "").toLowerCase();
@@ -443,6 +444,11 @@ http.createServer = function routeDashboard(handler) {
           clickTracking[key].clickIdsGenerated += Number(row.click_ids_generated || 0);
           clickTracking[key].clicksWithoutClickId += Number(row.clicks_without_click_id || 0);
           clickTracking[key].localLedgerEntries += Number(row.local_ledger_entries || 0);
+        }
+        for (const row of orphans.rows) {
+          const platform = String(row.platform || "").toLowerCase();
+          const key = Object.prototype.hasOwnProperty.call(clickTracking, platform) ? platform : "other";
+          clickTracking[key].orphanedLedgerEntries += Number(row.orphaned_ledger_entries || 0);
         }
         for (const entry of Object.values(clickTracking)) {
           entry.clickIdsMissingFromLedger = Math.max(0, entry.clickIdsGenerated - entry.localLedgerEntries);
