@@ -8,7 +8,7 @@ const { getCountryPage } = require("./country-pages.js");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
-const { isPriorityMarket, MARKET_META } = require("./src/config/market-countries.cjs");
+const { isPriorityMarket, MARKET_META, MARKET_PRIORITY_CODES } = require("./src/config/market-countries.cjs");
 const { fetchPagedResults } = require("./src/services/paged-feed.cjs");
 const { filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalRoomGroups } = require("./src/services/regional-discovery.cjs");
@@ -41,13 +41,15 @@ const CHATURBATE_REGION_MAX_PAGES = Math.max(1, Math.min(10, Number(process.env.
 const CONTACT = process.env.CONTACT_EMAIL || "bunnybelle188@gmail.com";
 const PUBLIC = path.join(__dirname, "public");
 
-const MARKETS = [
-  ["us", "US", "United States"], ["gb", "GB", "United Kingdom"], ["ca", "CA", "Canada"], ["au", "AU", "Australia"],
-  ["de", "DE", "Germany"], ["fr", "FR", "France"], ["nl", "NL", "Netherlands"], ["ie", "IE", "Ireland"],
-  ["nz", "NZ", "New Zealand"], ["se", "SE", "Sweden"], ["no", "NO", "Norway"], ["dk", "DK", "Denmark"],
-  ["fi", "FI", "Finland"], ["ch", "CH", "Switzerland"], ["at", "AT", "Austria"], ["be", "BE", "Belgium"],
-  ["jp", "JP", "Japan"], ["sg", "SG", "Singapore"]
-];
+const MARKET_NAMES = Object.freeze({
+  US: "United States", GB: "United Kingdom", NO: "Norway", CH: "Switzerland",
+  SE: "Sweden", DK: "Denmark", AU: "Australia", CA: "Canada", DE: "Germany",
+  NL: "Netherlands", FR: "France", IE: "Ireland", FI: "Finland", AT: "Austria",
+  BE: "Belgium", NZ: "New Zealand", IS: "Iceland", LU: "Luxembourg"
+});
+// Keep the sitemap and country-route priority list aligned with the canonical
+// market configuration so Tier 1 additions cannot silently drift.
+const MARKETS = MARKET_PRIORITY_CODES.map((code) => [code.toLowerCase(), code, MARKET_NAMES[code]]);
 
 const GENDER = { f: "female", m: "male", t: "trans", c: "couples", s: "trans" };
 const BLOCKED = /\b(teen|teens|teenage|underage|preteen|lolita|child|children|kid|kids|young|barely\s*legal|18\s*yo|19\s*yo|#18\b|#19\b)\b/gi;
