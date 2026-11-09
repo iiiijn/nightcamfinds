@@ -364,8 +364,28 @@ http.createServer = function routeDashboard(handler) {
            GROUP BY traffic_class`, [bounds.from, bounds.toExclusive]
         );
         const engagement = await pool.query(
-          `SELECT COUNT(DISTINCT e.visit_id)::int AS engaged_visits,
-                  COUNT(*)::int AS events
+          `SELECT
+             COUNT(DISTINCT e.visit_id) FILTER (
+               WHERE e.event_type IN ('active_10s','scroll_50')
+             )::int AS engaged_visits,
+             COUNT(*) FILTER (
+               WHERE e.event_type IN ('active_10s','scroll_50')
+             )::int AS events,
+             COUNT(DISTINCT e.visit_id) FILTER (
+               WHERE e.event_type IN ('active_10s','scroll_50')
+                 AND EXISTS (
+                   SELECT 1 FROM affiliate_clicks c
+                   WHERE c.visit_id=e.visit_id
+                     AND c.clicked_at >= $1 AND c.clicked_at < $2
+                 )
+             )::int AS engaged_visits_with_affiliate_click,
+             COUNT(*) FILTER (
+               WHERE e.event_type IN (
+                 'bonga_banner_loaded','bonga_banner_viewable',
+                 'bonga_static_banner_loaded','bonga_static_banner_viewable',
+                 'bonga_category_widget_loaded','bonga_category_widget_viewable'
+               )
+             )::int AS bonga_banner_events
            FROM traffic_engagement_events e
            JOIN traffic_visits v ON v.visit_id=e.visit_id
            WHERE e.occurred_at >= $1 AND e.occurred_at < $2
@@ -401,6 +421,8 @@ http.createServer = function routeDashboard(handler) {
           unverifiedBrowserVisits: counts.unverified || 0,
           unverifiedEngagedVisits: Number(engagement.rows[0]?.engaged_visits || 0),
           engagementEvents: Number(engagement.rows[0]?.events || 0),
+          engagedVisitsWithAffiliateClick: Number(engagement.rows[0]?.engaged_visits_with_affiliate_click || 0),
+          bongaBannerEvents: Number(engagement.rows[0]?.bonga_banner_events || 0),
           trackedAffiliateRedirects: Object.values(clickCounts).reduce((sum, value) => sum + value, 0),
           knownBotAffiliateClicks: clickCounts.known_bot || 0,
           suspectedBotAffiliateClicks: clickCounts.suspected_bot || 0,
@@ -408,7 +430,7 @@ http.createServer = function routeDashboard(handler) {
           unclassifiedAffiliateClicks: clickCounts.unclassified || 0,
           clicksWithoutVisitId: unlinkedClickCounts.missingVisitId,
           clicksWithMissingVisitRecord: unlinkedClickCounts.missingVisitRecord,
-          note: "These are tracked affiliate redirects, not verified human clicks. Known and suspected automation are separated. Unverified browser traffic is not proof of human visitors. Unclassified redirects are clicks without a usable visit record. Most missing-visit-ID clicks may be legacy records from before visit tracking was introduced; they cannot be retrospectively classified. A missing visit record with an ID indicates a linkage issue that should be investigated."
+          note: "Engaged visits count distinct unverified visit IDs with active_10s or scroll_50 signals only. BongaCash banner load/viewability telemetry is reported separately and is not counted as engagement. Engaged visits with affiliate clicks are distinct visit IDs with at least one tracked redirect in this reporting week. These signals are client-reported and do not prove a human visitor or a conversion. Affiliate redirects are not verified human clicks. Known and suspected automation are separated. Unclassified redirects are clicks without a usable visit record. Most missing-visit-ID clicks may be legacy records from before visit tracking was introduced; they cannot be retrospectively classified. A missing visit record with an ID indicates a linkage issue that should be investigated."
         });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
