@@ -50,6 +50,7 @@ function buildQuery(filters = {}) {
     '    ORDER BY clicked_at ASC, id ASC LIMIT 1',
     '  ) ac ON TRUE',
     '  WHERE cc.matched_click IS TRUE',
+    "    AND LOWER(cc.conversion_type) IN ('tokens_signup-referral','tokens_broadcaster-referral','ppr_signup-referral','ppr_broadcaster-referral','revshare_signup-referral','revshare_broadcaster-referral','revshare_purchase','revshare_webmaster-commission','revshare_payout-adjustment')",
     "    AND NULLIF(BTRIM(cc.click_id), '') IS NOT NULL",
     "    AND NOT EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE(cc.raw_payload, '{}'::jsonb)) AS p(key,value) WHERE p.value ~ '^\\\\{[A-Za-z][A-Za-z0-9_]*\\\\}$')",
     conversionWhere.length ? '    AND ' + conversionWhere.join(' AND ') : '',
