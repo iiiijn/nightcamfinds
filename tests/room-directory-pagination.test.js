@@ -65,3 +65,9 @@ test("homepage is global by default while explicit country landing pages retain 
   assert.match(app, /if \(!countrySelect\.value && forced && \(data\.countries \|\| \[\]\)\.includes\(forced\)\)/);
   assert.doesNotMatch(app, /if \(!countrySelect\.value && \(forced \|\| hinted\)/);
 });
+
+test("global Chaturbate category links use supported platform filtering and preserve viewer sorting", () => {
+  assert.match(app, /more\.href = "\/" \+ gender \+ "\/\?ncf_platform=chaturbate&sort=viewers"/);
+  assert.match(app, /const campaignPlatform = \["chaturbate", "bongacams"\]/);
+  assert.match(app, /if \(category === "popular" \|\| queryParams\.get\("sort"\) === "viewers"\) sort\.value = "viewers"/);
+});
