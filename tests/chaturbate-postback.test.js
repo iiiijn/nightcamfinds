@@ -45,7 +45,7 @@ test("postback authentication secrets are removed before conversion persistence"
     transaction_id: "tx-1",
     payout: "1.25"
   });
-  assert.ok(!start.includes("await saveConversion(removePostbackSecrets(params))"));
+  assert.ok(!start.includes("        await saveConversion(removePostbackSecrets(params))"));
   assert.ok(start.includes("const saved = await saveConversion(removePostbackSecrets(params))"));
   assert.ok(start.includes("matchedClick: saved.matchedClick"));
   assert.ok(start.includes("duplicate: !saved.inserted"));
