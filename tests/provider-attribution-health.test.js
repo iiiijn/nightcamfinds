@@ -15,6 +15,18 @@ test('builds separate parameterized UTC windows for callbacks and clicks', () =>
   assert.doesNotMatch(q.clicks.text, /2026-11/);
 });
 
+test('builds a read-only, date-filtered two-way orphan ledger audit', () => {
+  const q = health.buildQueries({ from: '2026-11-01', to: '2026-11-07' });
+  assert.deepEqual(q.orphans.params, ['2026-11-01', '2026-11-07']);
+  assert.match(q.orphans.text, /FROM cb_clicks cb/);
+  assert.match(q.orphans.text, /FROM bonga_clicks bc/);
+  assert.match(q.orphans.text, /NOT EXISTS/);
+  assert.match(q.orphans.text, /affiliate_clicks ac/);
+  assert.match(q.orphans.text, /cb\\.clicked_at/);
+  assert.match(q.orphans.text, /bc\\.clicked_at/);
+  assert.doesNotMatch(q.orphans.text, /\\b(?:INSERT|UPDATE|DELETE)\\b/i);
+});
+
 test('rejects invalid and reversed dates', () => {
   assert.match(health.buildQueries({ from: '2026-02-31' }).error, /calendar dates/);
   assert.match(health.buildQueries({ from: '2026-11-08', to: '2026-11-07' }).error, /on or before/);
@@ -66,4 +78,10 @@ test('BongaCams primary click and platform ledger writes share one transaction',
   assert.ok(begin >= 0 && primary > begin && ledger > primary && commit > ledger);
   assert.ok(rollback > begin, 'failed writes roll back the transaction');
   assert.match(writer, /ON CONFLICT \(click_id\) DO NOTHING/);
+});
+
+test('provider health endpoint includes two-way orphan counts without changing click totals', () => {
+  assert.match(routeSource, /queries\\.orphans\\.text, queries\\.orphans\\.params/);
+  assert.match(routeSource, /orphanedLedgerEntries \\+= Number\\(row\\.orphaned_ledger_entries \\|\\| 0\\)/);
+  assert.match(dashboardSource, /orphaned ledger rows:/);
 });
