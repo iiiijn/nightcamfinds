@@ -16,7 +16,8 @@ test("Chaturbate postbacks accept GET and POST form or JSON payloads", () => {
 
 test("real Chaturbate conversion postbacks require a configured shared secret", () => {
   assert.ok(start.includes('if (!configuredSecret)'));
-  assert.ok(start.includes('if (!params.secret || !safeEqual(params.secret, configuredSecret))'));
+  assert.ok(start.includes('const suppliedSecret = String(params.secret || "")')); 
+  assert.ok(start.includes('if (!safeEqual(suppliedSecret, configuredSecret))'));
 });
 
 test("macro test callbacks are acknowledged without recording conversions", () => {
