@@ -441,6 +441,12 @@ http.createServer = function routeDashboard(handler) {
           clickTracking[key].clicksWithoutClickId += Number(row.clicks_without_click_id || 0);
           clickTracking[key].localLedgerEntries += Number(row.local_ledger_entries || 0);
         }
+        for (const entry of Object.values(clickTracking)) {
+          entry.clickIdsMissingFromLedger = Math.max(0, entry.clickIdsGenerated - entry.localLedgerEntries);
+          entry.ledgerCoveragePercent = entry.clickIdsGenerated > 0
+            ? Math.round((entry.localLedgerEntries / entry.clickIdsGenerated) * 10000) / 100
+            : null;
+        }
         return sendJson(res, 200, {
           callbacks: {
             total: Number(c.total || 0), real: Number(c.real || 0), test: Number(c.test || 0),
