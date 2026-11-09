@@ -34,3 +34,12 @@ test('supports all-time report without date predicates', () => {
   assert.deepEqual(built.params, { clicks: [], conversions: [] });
   assert.doesNotMatch(built.text, /clicked_at >=|received_at >=/);
 });
+
+test('excludes only identified internal test and audit traffic from performance totals and matched attribution', () => {
+  const built = performance.buildQuery({});
+  assert.match(built.text, /LOWER\(COALESCE\(ac\.source, ''\)\) <> 'test'/);
+  assert.match(built.text, /LOWER\(COALESCE\(ac\.campaign, ''\)\) NOT IN \('test_female_01', 'revshare_audit_01'\)/);
+  assert.match(built.text, /LOWER\(COALESCE\(source, ''\)\) <> 'test'/);
+  assert.match(built.text, /LOWER\(COALESCE\(campaign, ''\)\) NOT IN \('test_female_01', 'revshare_audit_01'\)/);
+  assert.doesNotMatch(built.text, /campaign.*LIKE|campaign.*~\*/i);
+});
