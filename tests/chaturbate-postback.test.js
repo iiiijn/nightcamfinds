@@ -57,7 +57,7 @@ test("Chaturbate currency is not silently assumed to be USD", () => {
 });
 
 test("conversion persistence records whether a click matched and ignores duplicate transaction IDs", () => {
-  assert.ok(start.includes("SELECT EXISTS(SELECT 1 FROM cb_clicks WHERE click_id = $1::varchar(128)) AS matched"));
+  assert.ok(start.includes("SELECT EXISTS(SELECT 1 FROM cb_clicks WHERE click_id = $1::varchar(128) UNION ALL SELECT 1 FROM affiliate_clicks WHERE click_id = $1::varchar(128) AND platform = 'chaturbate') AS matched"));
   assert.ok(start.includes("ON CONFLICT (transaction_id) DO NOTHING"));
   assert.ok(start.includes("RETURNING id"));
   assert.ok(start.includes("return { matchedClick, inserted: inserted.rowCount === 1 }"));
@@ -80,4 +80,19 @@ test("dashboard keeps matched Chaturbate earnings separated by currency", () => 
   assert.ok(start.includes("const cbUsdEarnings = Number(earningsByCurrency.USD?.earnings || 0)"));
   assert.ok(dashboard.includes("currencyBreakdown(j.earningsByCurrency)"));
   assert.ok(dashboard.includes("Matched payout by currency"));
+});
+
+
+test("postback authentication diagnostics distinguish missing and invalid secrets without logging secret values", () => {
+  assert.ok(start.includes('Chaturbate postback rejected: missing secret'));
+  assert.ok(start.includes('Chaturbate postback rejected: invalid secret'));
+  assert.ok(start.includes('hasTokenField: Boolean(params.token || params.validation || params.validation_token)'));
+  assert.ok(start.includes('hasClickId: Boolean(params.click_id)'));
+  assert.ok(!start.includes('console.warn("Chaturbate postback rejected: invalid secret", params.secret'));
+  assert.ok(!start.includes('console.warn("Chaturbate postback rejected: missing secret", params.secret'));
+});
+
+test("conversion matching checks both the provider click ledger and primary Chaturbate click records", () => {
+  assert.ok(start.includes("FROM cb_clicks WHERE click_id = $1::varchar(128) UNION ALL SELECT 1 FROM affiliate_clicks"));
+  assert.ok(start.includes("AND platform = 'chaturbate') AS matched"));
 });
