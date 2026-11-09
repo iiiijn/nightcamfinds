@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds } = require('../src/services/traffic-quality.cjs');
+const { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS, CORE_ENGAGEMENT_EVENTS, BONGA_BANNER_EVENTS } = require('../src/services/traffic-quality.cjs');
 
 test('classifies known crawlers separately from suspected automation', () => {
   assert.equal(classifyUserAgent('Googlebot/2.1'), 'known_bot');
@@ -30,6 +30,15 @@ test('engagement endpoint uses the persisted effective classification before cou
   assert.match(endpoint, /const effectiveTrafficClass = visit\.rows\[0\]\?\.traffic_class \|\| trafficClass/);
   assert.match(endpoint, /\[event\.visitId,event\.eventType,event\.pagePath,effectiveTrafficClass\]/);
   assert.match(endpoint, /eligibleForEngagementMetrics: effectiveTrafficClass === "unverified"/);
+});
+
+test('keeps core engagement signals separate from BongaCash banner telemetry', () => {
+  assert.deepEqual([...CORE_ENGAGEMENT_EVENTS].sort(), ['active_10s', 'scroll_50']);
+  assert.equal(BONGA_BANNER_EVENTS.size, 6);
+  for (const event of BONGA_BANNER_EVENTS) {
+    assert.equal(CORE_ENGAGEMENT_EVENTS.has(event), false);
+    assert.equal(ALLOWED_EVENTS.has(event), true);
+  }
 });
 
 test('accepts the BongaCash dynamic-banner iframe load event for attribution', () => {
@@ -107,6 +116,16 @@ test('traffic quality analytics separates bot, unverified and unclassified affil
   assert.match(route, /missing_visit_id/);
   assert.match(route, /missing_visit_record/);
   assert.match(route, /legacy records from before visit tracking was introduced/);
+  assert.match(route, /COUNT\\(DISTINCT e\\.visit_id\\) FILTER/);
+  assert.match(route, /event_type IN \\('active_10s','scroll_50'\\)/);
+  assert.match(route, /engaged_visits_with_affiliate_click/);
+  assert.match(route, /EXISTS \\(\\s*SELECT 1 FROM affiliate_clicks c/);
+  assert.match(route, /bongaBannerEvents/);
+  assert.match(dashboard, /engagedWithClicks/);
+  assert.match(dashboard, /BongaCash banner signals \\(separate\\)/);
+  const migration = fs.readFileSync(path.join(__dirname, '../sql/007_engagement_event_integrity.sql'), 'utf8');
+  assert.match(migration, /bonga_category_widget_viewable/);
+  assert.match(migration, /DROP CONSTRAINT IF EXISTS traffic_engagement_events_event_type_check/);
   assert.match(dashboard, /Legacy clicks without visit IDs/);
   assert.match(dashboard, /Clicks with missing visit records/);
   assert.match(dashboard, /All tracked affiliate redirects/);
