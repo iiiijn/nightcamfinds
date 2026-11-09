@@ -42,7 +42,7 @@ document.querySelector("#page-intro").textContent = page[2];
 document.title = page[3];
 document.querySelector('meta[name="description"]').setAttribute("content", page[2]);
 document.querySelector('link[rel="canonical"]').href = location.origin + location.pathname;
-if (category === "popular") sort.value = "viewers";
+if (category === "popular" || queryParams.get("sort") === "viewers") sort.value = "viewers";
 document.querySelectorAll("nav a").forEach((a) => {
   if (a.getAttribute("href") === location.pathname) a.setAttribute("aria-current", "page");
 });
@@ -348,7 +348,7 @@ function renderRegionalSections(regionalRooms) {
       const count = document.createElement("small");
       count.textContent = "Top " + rooms.length + " worldwide by current viewers";
       const more = document.createElement("a");
-      more.href = "/" + gender + "/?platform=chaturbate&sort=viewers";
+      more.href = "/" + gender + "/?ncf_platform=chaturbate&sort=viewers";
       more.textContent = "See all";
       heading.append(title, count, more);
       const row = document.createElement("div");
