@@ -7,6 +7,53 @@ const start = fs.readFileSync(path.join(__dirname, "../start.js"), "utf8");
 const helper = fs.readFileSync(path.join(__dirname, "../src/services/chaturbate-revshare.cjs"), "utf8");
 const { removePostbackSecrets } = require("../src/services/chaturbate-revshare.cjs");
 
+const { normalizeChaturbatePostback } = require("../src/services/chaturbate-revshare.cjs");
+
+test("normalizer preserves all documented Chaturbate conversion metadata", () => {
+  const result = normalizeChaturbatePostback({
+    click_id: "ncf_test_click_12345678",
+    transaction_id: "tx-2026-001",
+    type: "revshare_purchase",
+    payout: "1.25",
+    currency: "USD",
+    amount: "5.00",
+    token: "25",
+    program_name: "RevShare",
+    device: "mobile",
+    language: "en",
+    referral: "https://example.test/source",
+    attempt: "1",
+    region: "California"
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual({
+    token: result.event.token,
+    programName: result.event.programName,
+    device: result.event.device,
+    language: result.event.language,
+    referral: result.event.referral,
+    attempt: result.event.attempt,
+    region: result.event.region
+  }, {
+    token: "25",
+    programName: "RevShare",
+    device: "mobile",
+    language: "en",
+    referral: "https://example.test/source",
+    attempt: "1",
+    region: "California"
+  });
+});
+
+test("runtime persists documented metadata columns instead of retaining them only in raw payload", () => {
+  for (const column of ["program_name", "device", "language", "token", "referral", "attempt", "region"]) {
+    assert.ok(start.includes(column), "missing persisted field: " + column);
+  }
+  assert.ok(start.includes('clean(params.referral, "", 2048)'));
+  assert.ok(start.includes("JSON.stringify(params), matchedClick"));
+});
+
+
 test("Chaturbate postbacks accept GET and POST form or JSON payloads", () => {
   assert.ok(start.includes('req.method !== "GET" && req.method !== "POST"'));
   assert.ok(start.includes("application/x-www-form-urlencoded"));
