@@ -36,6 +36,7 @@ const PAGES = {
 const path = location.pathname.replaceAll("/", "") || "all";
 const category = PAGES[path] ? path : "all";
 const page = PAGES[category];
+const queryParams = new URLSearchParams(location.search);
 document.querySelector("#kicker").textContent = page[0];
 document.querySelector("#page-title").textContent = page[1];
 document.querySelector("#page-intro").textContent = page[2];
@@ -52,7 +53,6 @@ const QUICK = ["US","GB","CA","IE","AU","NZ","DE","FR","NL","SE","NO","DK","FI",
 
 const hinted = document.querySelector('meta[name="ncf-country"]')?.content || "";
 const forced = document.querySelector('meta[name="ncf-force"]')?.content || "";
-const queryParams = new URLSearchParams(location.search);
 const campaignCountry = /^[a-z]{2}$/i.test(queryParams.get("ncf_country") || "") ? queryParams.get("ncf_country").toUpperCase() : "";
 const campaignPlatform = ["chaturbate", "bongacams"].includes((queryParams.get("ncf_platform") || "").toLowerCase()) ? queryParams.get("ncf_platform").toLowerCase() : "";
 const campaignCategory = ["all", "live", "female", "male", "trans", "couples", "hd", "new"].includes((queryParams.get("ncf_category") || "").toLowerCase()) ? queryParams.get("ncf_category").toLowerCase() : "";

@@ -71,3 +71,12 @@ test("global Chaturbate category links use supported platform filtering and pres
   assert.match(app, /const campaignPlatform = \["chaturbate", "bongacams"\]/);
   assert.match(app, /if \(category === "popular" \|\| queryParams\.get\("sort"\) === "viewers"\) sort\.value = "viewers"/);
 });
+
+test("URL query parameters are initialized before their first use during directory startup", () => {
+  const declaration = app.indexOf("const queryParams = new URLSearchParams(location.search);");
+  const firstUse = app.indexOf("queryParams.get(");
+  assert.notEqual(declaration, -1);
+  assert.notEqual(firstUse, -1);
+  assert.ok(declaration < firstUse, "queryParams must be initialized before any query string is read");
+  assert.equal(app.split("const queryParams = new URLSearchParams(location.search);").length - 1, 1);
+});
