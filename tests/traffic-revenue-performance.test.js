@@ -50,3 +50,19 @@ test('excludes only identified internal test and audit traffic from click and vi
   assert.match(built.text, /LOWER\(COALESCE\(tv\.source, ''\)\) <> 'test'/);
   assert.match(built.text, /LOWER\(COALESCE\(tv\.campaign, ''\)\) NOT IN \('test_female_01', 'revshare_audit_01'\)/);
 });
+
+test('route exposes visit funnel and tracking quality fields without a second query', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('if (incoming.pathname === "/api/traffic-revenue-performance")');
+  const end = route.indexOf('if (incoming.pathname === "/api/conversion-revenue")', start);
+  const endpoint = route.slice(start, end);
+  assert.match(endpoint, /visits: Number\(row\.visits \|\| 0\)/);
+  assert.match(endpoint, /engagedVisits: Number\(row\.engaged_visits \|\| 0\)/);
+  assert.match(endpoint, /clicksWithVisitId: Number\(row\.clicks_with_visit_id \|\| 0\)/);
+  assert.match(endpoint, /clicksWithoutVisitId: Number\(row\.clicks_without_visit_id \|\| 0\)/);
+  assert.match(endpoint, /visitsWithAffiliateClick: Number\(row\.visits_with_affiliate_click \|\| 0\)/);
+  assert.match(endpoint, /const clicks = await pool\.query\(query\.text, query\.params\.clicks\)/);
+  assert.doesNotMatch(endpoint, /visits\.rows/);
+});
