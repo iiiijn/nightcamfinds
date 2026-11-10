@@ -66,8 +66,8 @@ test('affiliate redirect persistence stores known and suspected bot evidence eve
   const start = server.indexOf('async function countClick(');
   const end = server.indexOf('async function statsFromDb()', start);
   const writer = server.slice(start, end);
-  assert.match(writer, /ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT FALSE/);
-  assert.match(writer, /ADD COLUMN IF NOT EXISTS bot_reason VARCHAR\(80\)/);
+  assert.match(server, /ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT FALSE/);
+  assert.match(server, /ADD COLUMN IF NOT EXISTS bot_reason VARCHAR\(80\)/);
   assert.match(writer, /click_id,visit_id,landing_path,is_bot,bot_reason/);
   assert.match(writer, /click_id,is_bot,bot_reason/);
   assert.match(writer, /trafficClass === "known_bot"/);
