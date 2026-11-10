@@ -353,6 +353,6 @@ test('shared visit tracking is loaded by the main directory and country landing 
   const path = require('node:path');
   const index = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
   const countryPages = fs.readFileSync(path.join(__dirname, '../country-pages.js'), 'utf8');
-  assert.match(index, /<script src="\\/visit-tracking\\.js" defer><\\/script>/);
-  assert.match(countryPages, /<script src="\\/visit-tracking\\.js"><\\/script>/);
+  assert.ok(index.includes('<script src="/visit-tracking.js" defer></script>'));
+  assert.ok(countryPages.includes('<script src="/visit-tracking.js"></script>'));
 });
