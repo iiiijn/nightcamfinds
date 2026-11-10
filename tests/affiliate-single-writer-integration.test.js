@@ -118,7 +118,7 @@ module.exports = { Pool };
   await waitForServer(baseUrl, child);
 
   const cb = await fetch(`${baseUrl}/go/cbtestmodel?src=cb-single-writer&source=regression-test`, {
-    redirect: "manual", headers: { "cf-ipcountry": "US", "user-agent": "single-writer-test" }
+    redirect: "manual", headers: { "cf-ipcountry": "US", "user-agent": "Googlebot/2.1" }
   });
   assert.equal(cb.status, 302);
   const cbTarget = new URL(cb.headers.get("location"));
@@ -126,7 +126,7 @@ module.exports = { Pool };
   assert.equal(cbTarget.searchParams.get("sid"), cbTarget.searchParams.get("click_id"));
 
   const bonga = await fetch(`${baseUrl}/bgo/bongatestmodel?src=bonga-single-writer&source=regression-test`, {
-    redirect: "manual", headers: { "cf-ipcountry": "GB", "user-agent": "single-writer-test" }
+    redirect: "manual", headers: { "cf-ipcountry": "GB", "user-agent": "curl/8.1" }
   });
   assert.equal(bonga.status, 302);
   const bongaTarget = new URL(bonga.headers.get("location"));
@@ -153,4 +153,8 @@ module.exports = { Pool };
   assert.equal(inserts[0].params[7], "room-cbtestmodel", "the existing content field must identify the Chaturbate broadcaster");
   assert.equal(inserts[1].params[9], bongaLedger[0].params[1], "Bonga ledger must reuse the primary click ID");
   assert.equal(inserts[1].params[7], "room-bongatestmodel", "the existing content field must identify the Bonga broadcaster");
+  assert.equal(inserts[0].params[10], true, "known crawler classification must be persisted as is_bot");
+  assert.equal(inserts[0].params[11], "known_bot_user_agent", "known crawler reason must be persisted");
+  assert.equal(inserts[1].params[10], false, "suspected automation must not be mislabeled as a confirmed bot");
+  assert.equal(inserts[1].params[11], "suspected_automation_user_agent", "suspected automation reason must be persisted");
 });
