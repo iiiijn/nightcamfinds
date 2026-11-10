@@ -534,7 +534,10 @@ http.createServer = function routeDashboard(handler) {
       const query = trafficRevenuePerformance.buildQuery(Object.fromEntries(incoming.searchParams.entries()));
       if (query.error) return sendJson(res, 400, { error: query.error });
       try {
-        const clicks = await pool.query(query.text, query.params.clicks);
+        const [clicks, visits] = await Promise.all([
+          pool.query(query.text, query.params.clicks),
+          pool.query(query.text, query.params.visits)
+        ]);
         return sendJson(res, 200, {
           rows: clicks.rows.map(row => ({
             country: row.country,
@@ -542,14 +545,17 @@ http.createServer = function routeDashboard(handler) {
             source: row.source,
             campaign: row.campaign,
             clicks: Number(row.clicks || 0),
+            visits: Number(row.visits || 0),
+            engagedVisits: Number(row.engaged_visits || 0),
+            visitsWithAffiliateClick: Number(row.visits_with_affiliate_click || 0),
             matchedConversions: Number(row.matched_conversions || 0),
             conversionRate: Number(row.clicks || 0) > 0 ? Number(row.matched_conversions || 0) / Number(row.clicks) : 0,
             reportedPayoutsByCurrency: row.reported_payouts_by_currency || {}
           })),
           filters: query.filters,
-          truncated: clicks.rows.length === 2000,
+          truncated: clicks.rows.length === 2000 || visits.rows.length === 2000,
           timezone: "UTC",
-          note: "Clicks are recorded redirects. Only non-test Chaturbate postback events with a stored matched click ID are attributed to campaign groups. Unmatched events remain in the separate conversion and provider-health reports. BongaCams conversions and earnings are not assigned to campaigns because BongaCash is manually reconciled and does not provide an automatic postback in this setup. Payouts remain separated by currency and are provider-reported, not verified cash received."
+          note: "Visits are grouped by first-seen date, affiliate redirects by click date and Chaturbate callbacks by received date. Engaged visits are distinct unverified visit IDs with active_10s or scroll_50 signals. Visits with affiliate redirects are distinct visit IDs with at least one linked redirect. Redirects are not verified human clicks. Only non-test Chaturbate postback events with a stored matched click ID are attributed to campaign groups. BongaCams earnings remain manually reconciled and are not assigned to campaigns. Payouts remain separated by currency and are provider-reported, not verified cash received."
         });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic-to-revenue report requires the existing affiliate click and Chaturbate conversion attribution tables." });
