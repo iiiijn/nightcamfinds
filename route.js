@@ -393,6 +393,8 @@ http.createServer = function routeDashboard(handler) {
         );
         const clickQuality = await pool.query(
           `SELECT CASE
+                    WHEN c.is_bot IS TRUE OR c.bot_reason = 'known_bot_user_agent' THEN 'known_bot'
+                    WHEN c.bot_reason = 'suspected_automation_user_agent' THEN 'suspected_bot'
                     WHEN v.traffic_class IN ('known_bot','suspected_bot','unverified') THEN v.traffic_class
                     ELSE 'unclassified'
                   END AS traffic_class,
@@ -430,7 +432,7 @@ http.createServer = function routeDashboard(handler) {
           unclassifiedAffiliateClicks: clickCounts.unclassified || 0,
           clicksWithoutVisitId: unlinkedClickCounts.missingVisitId,
           clicksWithMissingVisitRecord: unlinkedClickCounts.missingVisitRecord,
-          note: "Engaged visits count distinct unverified visit IDs with active_10s or scroll_50 signals only. BongaCash banner load/viewability telemetry is reported separately and is not counted as engagement. Engaged visits with affiliate clicks are distinct visit IDs with at least one tracked redirect in this reporting week. These signals are client-reported and do not prove a human visitor or a conversion. Affiliate redirects are not verified human clicks. Known and suspected automation are separated. Unclassified redirects are clicks without a usable visit record. Most missing-visit-ID clicks may be legacy records from before visit tracking was introduced; they cannot be retrospectively classified. A missing visit record with an ID indicates a linkage issue that should be investigated."
+          note: "Engaged visits count distinct unverified visit IDs with active_10s or scroll_50 signals only. BongaCash banner load/viewability telemetry is reported separately and is not counted as engagement. Engaged visits with affiliate clicks are distinct visit IDs with at least one tracked redirect in this reporting week. These signals are client-reported and do not prove a human visitor or a conversion. Affiliate redirects are not verified human clicks. Known and suspected automation are separated. New affiliate redirects store user-agent classification directly on the click record, including redirects without a visit ID. Older redirects without stored classification remain unclassified unless a linked visit record provides classification. Unclassified redirects are clicks without usable classification evidence. Most missing-visit-ID clicks may be legacy records from before visit tracking was introduced; they cannot be retrospectively classified. A missing visit record with an ID indicates a linkage issue that should be investigated."
         });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
