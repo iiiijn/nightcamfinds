@@ -254,7 +254,30 @@ async function approvedCountryPlatformPreference(countryCode) {
 }
 function langFor(country) { const iso=String(country||"").toUpperCase(); if(["FR","BE","LU","MC"].includes(iso))return"fr"; if(["DE","AT"].includes(iso))return"de"; if(iso==="CH")return"de"; if(iso==="NL")return"nl"; return"en"; }
 function pageOrigin(req) { if(ORIGIN)return ORIGIN; const proto=req.headers["x-forwarded-proto"]||"https"; return proto+"://"+req.headers.host; }
-function send(res,status,body,type) { res.writeHead(status,{"Content-Type":type,"X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer","X-Frame-Options":"DENY"}); res.end(body); }
+function cookieValue(req, name) {
+  const prefix = name + "=";
+  const entry = String(req.headers.cookie || "").split(";").map((part) => part.trim()).find((part) => part.startsWith(prefix));
+  if (!entry) return "";
+  try { return decodeURIComponent(entry.slice(prefix.length)); } catch (_) { return ""; }
+}
+function visitCookieHeaders(req, pathname) {
+  const currentVisitId = cookieValue(req, "ncf_visit_id");
+  const visitId = /^[a-f0-9]{32}$/i.test(currentVisitId) ? currentVisitId : require("crypto").randomBytes(16).toString("hex");
+  const currentLandingPath = cookieValue(req, "ncf_landing_path");
+  const validLandingPath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && value.length <= 255 && !/[\\r\\n]/.test(value);
+  const landingPath = validLandingPath(currentLandingPath) ? currentLandingPath : (validLandingPath(pathname) ? pathname : "/");
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const secure = forwardedProto === "https" || Boolean(req.socket && req.socket.encrypted);
+  const attributes = "; Path=/; SameSite=Lax" + (secure ? "; Secure" : "");
+  const cookies = [];
+  if (!/^[a-f0-9]{32}$/i.test(currentVisitId)) cookies.push("ncf_visit_id=" + encodeURIComponent(visitId) + attributes);
+  if (!validLandingPath(currentLandingPath)) cookies.push("ncf_landing_path=" + encodeURIComponent(landingPath) + attributes);
+  return cookies.length ? { "Set-Cookie": cookies } : {};
+}
+function send(res,status,body,type,extraHeaders={}) {
+  res.writeHead(status,{"Content-Type":type,"X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer","X-Frame-Options":"DENY",...extraHeaders});
+  res.end(body);
+}
 function legal(title,body) { return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="robots" content="index,follow"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"></head><body><main class="wrap legal"><h1>${title}</h1>${body}<p><a href="/">Back to rooms</a></p></main></body></html>`; }
 const pages={
   "/about":legal("About NightCamFinds",`<p>NightCamFinds is an independent 18+ directory of public rooms from partner cam platforms. Video plays on the partner platform after you click through. This site does not host streams, take payments, or operate broadcaster accounts.</p><p>Room titles, thumbnails, viewer counts, and country data come from affiliate feeds and can be wrong or out of date. Youth-adjacent words are removed from text shown here.</p><p>Contact: <a href="mailto:${CONTACT}">${CONTACT}</a>.</p>`),
@@ -269,11 +292,11 @@ const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,"http://localhost"); const pathname=url.pathname;
   if(pathname==="/robots.txt") return send(res,200,`User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /bgo/\nDisallow: /api/\nSitemap: ${pageOrigin(req)}/sitemap.xml\n`,"text/plain");
   if(pathname==="/sitemap.xml")return send(res,200,sitemap(pageOrigin(req)),"application/xml");
-  if(pathname==="/broadcast"||pathname==="/broadcast/"){const html=fs.readFileSync(path.join(PUBLIC,"broadcast.html"),"utf8");return send(res,200,html,"text/html; charset=utf-8");}
+  if(pathname==="/broadcast"||pathname==="/broadcast/"){const html=fs.readFileSync(path.join(PUBLIC,"broadcast.html"),"utf8");return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));}
   const countryMatch = pathname.match(/^\/country\/([a-z]{2})\/$/);
   if (countryMatch) {
     const countryHtml = getCountryPage(countryMatch[1], pageOrigin(req));
-    if (countryHtml) return send(res, 200, countryHtml, "text/html; charset=utf-8");
+    if (countryHtml) return send(res, 200, countryHtml, "text/html; charset=utf-8", visitCookieHeaders(req, pathname));
   }
   if(pages[pathname])return send(res,200,pages[pathname],"text/html; charset=utf-8");
   if(pathname==="/visits"){if(!STATS_KEY||url.searchParams.get("key")!==STATS_KEY)return send(res,404,"Not found","text/plain");const stats=(await statsFromDb())||readStats();const countryRows=Object.entries(stats.countries||{}).sort((a,b)=>b[1]-a[1]).map(([iso,count])=>`<tr><td>${NAMES[iso]||iso}</td><td>${iso}</td><td>${count}</td></tr>`).join("");const categoryRows=Object.entries(stats.byCountryCategory||{}).sort((a,b)=>b[1]-a[1]).map(([key,count])=>{const[iso,category]=key.split(":");return `<tr><td>${NAMES[iso]||iso}</td><td>${category}</td><td>${count}</td></tr>`;}).join("");const sourceRows=Object.entries(stats.byCountrySource||{}).sort((a,b)=>b[1]-a[1]).map(([key,count])=>{const[iso,source]=key.split(":");return `<tr><td>${NAMES[iso]||iso}</td><td>${source}</td><td>${count}</td></tr>`;}).join("");const platformRows=Object.entries(stats.byPlatform||{}).sort((a,b)=>b[1]-a[1]).map(([platform,count])=>`<tr><td>${platform}</td><td>${count}</td></tr>`).join("");return send(res,200,`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>NightCamFinds Click Stats</title><style>body{font-family:system-ui,sans-serif;max-width:1100px;margin:40px auto;padding:0 16px}table{border-collapse:collapse;width:100%;margin:12px 0 32px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f4f4f4}.muted{color:#666}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.kpi{padding:16px;border:1px solid #ddd;border-radius:10px}.kpi strong{font-size:1.7rem;display:block}</style></head><body><h1>NightCamFinds affiliate click stats</h1><p class="muted">Aggregate redirect clicks only. Country comes from a trusted CDN/proxy header when available.</p><div class="grid"><div class="kpi"><span>Total clicks</span><strong>${stats.total||0}</strong></div><div class="kpi"><span>Countries seen</span><strong>${Object.keys(stats.countries||{}).filter(k=>k!=="UNKNOWN").length}</strong></div><div class="kpi"><span>Last updated</span><strong>${stats.updatedAt?new Date(stats.updatedAt).toLocaleString():"Never"}</strong></div></div><h2>Clicks by platform</h2><table><thead><tr><th>Platform</th><th>Clicks</th></tr></thead><tbody>${platformRows||'<tr><td colspan="2">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by visitor country</h2><table><thead><tr><th>Country</th><th>ISO</th><th>Clicks</th></tr></thead><tbody>${countryRows||'<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by country and category</h2><table><thead><tr><th>Country</th><th>Category</th><th>Clicks</th></tr></thead><tbody>${categoryRows||'<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by country and traffic source</h2><table><thead><tr><th>Country</th><th>Source</th><th>Clicks</th></tr></thead><tbody>${sourceRows||'<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><p><a href="/api/stats?key=${encodeURIComponent(STATS_KEY)}">JSON export</a> · <a href="/api/stats.csv?key=${encodeURIComponent(STATS_KEY)}">CSV export</a></p></body></html>`,`text/html; charset=utf-8");}
@@ -340,9 +363,10 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const agent = String(req.headers["user-agent"] || "").toLowerCase();
     const device = /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop";
     const clickId = "ncf_" + Date.now().toString(36) + "_" + require("crypto").randomBytes(8).toString("hex");
-    const visitId = String(url.searchParams.get("vid") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
-    const requestedLandingPath = String(url.searchParams.get("lp") || pathname);
-    const landingPath = requestedLandingPath.startsWith("/") && !requestedLandingPath.startsWith("//") ? requestedLandingPath.slice(0, 255) : pathname;
+    const suppliedVisitId = url.searchParams.get("vid") || cookieValue(req, "ncf_visit_id");
+    const visitId = String(suppliedVisitId || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
+    const suppliedLandingPath = url.searchParams.get("lp") || cookieValue(req, "ncf_landing_path") || pathname;
+    const landingPath = suppliedLandingPath.startsWith("/") && !suppliedLandingPath.startsWith("//") && suppliedLandingPath.length <= 255 && !/[\\r\\n]/.test(suppliedLandingPath) ? suppliedLandingPath : pathname;
     const room = isBonga ? (await rooms(req)).rooms.find(r => r.platform === platform && r.username === username) : null;
     if (isBonga && !room) return send(res, 404, "Live room not found", "text/plain; charset=utf-8");
     await countClick({ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
