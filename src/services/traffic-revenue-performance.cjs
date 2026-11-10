@@ -31,7 +31,7 @@ function buildQuery(filters = {}) {
     "         LOWER(COALESCE(NULLIF(ac.platform, ''), 'unknown')) AS platform,",
     "         COALESCE(NULLIF(LOWER(ac.source), ''), 'unknown') AS source,",
     "         COALESCE(NULLIF(LOWER(ac.campaign), ''), 'unknown') AS campaign,",
-    '         COUNT(*)::int AS clicks',
+    '         COUNT(*)::int AS clicks,',
     "         COUNT(*) FILTER (WHERE NULLIF(BTRIM(ac.visit_id), '') IS NOT NULL)::int AS clicks_with_visit_id,",
     "         COUNT(*) FILTER (WHERE NULLIF(BTRIM(ac.visit_id), '') IS NULL)::int AS clicks_without_visit_id",
     '  FROM affiliate_clicks ac',
