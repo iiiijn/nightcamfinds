@@ -534,10 +534,7 @@ http.createServer = function routeDashboard(handler) {
       const query = trafficRevenuePerformance.buildQuery(Object.fromEntries(incoming.searchParams.entries()));
       if (query.error) return sendJson(res, 400, { error: query.error });
       try {
-        const [clicks, visits] = await Promise.all([
-          pool.query(query.text, query.params.clicks),
-          pool.query(query.text, query.params.visits)
-        ]);
+        const clicks = await pool.query(query.text, query.params.clicks);
         return sendJson(res, 200, {
           rows: clicks.rows.map(row => ({
             country: row.country,
