@@ -8,16 +8,16 @@ function buildQuery(filters = {}) {
   if ((from && !validDate(from)) || (to && !validDate(to))) return { error: 'Dates must be valid calendar dates in YYYY-MM-DD format.' };
   if (from && to && from > to) return { error: 'Start date must be on or before end date.' };
 
-  const clickParams = [], clickWhere = [];
+  const clickParams = [], clickWhere = [], visitClickWhere = [];
   const visitParams = [], visitWhere = [];
   const conversionParams = [], conversionWhere = [];
   if (from) {
-    clickParams.push(from); clickWhere.push("ac.clicked_at >= ($" + clickParams.length + "::date AT TIME ZONE 'UTC')");
+    clickParams.push(from); clickWhere.push("ac.clicked_at >= ($" + clickParams.length + "::date AT TIME ZONE 'UTC')"); visitClickWhere.push("acv.clicked_at >= ($" + clickParams.length + "::date AT TIME ZONE 'UTC')");
     visitParams.push(from); visitWhere.push("tv.first_seen_at >= ($" + visitParams.length + "::date AT TIME ZONE 'UTC')");
     conversionParams.push(from); conversionWhere.push("cc.received_at >= ($" + conversionParams.length + "::date AT TIME ZONE 'UTC')");
   }
   if (to) {
-    clickParams.push(to); clickWhere.push("ac.clicked_at < (($" + clickParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
+    clickParams.push(to); clickWhere.push("ac.clicked_at < (($" + clickParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')"); visitClickWhere.push("acv.clicked_at < (($" + clickParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
     visitParams.push(to); visitWhere.push("tv.first_seen_at < (($" + visitParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
     conversionParams.push(to); conversionWhere.push("cc.received_at < (($" + conversionParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
   }
@@ -47,7 +47,7 @@ function buildQuery(filters = {}) {
     "           SELECT 1 FROM traffic_engagement_events e WHERE e.visit_id = tv.visit_id AND e.event_type IN ('active_10s','scroll_50')",
     '         ))::int AS engaged_visits,',
     '         COUNT(*) FILTER (WHERE EXISTS (',
-    '           SELECT 1 FROM affiliate_clicks acv WHERE acv.visit_id = tv.visit_id',
+    '           SELECT 1 FROM affiliate_clicks acv WHERE acv.visit_id = tv.visit_id AND ' + [...visitClickWhere, "LOWER(COALESCE(acv.source, '')) <> 'test'", "LOWER(COALESCE(acv.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')"].join(' AND '),
     '         ))::int AS visits_with_affiliate_click',
     '  FROM traffic_visits tv',
     '  WHERE ' + [...visitWhere, internalVisitExclusion].join(' AND '),
