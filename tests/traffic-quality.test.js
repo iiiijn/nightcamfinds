@@ -59,6 +59,36 @@ test('accepts a viewable BongaCash banner event separately from iframe load', ()
   }), { value: { visitId, eventType: 'bonga_banner_viewable', pagePath: '/' } });
 });
 
+test('affiliate redirect persistence stores known and suspected bot evidence even without a visit ID', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+  const start = server.indexOf('async function countClick(');
+  const end = server.indexOf('async function statsFromDb()', start);
+  const writer = server.slice(start, end);
+  assert.match(writer, /ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT FALSE/);
+  assert.match(writer, /ADD COLUMN IF NOT EXISTS bot_reason VARCHAR\(80\)/);
+  assert.match(writer, /click_id,visit_id,landing_path,is_bot,bot_reason/);
+  assert.match(writer, /click_id,is_bot,bot_reason/);
+  assert.match(writer, /trafficClass === "known_bot"/);
+  assert.match(writer, /"known_bot_user_agent"/);
+  assert.match(writer, /"suspected_automation_user_agent"/);
+});
+
+test('traffic quality analytics prefers persisted click-level evidence when visit IDs are absent', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('if (incoming.pathname === "/api/traffic-quality-analytics")');
+  const end = route.indexOf('if (incoming.pathname === "/api/provider-attribution-health")', start);
+  const endpoint = route.slice(start, end);
+  assert.match(endpoint, /c\.is_bot IS TRUE OR c\.bot_reason = 'known_bot_user_agent'/);
+  assert.match(endpoint, /c\.bot_reason = 'suspected_automation_user_agent'/);
+  assert.match(endpoint, /WHEN v\.traffic_class IN \('known_bot','suspected_bot','unverified'\) THEN v\.traffic_class/);
+  assert.match(endpoint, /LEFT JOIN traffic_visits v ON v\.visit_id=c\.visit_id/);
+  assert.match(endpoint, /New affiliate redirects store user-agent classification directly on the click record/);
+});
+
 test('affiliate redirect writes preserve the strongest visit classification', () => {
   const fs = require('node:fs');
   const path = require('node:path');
