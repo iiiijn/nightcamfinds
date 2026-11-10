@@ -369,7 +369,9 @@ test('server establishes first-party visit cookies before directory affiliate li
   assert.match(server, /SameSite=Lax/);
   assert.match(server, /forwardedProto === "https"/);
   assert.match(server, /visitCookieHeaders\(req, pathname\)/);
-  assert.match(server, /url\.searchParams\.get\("vid"\) \|\| cookieValue\(req, "ncf_visit_id"\)/);
-  assert.match(server, /url\.searchParams\.get\("lp"\) \|\| cookieValue\(req, "ncf_landing_path"\)/);
+  assert.match(server, /const queryVisitId = String\(url\.searchParams\.get\("vid"\)/);
+  assert.match(server, /const cookieVisitId = String\(cookieValue\(req, "ncf_visit_id"\)/);
+  assert.match(server, /const queryLandingPath = url\.searchParams\.get\("lp"\)/);
+  assert.match(server, /const cookieLandingPath = cookieValue\(req, "ncf_landing_path"\)/);
   assert.match(server, /countClick\(\{ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
 });
