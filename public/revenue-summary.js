@@ -31,11 +31,14 @@
       const visits = Math.max(0, Number(row.visits || 0));
       const engagedVisits = Math.max(0, Number(row.engagedVisits || 0));
       const visitsWithAffiliateClick = Math.max(0, Number(row.visitsWithAffiliateClick || 0));
+      const clicksWithVisitId = Math.max(0, Number(row.clicksWithVisitId || 0));
+      const clicksWithoutVisitId = Math.max(0, Number(row.clicksWithoutVisitId || 0));
       const conversions = Math.max(0, Number(row.matchedConversions || 0));
       const payouts = row.reportedPayoutsByCurrency && typeof row.reportedPayoutsByCurrency === 'object' ? row.reportedPayoutsByCurrency : {};
       const add = (map, key) => {
-        const item = map.get(key) || { clicks: 0, visits: 0, engagedVisits: 0, visitsWithAffiliateClick: 0, matchedConversions: 0, payoutsByCurrency: {} };
-        item.clicks += clicks; item.visits += visits; item.engagedVisits += engagedVisits;
+        const item = map.get(key) || { clicks: 0, clicksWithVisitId: 0, clicksWithoutVisitId: 0, visits: 0, engagedVisits: 0, visitsWithAffiliateClick: 0, matchedConversions: 0, payoutsByCurrency: {} };
+        item.clicks += clicks; item.clicksWithVisitId += clicksWithVisitId; item.clicksWithoutVisitId += clicksWithoutVisitId;
+        item.visits += visits; item.engagedVisits += engagedVisits;
         item.visitsWithAffiliateClick += visitsWithAffiliateClick; item.matchedConversions += conversions;
         for (const [currency, amount] of Object.entries(payouts)) {
           const code = String(currency || 'UNSPECIFIED').toUpperCase(), value = Number(amount || 0);
