@@ -550,7 +550,7 @@ http.createServer = function routeDashboard(handler) {
             reportedPayoutsByCurrency: row.reported_payouts_by_currency || {}
           })),
           filters: query.filters,
-          truncated: clicks.rows.length === 2000 || visits.rows.length === 2000,
+          truncated: clicks.rows.length === 2000,
           timezone: "UTC",
           note: "Visits are grouped by first-seen date, affiliate redirects by click date and Chaturbate callbacks by received date. Engaged visits are distinct unverified visit IDs with active_10s or scroll_50 signals. Visits with affiliate redirects are distinct visit IDs with at least one linked redirect. Redirects are not verified human clicks. Only non-test Chaturbate postback events with a stored matched click ID are attributed to campaign groups. BongaCams earnings remain manually reconciled and are not assigned to campaigns. Payouts remain separated by currency and are provider-reported, not verified cash received."
         });
