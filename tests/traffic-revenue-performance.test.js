@@ -12,6 +12,8 @@ test('builds a country and campaign funnel with currency-separated matched payou
   assert.match(built.text, /FROM traffic_visits tv/);
   assert.match(built.text, /traffic_engagement_events e/);
   assert.match(built.text, /visits_with_affiliate_click/);
+  assert.match(built.text, /clicks_with_visit_id/);
+  assert.match(built.text, /clicks_without_visit_id/);
   assert.match(built.text, /FROM cb_conversions cc/);
   assert.match(built.text, /cc\.matched_click IS TRUE/);
   assert.match(built.text, /LOWER\(cc\.conversion_type\) IN/);
