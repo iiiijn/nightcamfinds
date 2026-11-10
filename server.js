@@ -264,7 +264,7 @@ function visitCookieHeaders(req, pathname) {
   const currentVisitId = cookieValue(req, "ncf_visit_id");
   const visitId = /^[a-f0-9]{32}$/i.test(currentVisitId) ? currentVisitId : require("crypto").randomBytes(16).toString("hex");
   const currentLandingPath = cookieValue(req, "ncf_landing_path");
-  const validLandingPath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && value.length <= 255 && !/[\\r\\n]/.test(value);
+  const validLandingPath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && value.length <= 255 && !/[\r\n]/.test(value);
   const landingPath = validLandingPath(currentLandingPath) ? currentLandingPath : (validLandingPath(pathname) ? pathname : "/");
   const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
   const secure = forwardedProto === "https" || Boolean(req.socket && req.socket.encrypted);
@@ -363,10 +363,13 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const agent = String(req.headers["user-agent"] || "").toLowerCase();
     const device = /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop";
     const clickId = "ncf_" + Date.now().toString(36) + "_" + require("crypto").randomBytes(8).toString("hex");
-    const suppliedVisitId = url.searchParams.get("vid") || cookieValue(req, "ncf_visit_id");
-    const visitId = String(suppliedVisitId || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
-    const suppliedLandingPath = url.searchParams.get("lp") || cookieValue(req, "ncf_landing_path") || pathname;
-    const landingPath = suppliedLandingPath.startsWith("/") && !suppliedLandingPath.startsWith("//") && suppliedLandingPath.length <= 255 && !/[\\r\\n]/.test(suppliedLandingPath) ? suppliedLandingPath : pathname;
+    const queryVisitId = String(url.searchParams.get("vid") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
+    const cookieVisitId = String(cookieValue(req, "ncf_visit_id") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
+    const visitId = queryVisitId || cookieVisitId;
+    const isSafeLandingPath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && value.length <= 255 && !/[\r\n]/.test(value);
+    const queryLandingPath = url.searchParams.get("lp") || "";
+    const cookieLandingPath = cookieValue(req, "ncf_landing_path");
+    const landingPath = isSafeLandingPath(queryLandingPath) ? queryLandingPath : isSafeLandingPath(cookieLandingPath) ? cookieLandingPath : pathname;
     const room = isBonga ? (await rooms(req)).rooms.find(r => r.platform === platform && r.username === username) : null;
     if (isBonga && !room) return send(res, 404, "Live room not found", "text/plain; charset=utf-8");
     await countClick({ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
