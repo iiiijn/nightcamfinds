@@ -269,3 +269,90 @@ test('accepts BongaCash category-widget load and viewable events separately', ()
     });
   }
 });
+
+
+test('shared visit tracking decorates server-rendered and dynamically added affiliate links', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const vm = require('node:vm');
+  const helper = fs.readFileSync(path.join(__dirname, '../public/visit-tracking.js'), 'utf8');
+  const index = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+  const countryPages = fs.readFileSync(path.join(__dirname, '../country-pages.js'), 'utf8');
+  const session = new Map([['ncf_landing_path', '/country/us/']]);
+  const cookies = new Map();
+  const makeAnchor = (href) => ({
+    href,
+    getAttribute(name) { return name === 'href' ? this.href : null; },
+    closest() { return this; }
+  });
+  const chaturbate = makeAnchor('/go/example-model?src=home&source=reddit');
+  const bonga = makeAnchor('/bgo/example-model?src=home&campaign=organic');
+  const external = makeAnchor('https://partner.example/go/example-model');
+  const anchors = [chaturbate, bonga, external];
+  let clickHandler = null;
+  const document = {
+    documentElement: {},
+    querySelectorAll() { return anchors; },
+    addEventListener(type, handler, capture) {
+      if (type === 'click' && capture === true) clickHandler = handler;
+    }
+  };
+  Object.defineProperty(document, 'cookie', {
+    get() { return [...cookies.entries()].map(([key, value]) => key + '=' + value).join('; '); },
+    set(value) {
+      const pair = String(value).split(';', 1)[0];
+      const separator = pair.indexOf('=');
+      if (separator > 0) cookies.set(pair.slice(0, separator), pair.slice(separator + 1));
+    }
+  });
+  const root = {
+    document,
+    location: {
+      href: 'https://nightcamfinds.com/country/us/',
+      origin: 'https://nightcamfinds.com',
+      protocol: 'https:',
+      pathname: '/country/us/'
+    },
+    sessionStorage: {
+      getItem(key) { return session.has(key) ? session.get(key) : null; },
+      setItem(key, value) { session.set(key, String(value)); }
+    },
+    crypto: {
+      getRandomValues(bytes) {
+        for (let i = 0; i < bytes.length; i++) bytes[i] = i + 1;
+        return bytes;
+      }
+    }
+  };
+
+  vm.runInNewContext(helper, { window: root, URL, URLSearchParams, Uint8Array });
+
+  const visitId = root.NCFVisitTracking.getVisitId();
+  assert.match(visitId, /^[a-f0-9]{32}$/);
+  for (const anchor of [chaturbate, bonga]) {
+    const target = new URL(anchor.href, root.location.href);
+    assert.equal(target.searchParams.get('vid'), visitId);
+    assert.equal(target.searchParams.get('lp'), '/country/us/');
+  }
+  assert.equal(new URL(chaturbate.href, root.location.href).searchParams.get('source'), 'reddit');
+  assert.equal(new URL(bonga.href, root.location.href).searchParams.get('campaign'), 'organic');
+  assert.equal(new URL(external.href, root.location.href).searchParams.has('vid'), false);
+
+  const dynamic = makeAnchor('/bgo/dynamic-room?src=dynamic-banner');
+  anchors.push(dynamic);
+  assert.equal(typeof clickHandler, 'function');
+  clickHandler({ target: dynamic });
+  const dynamicTarget = new URL(dynamic.href, root.location.href);
+  assert.equal(dynamicTarget.searchParams.get('vid'), visitId);
+  assert.equal(dynamicTarget.searchParams.get('lp'), '/country/us/');
+  assert.equal(root.NCFVisitTracking.getVisitId(), visitId);
+});
+
+test('shared visit tracking is loaded by the main directory and country landing pages', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const index = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+  const countryPages = fs.readFileSync(path.join(__dirname, '../country-pages.js'), 'utf8');
+  assert.ok(index.includes('<script src="/visit-tracking.js" defer></script>'));
+  assert.ok(countryPages.includes('<script src="/visit-tracking.js"></script>'));
+});
