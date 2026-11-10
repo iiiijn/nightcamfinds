@@ -542,6 +542,8 @@ http.createServer = function routeDashboard(handler) {
             source: row.source,
             campaign: row.campaign,
             clicks: Number(row.clicks || 0),
+            clicksWithVisitId: Number(row.clicks_with_visit_id || 0),
+            clicksWithoutVisitId: Number(row.clicks_without_visit_id || 0),
             visits: Number(row.visits || 0),
             engagedVisits: Number(row.engaged_visits || 0),
             visitsWithAffiliateClick: Number(row.visits_with_affiliate_click || 0),
