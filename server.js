@@ -93,6 +93,8 @@ async function ensureTrackingTable() {
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''");
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
+  await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT FALSE");
+  await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS bot_reason VARCHAR(80)");
   await pgPool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_click_id_idx ON affiliate_clicks(click_id)");
   await pgPool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_country_idx ON affiliate_clicks(country)");
   await pgPool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_clicked_at_idx ON affiliate_clicks(clicked_at)");
@@ -120,8 +122,8 @@ async function countClick({ src, country, category="unknown", source="direct", c
       client = await pgPool.connect();
       await client.query("BEGIN");
       const inserted = await client.query(
-        "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id,visit_id,landing_path) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id",
-        [country,category,source,campaign,src,platform,medium,content,device,clickId||null,visitId,landingPath]
+        "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id,visit_id,landing_path,is_bot,bot_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id",
+        [country,category,source,campaign,src,platform,medium,content,device,clickId||null,visitId,landingPath,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null]
       );
       if (visitId) {
         await client.query(
@@ -156,8 +158,8 @@ async function countClick({ src, country, category="unknown", source="direct", c
           fallbackClient = await pgPool.connect();
           await fallbackClient.query("BEGIN");
           const legacy = await fallbackClient.query(
-            "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id",
-            [country,category,source,campaign,src,platform,medium,content,device,clickId||null]
+            "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id,is_bot,bot_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id",
+            [country,category,source,campaign,src,platform,medium,content,device,clickId||null,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null]
           );
           if (platform === "chaturbate" && clickId) {
             await fallbackClient.query(
