@@ -464,7 +464,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   html=html.replace('<div id="grid" class="grid" aria-live="polite"></div>',`<div id="grid" class="grid" aria-live="polite">${roomMarkup}</div>`);
   html=html.replace('<p id="result-count" class="result-count" aria-live="polite"></p>',`<p id="result-count" class="result-count" aria-live="polite">${hasRooms?list.length+" live rooms":"No live rooms are available right now."}</p>`);
   html = renderHeroCopy(html, copy);
-  return send(res,200,html,"text/html; charset=utf-8");
+  return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));
 }
   if(!full.startsWith(PUBLIC)||!fs.existsSync(full)||fs.statSync(full).isDirectory())return send(res,404,"Not found","text/plain");const types={".html":"text/html",".css":"text/css",".js":"text/javascript",".svg":"image/svg+xml"};send(res,200,fs.readFileSync(full),types[path.extname(full)]||"application/octet-stream");
 });
