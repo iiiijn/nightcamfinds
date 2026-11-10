@@ -92,7 +92,7 @@ function buildQuery(filters = {}) {
     '  FROM click_groups c FULL OUTER JOIN visit_groups v',
     '    ON c.country=v.country AND c.platform=v.platform AND c.source=v.source AND c.campaign=v.campaign',
     ')',
-    'SELECT g.country, g.platform, g.source, g.campaign, g.clicks, g.visits,',
+    'SELECT g.country, g.platform, g.source, g.campaign, g.clicks, g.clicks_with_visit_id, g.clicks_without_visit_id, g.visits,',
     '       g.engaged_visits, g.visits_with_affiliate_click,',
     '       COALESCE(v.matched_conversions, 0)::int AS matched_conversions,',
     "       COALESCE(v.reported_payouts_by_currency, '{}'::jsonb) AS reported_payouts_by_currency",
