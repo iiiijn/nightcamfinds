@@ -30,7 +30,7 @@
     try {
       const rawHref = typeof anchor.getAttribute === 'function' ? anchor.getAttribute('href') : anchor.href;
       const target = new URL(rawHref || anchor.href, root.location.href);
-      return target.origin === root.location.origin && /^\\/(?:go|bgo)\\//i.test(target.pathname);
+      return target.origin === root.location.origin && /^\/(?:go|bgo)\//i.test(target.pathname);
     } catch (_) {
       return false;
     }
