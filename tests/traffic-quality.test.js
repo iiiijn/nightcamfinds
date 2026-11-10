@@ -356,3 +356,20 @@ test('shared visit tracking is loaded by the main directory and country landing 
   assert.ok(index.includes('<script src="/visit-tracking.js" defer></script>'));
   assert.ok(countryPages.includes('<script src="/visit-tracking.js"></script>'));
 });
+
+
+test('server establishes first-party visit cookies before directory affiliate links can be clicked', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+  assert.match(server, /function cookieValue\(req, name\)/);
+  assert.match(server, /function visitCookieHeaders\(req, pathname\)/);
+  assert.match(server, /ncf_visit_id=/);
+  assert.match(server, /ncf_landing_path=/);
+  assert.match(server, /SameSite=Lax/);
+  assert.match(server, /forwardedProto === "https"/);
+  assert.match(server, /visitCookieHeaders\(req, pathname\)/);
+  assert.match(server, /url\.searchParams\.get\("vid"\) \|\| cookieValue\(req, "ncf_visit_id"\)/);
+  assert.match(server, /url\.searchParams\.get\("lp"\) \|\| cookieValue\(req, "ncf_landing_path"\)/);
+  assert.match(server, /countClick\(\{ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
+});
