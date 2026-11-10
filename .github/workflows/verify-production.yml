@@ -39,9 +39,17 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Install test dependencies from lockfile and run tests
+      - name: Install isolated test dependency and run tests
         run: |
-          npm ci --omit=prod --ignore-scripts --no-audit --no-fund --fetch-retries=2 --fetch-timeout=120000
+          cp package.json /tmp/nightcamfinds-package.json
+          trap 'cp /tmp/nightcamfinds-package.json package.json' EXIT
+          node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("package.json","utf8")); p.dependencies={}; p.devDependencies={"@electric-sql/pglite":"0.5.8"}; fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n")'
+          npm install --ignore-scripts --no-audit --no-fund --package-lock=false \
+            --registry=https://registry.npmjs.org/ \
+            --fetch-retries=2 \
+            --fetch-timeout=120000
+          cp /tmp/nightcamfinds-package.json package.json
+          trap - EXIT
           npm test
 
       - name: Verify production configuration
