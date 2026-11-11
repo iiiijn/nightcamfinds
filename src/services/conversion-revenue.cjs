@@ -11,6 +11,24 @@ function buildQuery(filters = {}) {
   const where = [];
   if (from) { params.push(from); where.push("cc.received_at >= ($" + params.length + "::date AT TIME ZONE 'UTC')"); }
   if (to) { params.push(to); where.push("cc.received_at < (($" + params.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')"); }
+  const macroPattern = "'^[{][A-Za-z][A-Za-z0-9_]*[}]$'";
+  const typedMacro = [
+    'COALESCE(cc.conversion_type, \'\')',
+    'COALESCE(cc.currency, \'\')',
+    'COALESCE(cc.click_id, \'\')',
+    'COALESCE(cc.country, \'\')',
+    'COALESCE(cc.track, \'\')',
+    'COALESCE(cc.source, \'\')',
+    'COALESCE(cc.campaign_id, \'\')',
+    'COALESCE(cc.program_name, \'\')',
+    'COALESCE(cc.device, \'\')',
+    'COALESCE(cc.language, \'\')',
+    'COALESCE(cc.referral, \'\')',
+    'COALESCE(cc.region, \'\')'
+  ].map(value => value + ' ~ ' + macroPattern);
+  const typedMacroPredicate = '(' + typedMacro.join(' OR ') + ')';
+  const rawMacroPredicate = "EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE(cc.raw_payload, '{}'::jsonb)) AS payload(key, value) WHERE payload.value ~ " + macroPattern + ')';
+  const isMacro = '(' + rawMacroPredicate + ' OR ' + typedMacroPredicate + ')';
   const text = [
     'SELECT',
     "COALESCE(NULLIF(UPPER(ac.country), ''), NULLIF(UPPER(bc.country), ''), NULLIF(UPPER(cc.country), ''), 'UNKNOWN') AS country,",
@@ -19,16 +37,15 @@ function buildQuery(filters = {}) {
     "COALESCE(NULLIF(LOWER(ac.campaign), ''), NULLIF(LOWER(bc.campaign), ''), NULLIF(LOWER(cc.campaign_id), ''), 'unknown') AS campaign,",
     "LOWER(COALESCE(NULLIF(cc.conversion_type, ''), 'unknown')) AS conversion_type,",
     "COALESCE(NULLIF(UPPER(cc.currency), ''), 'UNSPECIFIED') AS currency,",
-    "EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE(cc.raw_payload, '{}'::jsonb)) AS payload(key, value)",
-    "  WHERE payload.value ~ '^[{][A-Za-z][A-Za-z0-9_]*[}]$') AS is_test,",
-    "CASE WHEN NULLIF(BTRIM(cc.click_id), '') IS NULL THEN 'missing_click_id' WHEN cc.matched_click IS TRUE THEN 'matched' ELSE 'click_id_not_found' END AS match_status,",
+    isMacro + ' AS is_test,',
+    "CASE WHEN " + typedMacroPredicate + " THEN 'invalid_callback' WHEN NULLIF(BTRIM(cc.click_id), '') IS NULL THEN 'missing_click_id' WHEN cc.matched_click IS TRUE THEN 'matched' ELSE 'click_id_not_found' END AS match_status,",
     'COUNT(*)::int AS conversions,',
-    'COUNT(*) FILTER (WHERE cc.matched_click IS TRUE)::int AS matched_conversions,',
-    'COUNT(*) FILTER (WHERE cc.matched_click IS NOT TRUE)::int AS unmatched_conversions,',
+    'COUNT(*) FILTER (WHERE cc.matched_click IS TRUE AND NOT ' + isMacro + ')::int AS matched_conversions,',
+    'COUNT(*) FILTER (WHERE cc.matched_click IS NOT TRUE AND NOT ' + isMacro + ')::int AS unmatched_conversions,',
     'COALESCE(SUM(cc.payout), 0)::numeric AS reported_payout',
     'FROM cb_conversions cc',
     'LEFT JOIN cb_clicks bc ON bc.click_id = cc.click_id',
-    'LEFT JOIN LATERAL (SELECT country, source, campaign FROM affiliate_clicks WHERE click_id = cc.click_id AND LOWER(platform) = \'chaturbate\' ORDER BY clicked_at ASC, id ASC LIMIT 1) ac ON TRUE',
+    "LEFT JOIN LATERAL (SELECT country, source, campaign FROM affiliate_clicks WHERE click_id = cc.click_id AND LOWER(platform) = 'chaturbate' ORDER BY clicked_at ASC, id ASC LIMIT 1) ac ON TRUE",
     (where.length ? 'WHERE ' + where.join(' AND ') : ''),
     'GROUP BY 1,2,3,4,5,6,7,8',
     'ORDER BY is_test ASC, conversions DESC, currency ASC, country ASC, source ASC, campaign ASC',

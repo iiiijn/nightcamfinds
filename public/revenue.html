@@ -18,7 +18,7 @@
 <div class="stats">
 <div class="stat"><small>Tracked affiliate clicks</small><strong id="clicks">0</strong></div>
 <div class="stat"><small>Matched eligible conversions</small><strong id="matched">0</strong></div>
-<div class="stat"><small>Unmatched eligible conversions</small><strong id="unmatched">0</strong></div>
+<div class="stat"><small>Unmatched eligible conversions</small><strong id="unmatched">0</strong></div>\n<div class="stat"><small>Invalid callback records</small><strong id="invalidCallbacks">0</strong></div>
 <div class="stat"><small>Test callbacks excluded</small><strong id="tests">0</strong></div>
 <div class="stat"><small>Chaturbate attributed USD</small><strong id="cbUsd">$0.00</strong></div>
 <div class="stat"><small>BongaCash manual USD</small><strong id="bongaUsd">$0.00</strong></div>
@@ -66,12 +66,12 @@ async function load(){ $('status').textContent='Loading';const qs=query();try{
  const summary=window.NCFRevenueSummary.summarizeConversions(conv.rows||[]);
  const cbUsd=Number(summary.attributedPayoutsByCurrency.USD||0),bongaUsd=Number(bonga.totals?.earnings||0);
  const clickTotal=Number(stats.totalClicks||0);
- $('clicks').textContent=fmt(clickTotal);$('matched').textContent=fmt(summary.matchedConversions);$('unmatched').textContent=fmt(summary.unmatchedConversions);$('tests').textContent=fmt(summary.testEvents);
+ $('clicks').textContent=fmt(clickTotal);$('matched').textContent=fmt(summary.matchedConversions);$('unmatched').textContent=fmt(summary.unmatchedConversions);$('invalidCallbacks').textContent=fmt(summary.invalidCallbacks);$('tests').textContent=fmt(summary.testEvents);
  $('cbUsd').textContent=money(cbUsd);$('bongaUsd').textContent=money(bongaUsd);$('combinedUsd').textContent=money(cbUsd+bongaUsd);$('epc').textContent=money(clickTotal?(cbUsd+bongaUsd)/clickTotal:0);
  $('cbCurrencies').innerHTML=currencyTable(summary.attributedPayoutsByCurrency);$('pendingCurrencies').innerHTML=currencyTable(summary.pendingPayoutsByCurrency);
  const groups=window.NCFRevenueSummary.summarizeTraffic(traffic.rows||[]);
  $('countries').innerHTML=reportTable(groups.countries,'country');$('campaigns').innerHTML=reportTable(groups.campaigns,'campaign');
- $('integrity').innerHTML='<table class="table"><tbody><tr><th>Matched eligible events</th><td>'+fmt(summary.matchedConversions)+'</td></tr><tr><th>Unmatched eligible events</th><td>'+fmt(summary.unmatchedConversions)+'</td></tr><tr><th>Test/macro events excluded</th><td>'+fmt(summary.testEvents)+'</td></tr><tr><th>Unsupported or unknown event types excluded</th><td>'+fmt(summary.excludedEvents)+'</td></tr><tr><th>Unique transaction protection</th><td>Database uniqueness constraint on Chaturbate transaction ID</td></tr><tr><th>BongaCash automatic postback</th><td>Disabled. Manual reconciliation only.</td></tr></tbody></table>';
+ $('integrity').innerHTML='<table class="table"><tbody><tr><th>Matched eligible events</th><td>'+fmt(summary.matchedConversions)+'</td></tr><tr><th>Unmatched eligible events</th><td>'+fmt(summary.unmatchedConversions)+'</td></tr><tr><th>Invalid callback records</th><td>'+fmt(summary.invalidCallbacks)+'</td></tr><tr><th>Test/macro events excluded</th><td>'+fmt(summary.testEvents)+'</td></tr><tr><th>Unsupported or unknown event types excluded</th><td>'+fmt(summary.excludedEvents)+'</td></tr><tr><th>Unique transaction protection</th><td>Database uniqueness constraint on Chaturbate transaction ID</td></tr><tr><th>BongaCash automatic postback</th><td>Disabled. Manual reconciliation only.</td></tr></tbody></table>';
  $('bongaReconciliation').innerHTML='<p><strong>'+fmt(bonga.totals?.registrations)+' registrations</strong> · <strong>'+fmt(bonga.totals?.purchases)+' purchases</strong> · <strong>'+money(bongaUsd)+' reported earnings</strong> · '+fmt(bonga.totals?.days_reported)+' days reported</p>'+(bonga.entries?.length?'<table class="table"><thead><tr><th>Date</th><th>Registrations</th><th>Purchases</th><th>USD</th><th>Updated</th></tr></thead><tbody>'+bonga.entries.map(e=>'<tr><td>'+esc(String(e.report_date).slice(0,10))+'</td><td>'+fmt(e.registrations)+'</td><td>'+fmt(e.purchases)+'</td><td>'+money(e.earnings)+'</td><td>'+esc(e.updated_at?new Date(e.updated_at).toLocaleString():'—')+'</td></tr>').join('')+'</tbody></table>':'<p class="muted">No BongaCash daily reports have been entered for this period.</p>');
  $('status').textContent='Updated';$('status').className='status ok';
  }catch(e){if(e.message!=='Session expired'){$('status').textContent='Report error';$('status').className='status bad';$('integrity').textContent=e.message;console.error(e)}}}
