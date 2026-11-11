@@ -39,8 +39,7 @@ test("rejects youth-related terms in raw feed text even if display cleaning remo
 });
 
 test("cleans room titles without changing ordinary wording", () => {
-  assert.equal(cleanRoomTitle("  Friendly
- chat\t tonight  "), "Friendly chat tonight");
+  assert.equal(cleanRoomTitle("  Friendly\n chat\t tonight  "), "Friendly chat tonight");
   assert.equal(cleanRoomTitle("A playful room for music and conversation"), "A playful room for music and conversation");
 });
 
