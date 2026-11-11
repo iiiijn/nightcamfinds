@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { cleanRoomTitle, hasSpamTitle, isDisplayableRoom, filterDisplayableRooms } = require("../src/services/room-quality.cjs");
+const { cleanRoomTitle, normalizeRoomGender, hasSpamTitle, isDisplayableRoom, filterDisplayableRooms } = require("../src/services/room-quality.cjs");
 
 const valid = {
   id: "chaturbate:alice",
@@ -81,4 +81,26 @@ test("BongaCams feed uses strict category mapping and the shared room validator"
   assert.match(route, /filterDisplayableRooms\(normalized\)/);
   assert.ok(route.includes("/^(?:female|woman|women|f)$/"));
   assert.doesNotMatch(route, /rawGender\.includes\("male"\)/);
+});
+
+test("normalizes only explicit provider categories and leaves unknown values uncategorized", () => {
+  for (const [input, expected] of [
+    ["f", "female"], ["Female", "female"], ["woman", "female"],
+    ["m", "male"], ["Men", "male"],
+    ["t", "trans"], ["transgender", "trans"], ["s", "trans"],
+    ["c", "couples"], ["couple", "couples"]
+  ]) {
+    assert.equal(normalizeRoomGender(input), expected, input);
+  }
+  for (const input of ["", null, undefined, "unknown", "nonbinary", "trans male", "female model"]) {
+    assert.equal(normalizeRoomGender(input), "", String(input));
+  }
+});
+
+test("directory feed normalizers do not silently classify unknown provider genders as female", () => {
+  const server = require("node:fs").readFileSync(require("node:path").join(__dirname, "../server.js"), "utf8");
+  assert.match(server, /gender:normalizeRoomGender\(room\.gender\)/);
+  assert.match(server, /function bongaGender\(value\) \{ return normalizeRoomGender\(value\); \}/);
+  assert.doesNotMatch(server, /GENDER\[room\.gender\]\s*\|\|\s*"female"/);
+  assert.doesNotMatch(server, /return"female";\s*\}/);
 });
