@@ -64,7 +64,7 @@ test("Bonga country coverage counts the full feed and suppresses rare raw values
   assert.deepEqual(result.countryCounts, [{ country: "KE", count: 2 }, { country: "US", count: 2 }]);
   assert.deepEqual(result.commonRawCountryValues, [
     { field: "homecountry", value: "us", count: 2 },
-    { field: "hometown", value: "nairobi, kenya", count: 2 }
+    { field: "hometown", value: "kenya", count: 2 }
   ]);
   const serialized = JSON.stringify(result);
   assert.ok(!serialized.includes("private-a"));
