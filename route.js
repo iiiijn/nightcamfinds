@@ -518,6 +518,7 @@ http.createServer = function routeDashboard(handler) {
             country: row.country,
             platform: row.platform,
             source: row.source,
+            sourceEvidence: row.source_evidence || "legacy",
             campaign: row.campaign,
             clicks: Number(row.clicks || 0)
           })),
@@ -617,6 +618,7 @@ http.createServer = function routeDashboard(handler) {
             platform: row.platform,
             category: row.category,
             source: row.source,
+            sourceEvidence: row.source_evidence,
             medium: row.medium,
             campaign: row.campaign,
             content: row.content,
@@ -628,7 +630,7 @@ http.createServer = function routeDashboard(handler) {
           filters: parsed.value,
           truncated: result.rows.length === 2000,
           timezone: "UTC",
-          note: "These are recorded affiliate redirects, not verified human visitors or confirmed conversions. Unknown and direct sources are shown as recorded; source attribution may be absent or inaccurate for older clicks."
+          note: "These are recorded affiliate redirects, not verified human visitors or confirmed conversions. Source evidence identifies whether the source label came from URL parameters, a browser-reported referrer, first-party stored attribution, or is unknown. URL parameters are self-reported; legacy rows predate evidence capture."
         });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Click origins report requires the existing affiliate click attribution columns." });
@@ -650,7 +652,7 @@ http.createServer = function routeDashboard(handler) {
       params.push(limit);
       try {
         const result = await pool.query(
-          "SELECT clicked_at, country, category, LOWER(platform) AS platform, source, campaign, placement, content, landing_path, click_id FROM affiliate_clicks WHERE (LOWER(content) LIKE 'room-%' OR LOWER(content) LIKE '%:room-%')" + platformClause + " ORDER BY clicked_at DESC, id DESC LIMIT $" + params.length,
+          "SELECT clicked_at, country, category, LOWER(platform) AS platform, source, source_evidence, campaign, placement, content, landing_path, click_id FROM affiliate_clicks WHERE (LOWER(content) LIKE 'room-%' OR LOWER(content) LIKE '%:room-%')" + platformClause + " ORDER BY clicked_at DESC, id DESC LIMIT $" + params.length,
           params
         );
         return sendJson(res, 200, {
