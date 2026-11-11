@@ -101,18 +101,13 @@ async function ensureTrackingTable() {
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS source_evidence VARCHAR(32) NOT NULL DEFAULT 'legacy'");
   await pgPool.query("ALTER TABLE affiliate_clicks ALTER COLUMN source SET DEFAULT 'unknown'");
-  await pgPool.query(`DO $
-    BEGIN
-      IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'affiliate_clicks_source_evidence_check'
-          AND conrelid = to_regclass('public.affiliate_clicks')
-      ) THEN
-        ALTER TABLE public.affiliate_clicks
-          ADD CONSTRAINT affiliate_clicks_source_evidence_check
-          CHECK (source_evidence IN ('url_parameter', 'browser_referrer', 'stored_attribution', 'unknown', 'legacy'));
-      END IF;
-    END $`);
+  const evidenceConstraint = await pgPool.query(
+    "SELECT 1 FROM pg_constraint WHERE conname = $1 AND conrelid = to_regclass('public.affiliate_clicks')",
+    ["affiliate_clicks_source_evidence_check"]
+  );
+  if (!evidenceConstraint.rowCount) {
+    await pgPool.query("ALTER TABLE affiliate_clicks ADD CONSTRAINT affiliate_clicks_source_evidence_check CHECK (source_evidence IN ('url_parameter', 'browser_referrer', 'stored_attribution', 'unknown', 'legacy'))");
+  }
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT FALSE");
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS bot_reason VARCHAR(80)");
