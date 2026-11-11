@@ -11,13 +11,13 @@ test("promo attribution captures an external referrer host without its path or q
   assert.match(promo, /referrer\?\.hostname/);
   assert.match(promo, /host !== currentHost/);
   assert.match(promo, /referralOnly \? 'referral' : 'unknown'/);
-  assert.match(promo, /explicitSource \|\| savedSource \|\| referral \|\| 'unknown'/);
+  assert.match(promo, /explicitSource \|\| referral \|\| savedSource \|\| 'unknown'/);
 });
 
 test("explicit campaign attribution takes precedence over referral attribution", () => {
   const promo = fs.readFileSync(path.join(__dirname, "../public/promo.js"), "utf8");
-  assert.match(promo, /const source = explicitSource \|\| savedSource \|\| referral \|\| 'unknown'/);
-  assert.match(promo, /const referralOnly = !explicitSource && !savedSource && Boolean\(referral\)/);
+  assert.match(promo, /const source = explicitSource \|\| referral \|\| savedSource \|\| 'unknown'/);
+  assert.match(promo, /const referralOnly = !explicitSource && Boolean\(referral\)/);
 });
 
 test("directory room cards keep referral and visit attribution on outbound redirects", () => {
