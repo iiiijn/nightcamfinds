@@ -78,6 +78,9 @@ try {
 } catch (_) {}
 const hasExplicitAttribution = Object.values(incomingAttribution).some((value) => String(value).trim() !== "");
 const hasReferralAttribution = Boolean(referralSource) && !incomingAttribution.source.trim();
+const validSourceEvidence = new Set(["url_parameter", "browser_referrer", "stored_attribution", "unknown"]);
+const suppliedSourceEvidence = String(queryParams.get("evidence") || "").trim().toLowerCase();
+const explicitSourceEvidence = validSourceEvidence.has(suppliedSourceEvidence) ? suppliedSourceEvidence : "";
 let savedAttribution = {};
 try { savedAttribution = JSON.parse(localStorage.getItem("ncf_attribution") || "{}"); } catch (_) { savedAttribution = {}; }
 if (hasExplicitAttribution || hasReferralAttribution) {
@@ -86,6 +89,7 @@ if (hasExplicitAttribution || hasReferralAttribution) {
     medium: incomingAttribution.medium || (hasReferralAttribution ? "referral" : "unknown"),
     campaign: incomingAttribution.campaign || (hasReferralAttribution ? "referral" : "unknown"),
     content: incomingAttribution.content || "",
+    sourceEvidence: explicitSourceEvidence || (hasExplicitAttribution ? "url_parameter" : "browser_referrer"),
     landingPath: location.pathname,
     savedAt: Date.now()
   };
@@ -93,6 +97,7 @@ if (hasExplicitAttribution || hasReferralAttribution) {
 }
 const attributionFresh = Number(savedAttribution.savedAt || 0) > Date.now() - 30 * 24 * 60 * 60 * 1000;
 const trafficSource = String(incomingAttribution.source || (attributionFresh ? savedAttribution.source : "") || "unknown").slice(0, 30);
+const trafficSourceEvidence = explicitSourceEvidence || (hasExplicitAttribution ? "url_parameter" : hasReferralAttribution ? "browser_referrer" : attributionFresh ? (validSourceEvidence.has(savedAttribution.sourceEvidence) ? savedAttribution.sourceEvidence : "stored_attribution") : "unknown");
 const trafficCampaign = String(incomingAttribution.campaign || (attributionFresh ? savedAttribution.campaign : "") || "unknown").slice(0, 40);
 const trafficMedium = String(incomingAttribution.medium || (attributionFresh ? savedAttribution.medium : "") || "unknown").slice(0, 30);
 const trafficContent = String(incomingAttribution.content || (attributionFresh ? savedAttribution.content : "") || "").slice(0, 40);
@@ -175,6 +180,7 @@ function trackingQuery(extra = {}) {
     medium: trafficMedium || "unknown",
     campaign: trafficCampaign,
     content: trafficContent || "",
+    evidence: trafficSourceEvidence,
     placement: extra.placement || placement(),
     lp: String(visitLandingPath || location.pathname || "/").slice(0, 255),
     vid: visitId
