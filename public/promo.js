@@ -116,7 +116,6 @@
       medium: attr.medium,
       campaign: attr.campaign,
       content: campaignPlacement ? `${campaignPlacement}:${placement}` : placement,
-      evidence: attr.sourceEvidence,
       vid: currentVisitId,
       lp: originalLandingPath.slice(0, 255)
     });
