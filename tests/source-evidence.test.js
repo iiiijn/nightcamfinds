@@ -82,6 +82,6 @@ test('Overview compatibility fallback classifies legacy direct source as unknown
   const end = route.indexOf('    } catch (inner)', start);
   const fallback = route.slice(start, end);
   assert.match(fallback, /SELECT platform, source, country, placement/);
-  assert.match(fallback, /displaySource\\(row\\.source\\)/);
-  assert.doesNotMatch(fallback, /String\\(row\\.source \\|\\| "direct"\\)/);
+  assert.match(fallback, /displaySource\(row\.source\)/);
+  assert.doesNotMatch(fallback, /String\(row\.source \|\| "direct"\)/);
 });
