@@ -339,16 +339,27 @@ ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
     const referrer = document.referrer ? new URL(document.referrer) : null;
     if (referrer && referrer.hostname !== location.hostname) referral = referrer.hostname.toLowerCase().replace(/^www\./, "").slice(0, 40);
   } catch (_) {}
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem("ncf_attribution") || "{}"); } catch (_) {}
+  const fresh = Number(saved.savedAt || 0) > Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const explicitSource = incoming.get("utm_source") || incoming.get("source") || "";
+  const suppliedEvidence = String(incoming.get("evidence") || "").trim().toLowerCase();
+  const allowedEvidence = ["url_parameter", "browser_referrer", "stored_attribution", "unknown"];
+  const explicitEvidence = allowedEvidence.includes(suppliedEvidence) ? suppliedEvidence : "";
   const attribution = {
-    source: incoming.get("utm_source") || incoming.get("source") || referral || "unknown",
-    medium: incoming.get("utm_medium") || incoming.get("medium") || (referral ? "referral" : "unknown"),
-    campaign: incoming.get("utm_campaign") || incoming.get("campaign") || (referral ? "referral" : "unknown"),
-    content: incoming.get("utm_content") || incoming.get("content") || ""
+    source: explicitSource || (fresh ? saved.source : "") || referral || "unknown",
+    sourceEvidence: explicitEvidence || (explicitSource ? "url_parameter" : fresh ? (allowedEvidence.includes(saved.sourceEvidence) ? saved.sourceEvidence : "stored_attribution") : referral ? "browser_referrer" : "unknown"),
+    medium: incoming.get("utm_medium") || incoming.get("medium") || (referral ? "referral" : fresh ? saved.medium : "unknown"),
+    campaign: incoming.get("utm_campaign") || incoming.get("campaign") || (referral ? "referral" : fresh ? saved.campaign : "unknown"),
+    content: incoming.get("utm_content") || incoming.get("content") || (fresh ? saved.content : "") || ""
   };
+  if (explicitSource || referral) {
+    try { localStorage.setItem("ncf_attribution", JSON.stringify({ ...attribution, landingPath: location.pathname, savedAt: Date.now() })); } catch (_) {}
+  }
   const placement = "country-" + countrySlug;
   const trackParams = new URLSearchParams({
     src: placement, cat: "all", source: attribution.source, medium: attribution.medium,
-    campaign: attribution.campaign, content: attribution.content, placement,
+    campaign: attribution.campaign, content: attribution.content, evidence: attribution.sourceEvidence, placement,
     lp: landingPath.slice(0, 255), vid: visitId
   });
   document.querySelectorAll('a[href^="/go/"],a[href^="/bgo/"]').forEach((link) => {

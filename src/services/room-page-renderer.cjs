@@ -42,7 +42,8 @@ function card(room, category = "all", pagePath = "/") {
   const params = new URLSearchParams({
     src: placement,
     cat: room.gender || category,
-    source: "direct",
+    source: "unknown",
+    evidence: "unknown",
     medium: "unknown",
     campaign: "organic",
     content: "",

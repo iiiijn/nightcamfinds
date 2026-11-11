@@ -19,7 +19,7 @@ test("migrations persist core records and can roll back auth tables", async () =
     "SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='affiliate_clicks'"
   );
   const attributionNames = new Set(attributionColumns.rows.map((row) => row.column_name));
-  for (const column of ["page_type", "card_position", "referrer", "utm_source", "utm_campaign", "landing_path", "is_bot"]) {
+  for (const column of ["page_type", "card_position", "referrer", "utm_source", "utm_campaign", "landing_path", "is_bot", "source_evidence"]) {
     assert.ok(attributionNames.has(column), `expected attribution column: ${column}`);
   }
   await db.query(
