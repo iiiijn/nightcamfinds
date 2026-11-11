@@ -9,7 +9,9 @@ const {COUNTRIES,getCountryPage}=require("../country-pages.js");
 const {MARKET_META,MARKET_PRIORITY_CODES,REGION_GROUPS}=require("../src/config/market-countries.cjs");
 test("country values normalize ISO codes and explicit country names only",()=>{
  assert.equal(normalizeCountryCode(" gb "),"GB");assert.equal(normalizeCountryCode("United States"),"US");
- assert.equal(normalizeCountryCode("The Netherlands"),"NL");assert.equal(normalizeCountryCode("Nairobi"),"");assert.equal(normalizeCountryCode(""),"");
+ assert.equal(normalizeCountryCode("The Netherlands"),"NL");
+ assert.equal(normalizeCountryCode("россия"),"RU");
+ assert.equal(normalizeCountryCode("РОССИЯ"),"RU");assert.equal(normalizeCountryCode("Nairobi"),"");assert.equal(normalizeCountryCode(""),"");
 });
 test("region and language values normalize without inferring residence from language",()=>{
  assert.equal(normalizeRegion("  Bavaria  "),"Bavaria");assert.equal(normalizeLanguages(["English","German","English"]),"English, German");
