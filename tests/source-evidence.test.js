@@ -75,3 +75,13 @@ test('Overview source aggregation groups by source evidence and applies the shar
   assert.match(block, /displaySource\(row\.source, row\.source_evidence\)/);
   assert.match(route, /const \{ displaySource \} = require\("\.\/src\/services\/source-evidence\.cjs"\)/);
 });
+
+test('Overview compatibility fallback classifies legacy direct source as unknown', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('  } catch (err) {', route.indexOf('const sources = {};'));
+  const end = route.indexOf('    } catch (inner)', start);
+  const fallback = route.slice(start, end);
+  assert.match(fallback, /SELECT platform, source, country, placement/);
+  assert.match(fallback, /displaySource\\(row\\.source\\)/);
+  assert.doesNotMatch(fallback, /String\\(row\\.source \\|\\| "direct"\\)/);
+});
