@@ -29,3 +29,26 @@ test('uses parameterized UTC date filters', () => {
   assert.match(built.text, /received_at >= \(\$1::date AT TIME ZONE 'UTC'\)/);
   assert.match(built.text, /received_at < \(\(\$2::date \+ INTERVAL '1 day'\) AT TIME ZONE 'UTC'\)/);
 });
+
+
+test('detects macro placeholders in typed callback columns, not only raw payload', () => {
+  const built = conversionRevenue.buildQuery({});
+  assert.match(built.text, /COALESCE\\(cc\\.conversion_type, ''\\) ~ '\\^\\[\\{\\]\\[A-Za-z\\]/);
+  assert.match(built.text, /COALESCE\\(cc\\.currency, ''\\)/);
+  assert.match(built.text, /COALESCE\\(cc\\.click_id, ''\\)/);
+  assert.match(built.text, /THEN 'invalid_callback'/);
+  assert.match(built.text, /AS is_test/);
+});
+
+test('keeps invalid macro callbacks out of matched and unmatched eligible conversion totals', () => {
+  const source = require('../public/revenue-summary.js');
+  const result = source.summarizeConversions([
+    { conversions: 1, isTest: true, matchStatus: 'invalid_callback', conversionType: 'unknown', currency: 'UNSPECIFIED' },
+    { conversions: 2, isTest: false, matchStatus: 'matched', matchedConversions: 2, unmatchedConversions: 0, conversionType: 'revshare_purchase', currency: 'USD', reportedPayout: '4.50' }
+  ]);
+  assert.equal(result.invalidCallbacks, 1);
+  assert.equal(result.testEvents, 1);
+  assert.equal(result.matchedConversions, 2);
+  assert.equal(result.unmatchedConversions, 0);
+  assert.equal(result.attributedPayoutsByCurrency.USD, 4.5);
+});
