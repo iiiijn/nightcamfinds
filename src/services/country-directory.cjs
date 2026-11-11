@@ -12,7 +12,7 @@ const COUNTRY_NAME_CODES = new Map([
  ["CYPRUS","CY"],["BULGARIA","BG"],["CROATIA","HR"],["PORTUGAL","PT"],["NORTH MACEDONIA","MK"],
  ["SOUTH AFRICA","ZA"],["BAHRAIN","BH"],["JORDAN","JO"],["HASHEMITE KINGDOM OF JORDAN","JO"],["SERBIA","RS"],
  ["ARGENTINA","AR"],["KAZAKHSTAN","KZ"],["UKRAINE","UA"],["BELARUS","BY"],["CHINA","CN"],["MEXICO","MX"],
- ["REPUBLIC OF MOLDOVA","MD"],["MOLDOVA","MD"],["BOSNIA AND HERZEGOVINA","BA"],["BRAZIL","BR"],["EGYPT","EG"],["INDIA","IN"]
+ ["REPUBLIC OF MOLDOVA","MD"],["MOLDOVA","MD"],["BOSNIA AND HERZEGOVINA","BA"],["BRAZIL","BR"],["EGYPT","EG"],["INDIA","IN"],["KENYA","KE"]
 ]);
 function textValue(value) {
  if (typeof value==="string"||typeof value==="number") return String(value).trim();
