@@ -51,3 +51,27 @@ test('dashboard click reports display and filter by source evidence without clai
   assert.match(route, /sourceEvidence: row\.source_evidence/);
   assert.match(route, /URL parameters are self-reported/);
 });
+
+
+test('Overview source labels classify only legacy direct records as unknown', () => {
+  const { displaySource } = require('../src/services/source-evidence.cjs');
+  assert.equal(displaySource('direct', 'legacy'), 'unknown');
+  assert.equal(displaySource('direct', 'url_parameter'), 'direct');
+  assert.equal(displaySource('direct', 'browser_referrer'), 'direct');
+  assert.equal(displaySource('direct', 'stored_attribution'), 'direct');
+  assert.equal(displaySource('instagram', 'legacy'), 'instagram');
+  assert.equal(displaySource(null, 'legacy'), 'unknown');
+});
+
+test('Overview source aggregation groups by source evidence and applies the shared legacy display mapping', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('const sources = {};');
+  const end = route.indexOf('const combinedCountries', start);
+  const block = route.slice(start, end);
+  assert.match(block, /SELECT platform, source, source_evidence, country, placement, device/);
+  assert.match(block, /GROUP BY platform, source, source_evidence, country, placement, device/);
+  assert.match(block, /displaySource\(row\.source, row\.source_evidence\)/);
+  assert.match(route, /const \{ displaySource \} = require\("\.\/src\/services\/source-evidence\.cjs"\)/);
+});

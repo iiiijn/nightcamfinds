@@ -10,6 +10,7 @@ const { validateCountryPlatformPayload } = require("./src/services/country-setti
 const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
 const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRateLimiter } = require("./src/services/traffic-quality.cjs");
 const clickOrigins = require("./src/services/click-origins.cjs");
+const { displaySource } = require("./src/services/source-evidence.cjs");
 const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
@@ -244,12 +245,12 @@ async function dashboardStats(incoming) {
   const placements = {};
   const devices = {};
   try {
-    const r = await pool.query(`SELECT platform, source, country, placement, device, COUNT(*)::int AS clicks
+    const r = await pool.query(`SELECT platform, source, source_evidence, country, placement, device, COUNT(*)::int AS clicks
       FROM affiliate_clicks ${businessClickWhere}
-      GROUP BY platform, source, country, placement, device`, cb.params);
+      GROUP BY platform, source, source_evidence, country, placement, device`, cb.params);
     for (const row of r.rows) {
       const platform = String(row.platform || "unknown");
-      const source = String(row.source || "direct");
+      const source = displaySource(row.source, row.source_evidence);
       const country = String(row.country || "UNKNOWN").toUpperCase();
       const placement = String(row.placement || "unknown");
       const device = String(row.device || "unknown");

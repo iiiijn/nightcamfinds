@@ -12,4 +12,10 @@ function normalizeSourceEvidence(value) {
   return SOURCE_EVIDENCE.includes(normalized) ? normalized : 'unknown';
 }
 
-module.exports = { SOURCE_EVIDENCE, normalizeSourceEvidence };
+function displaySource(source, evidence) {
+  const normalizedSource = String(source || 'unknown').trim().toLowerCase() || 'unknown';
+  const normalizedEvidence = String(evidence || 'legacy').trim().toLowerCase() || 'legacy';
+  return normalizedEvidence === 'legacy' && normalizedSource === 'direct' ? 'unknown' : normalizedSource;
+}
+
+module.exports = { SOURCE_EVIDENCE, normalizeSourceEvidence, displaySource };
