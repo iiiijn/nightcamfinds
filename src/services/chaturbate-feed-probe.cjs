@@ -73,7 +73,7 @@ async function runChaturbateFeedProbe({
           rows: null,
           uniqueTotal: seen.size,
           duplicates: null,
-          error: response?.error || "http_or_response_error"
+          error: ["non_json_response", "missing_results_array"].includes(response?.error) ? response.error : "http_or_response_error"
         });
         stopReason = "http_or_response_error";
         break;
