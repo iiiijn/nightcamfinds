@@ -14,6 +14,7 @@ const { resolveRegionalMaxPages } = require("./src/services/regional-feed-config
 const { filterDisplayableRooms, normalizeRoomGender } = require("./src/services/room-quality.cjs");
 const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalRoomGroups } = require("./src/services/regional-discovery.cjs");
 const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
+const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");
 
 let pgPool = null;
 try {
@@ -333,7 +334,7 @@ const server=http.createServer(async(req,res)=>{
   const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();
   const regions=[...new Set(feed.rooms.map(r=>r.region||regionFor(r)))].sort((a,b)=>{const ai=REGION_ORDER.indexOf(a),bi=REGION_ORDER.indexOf(b);return (ai<0?REGION_ORDER.length:ai)-(bi<0?REGION_ORDER.length:bi)||a.localeCompare(b);});
   const languages=[...new Set(feed.rooms.flatMap(languagesFor))].sort((a,b)=>a.localeCompare(b));
-  if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,regions,languages,notice:feed.notice,...(coverage?{coverage}:{})}),"application/json");
+  if (url.searchParams.get("summary") === "1") { const diagnostics = url.searchParams.get("diagnostics") === "1" ? { basis: "normalized_partner_feed_snapshot", rawProviderPayloadsAvailable: false, providers: summarizeProviderFeedQuality(feed.rooms) } : null; return send(res,200,JSON.stringify({liveCount:list.length,platforms,regions,languages,notice:feed.notice,...(coverage?{coverage}:{}),...(diagnostics?{diagnostics}:{})}),"application/json"); }
   const page=list.slice(offset,offset+limit);
   const regionalRooms=buildRegionalRoomGroups(list,sort,8);
   const topChaturbateByCategory = {};
