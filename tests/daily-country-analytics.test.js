@@ -51,6 +51,9 @@ test('dashboard login loads daily country analytics through shared initializatio
   const loginEnd = html.indexOf('async function logout()', loginStart);
   assert.ok(loaderStart >= 0 && checkStart > loaderStart);
   assert.ok(loginStart >= 0 && loginEnd > loginStart);
-  assert.match(html.slice(loaderStart, checkStart), /loadDailyCountryAnalytics\(\)/);
+  const tabLoaderStart = html.indexOf('async function loadDashboardTab(tab,force=false)');
+  const tabLoaderEnd = html.indexOf('function setDashboardTab(tab)', tabLoaderStart);
+  assert.ok(tabLoaderStart >= 0 && tabLoaderEnd > tabLoaderStart);
+  assert.match(html.slice(tabLoaderStart, tabLoaderEnd), /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadClickOrigins\]/);
   assert.match(html.slice(loginStart, loginEnd), /showDashboard\(j\.username\);await loadDashboardData\(\)/);
 });

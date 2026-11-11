@@ -13,14 +13,20 @@ test('dashboard uses one shared loader for restored sessions and fresh sign-ins'
   assert.ok(start >= 0 && end > start, 'shared dashboard loader should exist before auth checks');
   const loader = dashboard.slice(start, end);
 
-  for (const report of [
-    'load()', 'loadRouteSettings()', 'loadDailyCountryAnalytics()',
-    'loadCountryCategoryAnalytics()', 'loadTrafficQualityAnalytics()',
-    'loadClickOrigins()', 'loadRecentRoomClicks()', 'loadCampaignPerformance()',
-    'loadTrafficRevenuePerformance()', 'loadConversionRevenue()',
-    'loadProviderAttributionHealth()', 'loadConversionFunnel()'
+  assert.match(loader, /dashboardLoadedTabs\.clear\(\)/);
+  assert.match(loader, /await loadDashboardTab\(activeDashboardTab,true\)/);
+  const tabLoaderStart = dashboard.indexOf('async function loadDashboardTab(tab,force=false)');
+  const tabLoaderEnd = dashboard.indexOf('function setDashboardTab(tab)', tabLoaderStart);
+  assert.ok(tabLoaderStart >= 0 && tabLoaderEnd > tabLoaderStart, 'tab loader should exist');
+  const tabLoader = dashboard.slice(tabLoaderStart, tabLoaderEnd);
+  for (const group of [
+    /overview:\[loadRoomCoverage,load,loadRouteSettings,loadCountryCategoryAnalytics\]/,
+    /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadClickOrigins\]/,
+    /investigation:\[loadRecentRoomClicks\]/,
+    /revenue:\[loadCampaignPerformance,loadTrafficRevenuePerformance,loadConversionRevenue,loadConversionFunnel\]/,
+    /health:\[loadProviderAttributionHealth\]/
   ]) {
-    assert.ok(loader.includes(report), 'shared loader should initialize ' + report);
+    assert.match(tabLoader, group, 'each dashboard section should have its own loader group');
   }
 });
 

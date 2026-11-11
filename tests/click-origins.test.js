@@ -87,7 +87,10 @@ test('fresh login loads the click origins report through shared dashboard initia
   const loginEnd = html.indexOf('async function logout()', loginStart);
   assert.ok(loaderStart >= 0 && checkStart > loaderStart);
   assert.ok(loginStart >= 0 && loginEnd > loginStart);
-  assert.match(html.slice(loaderStart, checkStart), /loadClickOrigins\(\)/);
+  const tabLoaderStart = html.indexOf('async function loadDashboardTab(tab,force=false)');
+  const tabLoaderEnd = html.indexOf('function setDashboardTab(tab)', tabLoaderStart);
+  assert.ok(tabLoaderStart >= 0 && tabLoaderEnd > tabLoaderStart);
+  assert.match(html.slice(tabLoaderStart, tabLoaderEnd), /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadClickOrigins\]/);
   assert.match(html.slice(loginStart, loginEnd), /await loadDashboardData\(\)/);
 });
 
