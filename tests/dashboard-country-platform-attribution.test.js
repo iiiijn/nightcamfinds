@@ -1,8 +1,6 @@
-"use strict";
-
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
 
 const dashboard = fs.readFileSync(new URL("../public/dashboard.html", import.meta.url), "utf8");
 
