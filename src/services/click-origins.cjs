@@ -44,11 +44,12 @@ function buildQuery(filters) {
   if (filters.country !== 'ALL') { params.push(filters.country); where.push("UPPER(country) = $" + params.length); }
   if (filters.platform !== 'ALL') { params.push(filters.platform); where.push("LOWER(platform) = $" + params.length); }
   if (filters.category !== 'ALL') { params.push(filters.category); where.push("LOWER(category) = $" + params.length); }
-  if (filters.source !== 'ALL') { params.push(filters.source); where.push("LOWER(source) = $" + params.length); }
+  const displayedSource = "CASE WHEN LOWER(COALESCE(source_evidence, 'legacy')) = 'legacy' AND LOWER(COALESCE(source, '')) = 'direct' THEN 'unknown' ELSE COALESCE(NULLIF(LOWER(source), ''), 'unknown') END";
+  if (filters.source !== 'ALL') { params.push(filters.source); where.push(displayedSource + " = $" + params.length); }
   if (filters.sourceEvidence && filters.sourceEvidence !== 'ALL') { params.push(filters.sourceEvidence); where.push("LOWER(source_evidence) = $" + params.length); }
   const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
   return {
-    text: "SELECT (clicked_at AT TIME ZONE 'UTC')::date AS date, UPPER(country) AS country, LOWER(platform) AS platform, LOWER(category) AS category, COALESCE(NULLIF(LOWER(source), ''), 'unknown') AS source, COALESCE(NULLIF(LOWER(source_evidence), ''), 'legacy') AS source_evidence, COALESCE(NULLIF(LOWER(medium), ''), 'unknown') AS medium, COALESCE(NULLIF(LOWER(campaign), ''), 'unknown') AS campaign, COALESCE(NULLIF(LOWER(content), ''), 'unknown') AS content, COALESCE(NULLIF(LOWER(placement), ''), 'unknown') AS placement, COALESCE(NULLIF(LOWER(landing_path), ''), 'unknown') AS landing_path, COALESCE(NULLIF(LOWER(device), ''), 'unknown') AS device, COUNT(*)::int AS clicks FROM affiliate_clicks " + whereSql + " GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12 ORDER BY clicks DESC, date DESC, country ASC LIMIT 2000",
+    text: "SELECT (clicked_at AT TIME ZONE 'UTC')::date AS date, UPPER(country) AS country, LOWER(platform) AS platform, LOWER(category) AS category, CASE WHEN LOWER(COALESCE(source_evidence, 'legacy')) = 'legacy' AND LOWER(COALESCE(source, '')) = 'direct' THEN 'unknown' ELSE COALESCE(NULLIF(LOWER(source), ''), 'unknown') END AS source, COALESCE(NULLIF(LOWER(source_evidence), ''), 'legacy') AS source_evidence, COALESCE(NULLIF(LOWER(medium), ''), 'unknown') AS medium, COALESCE(NULLIF(LOWER(campaign), ''), 'unknown') AS campaign, COALESCE(NULLIF(LOWER(content), ''), 'unknown') AS content, COALESCE(NULLIF(LOWER(placement), ''), 'unknown') AS placement, COALESCE(NULLIF(LOWER(landing_path), ''), 'unknown') AS landing_path, COALESCE(NULLIF(LOWER(device), ''), 'unknown') AS device, COUNT(*)::int AS clicks FROM affiliate_clicks " + whereSql + " GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12 ORDER BY clicks DESC, date DESC, country ASC LIMIT 2000",
     params
   };
 }
