@@ -10,6 +10,7 @@ const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
 const { isPriorityMarket, MARKET_META, MARKET_PRIORITY_CODES } = require("./src/config/market-countries.cjs");
 const { fetchPagedResults } = require("./src/services/paged-feed.cjs");
+const { resolveRegionalMaxPages } = require("./src/services/regional-feed-config.cjs");
 const { filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalRoomGroups } = require("./src/services/regional-discovery.cjs");
 
@@ -37,7 +38,7 @@ const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
 const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
 const CHATURBATE_PAGE_SIZE = 500;
 const CHATURBATE_MAX_PAGES = Math.max(1, Math.min(20, Number(process.env.CHATURBATE_MAX_PAGES || 10)));
-const CHATURBATE_REGION_MAX_PAGES = Math.max(1, Math.min(10, Number(process.env.CHATURBATE_REGION_MAX_PAGES || Math.min(4, CHATURBATE_MAX_PAGES))));
+const CHATURBATE_REGION_MAX_PAGES = resolveRegionalMaxPages(process.env.CHATURBATE_REGION_MAX_PAGES, CHATURBATE_MAX_PAGES);
 const CONTACT = process.env.CONTACT_EMAIL || "bunnybelle188@gmail.com";
 const PUBLIC = path.join(__dirname, "public");
 
