@@ -15,7 +15,7 @@ const { filterDisplayableRooms, normalizeRoomGender } = require("./src/services/
 const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalRoomGroups } = require("./src/services/regional-discovery.cjs");
 const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
 const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");
-const { summarizeBongaRawFields, summarizeBongaFieldValues } = require("./src/services/bonga-feed-diagnostics.cjs");
+const { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage } = require("./src/services/bonga-feed-diagnostics.cjs");
 const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");
 let latestBongaRawDiagnostics = null;
 
@@ -220,7 +220,7 @@ async function fetchChaturbateRooms(req) {
  for(const result of successful)for(const room of result.value)if(room&&room.id&&!unique.has(room.id))unique.set(room.id,room);
  return {rooms:[...unique.values()],notice:failed.length?"Some Chaturbate regional feeds are temporarily unavailable: "+failed.join(", "):""};
 }
-async function fetchBongaRooms() { if(!BONGA_ENABLED)return[]; const params=new URLSearchParams({c:BONGA_CAMPAIGN,type:"api",api_v:"1",limit:String(BONGA_LIMIT),api_type:"json"}); const data=await fetchJson(`${BONGA_API_BASE}?${params.toString()}`); const candidateRows=Array.isArray(data)?data:(data.results||data.rooms||data.data||data.models||[]); const rawRows=Array.isArray(candidateRows)?candidateRows:[]; latestBongaRawDiagnostics={...summarizeBongaRawFields(rawRows),valueSummary:summarizeBongaFieldValues(rawRows)}; return filterDisplayableRooms(rawRows.map(room => ({ normalized: normalizeBongaRoom(room), rawText: [room.username, room.user_name, room.nickname, room.display_name, room.name, room.chat_topic, room.room_subject, room.topic, room.tags].filter(Boolean).map(value => plainText(value)).join(" ") }))); }
+async function fetchBongaRooms() { if(!BONGA_ENABLED)return[]; const params=new URLSearchParams({c:BONGA_CAMPAIGN,type:"api",api_v:"1",limit:String(BONGA_LIMIT),api_type:"json"}); const data=await fetchJson(`${BONGA_API_BASE}?${params.toString()}`); const candidateRows=Array.isArray(data)?data:(data.results||data.rooms||data.data||data.models||[]); const rawRows=Array.isArray(candidateRows)?candidateRows:[]; latestBongaRawDiagnostics={...summarizeBongaRawFields(rawRows),valueSummary:summarizeBongaFieldValues(rawRows),countryCoverage:summarizeBongaCountryCoverage(rawRows,normalizeBongaCountry)}; return filterDisplayableRooms(rawRows.map(room => ({ normalized: normalizeBongaRoom(room), rawText: [room.username, room.user_name, room.nickname, room.display_name, room.name, room.chat_topic, room.room_subject, room.topic, room.tags].filter(Boolean).map(value => plainText(value)).join(" ") }))); }
 async function rooms(req) {
  const visitor=visitorCountry(req);
  const cacheKey=visitor!=="UNKNOWN"?visitor:clientIp(req);
