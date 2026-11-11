@@ -87,5 +87,7 @@ test('BongaCams primary click and platform ledger writes share one transaction',
 test('provider health endpoint includes two-way orphan counts without changing click totals', () => {
   assert.match(routeSource, /queries\.orphans\.text, queries\.orphans\.params/);
   assert.match(routeSource, /orphanedLedgerEntries \+= Number\(row\.orphaned_ledger_entries \|\| 0\)/);
+  assert.match(routeSource, /invalidCallbacks: Number\(c\.invalid_callback \|\| 0\)/);
+  assert.match(dashboardSource, /Invalid callbacks: '\+n\(c\.invalidCallbacks\)/);
   assert.match(dashboardSource, /orphaned ledger rows:/);
 });
