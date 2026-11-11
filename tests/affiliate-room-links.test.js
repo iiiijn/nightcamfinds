@@ -32,7 +32,7 @@ test("BongaCams room cards use the tracked room redirect and account-generated D
   assert.match(server, /destination\.searchParams\.set\("type", "direct_link"\)/);
   assert.match(server, /destination\.searchParams\.set\("models\[\]", username\)/);
   assert.match(server, /destination\.searchParams\.set\("c", BONGA_CAMPAIGN\)/);
-  assert.match(server, /await countClick\(\{ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
+  assert.match(server, /await countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
   assert.match(server, /destination\.searchParams\.set\("models\[\]", username\)/);
 });
 
