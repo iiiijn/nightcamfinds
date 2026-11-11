@@ -6,12 +6,12 @@ const URL_OR_LINK = /(?:https?:\/\/|www\.|\b[a-z0-9-]+\.(?:com|net|org|me|io|tv)
 const PROMO_SPAM = /\b(?:telegram|whatsapp|snapchat|kik|cashapp|venmo|click\s+here|join\s+my\s+(?:group|channel)|free\s+(?:tokens|shows)|promo\s+code)\b/i;
 
 function normalizeRoomGender(value) {
-  const key = String(value == null ? "" : value).trim().toLowerCase();
+  const key = String(value == null ? "" : value).normalize("NFKC").trim().toLowerCase().replace(/\\s+/g, " ");
   const categories = {
-    f: "female", female: "female", woman: "female", women: "female",
+    f: "female", female: "female", woman: "female", women: "female", weiblich: "female",
     m: "male", male: "male", man: "male", men: "male",
     t: "trans", s: "trans", trans: "trans", transgender: "trans",
-    c: "couples", couple: "couples", couples: "couples"
+    c: "couples", couple: "couples", couples: "couples",\n    "paar weiblich + männlich": "couples", "paar weiblich + weiblich": "couples"
   };
   return categories[key] || "";
 }
