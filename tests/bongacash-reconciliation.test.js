@@ -52,4 +52,10 @@ test("revenue dashboard provides a protected manual BongaCash daily report form"
   assert.match(route, /incoming\.pathname === "\/api\/bongacash-reconciliation"/);
   assert.match(route, /validDashboardSession\(req\)/);
   assert.match(route, /isSameOriginRequest\(req\.headers\)/);
+  assert.match(route, /ON CONFLICT \(report_date\) DO UPDATE SET/);
+  assert.match(route, /registrations=EXCLUDED\.registrations, purchases=EXCLUDED\.purchases/);
+  assert.match(route, /earnings=EXCLUDED\.earnings, notes=EXCLUDED\.notes/);
+  assert.match(route, /updated_by=EXCLUDED\.updated_by,updated_at=NOW\(\)/);
+  assert.match(route, /report_date >= \$\{params\.length\}::date/);
+  assert.match(route, /report_date <= \$\{params\.length\}::date/);
 });
