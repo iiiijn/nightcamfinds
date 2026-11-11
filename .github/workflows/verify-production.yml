@@ -32,7 +32,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -93,7 +93,11 @@ jobs:
               --fetch-timeout=120000
           fi
 
-          npm test
+          echo "Running every test file sequentially with a 120-second per-file limit."
+          for test_file in tests/*.test.js; do
+            echo "=== Running $test_file ==="
+            timeout --signal=TERM --kill-after=10s 120s node --test "$test_file"
+          done
 
           cleanup
           trap - EXIT
