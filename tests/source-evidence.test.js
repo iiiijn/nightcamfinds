@@ -17,7 +17,7 @@ test('source evidence migration preserves historical attribution as legacy', () 
   const migration = fs.readFileSync(path.join(__dirname, '../sql/009_click_source_evidence.sql'), 'utf8');
   assert.match(migration, /ADD COLUMN IF NOT EXISTS source_evidence VARCHAR\(32\) NOT NULL DEFAULT 'legacy'/i);
   assert.match(migration, /ALTER COLUMN source SET DEFAULT 'unknown'/i);
-  assert.match(migration, /'url_parameter'.*'browser_referrer'.*'stored_attribution'.*'unknown'.*'legacy'/s);
+  assert.match(migration, /CHECK \(source_evidence IN \('url_parameter', 'browser_referrer', 'stored_attribution', 'unknown', 'legacy'\)\)/);
 });
 
 test('migration plan includes source evidence for production and staging', () => {
