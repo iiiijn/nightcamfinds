@@ -12,9 +12,9 @@ test('builds separate parameterized UTC windows for callbacks and clicks', () =>
   assert.match(q.callbacks.text, /click_id_not_found/);
   assert.match(q.callbacks.text, /AS test/);
   assert.match(q.callbacks.text, /AS invalid_callback/);
-  assert.match(q.callbacks.text, /COALESCE\\(cc\\.conversion_type, ''\\)/);
-  assert.match(q.callbacks.text, /COALESCE\\(cc\\.currency, ''\\)/);
-  assert.match(q.callbacks.text, /NOT \\(EXISTS/);
+  assert.ok(q.callbacks.text.includes("COALESCE(cc.conversion_type, '')"));
+  assert.ok(q.callbacks.text.includes("COALESCE(cc.currency, '')"));
+  assert.ok(q.callbacks.text.includes('NOT (EXISTS'));
   assert.match(q.clicks.text, /FROM affiliate_clicks/);
   assert.doesNotMatch(q.clicks.text, /2026-11/);
 });
