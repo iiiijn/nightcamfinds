@@ -46,7 +46,7 @@ test('dashboard click reports display and filter by source evidence without clai
   const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
   assert.match(dashboard, /id="originsEvidence"/);
   assert.match(dashboard, /Source evidence/);
-  assert.match(dashboard, /originsEvidence').addEventListener\('change',loadClickOrigins/);
+  assert.ok(dashboard.includes("$('originsEvidence').addEventListener('change',loadClickOrigins)"));
   assert.match(dashboard, /x\.sourceEvidence/);
   assert.match(route, /sourceEvidence: row\.source_evidence/);
   assert.match(route, /URL parameters are self-reported/);
