@@ -369,8 +369,10 @@ test('server establishes first-party visit cookies before directory affiliate li
   assert.match(server, /SameSite=Lax/);
   assert.match(server, /forwardedProto === "https"/);
   assert.match(server, /visitCookieHeaders\(req, pathname\)/);
-  const expectedCookieHelperReferences = server.includes("// NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1") ? 3 : 4;
-  assert.equal((server.match(/visitCookieHeaders\(req, pathname\)/g) || []).length, expectedCookieHelperReferences, "the helper and active main, country, and broadcast response call sites must be present");
+  assert.equal((server.match(/visitCookieHeaders\(req, pathname\)/g) || []).length, 4, "the helper and active main, country, and broadcast response call sites must be present");
+  const countryPatch = fs.readFileSync(path.join(__dirname, '../scripts/patch-country-directory.js'), 'utf8');
+  assert.match(countryPatch, /active country route visit cookies/);
+  assert.match(countryPatch, /visitCookieHeaders\(req, pathname\)/);
   assert.match(server, /return cookies\.length \? \{ "Set-Cookie": cookies \} : \{\}/);
   assert.match(server, /const queryVisitId = String\(url\.searchParams\.get\("vid"\)/);
   assert.match(server, /const cookieVisitId = String\(cookieValue\(req, "ncf_visit_id"\)/);
