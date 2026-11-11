@@ -37,7 +37,7 @@ const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
 const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
 const CHATURBATE_PAGE_SIZE = 500;
 const CHATURBATE_MAX_PAGES = Math.max(1, Math.min(20, Number(process.env.CHATURBATE_MAX_PAGES || 10)));
-const CHATURBATE_REGION_MAX_PAGES = Math.max(1, Math.min(10, Number(process.env.CHATURBATE_REGION_MAX_PAGES || Math.min(2, CHATURBATE_MAX_PAGES))));
+const CHATURBATE_REGION_MAX_PAGES = Math.max(1, Math.min(10, Number(process.env.CHATURBATE_REGION_MAX_PAGES || Math.min(4, CHATURBATE_MAX_PAGES))));
 const CONTACT = process.env.CONTACT_EMAIL || "bunnybelle188@gmail.com";
 const PUBLIC = path.join(__dirname, "public");
 
@@ -202,7 +202,7 @@ async function fetchChaturbateRegion(req,apiRegion) {
   if(!data||!Array.isArray(data.results))throw new TypeError("Chaturbate regional feed response did not contain a results array.");
   return data.results;
  },{pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES,getKey:room=>room&&room.username});
- if(pages.truncated)console.warn("Chaturbate "+apiRegion+" feed reached its configured page ceiling.");
+ if(pages.truncated)console.warn("Chaturbate "+apiRegion+" feed reached its configured page ceiling.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,maxPages:CHATURBATE_REGION_MAX_PAGES,stopReason:pages.stopReason}));
  return filterDisplayableRooms(pages.items.map(room=>({normalized:normalizeChaturbateRoom(room,apiRegion),rawText:[room.username,room.display_name,room.room_subject].filter(Boolean).join(" ")})));
 }
 async function fetchChaturbateRooms(req) {
