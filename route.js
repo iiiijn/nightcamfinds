@@ -662,6 +662,7 @@ http.createServer = function routeDashboard(handler) {
             category: row.category,
             platform: row.platform,
             source: row.source,
+            sourceEvidence: row.source_evidence || "legacy",
             campaign: row.campaign,
             placement: row.placement,
             room: (String(row.content || "").match(/(?:^|:)room-([a-z0-9_-]{1,64})(?::|$)/i) || [])[1] || "",
