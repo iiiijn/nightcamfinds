@@ -11,6 +11,10 @@ test('builds separate parameterized UTC windows for callbacks and clicks', () =>
   assert.match(q.callbacks.text, /missing_click_id/);
   assert.match(q.callbacks.text, /click_id_not_found/);
   assert.match(q.callbacks.text, /AS test/);
+  assert.match(q.callbacks.text, /AS invalid_callback/);
+  assert.ok(q.callbacks.text.includes("COALESCE(cc.conversion_type, '')"));
+  assert.ok(q.callbacks.text.includes("COALESCE(cc.currency, '')"));
+  assert.ok(q.callbacks.text.includes('NOT (EXISTS'));
   assert.match(q.clicks.text, /FROM affiliate_clicks/);
   assert.doesNotMatch(q.clicks.text, /2026-11/);
 });
@@ -83,5 +87,9 @@ test('BongaCams primary click and platform ledger writes share one transaction',
 test('provider health endpoint includes two-way orphan counts without changing click totals', () => {
   assert.match(routeSource, /queries\.orphans\.text, queries\.orphans\.params/);
   assert.match(routeSource, /orphanedLedgerEntries \+= Number\(row\.orphaned_ledger_entries \|\| 0\)/);
+  assert.match(routeSource, /invalidCallbacks: Number\(c\.invalid_callback \|\| 0\)/);
+  assert.match(dashboardSource, /Invalid callbacks: '\+n\(c\.invalidCallbacks\)/);
   assert.match(dashboardSource, /orphaned ledger rows:/);
+  assert.match(routeSource, /invalidCallbacks: Number\(c\.invalid_callback \|\| 0\)/);
+  assert.ok(dashboardSource.includes("Invalid callbacks: '+n(c.invalidCallbacks)"));
 });
