@@ -1,7 +1,8 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { summarizeBongaRawFields, summarizeBongaFieldValues } = require("../src/services/bonga-feed-diagnostics.cjs");
+const { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage } = require("../src/services/bonga-feed-diagnostics.cjs");
+const { normalizeBongaCountry } = require("../src/services/bonga-country-normalizer.cjs");
 
 test("Bonga diagnostics expose field names and value types without raw values", () => {
   const result = summarizeBongaRawFields([
@@ -47,4 +48,26 @@ test("Bonga value diagnostics aggregate only country and gender fields", () => {
   assert.ok(!serialized.includes("rare-value"));
   assert.ok(!serialized.includes("username"));
   assert.ok(!serialized.includes("chat_topic"));
+});
+
+
+test("Bonga country coverage counts the full feed and suppresses rare raw values", () => {
+  const rows = [
+    { homecountry: "US", username: "private-a" }, { homecountry: "US", username: "private-b" },
+    { hometown: "Nairobi, Kenya", username: "private-c" }, { hometown: "Nairobi, Kenya", username: "private-d" },
+    { hometown: "Nairobi", username: "private-e" }, { homecountry: "Rareland", username: "private-f" }
+  ];
+  const result = summarizeBongaCountryCoverage(rows, normalizeBongaCountry);
+  assert.equal(result.totalRows, 6);
+  assert.equal(result.classifiedCount, 4);
+  assert.equal(result.unclassifiedCount, 2);
+  assert.deepEqual(result.countryCounts, [{ country: "KE", count: 2 }, { country: "US", count: 2 }]);
+  assert.deepEqual(result.commonRawCountryValues, [
+    { field: "homecountry", value: "us", count: 2 },
+    { field: "hometown", value: "nairobi, kenya", count: 2 }
+  ]);
+  const serialized = JSON.stringify(result);
+  assert.ok(!serialized.includes("private-a"));
+  assert.ok(!serialized.includes("rareland"));
+  assert.ok(!serialized.includes("nairobi"));
 });
