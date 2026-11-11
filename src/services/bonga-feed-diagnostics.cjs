@@ -75,7 +75,8 @@ function summarizeBongaCountryCoverage(rows, normalizeCountry, minCount = 2) {
     const code = typeof normalizeCountry === "function" ? normalizeCountry(row) : "";
     if (code) { classifiedCount += 1; countries.set(code, (countries.get(code) || 0) + 1); }
     for (const field of ["homecountry", "country", "country_code", "hometown"]) {
-      const value = safeAggregateValue(row[field]);
+      const rawValue = safeAggregateValue(row[field]);
+      const value = field === "hometown" && rawValue && rawValue.includes(",") ? safeAggregateValue(rawValue.split(",").pop()) : field === "hometown" ? "" : rawValue;
       if (!value) continue;
       const key = field + ":" + value;
       rawValues.set(key, (rawValues.get(key) || 0) + 1);
