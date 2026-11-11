@@ -68,8 +68,8 @@ test('affiliate redirect persistence stores known and suspected bot evidence eve
   const writer = server.slice(start, end);
   assert.match(server, /ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT FALSE/);
   assert.match(server, /ADD COLUMN IF NOT EXISTS bot_reason VARCHAR\(80\)/);
-  assert.match(writer, /click_id,visit_id,landing_path,is_bot,bot_reason/);
-  assert.match(writer, /click_id,is_bot,bot_reason/);
+  assert.match(writer, /source_evidence,click_id,visit_id,landing_path,is_bot,bot_reason/);
+  assert.match(writer, /source_evidence,click_id,is_bot,bot_reason/);
   assert.match(writer, /trafficClass === "known_bot"/);
   assert.match(writer, /"known_bot_user_agent"/);
   assert.match(writer, /"suspected_automation_user_agent"/);
@@ -248,7 +248,7 @@ test('affiliate redirect handler accepts source attribution and validates visit 
   const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
   assert.match(server, /url\.searchParams\.get\("utm_source"\) \|\| url\.searchParams\.get\("source"\)/);
   assert.match(server, /match\(\/\^\[a-f0-9\]\{32\}\$\/i\)\?\.\[0\]/);
-  assert.match(server, /countClick\(\{ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
+  assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
 });
 
 test('accepts BongaCash static-banner load and viewable events', () => {
