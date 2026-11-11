@@ -91,8 +91,7 @@ test("real Chaturbate conversion postbacks require a configured shared secret", 
 });
 
 test("macro test callbacks are acknowledged without recording conversions", () => {
-  assert.ok(start.includes("macroPlaceholder(params.click_id)"));
-  assert.ok(start.includes("macroPlaceholder(params.transaction_id)"));
+  assert.ok(start.includes("hasUnresolvedChaturbateMacros(params)"));
   assert.ok(start.includes("no conversion recorded"));
 });
 
