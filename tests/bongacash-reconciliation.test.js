@@ -56,6 +56,6 @@ test("revenue dashboard provides a protected manual BongaCash daily report form"
   assert.match(route, /registrations=EXCLUDED\.registrations, purchases=EXCLUDED\.purchases/);
   assert.match(route, /earnings=EXCLUDED\.earnings, notes=EXCLUDED\.notes/);
   assert.match(route, /updated_by=EXCLUDED\.updated_by,updated_at=NOW\(\)/);
-  assert.match(route, /report_date >= \$\{params\.length\}::date/);
-  assert.match(route, /report_date <= \$\{params\.length\}::date/);
+  assert.ok(route.includes('report_date >= $${params.length}::date'));
+  assert.ok(route.includes('report_date <= $${params.length}::date'));
 });
