@@ -33,9 +33,9 @@ test('uses parameterized UTC date filters', () => {
 
 test('detects macro placeholders in typed callback columns, not only raw payload', () => {
   const built = conversionRevenue.buildQuery({});
-  assert.match(built.text, /COALESCE\\(cc\\.conversion_type, ''\\) ~/);
-  assert.match(built.text, /COALESCE\\(cc\\.currency, ''\\)/);
-  assert.match(built.text, /COALESCE\\(cc\\.click_id, ''\\)/);
+  assert.ok(built.text.includes("COALESCE(cc.conversion_type, '') ~"));
+  assert.ok(built.text.includes("COALESCE(cc.currency, '') ~"));
+  assert.ok(built.text.includes("COALESCE(cc.click_id, '') ~"));
   assert.match(built.text, /THEN 'invalid_callback'/);
   assert.match(built.text, /AS is_test/);
 });
