@@ -268,7 +268,7 @@ async function dashboardStats(incoming) {
         GROUP BY platform, source, country, placement`, cb.params);
       for (const row of r.rows) {
         const platform = String(row.platform || "unknown");
-        const source = String(row.source || "direct");
+        const source = displaySource(row.source);
         const country = String(row.country || "UNKNOWN").toUpperCase();
         const placement = String(row.placement || "unknown");
         const clicks = Number(row.clicks || 0);
