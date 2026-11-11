@@ -18,7 +18,9 @@
       out.unmatchedConversions += unmatched;
       const currency = String(row.currency || 'UNSPECIFIED').trim().toUpperCase() || 'UNSPECIFIED';
       const payout = Number(row.reportedPayout || 0);
-      if (Number.isFinite(payout) && payout > 0) {
+      // Payout adjustments can be negative. Preserve signed values so reversals
+      // reduce the reported total instead of silently overstating revenue.
+      if (Number.isFinite(payout) && payout !== 0) {
         const target = row.matchStatus === 'matched' ? out.attributedPayoutsByCurrency : out.pendingPayoutsByCurrency;
         target[currency] = (target[currency] || 0) + payout;
       }
