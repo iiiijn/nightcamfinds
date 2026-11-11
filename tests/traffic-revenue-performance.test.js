@@ -23,9 +23,9 @@ test('builds a country and campaign funnel with currency-separated matched payou
   assert.match(built.text, /FULL OUTER JOIN visit_groups/);
   assert.match(built.text, /LIMIT 2000/);
   assert.match(built.text, /NOT EXISTS/);
-  assert.match(built.text, /COALESCE\\(cc\\.conversion_type, ''\\)/);
-  assert.match(built.text, /COALESCE\\(cc\\.currency, ''\\)/);
-  assert.match(built.text, /AND NOT \\(EXISTS/);
+  assert.ok(built.text.includes("COALESCE(cc.conversion_type, '')"));
+  assert.ok(built.text.includes("COALESCE(cc.currency, '')"));
+  assert.ok(built.text.includes('AND NOT (EXISTS'));
 });
 
 test('uses independent parameterized UTC date windows for clicks, visits and conversions', () => {
