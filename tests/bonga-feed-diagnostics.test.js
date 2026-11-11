@@ -36,7 +36,7 @@ test("Bonga value diagnostics aggregate only country and gender fields", () => {
   ];
   const result = summarizeBongaFieldValues(rows);
   const fields = Object.fromEntries(result.fields.map(field => [field.field, field]));
-  assert.deepEqual(fields.gender.commonValues, [{ value: "male", count: 2 }, { value: "female", count: 2 }]);
+  assert.deepEqual(fields.gender.commonValues, [{ value: "female", count: 2 }, { value: "male", count: 2 }]);
   assert.deepEqual(fields.homecountry.commonValues, [{ value: "united states", count: 2 }, { value: "us", count: 2 }]);
   assert.equal(fields.gender.suppressedRareValueCount, 1);
   assert.equal(fields.homecountry.suppressedRareValueCount, 1);
