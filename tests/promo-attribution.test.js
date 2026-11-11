@@ -20,6 +20,13 @@ test("explicit campaign attribution takes precedence over referral attribution",
   assert.match(promo, /const referralOnly = !explicitSource && Boolean\(referral\)/);
 });
 
+test("fresh external referrer outranks stale saved attribution on promo and country pages", () => {
+  const promo = fs.readFileSync(path.join(__dirname, "../public/promo.js"), "utf8");
+  const country = fs.readFileSync(path.join(__dirname, "../country-pages.js"), "utf8");
+  assert.match(promo, /explicitSource \|\| referral \|\| savedSource \|\| 'unknown'/);
+  assert.match(country, /explicitSource \|\| referral \|\| \(fresh \? saved\.source : \"\"\) \|\| \"unknown\"/);
+});
+
 test("directory room cards keep referral and visit attribution on outbound redirects", () => {
   const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
   const promo = fs.readFileSync(path.join(__dirname, "../public/promo.js"), "utf8");
