@@ -376,6 +376,13 @@ test('server establishes first-party visit cookies before directory affiliate li
   assert.match(server, /return cookies\.length \? \{ "Set-Cookie": cookies \} : \{\}/);
   assert.match(server, /const queryVisitId = String\(url\.searchParams\.get\("vid"\)/);
   assert.match(server, /const cookieVisitId = String\(cookieValue\(req, "ncf_visit_id"\)/);
+  assert.match(server, /const visitId = cookieVisitId \|\| queryVisitId/);
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const engageStart = route.indexOf('if (incoming.pathname === "/api/engage")');
+  const engageEnd = route.indexOf('if (incoming.pathname === "/api/traffic-quality-analytics")', engageStart);
+  const engageRoute = route.slice(engageStart, engageEnd);
+  assert.match(engageRoute, /x-country-code/);
+  assert.match(engageRoute, /\(\?!XX\$\)/);
   assert.match(server, /const queryLandingPath = url\.searchParams\.get\("lp"\)/);
   assert.match(server, /const cookieLandingPath = cookieValue\(req, "ncf_landing_path"\)/);
   assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
