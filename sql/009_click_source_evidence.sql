@@ -6,15 +6,6 @@ ALTER TABLE IF EXISTS public.affiliate_clicks
 ALTER TABLE IF EXISTS public.affiliate_clicks
   ALTER COLUMN source SET DEFAULT 'unknown';
 
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'affiliate_clicks_source_evidence_check'
-      AND conrelid = to_regclass('public.affiliate_clicks')
-  ) THEN
-    ALTER TABLE public.affiliate_clicks
-      ADD CONSTRAINT affiliate_clicks_source_evidence_check
-      CHECK (source_evidence IN ('url_parameter', 'browser_referrer', 'stored_attribution', 'unknown', 'legacy'));
-  END IF;
-END $$;
+ALTER TABLE IF EXISTS public.affiliate_clicks
+  ADD CONSTRAINT affiliate_clicks_source_evidence_check
+  CHECK (source_evidence IN ('url_parameter', 'browser_referrer', 'stored_attribution', 'unknown', 'legacy'));
