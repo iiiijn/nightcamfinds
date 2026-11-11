@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { summarizeBongaRawFields } = require("./bonga-feed-diagnostics.cjs");
+const { summarizeBongaRawFields } = require("../src/services/bonga-feed-diagnostics.cjs");
 
 test("Bonga diagnostics expose field names and value types without raw values", () => {
   const result = summarizeBongaRawFields([
