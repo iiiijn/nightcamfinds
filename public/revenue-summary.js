@@ -6,9 +6,10 @@
     'revshare_purchase','revshare_webmaster-commission','revshare_payout-adjustment'
   ]);
   function summarizeConversions(rows = []) {
-    const out = { matchedConversions: 0, unmatchedConversions: 0, testEvents: 0, excludedEvents: 0, attributedPayoutsByCurrency: {}, pendingPayoutsByCurrency: {} };
+    const out = { matchedConversions: 0, unmatchedConversions: 0, invalidCallbacks: 0, testEvents: 0, excludedEvents: 0, attributedPayoutsByCurrency: {}, pendingPayoutsByCurrency: {} };
     for (const row of rows) {
       const count = Math.max(0, Number(row.conversions || 0));
+      if (row.matchStatus === 'invalid_callback') out.invalidCallbacks += count;
       if (row.isTest) { out.testEvents += count; continue; }
       if (!CREDITED_EVENT_TYPES.has(String(row.conversionType || '').toLowerCase())) { out.excludedEvents += count; continue; }
       const matched = Math.max(0, Number(row.matchedConversions || 0));
