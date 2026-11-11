@@ -371,7 +371,9 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const src = cleanLabel(url.searchParams.get("src"), "cb-card", 80);
     const category = cleanLabel(url.searchParams.get("cat"), "unknown", 40);
     const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "unknown", 40);
-    const sourceEvidence = normalizeSourceEvidence(url.searchParams.get("evidence"));
+    // Ignore the client-controlled evidence parameter. This records only how the label reached this endpoint.
+    // URL-supplied source labels remain self-reported and are not proof of the visitor's true origin.
+    const sourceEvidence = source !== "unknown" ? "url_parameter" : "unknown";
     const medium = cleanLabel(url.searchParams.get("utm_medium") || url.searchParams.get("medium"), "unknown", 80);
     const campaign = cleanLabel(url.searchParams.get("utm_campaign") || url.searchParams.get("campaign"), "unknown", 80);
     const suppliedContent = cleanLabel(url.searchParams.get("utm_content") || url.searchParams.get("content"), "", 72);
@@ -383,7 +385,8 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const clickId = "ncf_" + Date.now().toString(36) + "_" + require("crypto").randomBytes(8).toString("hex");
     const queryVisitId = String(url.searchParams.get("vid") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
     const cookieVisitId = String(cookieValue(req, "ncf_visit_id") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
-    const visitId = queryVisitId || cookieVisitId;
+    // Prefer the first-party cookie when present; retain query fallback for restricted-cookie browsers.
+    const visitId = cookieVisitId || queryVisitId;
     const isSafeLandingPath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && value.length <= 255 && !/[\r\n]/.test(value);
     const queryLandingPath = url.searchParams.get("lp") || "";
     const cookieLandingPath = cookieValue(req, "ncf_landing_path");
