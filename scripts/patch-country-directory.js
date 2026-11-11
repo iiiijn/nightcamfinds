@@ -58,6 +58,9 @@ function patchServerSource(input){
  replaceOnce('    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended").slice(0, 60);\n    const roomMarkup = renderRoomCards(countryRooms, { category: "all", pagePath: pathname });\n    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, countryRooms.length > 0);',
   '    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended");\n    const roomMarkup = renderRoomCards(countryRooms.slice(0, 60), { category: "all", pagePath: pathname });\n    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, isIndexableCountryRooms(countryRooms));',
   "country room threshold");
+ replaceOnce('    return send(res, 200, countryHtml, "text/html; charset=utf-8");',
+  '    return send(res, 200, countryHtml, "text/html; charset=utf-8", visitCookieHeaders(req, pathname));',
+  "active country route visit cookies");
  if (!source.includes('const region=(url.searchParams.get("region")||"").trim();') ||
      !source.includes('const language=(url.searchParams.get("language")||"").trim().toLowerCase();')) {
   replaceOnce('  const country=(url.searchParams.get("country")||"").toUpperCase();\n  const platform=(url.searchParams.get("platform")||"").toLowerCase();',
