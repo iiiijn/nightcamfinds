@@ -39,6 +39,7 @@ test('builds a parameterized aggregation across country, platform, category and 
   const built = origins.buildQuery({ from: '2026-11-01', to: '2026-11-07', country: 'US', platform: 'chaturbate', category: 'male', source: 'x' });
   assert.deepEqual(built.params, ['2026-11-01', '2026-11-07', 'US', 'chaturbate', 'male', 'x']);
   assert.match(built.text, /source_evidence/);
+  assert.match(built.text, /THEN 'unknown' ELSE COALESCE/);
   assert.match(built.text, /GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12/);
   assert.match(built.text, /landing_path/);
   assert.match(built.text, /placement/);
