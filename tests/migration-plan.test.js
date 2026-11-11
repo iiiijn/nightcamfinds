@@ -30,7 +30,8 @@ test("feature branch staging creates the affiliate schema before dependent migra
     "005_bongacash_daily_reconciliation",
     "006_traffic_quality_engagement",
     "007_engagement_event_integrity",
-    "008_chaturbate_conversion_metadata"
+    "008_chaturbate_conversion_metadata",
+    "009_click_source_evidence"
   ]);
   assert.ok(plan.every(item => item.version !== "003_click_attribution_columns"));
 });
