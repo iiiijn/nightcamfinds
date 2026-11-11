@@ -46,7 +46,7 @@
     const suppliedEvidence = String(url.get('evidence') || '').trim().toLowerCase();
     const explicitEvidence = validEvidence.has(suppliedEvidence) ? suppliedEvidence : '';
     const source = explicitSource || savedSource || referral || 'unknown';
-    const sourceEvidence = explicitEvidence || (explicitSource || explicitMedium || explicitCampaign || explicitContent ? 'url_parameter' : referralOnly ? 'browser_referrer' : fresh ? (validEvidence.has(saved.sourceEvidence) ? saved.sourceEvidence : 'stored_attribution') : 'unknown');
+    const sourceEvidence = explicitEvidence || (explicitSource ? 'url_parameter' : referralOnly ? 'browser_referrer' : fresh ? (validEvidence.has(saved.sourceEvidence) ? saved.sourceEvidence : 'stored_attribution') : 'unknown');
     const medium = explicitMedium || (fresh ? saved.medium : '') || (referralOnly ? 'referral' : 'unknown');
     const campaign = explicitCampaign || (fresh ? saved.campaign : '') || (referralOnly ? 'referral' : 'unknown');
     const attribution = {
