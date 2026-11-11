@@ -1,6 +1,7 @@
 'use strict';
 
 const { validDate } = require('./click-origins.cjs');
+const { invalidCallbackPredicate } = require('./callback-integrity.cjs');
 
 function buildQuery(filters = {}) {
   const from = String(filters.from || '').trim();
@@ -22,6 +23,7 @@ function buildQuery(filters = {}) {
     conversionParams.push(to); conversionWhere.push("cc.received_at < (($" + conversionParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
   }
 
+  const invalidCallback = invalidCallbackPredicate('cc');
   const internalClickExclusion = "LOWER(COALESCE(ac.source, '')) <> 'test' AND LOWER(COALESCE(ac.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')";
   const internalVisitExclusion = "LOWER(COALESCE(tv.source, '')) <> 'test' AND LOWER(COALESCE(tv.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')";
 
@@ -69,7 +71,7 @@ function buildQuery(filters = {}) {
     '  WHERE cc.matched_click IS TRUE',
     "    AND LOWER(cc.conversion_type) IN ('tokens_signup-referral','tokens_broadcaster-referral','ppr_signup-referral','ppr_broadcaster-referral','revshare_signup-referral','revshare_broadcaster-referral','revshare_purchase','revshare_webmaster-commission','revshare_payout-adjustment')",
     "    AND NULLIF(BTRIM(cc.click_id), '') IS NOT NULL",
-    "    AND NOT EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE(cc.raw_payload, '{}'::jsonb)) AS p(key,value) WHERE p.value ~ '^\\{[A-Za-z][A-Za-z0-9_]*\\}$')",
+    '    AND NOT ' + invalidCallback,
     conversionWhere.length ? '    AND ' + conversionWhere.join(' AND ') : '',
     '  GROUP BY 1,2,3,4,5',
     '), conversion_groups AS (',
