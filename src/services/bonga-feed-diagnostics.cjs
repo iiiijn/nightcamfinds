@@ -64,4 +64,33 @@ function summarizeBongaFieldValues(rows, sampleLimit = 25, minCount = 2) {
     fields: summaries
   };
 }
-module.exports = { summarizeBongaRawFields, summarizeBongaFieldValues };
+
+function summarizeBongaCountryCoverage(rows, normalizeCountry, minCount = 2) {
+  const source = Array.isArray(rows) ? rows : [];
+  const countries = new Map();
+  const rawValues = new Map();
+  let classifiedCount = 0;
+  for (const row of source) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+    const code = typeof normalizeCountry === "function" ? normalizeCountry(row) : "";
+    if (code) { classifiedCount += 1; countries.set(code, (countries.get(code) || 0) + 1); }
+    for (const field of ["homecountry", "country", "country_code", "hometown"]) {
+      const value = safeAggregateValue(row[field]);
+      if (!value) continue;
+      const key = field + ":" + value;
+      rawValues.set(key, (rawValues.get(key) || 0) + 1);
+    }
+  }
+  const commonRawCountryValues = [...rawValues.entries()].filter(([, count]) => count >= minCount)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 20)
+    .map(([key, count]) => { const separator = key.indexOf(":"); return { field: key.slice(0, separator), value: key.slice(separator + 1), count }; });
+  const suppressedRareValueCount = [...rawValues.values()].filter(count => count < minCount).reduce((sum, count) => sum + count, 0);
+  return {
+    basis: "full_raw_bongacams_feed_snapshot", totalRows: source.length, classifiedCount,
+    unclassifiedCount: Math.max(0, source.length - classifiedCount),
+    countryCounts: [...countries.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([country, count]) => ({ country, count })),
+    commonRawCountryValues, suppressedRareValueCount, minimumCountForRawValue: minCount
+  };
+}
+
+module.exports = { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage };
