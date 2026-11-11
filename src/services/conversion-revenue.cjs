@@ -1,7 +1,7 @@
 'use strict';
 
 const { validDate } = require('./click-origins.cjs');
-const { invalidCallbackPredicate, typedMacroPredicate } = require('./callback-integrity.cjs');
+const { invalidCallbackPredicate } = require('./callback-integrity.cjs');
 
 function buildQuery(filters = {}) {
   const from = String(filters.from || '').trim();
@@ -12,7 +12,6 @@ function buildQuery(filters = {}) {
   const where = [];
   if (from) { params.push(from); where.push("cc.received_at >= ($" + params.length + "::date AT TIME ZONE 'UTC')"); }
   if (to) { params.push(to); where.push("cc.received_at < (($" + params.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')"); }
-  const typedMacroPredicateSql = typedMacroPredicate('cc');
   const isMacro = invalidCallbackPredicate('cc');
   const text = [
     'SELECT',
@@ -23,7 +22,7 @@ function buildQuery(filters = {}) {
     "LOWER(COALESCE(NULLIF(cc.conversion_type, ''), 'unknown')) AS conversion_type,",
     "COALESCE(NULLIF(UPPER(cc.currency), ''), 'UNSPECIFIED') AS currency,",
     isMacro + ' AS is_test,',
-    "CASE WHEN " + typedMacroPredicateSql + " THEN 'invalid_callback' WHEN NULLIF(BTRIM(cc.click_id), '') IS NULL THEN 'missing_click_id' WHEN cc.matched_click IS TRUE THEN 'matched' ELSE 'click_id_not_found' END AS match_status,",
+    "CASE WHEN " + isMacro + " THEN 'invalid_callback' WHEN NULLIF(BTRIM(cc.click_id), '') IS NULL THEN 'missing_click_id' WHEN cc.matched_click IS TRUE THEN 'matched' ELSE 'click_id_not_found' END AS match_status,",
     'COUNT(*)::int AS conversions,',
     'COUNT(*) FILTER (WHERE cc.matched_click IS TRUE AND NOT ' + isMacro + ')::int AS matched_conversions,',
     'COUNT(*) FILTER (WHERE cc.matched_click IS NOT TRUE AND NOT ' + isMacro + ')::int AS unmatched_conversions,',
