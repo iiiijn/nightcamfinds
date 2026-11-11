@@ -158,3 +158,21 @@ test("production startup applies country SEO and SPA route patches before servin
  assert.ok(pkg.scripts.start.indexOf("patch-country-directory.js")<pkg.scripts.start.indexOf("route.js"));
  assert.ok(pkg.scripts.start.indexOf("patch-spa-seo-routes.js")<pkg.scripts.start.indexOf("route.js"));
 });
+
+
+test("country code normalization accepts assigned ISO alpha-2 codes and rejects unassigned two-letter values",()=>{
+ assert.equal(normalizeCountryCode("US"),"US");
+ assert.equal(normalizeCountryCode("gb"),"GB");
+ assert.equal(normalizeCountryCode("KE"),"KE");
+ assert.equal(normalizeCountryCode("NY"),"");
+ assert.equal(normalizeCountryCode("ZZ"),"");
+ assert.equal(normalizeCountryCode("XX"),"");
+ assert.equal(normalizeCountryCode("United States"),"US");
+});
+
+test("production entry point routes through start.js into the room server",()=>{
+ const route=fs.readFileSync(path.join(__dirname,"..","route.js"),"utf8");
+ const start=fs.readFileSync(path.join(__dirname,"..","start.js"),"utf8");
+ assert.match(route,/require\(["']\.\/start\.js["']\)/);
+ assert.match(start,/require\(["']\.\/server\.js["']\)/);
+});
