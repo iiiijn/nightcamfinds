@@ -1,5 +1,6 @@
 'use strict';
 const { validDate } = require('./click-origins.cjs');
+const { invalidCallbackPredicate } = require('./callback-integrity.cjs');
 
 function buildQueries(filters = {}) {
   const from = String(filters.from || '').trim();
@@ -16,16 +17,18 @@ function buildQueries(filters = {}) {
     callbackParams.push(to); callbackWhere.push("cc.received_at < (($" + callbackParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
     clickParams.push(to); clickWhere.push("ac.clicked_at < (($" + clickParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
   }
+  const invalidCallback = invalidCallbackPredicate('cc');
   const callbacks = [
     'SELECT COUNT(*)::int AS total,',
-    "COUNT(*) FILTER (WHERE NOT (EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE(cc.raw_payload, '{}'::jsonb)) AS p(key,value) WHERE p.value ~ '^\\\\{[A-Za-z][A-Za-z0-9_]*\\\\}$')))::int AS real,",
-    "COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM jsonb_each_text(COALESCE(cc.raw_payload, '{}'::jsonb)) AS p(key,value) WHERE p.value ~ '^\\\\{[A-Za-z][A-Za-z0-9_]*\\\\}$'))::int AS test,",
-    "COUNT(*) FILTER (WHERE cc.matched_click IS TRUE AND NULLIF(BTRIM(cc.click_id), '') IS NOT NULL)::int AS matched,",
-    "COUNT(*) FILTER (WHERE NULLIF(BTRIM(cc.click_id), '') IS NULL)::int AS missing_click_id,",
-    "COUNT(*) FILTER (WHERE NULLIF(BTRIM(cc.click_id), '') IS NOT NULL AND cc.matched_click IS NOT TRUE)::int AS click_id_not_found",
+    'COUNT(*) FILTER (WHERE NOT ' + invalidCallback + ')::int AS real,',
+    'COUNT(*) FILTER (WHERE ' + invalidCallback + ')::int AS test,',
+    'COUNT(*) FILTER (WHERE ' + invalidCallback + ')::int AS invalid_callback,',
+    "COUNT(*) FILTER (WHERE NOT " + invalidCallback + " AND cc.matched_click IS TRUE AND NULLIF(BTRIM(cc.click_id), '') IS NOT NULL)::int AS matched,",
+    "COUNT(*) FILTER (WHERE NOT " + invalidCallback + " AND NULLIF(BTRIM(cc.click_id), '') IS NULL)::int AS missing_click_id,",
+    "COUNT(*) FILTER (WHERE NOT " + invalidCallback + " AND NULLIF(BTRIM(cc.click_id), '') IS NOT NULL AND cc.matched_click IS NOT TRUE)::int AS click_id_not_found",
     'FROM cb_conversions cc',
     callbackWhere.length ? 'WHERE ' + callbackWhere.join(' AND ') : ''
-  ].filter(Boolean).join('\n');
+  ].filter(Boolean).join('\\n');
   const clicks = [
     'SELECT LOWER(ac.platform) AS platform, COUNT(*)::int AS clicks,',
     "COUNT(*) FILTER (WHERE NULLIF(BTRIM(ac.click_id), '') IS NOT NULL)::int AS click_ids_generated,",
