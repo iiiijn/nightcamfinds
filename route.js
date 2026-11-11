@@ -320,7 +320,7 @@ http.createServer = function routeDashboard(handler) {
 
       const wm = process.env.CB_CAMPAIGN || process.env.CHATURBATE_WM || "C6yxN";
       const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
-      const clientIp = (/^\\d{1,3}(?:\\.\\d{1,3}){3}$/.test(forwarded) || forwarded.includes(":"))
+      const clientIp = (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(forwarded) || forwarded.includes(":"))
         ? forwarded
         : "8.8.8.8";
 
