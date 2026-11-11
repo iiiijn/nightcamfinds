@@ -5,7 +5,7 @@ const origins = require('../src/services/click-origins.cjs');
 
 test('accepts valid origin report filters', () => {
   assert.deepEqual(origins.parseFilters(new URLSearchParams('from=2026-11-01&to=2026-11-07&country=US&platform=chaturbate&category=male&source=x')), {
-    value: { from: '2026-11-01', to: '2026-11-07', country: 'US', platform: 'chaturbate', category: 'male', source: 'x' }
+    value: { from: '2026-11-01', to: '2026-11-07', country: 'US', platform: 'chaturbate', category: 'male', source: 'x', sourceEvidence: 'ALL' }
   });
 });
 
@@ -16,12 +16,13 @@ test('rejects invalid dates, platform, category, country and unsafe source filte
   assert.match(origins.parseFilters(new URLSearchParams('category=unknown')).error, /Category/);
   assert.match(origins.parseFilters(new URLSearchParams('source=' + 'a'.repeat(81))).error, /80 characters/);
   assert.match(origins.parseFilters(new URLSearchParams('source=x%00y')).error, /control characters/);
+  assert.match(origins.parseFilters(new URLSearchParams('evidence=forged')).error, /Evidence/);
 });
 
 test('accepts historical source labels containing spaces and punctuation', () => {
   const parsed = origins.parseFilters(new URLSearchParams('source=X+%28Twitter%29'));
   assert.deepEqual(parsed.value, {
-    from: '', to: '', country: 'ALL', platform: 'ALL', category: 'ALL', source: 'x (twitter)'
+    from: '', to: '', country: 'ALL', platform: 'ALL', category: 'ALL', source: 'x (twitter)', sourceEvidence: 'ALL'
   });
 });
 
@@ -37,7 +38,8 @@ test('keeps source filter values parameterized even when they resemble SQL', () 
 test('builds a parameterized aggregation across country, platform, category and attribution dimensions', () => {
   const built = origins.buildQuery({ from: '2026-11-01', to: '2026-11-07', country: 'US', platform: 'chaturbate', category: 'male', source: 'x' });
   assert.deepEqual(built.params, ['2026-11-01', '2026-11-07', 'US', 'chaturbate', 'male', 'x']);
-  assert.match(built.text, /GROUP BY 1,2,3,4,5,6,7,8,9,10,11/);
+  assert.match(built.text, /source_evidence/);
+  assert.match(built.text, /GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12/);
   assert.match(built.text, /landing_path/);
   assert.match(built.text, /placement/);
   assert.doesNotMatch(built.text, /2026-11-01|chaturbate|x/);
@@ -53,7 +55,7 @@ test('private dashboard exposes click-origin dimensions and filters', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const html = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
-  for (const id of ['originsCountry','originsPlatform','originsCategory','originsSource','originsRefresh','originsTable']) {
+  for (const id of ['originsCountry','originsPlatform','originsCategory','originsSource','originsEvidence','originsRefresh','originsTable']) {
     assert.match(html, new RegExp('id="' + id + '"'));
   }
   assert.ok(html.includes('loadClickOrigins()'));
@@ -71,6 +73,7 @@ test('click origins API is protected by dashboard session and validates GET filt
   assert.ok(block.includes('validDashboardSession(req)'));
   assert.ok(block.includes('clickOrigins.parseFilters'));
   assert.ok(block.includes('pool.query(query.text, query.params)'));
+  assert.ok(block.includes('sourceEvidence: row.source_evidence'));
 });
 
 test('fresh login loads the click origins report through shared dashboard initialization', () => {
@@ -100,6 +103,7 @@ test('recent room clicks endpoint is session-protected, read-only, bounded and e
   assert.ok(block.includes('limit > 100'));
   assert.ok(block.includes("LOWER(content) LIKE 'room-%'"));
   assert.ok(block.includes('click_id'));
+  assert.ok(block.includes('source_evidence'));
   assert.doesNotMatch(block, /ip_address|user_agent|email|full_name/i);
 });
 
