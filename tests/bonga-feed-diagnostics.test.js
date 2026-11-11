@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { summarizeBongaRawFields } = require("../src/services/bonga-feed-diagnostics.cjs");
+const { summarizeBongaRawFields, summarizeBongaFieldValues } = require("../src/services/bonga-feed-diagnostics.cjs");
 
 test("Bonga diagnostics expose field names and value types without raw values", () => {
   const result = summarizeBongaRawFields([
@@ -24,4 +24,27 @@ test("Bonga diagnostics cap samples and reject unsafe field names", () => {
   const result = summarizeBongaRawFields(rows);
   assert.equal(result.sampledRows, 25);
   assert.deepEqual(result.fields.map(field => field.name), ["safe_field"]);
+});
+
+test("Bonga value diagnostics aggregate only country and gender fields", () => {
+  const rows = [
+    { username: "private-one", gender: "Female", homecountry: "United States", chat_topic: "private topic" },
+    { username: "private-two", gender: "female", homecountry: "United States", chat_topic: "another private topic" },
+    { username: "private-three", gender: "male", homecountry: "US", chat_topic: "hidden" },
+    { username: "private-four", gender: "male", homecountry: "US", chat_topic: "hidden" },
+    { username: "private-five", gender: "rare-value", homecountry: "Rareland", chat_topic: "hidden" }
+  ];
+  const result = summarizeBongaFieldValues(rows);
+  const fields = Object.fromEntries(result.fields.map(field => [field.field, field]));
+  assert.deepEqual(fields.gender.commonValues, [{ value: "male", count: 2 }, { value: "female", count: 2 }]);
+  assert.deepEqual(fields.homecountry.commonValues, [{ value: "united states", count: 2 }, { value: "us", count: 2 }]);
+  assert.equal(fields.gender.suppressedRareValueCount, 1);
+  assert.equal(fields.homecountry.suppressedRareValueCount, 1);
+  const serialized = JSON.stringify(result);
+  assert.ok(!serialized.includes("private-one"));
+  assert.ok(!serialized.includes("private topic"));
+  assert.ok(!serialized.includes("rareland"));
+  assert.ok(!serialized.includes("rare-value"));
+  assert.ok(!serialized.includes("username"));
+  assert.ok(!serialized.includes("chat_topic"));
 });
