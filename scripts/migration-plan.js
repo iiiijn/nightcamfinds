@@ -17,7 +17,8 @@ const STAGING_MIGRATIONS = [
   PRODUCTION_RECONCILIATION_MIGRATION,
   { version: "006_traffic_quality_engagement", file: "006_traffic_quality_engagement.sql" },
   { version: "007_engagement_event_integrity", file: "007_engagement_event_integrity.sql" },
-  { version: "008_chaturbate_conversion_metadata", file: "008_chaturbate_conversion_metadata.sql" }
+  { version: "008_chaturbate_conversion_metadata", file: "008_chaturbate_conversion_metadata.sql" },
+  { version: "009_click_source_evidence", file: "009_click_source_evidence.sql" }
 ];
 
 function getMigrationPlan(branch, options = {}) {
