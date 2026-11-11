@@ -202,7 +202,7 @@ async function fetchChaturbateRegion(req,apiRegion) {
   if(!data||!Array.isArray(data.results))throw new TypeError("Chaturbate regional feed response did not contain a results array.");
   return data.results;
  },{pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES,getKey:room=>room&&room.username});
- if(pages.truncated)console.warn("Chaturbate "+apiRegion+" feed reached its configured page ceiling.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,maxPages:CHATURBATE_REGION_MAX_PAGES,stopReason:pages.stopReason}));
+ console.info("Chaturbate "+apiRegion+" feed pagination.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,maxPages:CHATURBATE_REGION_MAX_PAGES,stopReason:pages.stopReason}));
  return filterDisplayableRooms(pages.items.map(room=>({normalized:normalizeChaturbateRoom(room,apiRegion),rawText:[room.username,room.display_name,room.room_subject].filter(Boolean).join(" ")})));
 }
 async function fetchChaturbateRooms(req) {
