@@ -517,8 +517,7 @@ http.createServer = function routeDashboard(handler) {
           rows: result.rows.map(row => ({
             country: row.country,
             platform: row.platform,
-            source: row.source_evidence === "legacy" && String(row.source || "").toLowerCase() === "direct" ? "unknown" : row.source,
-            sourceEvidence: row.source_evidence || "legacy",
+            source: row.source,
             campaign: row.campaign,
             clicks: Number(row.clicks || 0)
           })),
@@ -661,7 +660,7 @@ http.createServer = function routeDashboard(handler) {
             country: row.country,
             category: row.category,
             platform: row.platform,
-            source: row.source,
+            source: row.source_evidence === "legacy" && String(row.source || "").toLowerCase() === "direct" ? "unknown" : row.source,
             sourceEvidence: row.source_evidence || "legacy",
             campaign: row.campaign,
             placement: row.placement,
