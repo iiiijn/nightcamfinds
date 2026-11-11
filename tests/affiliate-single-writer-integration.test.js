@@ -81,7 +81,9 @@ module.exports = { Pool };
   execFileSync(process.execPath, ["scripts/fix-server-syntax.js"], { cwd: projectDir, stdio: "pipe" });
   execFileSync(process.execPath, ["scripts/patch-spa-seo-routes.js"], { cwd: projectDir, stdio: "pipe" });
   const patchedServer = fs.readFileSync(path.join(projectDir, "server.js"), "utf8");
-  assert.match(patchedServer, /const visitId\s*=\s*String\(url\.searchParams\.get\(["']vid["']\)/);
+  assert.match(patchedServer, /const queryVisitId\s*=\s*String\(url\.searchParams\.get\(["']vid["']\)\s*\|\|\s*["']["']\)\.match\(\/\^\[a-f0-9\]\{32\}\$\/i\)/);
+  assert.match(patchedServer, /const cookieVisitId\s*=\s*String\(cookieValue\(req,\s*["']ncf_visit_id["']\)/);
+  assert.match(patchedServer, /const visitId\s*=\s*queryVisitId\s*\|\|\s*cookieVisitId/);
   assert.match(patchedServer, /landingPath/);
   assert.match(patchedServer, /trafficClass:\s*classifyUserAgent\(agent\)/);
 
@@ -107,9 +109,12 @@ module.exports = { Pool };
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", chunk => { child.testStderr += chunk; });
 
-  t.after(() => {
-    if (child.exitCode === null) child.kill("SIGTERM");
-    bongaFeed.close();
+  t.after(async () => {
+    if (child.exitCode === null) {
+      child.kill("SIGTERM");
+      await new Promise(resolve => child.once("exit", resolve));
+    }
+    await new Promise(resolve => bongaFeed.close(resolve));
     fs.rmSync(projectDir, { recursive: true, force: true });
     fs.rmSync(stubRoot, { recursive: true, force: true });
     fs.rmSync(dataDir, { recursive: true, force: true });

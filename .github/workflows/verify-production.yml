@@ -32,27 +32,75 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Install isolated test dependencies and run tests
+      - name: Install isolated test dependency and run tests
         run: |
           cp package.json /tmp/nightcamfinds-package.json
           cp package-lock.json /tmp/nightcamfinds-package-lock.json
-          node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("package.json","utf8")); p.dependencies={}; p.devDependencies={"@electric-sql/pglite":"0.5.8"}; fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n")'
-          rm package-lock.json
-          npm cache clean --force
-          npm install --ignore-scripts --no-audit --no-fund --package-lock=false \
-            --registry=https://registry.npmjs.org/ \
-            --fetch-retries=5 \
-            --fetch-retry-mintimeout=2000 \
-            --fetch-retry-maxtimeout=30000
-          mv /tmp/nightcamfinds-package.json package.json
-          mv /tmp/nightcamfinds-package-lock.json package-lock.json
-          npm test
+          cleanup() {
+            cp /tmp/nightcamfinds-package.json package.json
+            cp /tmp/nightcamfinds-package-lock.json package-lock.json
+          }
+          trap cleanup EXIT
+
+          node <<'NODE'
+          const fs = require("node:fs");
+          const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          pkg.dependencies = {};
+          pkg.devDependencies = { "@electric-sql/pglite": "0.5.8" };
+          fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
+
+          const lock = {
+            name: pkg.name,
+            version: "0.1.0",
+            lockfileVersion: 3,
+            requires: true,
+            packages: {
+              "": {
+                name: pkg.name,
+                version: "0.1.0",
+                devDependencies: { "@electric-sql/pglite": "0.5.8" }
+              },
+              "node_modules/@electric-sql/pglite": {
+                version: "0.5.8",
+                resolved: "https://registry.npmjs.org/@electric-sql/pglite/-/pglite-0.5.8.tgz",
+                integrity: "sha512-n9tsbUOhwx2epK1V0ZG9Ar4SHWUju04dhmzZXiSBXwBoleOvIfals33NAaWgagQVAL4Rbvx/Ptsu3P+pA09f6Q==",
+                license: "Apache-2.0"
+              }
+            }
+          };
+          fs.writeFileSync("package-lock.json", JSON.stringify(lock, null, 2) + "\n");
+          NODE
+
+          echo "Trying the npm mirror first. The locked SHA-512 integrity remains enforced."
+          if ! timeout 240s npm ci --ignore-scripts --no-audit --no-fund \
+            --registry=https://registry.npmmirror.com \
+            --replace-registry-host=always \
+            --fetch-retries=1 \
+            --fetch-timeout=120000; then
+            echo "Mirror install failed or timed out. Retrying against the official npm registry."
+            rm -rf node_modules
+            timeout 240s npm ci --ignore-scripts --no-audit --no-fund \
+              --registry=https://registry.npmjs.org/ \
+              --replace-registry-host=always \
+              --fetch-retries=1 \
+              --fetch-timeout=120000
+          fi
+
+          echo "Running every test file sequentially with a 120-second per-file limit."
+          for test_file in tests/*.test.js; do
+            echo "=== Running $test_file ==="
+            timeout --signal=TERM --kill-after=10s 120s node --test "$test_file"
+          done
+
+          cleanup
+          trap - EXIT
 
       - name: Verify production configuration
         run: npm run verify
