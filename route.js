@@ -483,6 +483,7 @@ http.createServer = function routeDashboard(handler) {
         return sendJson(res, 200, {
           callbacks: {
             total: Number(c.total || 0), real: Number(c.real || 0), test: Number(c.test || 0),
+            invalidCallbacks: Number(c.invalid_callback || 0),
             matched: Number(c.matched || 0), missingClickId: Number(c.missing_click_id || 0),
             clickIdNotFound: Number(c.click_id_not_found || 0)
           },
