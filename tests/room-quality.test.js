@@ -85,10 +85,10 @@ test("BongaCams feed uses strict category mapping and the shared room validator"
 
 test("normalizes only explicit provider categories and leaves unknown values uncategorized", () => {
   for (const [input, expected] of [
-    ["f", "female"], ["Female", "female"], ["woman", "female"],
+    ["f", "female"], ["Female", "female"], ["woman", "female"], ["weiblich", "female"],
     ["m", "male"], ["Men", "male"],
     ["t", "trans"], ["transgender", "trans"], ["s", "trans"],
-    ["c", "couples"], ["couple", "couples"]
+    ["c", "couples"], ["couple", "couples"],\n    ["paar weiblich + männlich", "couples"], ["paar weiblich + weiblich", "couples"]
   ]) {
     assert.equal(normalizeRoomGender(input), expected, input);
   }
