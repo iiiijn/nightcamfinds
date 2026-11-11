@@ -104,7 +104,7 @@ const POSTBACK_MACRO_FIELDS = [
 function hasUnresolvedChaturbateMacros(raw = {}) {
   return POSTBACK_MACRO_FIELDS.some((field) => {
     const value = raw[field];
-    return value != null && /\\{[^{}]+\\}/.test(String(value).trim());
+    return value != null && /\{[^{}]+\}/.test(String(value).trim());
   });
 }
 
