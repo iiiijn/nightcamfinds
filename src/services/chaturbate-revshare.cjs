@@ -94,6 +94,20 @@ function normalizeChaturbatePostback(raw = {}) {
   };
 }
 
+const POSTBACK_MACRO_FIELDS = [
+  "click_id", "transaction_id", "type", "payout", "currency", "amount",
+  "country", "track", "source", "campaign_id", "program_id", "program_name",
+  "user_id", "token", "timestamp", "date", "time", "device", "language",
+  "referral", "attempt", "region"
+];
+
+function hasUnresolvedChaturbateMacros(raw = {}) {
+  return POSTBACK_MACRO_FIELDS.some((field) => {
+    const value = raw[field];
+    return value != null && /\\{[^{}]+\\}/.test(String(value).trim());
+  });
+}
+
 function removePostbackSecrets(raw = {}) {
   return Object.fromEntries(
     Object.entries(raw).filter(([key]) => key.toLowerCase() !== "secret")
@@ -136,4 +150,5 @@ function buildChaturbateUrl(options = {}) {
 exports.countryTier = countryTier;
 exports.normalizeChaturbatePostback = normalizeChaturbatePostback;
 exports.removePostbackSecrets = removePostbackSecrets;
+exports.hasUnresolvedChaturbateMacros = hasUnresolvedChaturbateMacros;
 exports.buildChaturbateUrl = buildChaturbateUrl;
