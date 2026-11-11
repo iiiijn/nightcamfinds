@@ -6,7 +6,7 @@ const path = require("node:path");
 const start = fs.readFileSync(path.join(__dirname, "../start.js"), "utf8");
 const helper = fs.readFileSync(path.join(__dirname, "../src/services/chaturbate-revshare.cjs"), "utf8");
 const migration = fs.readFileSync(path.join(__dirname, "../sql/008_chaturbate_conversion_metadata.sql"), "utf8");
-const { removePostbackSecrets } = require("../src/services/chaturbate-revshare.cjs");
+const { removePostbackSecrets, hasUnresolvedChaturbateMacros } = require("../src/services/chaturbate-revshare.cjs");
 
 const { normalizeChaturbatePostback } = require("../src/services/chaturbate-revshare.cjs");
 
@@ -166,4 +166,45 @@ test("postback authentication diagnostics distinguish missing and invalid secret
 test("conversion matching checks both the provider click ledger and primary Chaturbate click records", () => {
   assert.ok(start.includes("FROM cb_clicks WHERE click_id = $1::varchar(128) UNION ALL SELECT 1 FROM affiliate_clicks"));
   assert.ok(start.includes("AND platform = 'chaturbate') AS matched"));
+});
+
+test("any unresolved documented Chaturbate macro is acknowledged as a test and never treated as a conversion", () => {
+  const fields = [
+    "click_id", "transaction_id", "type", "payout", "currency", "amount",
+    "country", "track", "source", "campaign_id", "program_id", "program_name",
+    "user_id", "token", "timestamp", "date", "time", "device", "language",
+    "referral", "attempt", "region"
+  ];
+  for (const field of fields) {
+    assert.equal(hasUnresolvedChaturbateMacros({ [field]: "{"+field+"}" }), true, field);
+  }
+  assert.equal(hasUnresolvedChaturbateMacros({
+    click_id: "ncf_test_click_12345678",
+    transaction_id: "tx-2026-001",
+    type: "revshare_purchase",
+    payout: "1.25",
+    currency: "USD",
+    amount: "5.00",
+    country: "US",
+    track: "homepage",
+    source: "organic",
+    campaign_id: "campaign-1",
+    program_id: "program-1",
+    program_name: "RevShare",
+    user_id: "user-1",
+    token: "25",
+    timestamp: "2026-11-11T00:00:00Z",
+    date: "2026-11-11",
+    time: "00:00:00",
+    device: "desktop",
+    language: "en",
+    referral: "https://nightcamfinds.com/",
+    attempt: "1",
+    region: "California"
+  }), false);
+});
+
+test("postback route checks all documented macro fields before normalization or persistence", () => {
+  assert.ok(start.includes("hasUnresolvedChaturbateMacros(params)"));
+  assert.ok(start.indexOf("hasUnresolvedChaturbateMacros(params)") < start.indexOf("normalizeChaturbatePostback(params)"));
 });
