@@ -7,6 +7,7 @@ const { rankRoomsByPreferredPlatform } = require("./src/services/platform-rankin
 const { getCountryPage } = require("./country-pages.js");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
+const { normalizeSourceEvidence } = require("./src/services/source-evidence.cjs");
 const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
 const { isPriorityMarket, MARKET_META, MARKET_PRIORITY_CODES } = require("./src/config/market-countries.cjs");
 const { fetchPagedResults } = require("./src/services/paged-feed.cjs");
@@ -98,6 +99,7 @@ async function ensureTrackingTable() {
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS medium VARCHAR(80) NOT NULL DEFAULT 'unknown'");
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''");
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
+  await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS source_evidence VARCHAR(32) NOT NULL DEFAULT 'legacy'");
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT FALSE");
   await pgPool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS bot_reason VARCHAR(80)");
@@ -119,7 +121,7 @@ async function ensureAffiliateLedgers() {
   await pgPool.query("CREATE INDEX IF NOT EXISTS cb_clicks_clicked_at_idx ON cb_clicks(clicked_at)");
   await pgPool.query("CREATE INDEX IF NOT EXISTS bonga_clicks_clicked_at_idx ON bonga_clicks(clicked_at)");
 }
-async function countClick({ src, country, category="unknown", source="direct", campaign="unknown", medium="unknown", content="", device="unknown", clickId, platform="chaturbate", visitId=null, landingPath="/", trafficClass="unverified" }) {
+async function countClick({ src, country, category="unknown", source="unknown", sourceEvidence="unknown", campaign="unknown", medium="unknown", content="", device="unknown", clickId, platform="chaturbate", visitId=null, landingPath="/", trafficClass="unverified" }) {
   if (pgPool) {
     let client = null;
     try {
@@ -128,8 +130,8 @@ async function countClick({ src, country, category="unknown", source="direct", c
       client = await pgPool.connect();
       await client.query("BEGIN");
       const inserted = await client.query(
-        "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id,visit_id,landing_path,is_bot,bot_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id",
-        [country,category,source,campaign,src,platform,medium,content,device,clickId||null,visitId,landingPath,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null]
+        "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,source_evidence,click_id,visit_id,landing_path,is_bot,bot_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id",
+        [country,category,source,campaign,src,platform,medium,content,device,sourceEvidence,clickId||null,visitId,landingPath,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null]
       );
       if (visitId) {
         await client.query(
@@ -164,8 +166,8 @@ async function countClick({ src, country, category="unknown", source="direct", c
           fallbackClient = await pgPool.connect();
           await fallbackClient.query("BEGIN");
           const legacy = await fallbackClient.query(
-            "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,click_id,is_bot,bot_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id",
-            [country,category,source,campaign,src,platform,medium,content,device,clickId||null,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null]
+            "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,source_evidence,click_id,is_bot,bot_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id",
+            [country,category,source,campaign,src,platform,medium,content,device,sourceEvidence,clickId||null,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null]
           );
           if (platform === "chaturbate" && clickId) {
             await fallbackClient.query(
@@ -360,7 +362,8 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     }
     const src = cleanLabel(url.searchParams.get("src"), "cb-card", 80);
     const category = cleanLabel(url.searchParams.get("cat"), "unknown", 40);
-    const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "direct", 40);
+    const source = cleanLabel(url.searchParams.get("utm_source") || url.searchParams.get("source"), "unknown", 40);
+    const sourceEvidence = normalizeSourceEvidence(url.searchParams.get("evidence"));
     const medium = cleanLabel(url.searchParams.get("utm_medium") || url.searchParams.get("medium"), "unknown", 80);
     const campaign = cleanLabel(url.searchParams.get("utm_campaign") || url.searchParams.get("campaign"), "unknown", 80);
     const suppliedContent = cleanLabel(url.searchParams.get("utm_content") || url.searchParams.get("content"), "", 72);
@@ -379,7 +382,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const landingPath = isSafeLandingPath(queryLandingPath) ? queryLandingPath : isSafeLandingPath(cookieLandingPath) ? cookieLandingPath : pathname;
     const room = isBonga ? (await rooms(req)).rooms.find(r => r.platform === platform && r.username === username) : null;
     if (isBonga && !room) return send(res, 404, "Live room not found", "text/plain; charset=utf-8");
-    await countClick({ src, country, category, source, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
+    await countClick({ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
     let target;
     if (isBonga) {
       // Exact account-generated BongaCash Direct Link pattern: type, version,
