@@ -38,31 +38,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - name: Install isolated test dependency and run tests
-        run: |
-          cp package.json /tmp/nightcamfinds-package.json
-          cp package-lock.json /tmp/nightcamfinds-package-lock.json
-          cleanup() {
-            cp /tmp/nightcamfinds-package.json package.json
-            cp /tmp/nightcamfinds-package-lock.json package-lock.json
-          }
-          trap cleanup EXIT
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund --fetch-retries=3 --fetch-timeout=120000
 
-          node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("package.json","utf8")); p.dependencies={}; p.devDependencies={"@electric-sql/pglite":"0.5.8"}; fs.writeFileSync("package.json",JSON.stringify(p,null,2))'
-          rm package-lock.json
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund \
-            --registry=https://registry.npmjs.org/ \
-            --fetch-retries=2 \
-            --fetch-timeout=120000
-          npm ci --ignore-scripts --no-audit --no-fund \
-            --registry=https://registry.npmjs.org/ \
-            --fetch-retries=2 \
-            --fetch-timeout=120000
-
-          cleanup
-          trap - EXIT
-          npm test
+      - name: Run tests
+        run: npm test
 
       - name: Verify production configuration
         run: npm run verify
