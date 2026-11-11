@@ -50,5 +50,7 @@ test('dashboard loads report groups on tab selection and caches GET responses br
   assert.match(script, /dashboardLoadedTabs\.has\(key\)/);
   assert.match(script, /dashboardApiCache=new Map\(\)/);
   assert.match(script, /now\+15000/);
+  assert.match(script, /if\(response\.ok\)dashboardApiCache\.clear\(\)/);
+  assert.match(script, /function refreshDashboardReport\(loader\)/);
   assert.doesNotMatch(script, /Promise\.all\(\[loadRoomCoverage\(\),load\(\),loadRouteSettings\(\),loadDailyCountryAnalytics\(\),loadCountryCategoryAnalytics\(\),loadTrafficQualityAnalytics\(\),loadClickOrigins\(\),loadRecentRoomClicks\(\),loadCampaignPerformance\(\),loadTrafficRevenuePerformance\(\),loadConversionRevenue\(\),loadProviderAttributionHealth\(\),loadConversionFunnel\(\)\]\)/);
 });
