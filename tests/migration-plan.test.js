@@ -7,7 +7,8 @@ test("production startup excludes staging-only and unapproved reconciliation mig
   assert.deepEqual(plan.map(item => item.version), [
     "006_traffic_quality_engagement",
     "007_engagement_event_integrity",
-    "008_chaturbate_conversion_metadata"
+    "008_chaturbate_conversion_metadata",
+    "009_click_source_evidence"
   ]);
   assert.ok(plan.every(item => !["003_click_attribution_columns", "004_country_platform_routing", "005_bongacash_daily_reconciliation"].includes(item.version)));
 });
