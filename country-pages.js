@@ -343,12 +343,9 @@ ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
   try { saved = JSON.parse(localStorage.getItem("ncf_attribution") || "{}"); } catch (_) {}
   const fresh = Number(saved.savedAt || 0) > Date.now() - 30 * 24 * 60 * 60 * 1000;
   const explicitSource = incoming.get("utm_source") || incoming.get("source") || "";
-  const suppliedEvidence = String(incoming.get("evidence") || "").trim().toLowerCase();
-  const allowedEvidence = ["url_parameter", "browser_referrer", "stored_attribution", "unknown"];
-  const explicitEvidence = allowedEvidence.includes(suppliedEvidence) ? suppliedEvidence : "";
   const attribution = {
-    source: explicitSource || (fresh ? saved.source : "") || referral || "unknown",
-    sourceEvidence: explicitEvidence || (explicitSource ? "url_parameter" : fresh ? (allowedEvidence.includes(saved.sourceEvidence) ? saved.sourceEvidence : "stored_attribution") : referral ? "browser_referrer" : "unknown"),
+    source: explicitSource || referral || (fresh ? saved.source : "") || "unknown",
+    sourceEvidence: explicitSource ? "url_parameter" : referral ? "browser_referrer" : fresh ? "stored_attribution" : "unknown",
     medium: incoming.get("utm_medium") || incoming.get("medium") || (referral ? "referral" : fresh ? saved.medium : "unknown"),
     campaign: incoming.get("utm_campaign") || incoming.get("campaign") || (referral ? "referral" : fresh ? saved.campaign : "unknown"),
     content: incoming.get("utm_content") || incoming.get("content") || (fresh ? saved.content : "") || ""
