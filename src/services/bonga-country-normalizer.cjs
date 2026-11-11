@@ -20,7 +20,7 @@ function normalizeBongaCountry(room) {
   if (exact) return exact;
 
   const components = hometown.split(",").map((part) => part.trim()).filter(Boolean);
-  if (components.length < 2) return "";
+  if (components.length !== 2) return "";
   return normalizeCountryCode(components[components.length - 1]);
 }
 
