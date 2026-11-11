@@ -1,6 +1,6 @@
 const http = require("http");
 const crypto = require("crypto");
-const { normalizeChaturbatePostback, removePostbackSecrets } = require("./src/services/chaturbate-revshare.cjs");
+const { normalizeChaturbatePostback, removePostbackSecrets, hasUnresolvedChaturbateMacros } = require("./src/services/chaturbate-revshare.cjs");
 
 const originalCreateServer = http.createServer;
 const databaseUrl = process.env.DATABASE_URL;
@@ -454,8 +454,10 @@ http.createServer = function wrappedCreateServer(handler) {
           }
           Object.assign(params, bodyParams);
         }
-        const macroPlaceholder = value => /^\{[a-z_]+\}$/i.test(String(value || "").trim());
-        if (macroPlaceholder(params.click_id) || macroPlaceholder(params.transaction_id) || macroPlaceholder(params.type)) {
+        // A provider test may leave any documented macro unresolved, not only
+        // the three fields required by the normalizer. Acknowledge it without
+        // persisting a conversion or allowing placeholder revenue into reports.
+        if (hasUnresolvedChaturbateMacros(params)) {
           console.log("Chaturbate postback test acknowledged; no conversion recorded");
           res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
           return res.end("OK");
