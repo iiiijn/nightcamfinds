@@ -117,3 +117,14 @@ test('dashboard exposes and refreshes recent room clicks', () => {
   assert.ok(html.includes('/api/recent-room-clicks'));
   assert.ok(html.includes('loadRecentRoomClicks()'));
 });
+
+test('filters and groups click-origin rows by capture evidence', () => {
+  const parsed = origins.parseFilters(new URLSearchParams('evidence=browser_referrer'));
+  assert.deepEqual(parsed.value, {
+    from: '', to: '', country: 'ALL', platform: 'ALL', category: 'ALL', source: 'ALL', sourceEvidence: 'browser_referrer'
+  });
+  const built = origins.buildQuery(parsed.value);
+  assert.deepEqual(built.params, ['browser_referrer']);
+  assert.match(built.text, /LOWER\(source_evidence\) = \$1/);
+  assert.match(built.text, /GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12/);
+});
