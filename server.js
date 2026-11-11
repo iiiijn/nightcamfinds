@@ -13,6 +13,7 @@ const { fetchPagedResults } = require("./src/services/paged-feed.cjs");
 const { resolveRegionalMaxPages } = require("./src/services/regional-feed-config.cjs");
 const { filterDisplayableRooms, normalizeRoomGender } = require("./src/services/room-quality.cjs");
 const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalRoomGroups } = require("./src/services/regional-discovery.cjs");
+const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
 
 let pgPool = null;
 try {
@@ -305,6 +306,7 @@ const server=http.createServer(async(req,res)=>{
   if(pathname==="/api/stats.csv"){if(!STATS_KEY||url.searchParams.get("key")!==STATS_KEY)return send(res,404,"Not found","text/plain");const stats=(await statsFromDb())||readStats();const rows=[["country","category","source","clicks"]];for(const[key,count]of Object.entries(stats.byCountryCategory||{})){const[country,category]=key.split(":");rows.push([country,category,"all",count]);}const csv=rows.map(row=>row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");res.writeHead(200,{"Content-Type":"text/csv; charset=utf-8","Content-Disposition":"attachment; filename=nightcamfinds-clicks.csv","X-Content-Type-Options":"nosniff","Cache-Control":"no-store"});return res.end(csv);}
   if(pathname==="/api/rooms"){
   const feed=await rooms(req);
+  const coverage=url.searchParams.get("coverage")==="1"?summarizeRoomCoverage(feed.rooms):null;
   const category=url.searchParams.get("category")||"all";
   const country=(url.searchParams.get("country")||"").toUpperCase();
   const region=(url.searchParams.get("region")||"").trim();
@@ -331,7 +333,7 @@ const server=http.createServer(async(req,res)=>{
   const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();
   const regions=[...new Set(feed.rooms.map(r=>r.region||regionFor(r)))].sort((a,b)=>{const ai=REGION_ORDER.indexOf(a),bi=REGION_ORDER.indexOf(b);return (ai<0?REGION_ORDER.length:ai)-(bi<0?REGION_ORDER.length:bi)||a.localeCompare(b);});
   const languages=[...new Set(feed.rooms.flatMap(languagesFor))].sort((a,b)=>a.localeCompare(b));
-  if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,regions,languages,notice:feed.notice}),"application/json");
+  if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,regions,languages,notice:feed.notice,...(coverage?{coverage}:{})}),"application/json");
   const page=list.slice(offset,offset+limit);
   const regionalRooms=buildRegionalRoomGroups(list,sort,8);
   const topChaturbateByCategory = {};
@@ -341,7 +343,7 @@ const server=http.createServer(async(req,res)=>{
       .sort((a, b) => Number(b.viewerCount || 0) - Number(a.viewerCount || 0) || a.username.localeCompare(b.username))
       .slice(0, 8);
   }
-  return send(res,200,JSON.stringify({rooms:page,regionalRooms,topChaturbateByCategory,liveCount:list.length,offset,limit,hasMore:offset+page.length<list.length,countries,platforms,regions,languages,notice:feed.notice,tier1:isPriorityMarket(visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null}),"application/json");
+  return send(res,200,JSON.stringify({rooms:page,regionalRooms,topChaturbateByCategory,liveCount:list.length,offset,limit,hasMore:offset+page.length<list.length,countries,platforms,regions,languages,notice:feed.notice,tier1:isPriorityMarket(visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null,...(coverage?{coverage}:{})}),"application/json");
 }
 if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms[Math.floor(Math.random()*Math.min(feed.rooms.length,40))]||null;return send(res,room?200:503,JSON.stringify({room}),"application/json");}
   if (pathname.startsWith("/bgo/") || pathname.startsWith("/go/")) {
