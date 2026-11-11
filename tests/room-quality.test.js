@@ -39,7 +39,8 @@ test("rejects youth-related terms in raw feed text even if display cleaning remo
 });
 
 test("cleans room titles without changing ordinary wording", () => {
-  assert.equal(cleanRoomTitle("  Friendly\n chat\t tonight  "), "Friendly chat tonight");
+  assert.equal(cleanRoomTitle("  Friendly
+ chat\t tonight  "), "Friendly chat tonight");
   assert.equal(cleanRoomTitle("A playful room for music and conversation"), "A playful room for music and conversation");
 });
 
@@ -88,7 +89,8 @@ test("normalizes only explicit provider categories and leaves unknown values unc
     ["f", "female"], ["Female", "female"], ["woman", "female"], ["weiblich", "female"],
     ["m", "male"], ["Men", "male"],
     ["t", "trans"], ["transgender", "trans"], ["s", "trans"],
-    ["c", "couples"], ["couple", "couples"],\n    ["paar weiblich + männlich", "couples"], ["paar weiblich + weiblich", "couples"]
+    ["c", "couples"], ["couple", "couples"],
+    ["paar weiblich + männlich", "couples"], ["paar weiblich + weiblich", "couples"]
   ]) {
     assert.equal(normalizeRoomGender(input), expected, input);
   }
