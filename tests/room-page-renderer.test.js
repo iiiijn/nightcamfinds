@@ -13,7 +13,8 @@ test("server room cards use tracked redirects and escape feed content", () => {
   const html = renderRoomCards(rooms, { pagePath: "/female/", category: "female" });
   assert.match(html, /href="\/go\/chaturbate%3Aalice\?/);
   assert.match(html, /href="\/bgo\/bongacams%3Abob\?/);
-  assert.match(html, /source=direct/);
+  assert.match(html, /source=unknown/);
+  assert.match(html, /evidence=unknown/);
   assert.match(html, /campaign=organic/);
   assert.match(html, /loading="lazy"/);
   assert.doesNotMatch(html, /javascript:alert/);
