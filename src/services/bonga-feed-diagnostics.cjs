@@ -1,6 +1,7 @@
 "use strict";
 
 const SAFE_FIELD_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
+const VALUE_FIELDS = ["gender", "sex", "homecountry", "country", "country_code"];
 function valueType(value) {
   if (value === null || value === undefined) return "null";
   if (Array.isArray(value)) return "array";
@@ -27,4 +28,40 @@ function summarizeBongaRawFields(rows, sampleLimit = 25) {
     fields: [...fields.values()].sort((a, b) => a.name.localeCompare(b.name))
   };
 }
-module.exports = { summarizeBongaRawFields };
+function safeAggregateValue(value) {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const normalized = String(value).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+  if (!normalized) return null;
+  return normalized.slice(0, 40);
+}
+function summarizeBongaFieldValues(rows, sampleLimit = 25, minCount = 2) {
+  const sample = Array.isArray(rows) ? rows.slice(0, Math.max(0, Math.min(100, sampleLimit))) : [];
+  const summaries = VALUE_FIELDS.map((field) => {
+    const counts = new Map();
+    let emptyOrNonScalar = 0;
+    for (const row of sample) {
+      if (!row || typeof row !== "object" || Array.isArray(row) || !Object.prototype.hasOwnProperty.call(row, field)) continue;
+      const value = safeAggregateValue(row[field]);
+      if (!value) { emptyOrNonScalar += 1; continue; }
+      counts.set(value, (counts.get(value) || 0) + 1);
+    }
+    const common = [...counts.entries()].filter(([, count]) => count >= minCount)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, 12).map(([value, count]) => ({ value, count }));
+    const rareCount = [...counts.values()].filter((count) => count < minCount).reduce((sum, count) => sum + count, 0);
+    return {
+      field,
+      presentCount: [...sample].filter((row) => row && typeof row === "object" && !Array.isArray(row) && Object.prototype.hasOwnProperty.call(row, field)).length,
+      commonValues: common,
+      suppressedRareValueCount: rareCount,
+      emptyOrNonScalarCount: emptyOrNonScalar
+    };
+  }).filter((entry) => entry.presentCount > 0);
+  return {
+    basis: "aggregate_values_for_country_and_gender_fields_only",
+    sampledRows: sample.length,
+    minimumCountForValue: minCount,
+    fields: summaries
+  };
+}
+module.exports = { summarizeBongaRawFields, summarizeBongaFieldValues };
