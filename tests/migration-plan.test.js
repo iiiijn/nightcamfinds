@@ -19,7 +19,8 @@ test("production reconciliation migration requires explicit opt-in", () => {
     "005_bongacash_daily_reconciliation",
     "006_traffic_quality_engagement",
     "007_engagement_event_integrity",
-    "008_chaturbate_conversion_metadata"
+    "008_chaturbate_conversion_metadata",
+    "009_click_source_evidence"
   ]);
 });
 
