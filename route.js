@@ -15,6 +15,7 @@ const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
 const { cleanRoomTitle, filterDisplayableRooms } = require("./src/services/room-quality.cjs");
+const { isIso3166Alpha2 } = require("./src/services/iso-country-codes.cjs");
 const allowEngagement = createEngagementRateLimiter();
 
 const originalCreateServer = http.createServer;
@@ -95,7 +96,8 @@ function normalizeBonga(room) {
     : /^(?:male|man|men|m)$/.test(rawGender) ? "male"
     : /^(?:female|woman|women|f)$/.test(rawGender) ? "female"
     : /^(?:couple|couples|c)$/.test(rawGender) ? "couples" : "";
-  const country = String(room.homecountry || room.country || room.country_code || "").toUpperCase().match(/^[A-Z]{2}$/)?.[0] || "";
+  const rawCountry = String(room.homecountry || room.country || room.country_code || "").trim().toUpperCase();
+  const country = isIso3166Alpha2(rawCountry) ? rawCountry : "";
   const viewers = Number(room.members_count ?? room.num_users ?? room.viewers ?? room.viewer_count ?? 0) || 0;
   const topic = cleanRoomTitle(text(room.chat_topic || room.room_subject || room.topic || (Array.isArray(room.tags) ? room.tags.join(", ") : room.tags)));
   const href = room.chat_url || room.direct_chat_url || room.room_url || room.url || "";
