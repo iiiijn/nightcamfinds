@@ -89,7 +89,7 @@ if (hasExplicitAttribution || hasReferralAttribution) {
     medium: incomingAttribution.medium || (hasReferralAttribution ? "referral" : "unknown"),
     campaign: incomingAttribution.campaign || (hasReferralAttribution ? "referral" : "unknown"),
     content: incomingAttribution.content || "",
-    sourceEvidence: explicitSourceEvidence || (hasExplicitAttribution ? "url_parameter" : "browser_referrer"),
+    sourceEvidence: explicitSourceEvidence || (incomingAttribution.source.trim() ? "url_parameter" : hasReferralAttribution ? "browser_referrer" : "unknown"),
     landingPath: location.pathname,
     savedAt: Date.now()
   };
@@ -97,7 +97,7 @@ if (hasExplicitAttribution || hasReferralAttribution) {
 }
 const attributionFresh = Number(savedAttribution.savedAt || 0) > Date.now() - 30 * 24 * 60 * 60 * 1000;
 const trafficSource = String(incomingAttribution.source || (attributionFresh ? savedAttribution.source : "") || "unknown").slice(0, 30);
-const trafficSourceEvidence = explicitSourceEvidence || (hasExplicitAttribution ? "url_parameter" : hasReferralAttribution ? "browser_referrer" : attributionFresh ? (validSourceEvidence.has(savedAttribution.sourceEvidence) ? savedAttribution.sourceEvidence : "stored_attribution") : "unknown");
+const trafficSourceEvidence = explicitSourceEvidence || (incomingAttribution.source.trim() ? "url_parameter" : hasReferralAttribution ? "browser_referrer" : attributionFresh ? (validSourceEvidence.has(savedAttribution.sourceEvidence) ? savedAttribution.sourceEvidence : "stored_attribution") : "unknown");
 const trafficCampaign = String(incomingAttribution.campaign || (attributionFresh ? savedAttribution.campaign : "") || "unknown").slice(0, 40);
 const trafficMedium = String(incomingAttribution.medium || (attributionFresh ? savedAttribution.medium : "") || "unknown").slice(0, 30);
 const trafficContent = String(incomingAttribution.content || (attributionFresh ? savedAttribution.content : "") || "").slice(0, 40);
