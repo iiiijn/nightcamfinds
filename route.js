@@ -13,6 +13,7 @@ const clickOrigins = require("./src/services/click-origins.cjs");
 const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
+const { runChaturbateFeedProbe } = require("./src/services/chaturbate-feed-probe.cjs");
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
 const { cleanRoomTitle, filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const allowEngagement = createEngagementRateLimiter();
@@ -29,6 +30,8 @@ const pool = databaseUrl ? new Pool({
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
+let chaturbateProbeLastRunAt = 0;
+let chaturbateProbeInFlight = false;
 const { isPriorityMarket } = require("./src/config/market-countries.cjs");
 
 async function ensureAffiliateSchema() {
@@ -305,6 +308,38 @@ async function dashboardStats(incoming) {
 http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
+
+    if (incoming.pathname === "/api/admin/chaturbate-feed-probe") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!isSameOriginRequest(req.headers)) return sendJson(res, 403, { error: "Origin check failed." });
+      if (chaturbateProbeInFlight) return sendJson(res, 409, { error: "A feed probe is already running." });
+      if (Date.now() - chaturbateProbeLastRunAt < 5 * 60 * 1000) {
+        return sendJson(res, 429, { error: "Feed probe cooldown is active. Try again in five minutes." });
+      }
+
+      const wm = process.env.CB_CAMPAIGN || process.env.CHATURBATE_WM || "C6yxN";
+      const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+      const clientIp = (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(forwarded) || forwarded.includes(":"))
+        ? forwarded
+        : "8.8.8.8";
+
+      chaturbateProbeInFlight = true;
+      chaturbateProbeLastRunAt = Date.now();
+      try {
+        const result = await runChaturbateFeedProbe({ wm, clientIp });
+        return sendJson(res, 200, {
+          completedAt: new Date().toISOString(),
+          note: "Read-only Chaturbate pagination probe. Counts only; no room usernames, client IP, affiliate credentials or database writes are returned.",
+          ...result
+        });
+      } catch (err) {
+        console.error("Chaturbate feed probe failed:", String(err && err.message || "unknown error").slice(0, 160));
+        return sendJson(res, 502, { error: "Chaturbate feed probe failed. Check service logs for a sanitized diagnostic." });
+      } finally {
+        chaturbateProbeInFlight = false;
+      }
+    }
 
     if (incoming.pathname === "/api/engage") {
       if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
