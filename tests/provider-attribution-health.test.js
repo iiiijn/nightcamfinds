@@ -90,4 +90,6 @@ test('provider health endpoint includes two-way orphan counts without changing c
   assert.match(routeSource, /invalidCallbacks: Number\(c\.invalid_callback \|\| 0\)/);
   assert.match(dashboardSource, /Invalid callbacks: '\+n\(c\.invalidCallbacks\)/);
   assert.match(dashboardSource, /orphaned ledger rows:/);
+  assert.match(routeSource, /invalidCallbacks: Number\(c\.invalid_callback \|\| 0\)/);
+  assert.ok(dashboardSource.includes("Invalid callbacks: '+n(c.invalidCallbacks)"));
 });
