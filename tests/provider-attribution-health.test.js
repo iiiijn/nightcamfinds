@@ -11,6 +11,10 @@ test('builds separate parameterized UTC windows for callbacks and clicks', () =>
   assert.match(q.callbacks.text, /missing_click_id/);
   assert.match(q.callbacks.text, /click_id_not_found/);
   assert.match(q.callbacks.text, /AS test/);
+  assert.match(q.callbacks.text, /AS invalid_callback/);
+  assert.match(q.callbacks.text, /COALESCE\\(cc\\.conversion_type, ''\\)/);
+  assert.match(q.callbacks.text, /COALESCE\\(cc\\.currency, ''\\)/);
+  assert.match(q.callbacks.text, /NOT \\(EXISTS/);
   assert.match(q.clicks.text, /FROM affiliate_clicks/);
   assert.doesNotMatch(q.clicks.text, /2026-11/);
 });
