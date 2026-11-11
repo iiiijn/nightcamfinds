@@ -32,7 +32,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,13 +42,25 @@ jobs:
       - name: Install isolated test dependency and run tests
         run: |
           cp package.json /tmp/nightcamfinds-package.json
-          trap 'cp /tmp/nightcamfinds-package.json package.json' EXIT
-          node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("package.json","utf8")); p.dependencies={}; p.devDependencies={"@electric-sql/pglite":"0.5.8"}; fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\n")'
-          npm install --ignore-scripts --no-audit --no-fund --package-lock=false \
+          cp package-lock.json /tmp/nightcamfinds-package-lock.json
+          cleanup() {
+            cp /tmp/nightcamfinds-package.json package.json
+            cp /tmp/nightcamfinds-package-lock.json package-lock.json
+          }
+          trap cleanup EXIT
+
+          node -e 'const fs=require("fs"); const p=JSON.parse(fs.readFileSync("package.json","utf8")); p.dependencies={}; p.devDependencies={"@electric-sql/pglite":"0.5.8"}; fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\\n")'
+          rm package-lock.json
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund \
             --registry=https://registry.npmjs.org/ \
             --fetch-retries=2 \
             --fetch-timeout=120000
-          cp /tmp/nightcamfinds-package.json package.json
+          npm ci --ignore-scripts --no-audit --no-fund \
+            --registry=https://registry.npmjs.org/ \
+            --fetch-retries=2 \
+            --fetch-timeout=120000
+
+          cleanup
           trap - EXIT
           npm test
 
