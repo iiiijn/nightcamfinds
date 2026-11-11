@@ -28,7 +28,7 @@ function buildQueries(filters = {}) {
     "COUNT(*) FILTER (WHERE NOT " + invalidCallback + " AND NULLIF(BTRIM(cc.click_id), '') IS NOT NULL AND cc.matched_click IS NOT TRUE)::int AS click_id_not_found",
     'FROM cb_conversions cc',
     callbackWhere.length ? 'WHERE ' + callbackWhere.join(' AND ') : ''
-  ].filter(Boolean).join('\\n');
+  ].filter(Boolean).join('\n');
   const clicks = [
     'SELECT LOWER(ac.platform) AS platform, COUNT(*)::int AS clicks,',
     "COUNT(*) FILTER (WHERE NULLIF(BTRIM(ac.click_id), '') IS NOT NULL)::int AS click_ids_generated,",
