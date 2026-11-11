@@ -17,9 +17,11 @@ function parseFilters(params) {
   const platformRaw = String(params.get('platform') || 'ALL').trim().toLowerCase();
   const categoryRaw = String(params.get('category') || 'ALL').trim().toLowerCase();
   const sourceRaw = String(params.get('source') || 'ALL').trim().toLowerCase();
+  const evidenceRaw = String(params.get('evidence') || 'ALL').trim().toLowerCase();
   const platform = platformRaw === 'all' ? 'ALL' : platformRaw;
   const category = categoryRaw === 'all' ? 'ALL' : categoryRaw;
   const source = sourceRaw === 'all' ? 'ALL' : sourceRaw;
+  const sourceEvidence = evidenceRaw === 'all' ? 'ALL' : evidenceRaw;
   if ((from && !validDate(from)) || (to && !validDate(to))) return { error: 'Dates must be valid calendar dates in YYYY-MM-DD format.' };
   if (from && to && from > to) return { error: 'Start date must be on or before end date.' };
   if (country !== 'ALL' && !/^[A-Z]{2}$/.test(country)) return { error: 'Country must be ALL or a two-letter country code.' };
@@ -29,7 +31,9 @@ function parseFilters(params) {
   // ordinary spaces and punctuation; buildQuery always binds this value as a parameter.
   // Reject only oversized values and control characters that should never be labels.
   if (source.length > 80 || /[\u0000-\u001F\u007F]/.test(source)) return { error: 'Source filter must be 80 characters or fewer and contain no control characters.' };
-  return { value: { from, to, country, platform, category, source } };
+  const allowedEvidence = ['url_parameter', 'browser_referrer', 'stored_attribution', 'unknown', 'legacy'];
+  if (sourceEvidence !== 'ALL' && !allowedEvidence.includes(sourceEvidence)) return { error: 'Evidence must be ALL or a supported source evidence value.' };
+  return { value: { from, to, country, platform, category, source, sourceEvidence } };
 }
 
 function buildQuery(filters) {
@@ -41,9 +45,10 @@ function buildQuery(filters) {
   if (filters.platform !== 'ALL') { params.push(filters.platform); where.push("LOWER(platform) = $" + params.length); }
   if (filters.category !== 'ALL') { params.push(filters.category); where.push("LOWER(category) = $" + params.length); }
   if (filters.source !== 'ALL') { params.push(filters.source); where.push("LOWER(source) = $" + params.length); }
+  if (filters.sourceEvidence && filters.sourceEvidence !== 'ALL') { params.push(filters.sourceEvidence); where.push("LOWER(source_evidence) = $" + params.length); }
   const whereSql = where.length ? 'WHERE ' + where.join(' AND ') : '';
   return {
-    text: "SELECT (clicked_at AT TIME ZONE 'UTC')::date AS date, UPPER(country) AS country, LOWER(platform) AS platform, LOWER(category) AS category, COALESCE(NULLIF(LOWER(source), ''), 'unknown') AS source, COALESCE(NULLIF(LOWER(medium), ''), 'unknown') AS medium, COALESCE(NULLIF(LOWER(campaign), ''), 'unknown') AS campaign, COALESCE(NULLIF(LOWER(content), ''), 'unknown') AS content, COALESCE(NULLIF(LOWER(placement), ''), 'unknown') AS placement, COALESCE(NULLIF(LOWER(landing_path), ''), 'unknown') AS landing_path, COALESCE(NULLIF(LOWER(device), ''), 'unknown') AS device, COUNT(*)::int AS clicks FROM affiliate_clicks " + whereSql + " GROUP BY 1,2,3,4,5,6,7,8,9,10,11 ORDER BY clicks DESC, date DESC, country ASC LIMIT 2000",
+    text: "SELECT (clicked_at AT TIME ZONE 'UTC')::date AS date, UPPER(country) AS country, LOWER(platform) AS platform, LOWER(category) AS category, COALESCE(NULLIF(LOWER(source), ''), 'unknown') AS source, COALESCE(NULLIF(LOWER(source_evidence), ''), 'legacy') AS source_evidence, COALESCE(NULLIF(LOWER(medium), ''), 'unknown') AS medium, COALESCE(NULLIF(LOWER(campaign), ''), 'unknown') AS campaign, COALESCE(NULLIF(LOWER(content), ''), 'unknown') AS content, COALESCE(NULLIF(LOWER(placement), ''), 'unknown') AS placement, COALESCE(NULLIF(LOWER(landing_path), ''), 'unknown') AS landing_path, COALESCE(NULLIF(LOWER(device), ''), 'unknown') AS device, COUNT(*)::int AS clicks FROM affiliate_clicks " + whereSql + " GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12 ORDER BY clicks DESC, date DESC, country ASC LIMIT 2000",
     params
   };
 }
