@@ -323,7 +323,7 @@ http.createServer = function routeDashboard(handler) {
       const event = validation.value;
       if (!allowEngagement(event.visitId)) return sendJson(res, 429, { error: "Engagement event rate limit reached." });
       const cleanLabel = (value, fallback, max) => String(value || "").trim().replace(/[^a-z0-9._-]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, max) || fallback;
-      const country = String(req.headers["cf-ipcountry"] || req.headers["x-vercel-ip-country"] || req.headers["cloudfront-viewer-country"] || "UNKNOWN").toUpperCase().match(/^[A-Z]{2}$/)?.[0] || "UNKNOWN";
+      const country = String(req.headers["cf-ipcountry"] || req.headers["x-vercel-ip-country"] || req.headers["cloudfront-viewer-country"] || req.headers["x-country-code"] || "UNKNOWN").trim().toUpperCase().match(/^(?!XX$)[A-Z]{2}$/)?.[0] || "UNKNOWN";
       const trafficClass = classifyUserAgent(req.headers["user-agent"]);
       const landingPath = String(payload.landingPath || event.pagePath).trim();
       const safeLandingPath = landingPath.startsWith("/") && !landingPath.startsWith("//") && landingPath.length <= 255 && !/[\\r\\n]/.test(landingPath) ? landingPath : event.pagePath;
