@@ -180,8 +180,7 @@ function trackingQuery(extra = {}) {
     medium: trafficMedium || "unknown",
     campaign: trafficCampaign,
     content: trafficContent || "",
-    evidence: trafficSourceEvidence,
-    placement: extra.placement || placement(),
+      placement: extra.placement || placement(),
     lp: String(visitLandingPath || location.pathname || "/").slice(0, 255),
     vid: visitId
   });
