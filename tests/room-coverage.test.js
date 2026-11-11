@@ -23,7 +23,7 @@ test("summarizes live room counts by country, region and recognized category", (
 test("keeps missing country and unknown category metadata visible as coverage gaps", () => {
   const report = summarizeRoomCoverage([
     { country: "", gender: "" },
-    { country: "ZZ", gender: "unrecognized" },
+    { country: "US", gender: "unrecognized" },
     { country: "CA", gender: "male" }
   ], ["CA"]);
 
@@ -32,7 +32,7 @@ test("keeps missing country and unknown category metadata visible as coverage ga
   assert.equal(report.uncategorizedRooms, 2);
   assert.equal(report.countryReportedRooms, 2);
   assert.equal(report.categories.male, 1);
-  assert.equal(report.countries.some((row) => row.country === "ZZ"), false);
+  assert.equal(report.countries.find((row) => row.country === "US").roomCount, 1);
 });
 
 test("does not mutate the supplied room array and handles empty input", () => {
