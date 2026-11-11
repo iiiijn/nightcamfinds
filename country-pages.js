@@ -356,7 +356,7 @@ ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
   const placement = "country-" + countrySlug;
   const trackParams = new URLSearchParams({
     src: placement, cat: "all", source: attribution.source, medium: attribution.medium,
-    campaign: attribution.campaign, content: attribution.content, evidence: attribution.sourceEvidence, placement,
+    campaign: attribution.campaign, content: attribution.content, placement,
     lp: landingPath.slice(0, 255), vid: visitId
   });
   document.querySelectorAll('a[href^="/go/"],a[href^="/bgo/"]').forEach((link) => {
