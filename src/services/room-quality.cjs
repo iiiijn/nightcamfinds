@@ -5,6 +5,17 @@ const VALID_GENDERS = new Set(["female", "male", "trans", "couples"]);
 const URL_OR_LINK = /(?:https?:\/\/|www\.|\b[a-z0-9-]+\.(?:com|net|org|me|io|tv)\b)/i;
 const PROMO_SPAM = /\b(?:telegram|whatsapp|snapchat|kik|cashapp|venmo|click\s+here|join\s+my\s+(?:group|channel)|free\s+(?:tokens|shows)|promo\s+code)\b/i;
 
+function normalizeRoomGender(value) {
+  const key = String(value == null ? "" : value).trim().toLowerCase();
+  const categories = {
+    f: "female", female: "female", woman: "female", women: "female",
+    m: "male", male: "male", man: "male", men: "male",
+    t: "trans", s: "trans", trans: "trans", transgender: "trans",
+    c: "couples", couple: "couples", couples: "couples"
+  };
+  return categories[key] || "";
+}
+
 function cleanRoomTitle(value) {
   return String(value == null ? "" : value)
     .replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
@@ -77,4 +88,4 @@ function filterDisplayableRooms(entries) {
   return accepted;
 }
 
-module.exports = { cleanRoomTitle, hasSpamTitle, isDisplayableRoom, filterDisplayableRooms };
+module.exports = { cleanRoomTitle, normalizeRoomGender, hasSpamTitle, isDisplayableRoom, filterDisplayableRooms };
