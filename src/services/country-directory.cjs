@@ -1,4 +1,5 @@
 "use strict";
+const { isIso3166Alpha2 } = require("./iso-country-codes.cjs");
 const COUNTRY_NAME_CODES = new Map([
  ["UNITED STATES","US"],["UNITED STATES OF AMERICA","US"],["UNITED KINGDOM","GB"],["GREAT BRITAIN","GB"],["UK","GB"],
  ["CANADA","CA"],["AUSTRALIA","AU"],["GERMANY","DE"],["FRANCE","FR"],["NETHERLANDS","NL"],["THE NETHERLANDS","NL"],
@@ -21,7 +22,7 @@ function textValue(value) {
 }
 function normalizeCountryCode(value) {
  const raw=textValue(value);
- if(/^[A-Za-z]{2}$/.test(raw)) return raw.toUpperCase();
+ if(/^[A-Za-z]{2}$/.test(raw)) { const code=raw.toUpperCase(); return isIso3166Alpha2(code) ? code : ""; }
  return COUNTRY_NAME_CODES.get(raw.toUpperCase())||"";
 }
 function normalizeRegion(value){return textValue(value).replaceAll("\t"," ").replaceAll("\n"," ").split(" ").filter(Boolean).join(" ").slice(0,80);}
