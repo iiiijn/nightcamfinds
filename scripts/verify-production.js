@@ -57,7 +57,7 @@ const countryDirectoryPatch = require("./patch-country-directory.js");
 const patchedServerSource = countryDirectoryPatch.patchServerSource(serverSource);
 if (!patchedServerSource.includes("NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1")) fail("country directory patch marker is missing");
 if (patchedServerSource.includes("const countryMatch = pathname.match(")) fail("duplicate early country route remains after patch");
-if (!patchedServerSource.includes("isIndexableCountryRooms(countryRooms)")) fail("country pages must use the minimum indexable room threshold");
+if (!patchedServerSource.includes("summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms })") || !patchedServerSource.includes("routeHealth.indexable")) fail("country pages must use the minimum indexable room threshold and provider-health diagnostics");
 if (!patchedServerSource.includes("buildCountrySitemap")) fail("dynamic country sitemap filtering is missing");
 if (!serverSource.includes("html = renderHeroCopy(html, copy)")) fail("server pages must render hero copy through the safe renderer");
 
