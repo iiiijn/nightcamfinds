@@ -38,7 +38,7 @@ function buildQuery(filters) {
       COALESCE(NULLIF(LOWER(c.placement), ''), 'unknown') AS placement,
       COALESCE(NULLIF(c.landing_path, ''), 'unknown') AS landing_path,
       COALESCE(NULLIF(LOWER(c.device), ''), 'unknown') AS device,
-      c.visit_id::text AS visit_id, c.is_bot, c.bot_reason,
+      c.visit_id::text AS visit_id, (to_jsonb(c)->>'is_bot') AS is_bot, (to_jsonb(c)->>'bot_reason') AS bot_reason,
       v.traffic_class AS visit_traffic_class
       FROM affiliate_clicks c
       LEFT JOIN traffic_visits v ON v.visit_id = c.visit_id
@@ -50,7 +50,7 @@ function buildQuery(filters) {
 function mapRow(row) {
   const content = String(row.content || '');
   const roomMatch = content.match(/(?:^|:)room-([a-z0-9_-]{1,64})(?::|$)/i);
-  const trafficClass = row.is_bot === true || row.bot_reason === 'known_bot_user_agent'
+  const trafficClass = row.is_bot === true || row.is_bot === 'true' || row.bot_reason === 'known_bot_user_agent'
     ? 'known_bot'
     : row.bot_reason === 'suspected_automation_user_agent'
       ? 'suspected_bot'
