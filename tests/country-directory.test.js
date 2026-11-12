@@ -150,7 +150,8 @@ test("country startup patch renders live room cards, applies the ten-room robots
  const source=fs.readFileSync(path.join(__dirname,"..","scripts","patch-country-directory.js"),"utf8");
  assert.match(source,/rankRoomsByPreferredPlatform\(feed\.rooms\.filter\(\(room\) => room\.country === iso\)/);
  assert.match(source,/renderRoomCards\(countryRooms\.slice\(0, 60\)/);
- assert.match(source,/getCountryPage\(countryRoute\[1\], pageOrigin\(req\), roomMarkup, isIndexableCountryRooms\(countryRooms\)\)/);
+ assert.match(source,/summarizeCountryRouteHealth\(\{ providerHealth: feed\.providerHealth, rooms: countryRooms \}\)/);
+ assert.match(source,/getCountryPage\(countryRoute\[1\], pageOrigin\(req\), roomMarkup, routeHealth\.indexable\)/);
  assert.match(source,/function sitemap\(origin,feedRooms\)\{return buildCountrySitemap/);
  assert.match(source,/const feed=await rooms\(req\);return send\(res,200,sitemap\(pageOrigin\(req\),feed\.rooms\)/);
 });
@@ -190,8 +191,26 @@ test("country startup patch removes the shadowing handler and leaves one feed-ba
  const end=patched.indexOf("const file=pathname",start);
  const route=patched.slice(start,end);
  assert.ok(route.includes("const feed = await rooms(req);"));
- assert.ok(route.includes("isIndexableCountryRooms(countryRooms)"));
+ assert.ok(route.includes("summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms })"));
+ assert.ok(route.includes("routeHealth.indexable"));
+ assert.ok(route.includes('console.info("[country-route]"'));
+ assert.ok(route.includes("visitCookieHeaders(req, pathname)"));
  assert.ok(route.includes("visitCookieHeaders(req, pathname)"));
  assert.ok(route.indexOf("await rooms(req)")<route.indexOf("isIndexableCountryRooms(countryRooms)"));
  assert.equal(patchServerSource(patched),patched,"the startup patch must remain idempotent");
+});
+
+test("country route health distinguishes healthy, partial, unavailable and thin feeds",()=>{
+ const {summarizeCountryRouteHealth}=require("../src/services/country-route-health.cjs");
+ const ten=Array.from({length:10},(_,i)=>({id:"chaturbate:"+i,platform:"chaturbate",country:"US"}));
+ const healthy=summarizeCountryRouteHealth({providerHealth:{chaturbate:"available",bongacams:"available"},rooms:ten});
+ assert.equal(healthy.feedHealth,"healthy");assert.equal(healthy.roomCount,10);assert.equal(healthy.qualifyingRoomCount,10);assert.equal(healthy.indexable,true);
+ const partial=summarizeCountryRouteHealth({providerHealth:{chaturbate:"available",bongacams:"unavailable"},rooms:ten});
+ assert.equal(partial.feedHealth,"partial");assert.equal(partial.indexable,true);
+ const unavailable=summarizeCountryRouteHealth({providerHealth:{chaturbate:"unavailable",bongacams:"unavailable"},rooms:[]});
+ assert.equal(unavailable.feedHealth,"unavailable");assert.equal(unavailable.indexable,false);
+ const disabled=summarizeCountryRouteHealth({providerHealth:{chaturbate:"available",bongacams:"disabled"},rooms:ten});
+ assert.equal(disabled.feedHealth,"healthy");
+ const thin=summarizeCountryRouteHealth({providerHealth:{chaturbate:"available",bongacams:"disabled"},rooms:ten.slice(0,9)});
+ assert.equal(thin.feedHealth,"healthy");assert.equal(thin.indexable,false);assert.equal(thin.qualifyingRoomCount,9);
 });
