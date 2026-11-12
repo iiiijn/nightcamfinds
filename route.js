@@ -583,13 +583,15 @@ http.createServer = function routeDashboard(handler) {
             source: row.source,
             campaign: row.campaign,
             conversionType: row.conversion_type,
+            eventClass: row.event_class,
             currency: row.currency,
             matchStatus: row.match_status,
             isTest: Boolean(row.is_test),
             conversions: Number(row.conversions || 0),
             matchedConversions: Number(row.matched_conversions || 0),
             unmatchedConversions: Number(row.unmatched_conversions || 0),
-            reportedPayout: String(row.reported_payout || "0")
+            reportedPayout: String(row.reported_payout || "0"),
+            reportedSpend: String(row.reported_spend || "0")
           })),
           filters: query.filters,
           truncated: result.rows.length === 2000,
