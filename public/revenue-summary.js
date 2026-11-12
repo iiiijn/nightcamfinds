@@ -13,10 +13,10 @@ if(!CREDITED_EVENT_TYPES.has(type)){out.excludedEvents+=count;continue;}
 const matched=Math.max(0,Number(row.matchedConversions||0)),unmatched=Math.max(0,Number(row.unmatchedConversions||0)),currency=String(row.currency||'UNSPECIFIED').trim().toUpperCase()||'UNSPECIFIED',payout=Number(row.reportedPayout||0),spend=Number(row.reportedSpend||0);
 out.matchedConversions+=matched;out.unmatchedConversions+=unmatched;
 if(Number.isFinite(payout)&&payout!==0)addMoney(row.matchStatus==='matched'?out.attributedPayoutsByCurrency:out.pendingPayoutsByCurrency,currency,payout);
-const item=out.eventBreakdownByType[eventClass]||{label:EVENT_CLASS_LABELS[eventClass]||EVENT_CLASS_LABELS.other,matchedConversions:0,unmatchedConversions:0,matchedPayoutsByCurrency:{},pendingPayoutsByCurrency:{},matchedMemberSpendByCurrency:{},illustrative20PercentByCurrency:{}};
+const item=out.eventBreakdownByType[eventClass]||{label:EVENT_CLASS_LABELS[eventClass]||EVENT_CLASS_LABELS.other,matchedConversions:0,unmatchedConversions:0,matchedPayoutsByCurrency:{},pendingPayoutsByCurrency:{},matchedMemberSpendByCurrency:{},pendingMemberSpendByCurrency:{},illustrative20PercentByCurrency:{}};
 item.matchedConversions+=matched;item.unmatchedConversions+=unmatched;
 if(Number.isFinite(payout)&&payout!==0)addMoney(row.matchStatus==='matched'?item.matchedPayoutsByCurrency:item.pendingPayoutsByCurrency,currency,payout);
-if(type==='revshare_purchase'&&Number.isFinite(spend)&&spend!==0&&row.matchStatus==='matched'){addMoney(item.matchedMemberSpendByCurrency,currency,spend);addMoney(item.illustrative20PercentByCurrency,currency,spend*0.20);addMoney(out.matchedPurchaseSpendByCurrency,currency,spend);addMoney(out.illustrative20PercentByCurrency,currency,spend*0.20);}
+if(type==='revshare_purchase'&&Number.isFinite(spend)&&spend!==0){if(row.matchStatus==='matched'){addMoney(item.matchedMemberSpendByCurrency,currency,spend);addMoney(item.illustrative20PercentByCurrency,currency,spend*0.20);addMoney(out.matchedPurchaseSpendByCurrency,currency,spend);addMoney(out.illustrative20PercentByCurrency,currency,spend*0.20);}else{addMoney(item.pendingMemberSpendByCurrency,currency,spend);}}
 out.eventBreakdownByType[eventClass]=item;
 }
 return out;
