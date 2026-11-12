@@ -142,6 +142,9 @@ test('traffic quality analytics separates bot, unverified and unclassified affil
   assert.match(route, /unverifiedAffiliateClicks/);
   assert.match(route, /unclassifiedAffiliateClicks/);
   assert.match(route, /clicksWithoutVisitId/);
+  assert.match(route, /visitIdSourceCounts/);
+  assert.match(route, /visit_id_source/);
+  assert.match(route, /visit_id_conflict/);
   assert.match(route, /clicksWithMissingVisitRecord/);
   assert.match(route, /missing_visit_id/);
   assert.match(route, /missing_visit_record/);
@@ -154,6 +157,10 @@ test('traffic quality analytics separates bot, unverified and unclassified affil
   assert.match(dashboard, /engagedWithClicks/);
   assert.match(dashboard, /BongaCash banner signals \(separate\)/);
   const migration = fs.readFileSync(path.join(__dirname, '../sql/007_engagement_event_integrity.sql'), 'utf8');
+  const migration010 = fs.readFileSync(path.join(__dirname, '../sql/010_traffic_linkage_diagnostics.sql'), 'utf8');
+  assert.match(migration010, /event_type TYPE VARCHAR\(48\)/);
+  assert.match(migration010, /visit_id_source/);
+  assert.match(migration010, /visit_id_conflict/);
   assert.match(migration, /bonga_category_widget_viewable/);
   assert.match(migration, /DROP CONSTRAINT IF EXISTS traffic_engagement_events_event_type_check/);
   assert.match(dashboard, /Legacy clicks without visit IDs/);
@@ -210,6 +217,8 @@ test('engagement endpoint rate-limits and BongaCash remains manual-only', () => 
   const path = require('node:path');
   const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
   assert.match(route, /allowEngagement\(event\.visitId\)/);
+  assert.match(route, /api\/tracking-storage-health/);
+  assert.match(route, /trackingStorageHealth\.snapshot\(\)/);
   assert.match(route, /Engagement event rate limit reached/);
   assert.match(route, /BongaCash postbacks are not supported/);
   assert.doesNotMatch(route, /bongacashPostbackConfigured|bongaPostbackConfigured/);
@@ -377,4 +386,16 @@ test('server establishes first-party visit cookies before directory affiliate li
   assert.match(server, /const queryLandingPath = url\.searchParams\.get\("lp"\)/);
   assert.match(server, /const cookieLandingPath = cookieValue\(req, "ncf_landing_path"\)/);
   assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
+});
+
+
+test('redirects record the visit-ID source and flag cookie/query mismatches', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+  assert.match(server, /const visitId = cookieVisitId \\|\\| queryVisitId/);
+  assert.match(server, /const visitIdSource = cookieVisitId \\? "first_party_cookie" : queryVisitId \\? "query_parameter" : "none"/);
+  assert.match(server, /const visitIdConflict = Boolean\\(cookieVisitId && queryVisitId && cookieVisitId !== queryVisitId\\)/);
+  const writer = server.slice(server.indexOf('async function countClick('), server.indexOf('async function statsFromDb()'));
+  assert.match(writer, /visit_id_source,visit_id_conflict/);
 });
