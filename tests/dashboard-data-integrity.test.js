@@ -7,14 +7,15 @@ const { buildQuery } = require('../src/services/conversion-revenue.cjs');
 
 const routeSource = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
 
-test('headline Chaturbate totals exclude macro-placeholder callbacks and non-USD payouts', () => {
-  assert.match(routeSource, /NOT EXISTS \(SELECT 1 FROM jsonb_each_text\(COALESCE\(cb_conversions\.raw_payload, '\{\}'::jsonb\)\)/);
-  assert.ok(routeSource.includes("p.value ~ '^[{][A-Za-z][A-Za-z0-9_]*[}]$'"));
-  assert.match(routeSource, /UPPER\(COALESCE\(currency,''\)\)='USD'/);
-  assert.match(routeSource, /const conversionWhere = conv\.where \? conv\.where \+ " AND " \+ testCallbackExclusion : "WHERE " \+ testCallbackExclusion/);
-  assert.ok(routeSource.includes('"FROM cb_conversions",\n      conversionWhere'));
+test('headline Chaturbate totals use matched callback integrity and currency-separated payouts', () => {
+  assert.match(routeSource, /invalidCallbackPredicate\("cc"\)/);
+  assert.match(routeSource, /conversionWhere = conv\.where \? conv\.where \+ " AND NOT " \+ testCallbackExclusion/);
+  assert.match(routeSource, /UPPER\(COALESCE\(NULLIF\(cc\.currency,''\),'UNSPECIFIED'\)\) AS currency/);
+  assert.match(routeSource, /earningsByCurrency/);
+  assert.match(routeSource, /if \(currency === "USD"\) cbEarnings = earnings/);
+  assert.match(routeSource, /revshare_webmaster-commission/);
+  assert.ok(routeSource.includes('"FROM cb_conversions cc",'));
 });
-
 test('conversion detail report identifies placeholder callbacks without assigning a false match', () => {
   const query = buildQuery({ from: '2026-11-01', to: '2026-11-09' });
   assert.equal(query.error, undefined);
