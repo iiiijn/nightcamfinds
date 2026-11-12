@@ -23,7 +23,7 @@ test("legal page copy explains the directory, affiliate relationship and externa
   for (const phrase of [
     "does not host or transmit live video",
     "may receive a commission or referral payment",
-    "partner platforms own privacy policies",
+    "their own privacy policies",
     "at least 18 years old",
     "privacy requests, correction requests"
   ]) assert.ok(source.includes(phrase), phrase);
