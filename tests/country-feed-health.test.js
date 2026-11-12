@@ -70,5 +70,7 @@ test("startup patch exposes country feed health only through requested summary d
   assert.ok(patched.includes('require("./src/services/country-feed-health.cjs")'));
   assert.ok(patched.includes("countryFeedHealth: summarizeCountryFeedHealth("));
   assert.ok(patched.includes("providerHealth: feed.providerHealth || {}"));
+  assert.ok(patched.includes('providerHealth:{chaturbate:results[0].status==="rejected"?"unavailable":"available"'));
+  assert.ok(patched.includes('bongacams:!BONGA_ENABLED?"disabled":results[1].status==="rejected"?"unavailable":"available"'));
   assert.equal(patchServerSource(patched), patched);
 });
