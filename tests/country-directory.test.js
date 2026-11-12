@@ -54,7 +54,7 @@ test("server patch uses room-quality checks and does not invent sitemap modifica
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
  assert.ok(patched.includes("NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1"));
  assert.ok(!patched.includes("const countryMatch = pathname.match("));
- assert.ok(patched.includes("isIndexableCountryRooms(countryRooms)"));
+ assert.ok(patched.includes("summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms })"));
  assert.ok(patched.includes("buildCountrySitemap"));
  assert.ok(patched.includes("normalizeLanguages(room.spoken_languages"));
  assert.ok(patched.includes('url.searchParams.get("region")'));
@@ -196,7 +196,7 @@ test("country startup patch removes the shadowing handler and leaves one feed-ba
  assert.ok(route.includes('console.info("[country-route]"'));
  assert.ok(route.includes("visitCookieHeaders(req, pathname)"));
  assert.ok(route.includes("visitCookieHeaders(req, pathname)"));
- assert.ok(route.indexOf("await rooms(req)")<route.indexOf("isIndexableCountryRooms(countryRooms)"));
+ assert.ok(route.indexOf("await rooms(req)")<route.indexOf("routeHealth.indexable"));
  assert.equal(patchServerSource(patched),patched,"the startup patch must remain idempotent");
 });
 
