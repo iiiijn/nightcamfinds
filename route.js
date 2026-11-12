@@ -638,6 +638,30 @@ http.createServer = function routeDashboard(handler) {
         return sendJson(res, 500, { error: "Could not load click origins report." });
       }
     }
+    if (incoming.pathname === "/api/individual-click-trace") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const individualClickTrace = require("./src/services/individual-click-trace.cjs");
+      const parsed = individualClickTrace.parseFilters(incoming.searchParams);
+      if (parsed.error) return sendJson(res, 400, { error: parsed.error });
+      try {
+        const query = individualClickTrace.buildQuery(parsed.value);
+        const result = await pool.query(query.text, query.params);
+        return sendJson(res, 200, {
+          rows: result.rows.map(individualClickTrace.mapRow),
+          filters: parsed.value,
+          limit: parsed.value.limit,
+          truncated: result.rows.length === parsed.value.limit,
+          timezone: "UTC",
+          note: "Each row is one NightCamFinds affiliate redirect. Source and campaign tags may be self-reported URL parameters. Country is proxy-supplied. No raw IP address, full user-agent, or raw referrer URL is stored or exposed. Missing historical values are shown as unknown or unclassified."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Individual click trace requires the existing traffic-quality and click-attribution migrations." });
+        console.error("Individual click trace failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load individual click trace." });
+      }
+    }
     if (incoming.pathname === "/api/recent-room-clicks") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
       if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
