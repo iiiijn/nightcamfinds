@@ -15,6 +15,7 @@ const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
+const trackingStorageHealth = require("./src/services/tracking-storage-health.cjs");
 const { cleanRoomTitle, filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const { isIso3166Alpha2 } = require("./src/services/iso-country-codes.cjs");
 const allowEngagement = createEngagementRateLimiter();
@@ -394,6 +395,15 @@ http.createServer = function routeDashboard(handler) {
            WHERE e.occurred_at >= $1 AND e.occurred_at < $2
              AND v.traffic_class='unverified'`, [bounds.from, bounds.toExclusive]
         );
+        const visitIdDiagnostics = await pool.query(
+          `SELECT visit_id_source, COUNT(*)::int AS clicks,
+                  COUNT(*) FILTER (WHERE visit_id_conflict IS TRUE)::int AS conflicts
+           FROM affiliate_clicks
+           WHERE clicked_at >= $1 AND clicked_at < $2
+           GROUP BY visit_id_source`, [bounds.from, bounds.toExclusive]
+        );
+        const visitIdSourceCounts = Object.fromEntries(visitIdDiagnostics.rows.map(row => [row.visit_id_source || "legacy", Number(row.clicks || 0)]));
+        const visitIdConflicts = visitIdDiagnostics.rows.reduce((sum, row) => sum + Number(row.conflicts || 0), 0);
         const clickQuality = await pool.query(
           `SELECT CASE
                     WHEN c.is_bot IS TRUE OR c.bot_reason = 'known_bot_user_agent' THEN 'known_bot'
@@ -435,6 +445,7 @@ http.createServer = function routeDashboard(handler) {
           unclassifiedAffiliateClicks: clickCounts.unclassified || 0,
           clicksWithoutVisitId: unlinkedClickCounts.missingVisitId,
           clicksWithMissingVisitRecord: unlinkedClickCounts.missingVisitRecord,
+          visitIdSourceCounts, visitIdConflicts,
           note: "Engaged visits count distinct unverified visit IDs with active_10s or scroll_50 signals only. BongaCash banner load/viewability telemetry is reported separately and is not counted as engagement. Engaged visits with affiliate clicks are distinct visit IDs with at least one tracked redirect in this reporting week. These signals are client-reported and do not prove a human visitor or a conversion. Affiliate redirects are not verified human clicks. Known and suspected automation are separated. New affiliate redirects store user-agent classification directly on the click record, including redirects without a visit ID. Older redirects without stored classification remain unclassified unless a linked visit record provides classification. Unclassified redirects are clicks without usable classification evidence. Most missing-visit-ID clicks may be legacy records from before visit tracking was introduced; they cannot be retrospectively classified. A missing visit record with an ID indicates a linkage issue that should be investigated."
         });
       } catch (err) {
@@ -442,6 +453,17 @@ http.createServer = function routeDashboard(handler) {
         console.error("Traffic quality analytics failed:", err.message);
         return sendJson(res, 500, { error: "Could not load traffic quality analytics." });
       }
+    }
+    if (incoming.pathname === "/api/tracking-storage-health") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      let databaseReachable = false;
+      if (pool) { try { await pool.query("SELECT 1"); databaseReachable = true; } catch {} }
+      return sendJson(res, 200, {
+        databaseConfigured: Boolean(pool), databaseReachable,
+        ...trackingStorageHealth.snapshot(),
+        note: "Fallback counters are in-memory for this server process and reset on restart. A zero count does not prove that no historical write failures occurred."
+      });
     }
     if (incoming.pathname === "/api/provider-attribution-health") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
