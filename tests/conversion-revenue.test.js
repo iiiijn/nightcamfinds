@@ -24,7 +24,7 @@ assert.deepEqual(result.attributedPayoutsByCurrency,{USD:7.5,EUR:3});assert.deep
 assert.deepEqual(result.matchedPurchaseSpendByCurrency,{USD:37.5});assert.deepEqual(result.illustrative20PercentByCurrency,{USD:7.5});
 assert.equal(result.matchedConversions,3);assert.equal(result.unmatchedConversions,1);assert.equal(result.invalidCallbacks,1);
 assert.equal(result.eventBreakdownByType.member_purchase_revshare.matchedConversions,2);assert.equal(result.eventBreakdownByType.member_purchase_revshare.unmatchedConversions,1);
-assert.deepEqual(result.eventBreakdownByType.member_purchase_revshare.matchedMemberSpendByCurrency,{USD:37.5});
+assert.deepEqual(result.eventBreakdownByType.member_purchase_revshare.matchedMemberSpendByCurrency,{USD:37.5});assert.deepEqual(result.eventBreakdownByType.member_purchase_revshare.pendingMemberSpendByCurrency,{USD:10});
 assert.deepEqual(result.eventBreakdownByType.webmaster_commission.matchedPayoutsByCurrency,{EUR:3});
 });
 test('keeps negative payout adjustments signed and currencies separate',()=>{
