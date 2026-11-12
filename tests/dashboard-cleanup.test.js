@@ -44,7 +44,7 @@ test('dashboard loads report groups on tab selection and caches GET responses br
   assert.match(script, /async function loadDashboardTab\(tab,force=false\)/);
   assert.match(script, /overview:\[loadRoomCoverage,load,loadRouteSettings,loadCountryCategoryAnalytics\]/);
   assert.match(script, /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadClickOrigins\]/);
-  assert.match(script, /investigation:\[loadRecentRoomClicks\]/);
+  assert.match(script, /investigation:\[loadRecentRoomClicks,loadIndividualClickTrace\]/);
   assert.match(script, /revenue:\[loadCampaignPerformance,loadTrafficRevenuePerformance,loadConversionRevenue,loadConversionFunnel\]/);
   assert.match(script, /health:\[loadProviderAttributionHealth\]/);
   assert.match(script, /dashboardLoadedTabs\.has\(key\)/);
