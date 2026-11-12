@@ -87,7 +87,7 @@ else {
     if (seoPathSet.includes(JSON.stringify(path))) fail(`server-rendered category route must not be rewritten: ${path}`);
   }
   if (!seoPathSet.includes(JSON.stringify("/"))) fail("SPA metadata route is missing: /");
-  if (seoPathSet.includes(JSON.stringify("/broadcast"))) fail("/broadcast must not be rewritten to the homepage");
+  if (!seoPathSet.includes(JSON.stringify("/broadcast"))) fail("/broadcast metadata route is missing");
   if (!seoPatch.includes('pathname === "/broadcast" ? "/broadcast.html"')) fail("/broadcast must resolve to its standalone HTML page");
   if (!seoPatch.includes('"/broadcast": {')) fail("/broadcast SEO metadata is missing");
 }
