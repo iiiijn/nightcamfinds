@@ -22,7 +22,7 @@ test('dashboard uses one shared loader for restored sessions and fresh sign-ins'
   for (const group of [
     /overview:\[loadRoomCoverage,load,loadRouteSettings,loadCountryCategoryAnalytics\]/,
     /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadClickOrigins\]/,
-    /investigation:\[loadRecentRoomClicks\]/,
+    /investigation:\[loadRecentRoomClicks,loadIndividualClickTrace\]/,
     /revenue:\[loadCampaignPerformance,loadTrafficRevenuePerformance,loadConversionRevenue,loadConversionFunnel\]/,
     /health:\[loadProviderAttributionHealth\]/
   ]) {
