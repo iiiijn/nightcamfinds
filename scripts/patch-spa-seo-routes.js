@@ -20,6 +20,12 @@ const NCF_SEO_PATHS_V14 = new Set([
 ]);
 
 const NCF_ROUTE_META_V14 = {
+  "/broadcast": {
+    title: "Become a Broadcaster | Apply on Chaturbate | NightCamFinds",
+    description: "Learn how adults can apply for a Chaturbate broadcaster account. Chaturbate controls approval, streaming, account rules and performer payments.",
+    ogTitle: "Become a Broadcaster | NightCamFinds",
+    ogDescription: "Information for adults considering a broadcaster account on Chaturbate."
+  },
   "/": {
     title: "NightCamFinds | Discover Live Cam Rooms",
     description: "Discover public live cam rooms on Chaturbate and BongaCams. Compare live rooms, viewer activity, and categories, then continue to the partner platform.",
@@ -109,7 +115,7 @@ function ncfRewriteSeoRequestV14(req) {
     const pathname = current.pathname;
     if (NCF_SEO_PATHS_V14.has(pathname)) {
       req.seoOriginalPathname = pathname;
-      req.url = "/" + current.search;
+      req.url = pathname === "/broadcast" ? "/broadcast.html" + current.search : "/" + current.search;
     }
   } catch {}
 }
