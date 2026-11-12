@@ -523,7 +523,6 @@ http.createServer = function routeDashboard(handler) {
             clicks: Number(row.clicks || 0)
           })),
           filters: query.filters,
-          dateBasis: query.dateBasis,
           truncated: result.rows.length === 2000,
           timezone: "UTC",
           note: "Recorded affiliate redirects grouped by country, platform, source and campaign. These are not verified human visitors or confirmed conversions."
@@ -595,6 +594,7 @@ http.createServer = function routeDashboard(handler) {
             reportedSpend: String(row.reported_spend || "0")
           })),
           filters: query.filters,
+          dateBasis: query.dateBasis,
           truncated: result.rows.length === 2000,
           timezone: "UTC",
           note: "Chaturbate postback events only. Payouts remain separated by currency. Matched means the stored postback was linked to a tracked click ID. BongaCash manual daily reconciliation is displayed separately and is not included in this event report."
