@@ -9,8 +9,8 @@ const dashboard = fs.readFileSync("public/dashboard.html", "utf8");
 test("dashboard exposes a read-only live room coverage panel", () => {
   assert.match(dashboard, /id="roomCoveragePanel"/);
   assert.match(dashboard, /id="roomCoverageRefresh"/);
-  assert.match(dashboard, /fetch\('\/api\/rooms\?summary=1&coverage=1'/);
-  assert.match(dashboard, /loadRoomCoverage\(\)/);
+  assert.match(dashboard, /fetch\('\/api\/rooms\?summary=1&coverage=1(?:&diagnostics=1)?'/);
+  assert.match(dashboard, /loadRoomCoverage\(\)/);\n  assert.match(dashboard, /countryFeedHealth/);
 });
 
 test("dashboard coverage panel reports regions, categories, priority markets and metadata gaps", () => {
