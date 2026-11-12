@@ -34,3 +34,13 @@ test('dashboard country summary contains affiliate click geography only', () => 
   assert.ok(!countrySummary.includes('bonga.byCountry'));
   assert.ok(!countrySummary.includes('bonga.registrations'));
 });
+
+test('main dashboard separates eligible events, actual payouts and member spend', () => {
+  const dashboard = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
+  assert.match(dashboard, /function summarizeDashboardConversions/);
+  assert.match(dashboard, /reportedSpend/);
+  assert.match(dashboard, /matchedPayouts/);
+  assert.match(dashboard, /pendingPayouts/);
+  assert.match(dashboard, /matchedMemberSpend/);
+  assert.match(dashboard, /Unsupported · excluded from totals/);
+});
