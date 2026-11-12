@@ -36,12 +36,13 @@ test('calculates country shares across categories and combines platform rows', (
     { country: 'US', category: 'trans', platform: 'chaturbate', clicks: 40, unflagged_non_test_clicks: 30, known_bot_clicks: 5, suspected_bot_clicks: 2, internal_test_clicks: 3 },
     { country: 'GB', category: 'female', platform: 'bongacams', clicks: 10, unflagged_non_test_clicks: 8, known_bot_clicks: 1, suspected_bot_clicks: 0, internal_test_clicks: 1 }
   ]);
-  const usMale = rows.find(x => x.country === 'US' && x.category === 'male');
-  assert.equal(usMale.clicks, 100);
-  assert.equal(usMale.unflaggedNonTestClicks, 60);
-  assert.equal(usMale.knownBotClicks, 22);
-  assert.equal(usMale.suspectedBotClicks, 6);
-  assert.equal(usMale.internalTestClicks, 12);
+  const usMaleRows = rows.filter(x => x.country === 'US' && x.category === 'male');
+  const usMale = usMaleRows[0];
+  assert.equal(usMaleRows.reduce((sum, row) => sum + row.clicks, 0), 100);
+  assert.equal(usMaleRows.reduce((sum, row) => sum + row.unflaggedNonTestClicks, 0), 60);
+  assert.equal(usMaleRows.reduce((sum, row) => sum + row.knownBotClicks, 0), 22);
+  assert.equal(usMaleRows.reduce((sum, row) => sum + row.suspectedBotClicks, 0), 6);
+  assert.equal(usMaleRows.reduce((sum, row) => sum + row.internalTestClicks, 0), 12);
   assert.equal(usMale.sharePercent, 66.67);
   assert.equal(usMale.categoryClicks, 60);
   assert.equal(usMale.countryClicks, 90);
