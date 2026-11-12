@@ -10,7 +10,7 @@ test("promo attribution captures an external referrer host without its path or q
   assert.match(promo, /new URL\(document\.referrer\)/);
   assert.match(promo, /referrer\?\.hostname/);
   assert.match(promo, /host !== currentHost/);
-  assert.match(promo, /referralOnly \? 'referral' : 'unknown'/);
+  assert.match(promo, /const medium = explicitMedium \|\| \(referral \? 'referral' : fresh \? saved\.medium : 'unknown'\)/);
   assert.match(promo, /explicitSource \|\| referral \|\| savedSource \|\| 'unknown'/);
 });
 
