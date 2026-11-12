@@ -257,7 +257,7 @@ test('affiliate redirect handler accepts source attribution and validates visit 
   const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
   assert.match(server, /url\.searchParams\.get\("utm_source"\) \|\| url\.searchParams\.get\("source"\)/);
   assert.match(server, /match\(\/\^\[a-f0-9\]\{32\}\$\/i\)\?\.\[0\]/);
-  assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
+  assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, visitIdSource, visitIdConflict, landingPath/);
 });
 
 test('accepts BongaCash static-banner load and viewable events', () => {
@@ -385,7 +385,7 @@ test('server establishes first-party visit cookies before directory affiliate li
   assert.match(server, /const cookieVisitId = String\(cookieValue\(req, "ncf_visit_id"\)/);
   assert.match(server, /const queryLandingPath = url\.searchParams\.get\("lp"\)/);
   assert.match(server, /const cookieLandingPath = cookieValue\(req, "ncf_landing_path"\)/);
-  assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
+  assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, visitIdSource, visitIdConflict, landingPath/);
 });
 
 
@@ -393,9 +393,9 @@ test('redirects record the visit-ID source and flag cookie/query mismatches', ()
   const fs = require('node:fs');
   const path = require('node:path');
   const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
-  assert.match(server, /const visitId = cookieVisitId \\|\\| queryVisitId/);
-  assert.match(server, /const visitIdSource = cookieVisitId \\? "first_party_cookie" : queryVisitId \\? "query_parameter" : "none"/);
-  assert.match(server, /const visitIdConflict = Boolean\\(cookieVisitId && queryVisitId && cookieVisitId !== queryVisitId\\)/);
+  assert.match(server, /const visitId = cookieVisitId \|\| queryVisitId/);
+  assert.match(server, /const visitIdSource = cookieVisitId \? "first_party_cookie" : queryVisitId \? "query_parameter" : "none"/);
+  assert.match(server, /const visitIdConflict = Boolean\(cookieVisitId && queryVisitId && cookieVisitId !== queryVisitId\)/);
   const writer = server.slice(server.indexOf('async function countClick('), server.indexOf('async function statsFromDb()'));
   assert.match(writer, /visit_id_source,visit_id_conflict/);
 });
