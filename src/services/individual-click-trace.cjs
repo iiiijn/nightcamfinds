@@ -1,7 +1,7 @@
 'use strict';
 
 const PLATFORMS = Object.freeze(['chaturbate', 'bongacams']);
-const ISO_DATE = /^\\d{4}-\\d{2}-\\d{2}$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 function validDate(value) {
   if (!ISO_DATE.test(value)) return false;
   const date = new Date(value + 'T00:00:00.000Z');
