@@ -83,7 +83,7 @@ module.exports = { Pool };
   const patchedServer = fs.readFileSync(path.join(projectDir, "server.js"), "utf8");
   assert.match(patchedServer, /const queryVisitId\s*=\s*String\(url\.searchParams\.get\(["']vid["']\)\s*\|\|\s*["']["']\)\.match\(\/\^\[a-f0-9\]\{32\}\$\/i\)/);
   assert.match(patchedServer, /const cookieVisitId\s*=\s*String\(cookieValue\(req,\s*["']ncf_visit_id["']\)/);
-  assert.match(patchedServer, /const visitId\s*=\s*queryVisitId\s*\|\|\s*cookieVisitId/);
+  assert.match(patchedServer, /const visitId\s*=\s*cookieVisitId\s*\|\|\s*queryVisitId/);
   assert.match(patchedServer, /landingPath/);
   assert.match(patchedServer, /trafficClass:\s*classifyUserAgent\(agent\)/);
 
