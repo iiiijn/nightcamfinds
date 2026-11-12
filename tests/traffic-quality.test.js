@@ -68,7 +68,7 @@ test('affiliate redirect persistence stores known and suspected bot evidence eve
   const writer = server.slice(start, end);
   assert.match(server, /ADD COLUMN IF NOT EXISTS is_bot BOOLEAN NOT NULL DEFAULT FALSE/);
   assert.match(server, /ADD COLUMN IF NOT EXISTS bot_reason VARCHAR\(80\)/);
-  assert.match(writer, /source_evidence,click_id,visit_id,landing_path,is_bot,bot_reason/);
+  assert.match(writer, /source_evidence,click_id,visit_id,visit_id_source,visit_id_conflict,landing_path,is_bot,bot_reason/);
   assert.match(writer, /source_evidence,click_id,is_bot,bot_reason/);
   assert.match(writer, /trafficClass === "known_bot"/);
   assert.match(writer, /"known_bot_user_agent"/);
