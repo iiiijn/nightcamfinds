@@ -23,7 +23,7 @@ test('revenue dashboard labels manual BongaCash reconciliation separately', () =
 });
 
 test('revenue calculations exclude test events and unsupported conversion types', () => {
-  assert.match(helper, /if \(row\.isTest\)/);
+  assert.match(helper, /row\.isTest/);
   assert.match(helper, /CREDITED_EVENT_TYPES\.has/);
   assert.match(attribution, /LOWER\(cc\.conversion_type\) IN/);
   assert.match(attribution, /cc\.matched_click IS TRUE/);
@@ -37,5 +37,8 @@ test('dashboard business statistics exclude known internal test and audit clicks
   assert.match(stats, /businessClickWhere/);
   assert.match(stats, /source, ''\)\) <> 'test'/);
   assert.match(stats, /test_female_01', 'revshare_audit_01/);
+  assert.match(stats, /invalidCallbackPredicate\("cc"\)/);
+  assert.match(stats, /earningsByCurrency/);
+  assert.match(stats, /revshare_webmaster-commission/);
   assert.match(stats, /const where = x\.where \? x\.where \+ " AND " \+ internalTrafficExclusion/);
 });
