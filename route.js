@@ -523,6 +523,7 @@ http.createServer = function routeDashboard(handler) {
             clicks: Number(row.clicks || 0)
           })),
           filters: query.filters,
+          dateBasis: query.dateBasis,
           truncated: result.rows.length === 2000,
           timezone: "UTC",
           note: "Recorded affiliate redirects grouped by country, platform, source and campaign. These are not verified human visitors or confirmed conversions."
