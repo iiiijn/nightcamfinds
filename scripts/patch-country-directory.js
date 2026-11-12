@@ -49,7 +49,7 @@ function patchServerSource(input){
  const earlyEnd=source.indexOf("  if(pages[pathname])",earlyStart);
  if(earlyStart<0||earlyEnd<0)throw new Error("Country directory patch could not locate the early duplicate country route");
  source=source.slice(0,earlyStart)+source.slice(earlyEnd);
- replaceOnce('  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly.")};',
+ replaceOnce(' const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly.")};',
   '  const providerHealth={chaturbate:results[0].status==="fulfilled"?"available":"unavailable",bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"};\n  const entry={at:Date.now(),rooms:combined,providerHealth,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly.")};',
   "provider feed health");
  const oldSitemap=/function sitemap\(origin\)\{[^\n]*\}/;
