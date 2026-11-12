@@ -36,7 +36,7 @@ test('country pages load shared tracking helper before applying visit IDs to aff
 
 test('redirect handler validates and persists the visit ID supplied by directory links', () => {
   assert.match(server, /url\.searchParams\.get\("vid"\)/);
-  assert.match(server, /visitId, landingPath/);
+  assert.match(server, /visitId, visitIdSource, visitIdConflict, landingPath/);
 });
 
 test('privacy notice discloses the temporary analytics session cookie', () => {
