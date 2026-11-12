@@ -180,3 +180,18 @@ test("production entry point routes through start.js into the room server",()=>{
  assert.match(route,/require\(["']\.\/start\.js["']\)/);
  assert.match(start,/require\(["']\.\/server\.js["']\)/);
 });
+
+test("country startup patch removes the shadowing handler and leaves one feed-backed route",()=>{
+ const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");
+ const patched=patchServerSource(source);
+ assert.equal((patched.match(/const countryRoute = pathname\.match\(/g)||[]).length,1);
+ assert.ok(!patched.includes("const countryMatch = pathname.match("));
+ const start=patched.indexOf("const countryRoute = pathname.match(");
+ const end=patched.indexOf("const file=pathname",start);
+ const route=patched.slice(start,end);
+ assert.ok(route.includes("const feed = await rooms(req);"));
+ assert.ok(route.includes("isIndexableCountryRooms(countryRooms)"));
+ assert.ok(route.includes("visitCookieHeaders(req, pathname)"));
+ assert.ok(route.indexOf("await rooms(req)")<route.indexOf("isIndexableCountryRooms(countryRooms)"));
+ assert.equal(patchServerSource(patched),patched,"the startup patch must remain idempotent");
+});
