@@ -8,6 +8,7 @@ const { getCountryPage } = require("./country-pages.js");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 const { normalizeSourceEvidence } = require("./src/services/source-evidence.cjs");
+const trackingStorageHealth = require("./src/services/tracking-storage-health.cjs");
 const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
 const { isPriorityMarket, MARKET_META, MARKET_PRIORITY_CODES } = require("./src/config/market-countries.cjs");
 const { fetchPagedResults } = require("./src/services/paged-feed.cjs");
@@ -129,7 +130,7 @@ async function ensureAffiliateLedgers() {
   await pgPool.query("CREATE INDEX IF NOT EXISTS cb_clicks_clicked_at_idx ON cb_clicks(clicked_at)");
   await pgPool.query("CREATE INDEX IF NOT EXISTS bonga_clicks_clicked_at_idx ON bonga_clicks(clicked_at)");
 }
-async function countClick({ src, country, category="unknown", source="unknown", sourceEvidence="unknown", campaign="unknown", medium="unknown", content="", device="unknown", clickId, platform="chaturbate", visitId=null, landingPath="/", trafficClass="unverified" }) {
+async function countClick({ src, country, category="unknown", source="unknown", sourceEvidence="unknown", campaign="unknown", medium="unknown", content="", device="unknown", clickId, platform="chaturbate", visitId=null, visitIdSource="legacy", visitIdConflict=false, landingPath="/", trafficClass="unverified" }) {
   if (pgPool) {
     let client = null;
     try {
@@ -138,8 +139,8 @@ async function countClick({ src, country, category="unknown", source="unknown", 
       client = await pgPool.connect();
       await client.query("BEGIN");
       const inserted = await client.query(
-        "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,source_evidence,click_id,visit_id,landing_path,is_bot,bot_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id",
-        [country,category,source,campaign,src,platform,medium,content,device,sourceEvidence,clickId||null,visitId,landingPath,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null]
+        "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,source_evidence,click_id,visit_id,visit_id_source,visit_id_conflict,landing_path,is_bot,bot_reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id",
+        [country,category,source,campaign,src,platform,medium,content,device,sourceEvidence,clickId||null,visitId,visitIdSource,Boolean(visitIdConflict),landingPath,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null]
       );
       if (visitId) {
         await client.query(
@@ -167,6 +168,7 @@ async function countClick({ src, country, category="unknown", source="unknown", 
         }
       }
       if (client && ["42P01", "42703"].includes(err.code)) {
+        trackingStorageHealth.recordSchemaFallback(err);
         // Migration 006 is intentionally separate. Preserve the legacy persistent
         // click ledger until visit/landing columns and traffic tables are approved.
         let fallbackClient = null;
@@ -199,11 +201,13 @@ async function countClick({ src, country, category="unknown", source="unknown", 
           if (fallbackClient) fallbackClient.release();
         }
       }
+      trackingStorageHealth.recordLocalFallback(err);
       console.error("Postgres click tracking failed; falling back to local storage:", err.message);
     } finally {
       if (client) client.release();
     }
   }
+  if (!pgPool) trackingStorageHealth.recordLocalFallback(null, "database_not_configured");
   const stats=readStats(); stats.total=(stats.total||0)+1; stats.countries=stats.countries||{}; stats.countries[country]=(stats.countries[country]||0)+1; stats.byCategory=stats.byCategory||{}; stats.byCategory[category]=(stats.byCategory[category]||0)+1; stats.byCountryCategory=stats.byCountryCategory||{}; stats.byCountryCategory[`${country}:${category}`]=(stats.byCountryCategory[`${country}:${category}`]||0)+1; stats.bySource=stats.bySource||{}; stats.bySource[source]=(stats.bySource[source]||0)+1; stats.byCampaign=stats.byCampaign||{}; stats.byCampaign[campaign]=(stats.byCampaign[campaign]||0)+1; stats.byCountrySource=stats.byCountrySource||{}; stats.byCountrySource[`${country}:${source}`]=(stats.byCountrySource[`${country}:${source}`]||0)+1; stats.byCountryCampaign=stats.byCountryCampaign||{}; stats.byCountryCampaign[`${country}:${campaign}`]=(stats.byCountryCampaign[`${country}:${campaign}`]||0)+1; stats.byPlacement=stats.byPlacement||{}; stats.byPlacement[`${platform}:${src}`]=(stats.byPlacement[`${platform}:${src}`]||0)+1; stats.byPlatform=stats.byPlatform||{}; stats.byPlatform[platform]=(stats.byPlatform[platform]||0)+1; stats.byMedium=stats.byMedium||{}; stats.byMedium[medium]=(stats.byMedium[medium]||0)+1; stats.byRoom=stats.byRoom||{}; const roomMatch=String(content||"").match(/(?:^|:)room-([a-z0-9_-]{1,64})(?::|$)/i); if(roomMatch) stats.byRoom[`${platform}:${roomMatch[1]}`]=(stats.byRoom[`${platform}:${roomMatch[1]}`]||0)+1; stats.byDevice=stats.byDevice||{}; stats.byDevice[device]=(stats.byDevice[device]||0)+1; stats.updatedAt=new Date().toISOString(); writeStats(stats);
 }
 async function statsFromDb() { if (!pgPool) return null; try { await ensureTrackingTable(); const q=async(sql,params=[]) => (await pgPool.query(sql,params)).rows; const countries={}; for(const r of await q("SELECT country, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country ORDER BY count DESC")) countries[r.country]=r.count; const byCountryCategory={}; for(const r of await q("SELECT country, category, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, category ORDER BY count DESC")) byCountryCategory[`${r.country}:${r.category}`]=r.count; const byCountrySource={}; for(const r of await q("SELECT country, source, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, source ORDER BY count DESC")) byCountrySource[`${r.country}:${r.source}`]=r.count; const byPlatform={}; for(const r of await q("SELECT platform, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY platform ORDER BY count DESC")) byPlatform[r.platform]=r.count; const total=Number((await q("SELECT COUNT(*)::int AS count FROM affiliate_clicks"))[0]?.count||0); const updated=await q("SELECT MAX(clicked_at) AS updated_at FROM affiliate_clicks"); return {total,countries,byCountryCategory,byCountrySource,byPlatform,updatedAt:updated[0]?.updated_at||null,persistent:true}; } catch(err) { console.error("Postgres stats read failed:",err.message); return null; } }
@@ -383,14 +387,16 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const clickId = "ncf_" + Date.now().toString(36) + "_" + require("crypto").randomBytes(8).toString("hex");
     const queryVisitId = String(url.searchParams.get("vid") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
     const cookieVisitId = String(cookieValue(req, "ncf_visit_id") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
-    const visitId = queryVisitId || cookieVisitId;
+    const visitId = cookieVisitId || queryVisitId;
+    const visitIdSource = cookieVisitId ? "first_party_cookie" : queryVisitId ? "query_parameter" : "none";
+    const visitIdConflict = Boolean(cookieVisitId && queryVisitId && cookieVisitId !== queryVisitId);
     const isSafeLandingPath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && value.length <= 255 && !/[\r\n]/.test(value);
     const queryLandingPath = url.searchParams.get("lp") || "";
     const cookieLandingPath = cookieValue(req, "ncf_landing_path");
     const landingPath = isSafeLandingPath(queryLandingPath) ? queryLandingPath : isSafeLandingPath(cookieLandingPath) ? cookieLandingPath : pathname;
     const room = isBonga ? (await rooms(req)).rooms.find(r => r.platform === platform && r.username === username) : null;
     if (isBonga && !room) return send(res, 404, "Live room not found", "text/plain; charset=utf-8");
-    await countClick({ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
+    await countClick({ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, visitIdSource, visitIdConflict, landingPath, trafficClass: classifyUserAgent(agent) });
     let target;
     if (isBonga) {
       // Exact account-generated BongaCash Direct Link pattern: type, version,
