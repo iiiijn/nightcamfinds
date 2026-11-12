@@ -32,12 +32,14 @@ test('directory, promo and country links carry their source evidence method to a
   const country = fs.readFileSync(path.join(__dirname, '../country-pages.js'), 'utf8');
   const renderer = fs.readFileSync(path.join(__dirname, '../src/services/room-page-renderer.cjs'), 'utf8');
   const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
-  assert.match(app, /evidence: trafficSourceEvidence/);
-  assert.match(promo, /evidence: attr\.sourceEvidence/);
-  assert.match(country, /evidence: attribution\.sourceEvidence/);
+  assert.doesNotMatch(app, /evidence: trafficSourceEvidence/);
+  assert.doesNotMatch(promo, /evidence: attr\.sourceEvidence/);
+  assert.doesNotMatch(country, /evidence: attribution\.sourceEvidence/);
   assert.match(renderer, /source: "unknown"/);
   assert.match(renderer, /evidence: "unknown"/);
-  assert.match(server, /normalizeSourceEvidence\(url\.searchParams\.get\("evidence"\)\)/);
+  assert.match(server, /Ignore the client-controlled evidence parameter/);
+  assert.match(server, /const sourceEvidence = source !== "unknown" \? "url_parameter" : "unknown"/);
+  assert.doesNotMatch(server, /normalizeSourceEvidence\(url\.searchParams\.get\("evidence"\)\)/);
   assert.match(server, /sourceEvidence, campaign, medium/);
 });
 

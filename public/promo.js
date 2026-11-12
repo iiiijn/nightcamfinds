@@ -41,14 +41,11 @@
     const explicitCampaign = url.get('utm_campaign') || url.get('campaign') || '';
     const explicitContent = url.get('utm_content') || url.get('ncf_placement') || url.get('content') || '';
     const savedSource = fresh ? saved.source : '';
-    const referralOnly = !explicitSource && !savedSource && Boolean(referral);
-    const validEvidence = new Set(['url_parameter', 'browser_referrer', 'stored_attribution', 'unknown']);
-    const suppliedEvidence = String(url.get('evidence') || '').trim().toLowerCase();
-    const explicitEvidence = validEvidence.has(suppliedEvidence) ? suppliedEvidence : '';
-    const source = explicitSource || savedSource || referral || 'unknown';
-    const sourceEvidence = explicitEvidence || (explicitSource ? 'url_parameter' : referralOnly ? 'browser_referrer' : fresh ? (validEvidence.has(saved.sourceEvidence) ? saved.sourceEvidence : 'stored_attribution') : 'unknown');
-    const medium = explicitMedium || (fresh ? saved.medium : '') || (referralOnly ? 'referral' : 'unknown');
-    const campaign = explicitCampaign || (fresh ? saved.campaign : '') || (referralOnly ? 'referral' : 'unknown');
+    const referralOnly = !explicitSource && Boolean(referral);
+    const source = explicitSource || referral || savedSource || 'unknown';
+    const sourceEvidence = explicitSource ? 'url_parameter' : referral ? 'browser_referrer' : fresh ? 'stored_attribution' : 'unknown';
+    const medium = explicitMedium || (referral ? 'referral' : fresh ? saved.medium : 'unknown');
+    const campaign = explicitCampaign || (referral ? 'referral' : fresh ? saved.campaign : 'unknown');
     const attribution = {
       source: clean(source, 'unknown'),
       medium: clean(medium, 'unknown'),
@@ -119,7 +116,6 @@
       medium: attr.medium,
       campaign: attr.campaign,
       content: campaignPlacement ? `${campaignPlacement}:${placement}` : placement,
-      evidence: attr.sourceEvidence,
       vid: currentVisitId,
       lp: originalLandingPath.slice(0, 255)
     });
