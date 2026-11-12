@@ -31,5 +31,5 @@ test("slash redirects and broadcast SPA metadata remain supported", () => {
   assert.ok(patch.includes('"/"'));
   const allowlistStart = patch.indexOf("const NCF_SEO_PATHS_V14 = new Set([");
   const allowlistEnd = patch.indexOf("]);", allowlistStart);
-  assert.ok(!patch.slice(allowlistStart, allowlistEnd).includes('"/broadcast"'));
+  assert.ok(patch.slice(allowlistStart, allowlistEnd).includes('"/broadcast"'));
 });
