@@ -1,6 +1,6 @@
 const http = require("http");
 const crypto = require("crypto");
-const { normalizeChaturbatePostback, removePostbackSecrets, hasUnresolvedChaturbateMacros } = require("./src/services/chaturbate-revshare.cjs");
+const { normalizeChaturbatePostback, removePostbackSecrets, hasUnresolvedChaturbateMacros, sameChaturbateTransaction } = require("./src/services/chaturbate-revshare.cjs");
 const dashboardReporting = require("./src/services/dashboard-reporting.cjs");
 
 const originalCreateServer = http.createServer;
@@ -206,7 +206,21 @@ async function saveConversion(params) {
       clean(params.region, "", 255), JSON.stringify(params), matchedClick
     ]
   );
-  return { matchedClick, inserted: inserted.rowCount === 1 };
+  if (inserted.rowCount === 1) return { matchedClick, inserted: true, duplicate: false };
+  const existingResult = await pool.query(
+    "SELECT click_id, conversion_type, payout, currency FROM cb_conversions WHERE transaction_id = $1",
+    [transactionId]
+  );
+  const existing = existingResult.rows[0];
+  if (!existing || !sameChaturbateTransaction(existing, {
+    click_id: clickId,
+    type: clean(params.type, "unknown", 100),
+    payout: Number.isFinite(payout) ? payout : 0,
+    currency: clean(params.currency, "", 16)
+  })) {
+    throw new Error("Conflicting duplicate Chaturbate transaction ID");
+  }
+  return { matchedClick: Boolean(existing.matched_click ?? matchedClick), inserted: false, duplicate: true };
 }
 
 async function dashboardStats(incoming) {
@@ -470,9 +484,18 @@ http.createServer = function wrappedCreateServer(handler) {
           }
           Object.assign(params, bodyParams);
         }
-        // A provider test may leave any documented macro unresolved, not only
-        // the three fields required by the normalizer. Acknowledge it without
-        // persisting a conversion or allowing placeholder revenue into reports.
+        const configuredSecret = String(process.env.CB_POSTBACK_SECRET || "").trim();
+        if (!configuredSecret) {
+          console.warn("Chaturbate postback rejected: CB_POSTBACK_SECRET is not configured");
+          return json(res, 503, { error: "Postback authentication is not configured." });
+        }
+        const suppliedSecret = String(params.secret || "");
+        if (!suppliedSecret || !safeEqual(suppliedSecret, configuredSecret)) {
+          console.warn("Chaturbate postback rejected: invalid shared-secret authentication");
+          return json(res, 403, { error: "Invalid postback authentication." });
+        }
+        // A provider test may leave documented macros unresolved. Acknowledge
+        // only after authentication and never persist placeholder values.
         if (hasUnresolvedChaturbateMacros(params)) {
           console.log("Chaturbate postback test acknowledged; no conversion recorded");
           res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
@@ -482,27 +505,6 @@ http.createServer = function wrappedCreateServer(handler) {
         if (!normalized.ok) {
           console.warn("Chaturbate postback rejected:", normalized.reason);
           return json(res, 400, { error: "Invalid postback event.", reason: normalized.reason });
-        }
-        const configuredSecret = String(process.env.CB_POSTBACK_SECRET || "").trim();
-        if (!configuredSecret) {
-          console.warn("Chaturbate postback rejected: CB_POSTBACK_SECRET is not configured");
-          return json(res, 503, { error: "Postback authentication is not configured." });
-        }
-        const suppliedSecret = String(params.secret || "");
-        const callbackShape = {
-          hasClickId: Boolean(params.click_id),
-          hasTransactionId: Boolean(params.transaction_id),
-          hasType: Boolean(params.type),
-          hasPayout: Boolean(params.payout),
-          hasTokenField: Boolean(params.token || params.validation || params.validation_token)
-        };
-        if (!suppliedSecret) {
-          console.warn("Chaturbate postback rejected: missing secret", JSON.stringify(callbackShape));
-          return json(res, 403, { error: "Invalid postback authentication." });
-        }
-        if (!safeEqual(suppliedSecret, configuredSecret)) {
-          console.warn("Chaturbate postback rejected: invalid secret", JSON.stringify(callbackShape));
-          return json(res, 403, { error: "Invalid postback authentication." });
         }
         const event = normalized.event;
         Object.assign(params, {
