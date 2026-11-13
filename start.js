@@ -259,16 +259,15 @@ async function dashboardStats(incoming) {
   // from different currencies into one number; expose the full breakdown too.
   const cbUsdEarnings = Number(earningsByCurrency.USD?.earnings || 0);
   const bongacash = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='registration')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type='purchase'),0)::numeric AS earnings FROM bonga_conversions WHERE 1=1 ${conversionWhere}`, conversionDateFilter.params).catch(() => ({rows:[{}]}));
-  let clickQuality = { knownBots: null, suspectedBots: null, notFlaggedAsBot: null, unclassified: null, available: false };
+  let clickQuality = { knownBots: null, suspectedBots: null, unverified: null, available: false };
   try {
     const quality = await pool.query(`SELECT
       COUNT(*) FILTER (WHERE is_bot IS TRUE)::int AS known_bots,
       COUNT(*) FILTER (WHERE bot_reason = 'suspected_automation_user_agent')::int AS suspected_bots,
-      COUNT(*) FILTER (WHERE is_bot IS FALSE AND bot_reason IS DISTINCT FROM 'suspected_automation_user_agent')::int AS not_flagged_as_bot,
-      COUNT(*) FILTER (WHERE is_bot IS NULL)::int AS unclassified
+      COUNT(*) FILTER (WHERE is_bot IS FALSE AND bot_reason IS DISTINCT FROM 'suspected_automation_user_agent')::int AS unverified
       FROM affiliate_clicks ${where}`, params);
     const row = quality.rows[0] || {};
-    clickQuality = { knownBots: Number(row.known_bots || 0), suspectedBots: Number(row.suspected_bots || 0), notFlaggedAsBot: Number(row.not_flagged_as_bot || 0), unclassified: Number(row.unclassified || 0), available: true };
+    clickQuality = { knownBots: Number(row.known_bots || 0), suspectedBots: Number(row.suspected_bots || 0), unverified: Number(row.unverified || 0), available: true };
   } catch (qualityError) {
     if (!['42703', '42P01'].includes(qualityError.code)) throw qualityError;
   }
