@@ -225,9 +225,14 @@ async function fetchChaturbateRegion(req,apiRegion) {
   return data.results;
  },{pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES,getKey:room=>room&&room.username});
  console.info("Chaturbate "+apiRegion+" feed pagination.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,maxPages:CHATURBATE_REGION_MAX_PAGES,stopReason:pages.stopReason}));
- return filterDisplayableRooms(pages.items.map(room=>({normalized:normalizeChaturbateRoom(room,apiRegion),rawText:[room.username,room.display_name,room.room_subject].filter(Boolean).join(" ")})));
+ const entries=pages.items.map(room=>({normalized:normalizeChaturbateRoom(room,apiRegion),rawText:[room.username,room.display_name,room.room_subject].filter(Boolean).join(" ")}));
+ const diagnostics=summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:pages});
+ latestProviderFeedDiagnostics.chaturbateRegions.push({...diagnostics,apiRegion});
+ console.info("[provider-feed-diagnostics]",JSON.stringify({...diagnostics,apiRegion}));
+ return filterDisplayableRooms(entries);
 }
 async function fetchChaturbateRooms(req) {
+ latestProviderFeedDiagnostics.chaturbateRegions=[];
  const results=await Promise.allSettled(CHATURBATE_API_REGIONS.map(apiRegion=>fetchChaturbateRegion(req,apiRegion)));
  const successful=results.filter(result=>result.status==="fulfilled");
  const failed=results.map((result,index)=>result.status==="rejected"?CHATURBATE_API_REGIONS[index]:null).filter(Boolean);
@@ -242,10 +247,14 @@ async function fetchBongaV1Rooms() {
  const candidateRows=Array.isArray(data)?data:(data.results||data.rooms||data.data||data.models||[]);
  const rawRows=Array.isArray(candidateRows)?candidateRows:[];
  latestBongaRawDiagnostics={...summarizeBongaRawFields(rawRows),valueSummary:summarizeBongaFieldValues(rawRows),countryCoverage:summarizeBongaCountryCoverage(rawRows,normalizeBongaCountry)};
- return filterDisplayableRooms(rawRows.map(room => {
+ const entries=rawRows.map(room => {
   const tagsText=typeof room.tags==="string"?room.tags:Array.isArray(room.tags)?room.tags.join(" "):"";
   return {normalized:normalizeBongaRoom(room),rawText:[room.username,room.user_name,room.nickname,room.display_name,room.name,room.chat_topic,room.room_subject,room.topic,tagsText].filter(Boolean).map(value=>plainText(value)).join(" ")};
- }));
+ });
+ const diagnostics=summarizeFeedIngestion({provider:"bongacams",rawRows,entries,pagination:{pagesFetched:1,receivedCount:rawRows.length,uniqueCount:null,duplicateCount:null,truncated:false,stopReason:"unknown"}});
+ latestProviderFeedDiagnostics.bongacams=diagnostics;
+ console.info("[provider-feed-diagnostics]",JSON.stringify(diagnostics));
+ return filterDisplayableRooms(entries);
 }
 async function fetchBongaV2Rooms(req) {
  if(!hasAuthenticatedOrigin(req,BONGA_ORIGIN_AUTH_SECRET))throw new Error("Cloudflare origin authentication failed; BongaCash V2 request was not sent.");
@@ -263,10 +272,14 @@ async function fetchBongaV2Rooms(req) {
  const rawRows=pages.items;
  latestBongaRawDiagnostics={...summarizeBongaRawFields(rawRows),valueSummary:summarizeBongaFieldValues(rawRows),countryCoverage:summarizeBongaCountryCoverage(rawRows,normalizeBongaCountry),providerOnlineModels:providerMetadata&&providerMetadata.onlineModels,hasRandomChatUrl:Boolean(providerMetadata&&providerMetadata.randomChatUrl),hasPopularChatUrl:Boolean(providerMetadata&&providerMetadata.popularChatUrl)};
  console.info("BongaCash V2 feed pagination.",JSON.stringify({providerOnlineModels:providerMetadata&&providerMetadata.onlineModels,pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,stopReason:pages.stopReason}));
- return filterDisplayableRooms(rawRows.map(room=>{
+ const entries=rawRows.map(room=>{
   const tagsText=typeof room.tags==="string"?room.tags:Array.isArray(room.tags)?room.tags.join(" "):"";
   return {normalized:normalizeBongaRoom(room),rawText:[room.username,room.display_name,room.chat_topic,room.room_subject,tagsText].filter(Boolean).map(value=>plainText(value)).join(" ")};
- }));
+ });
+ const diagnostics=summarizeFeedIngestion({provider:"bongacams",rawRows,entries,pagination:pages});
+ latestProviderFeedDiagnostics.bongacams=diagnostics;
+ console.info("[provider-feed-diagnostics]",JSON.stringify(diagnostics));
+ return filterDisplayableRooms(entries);
 }
 async function fetchBongaRooms(req) {
  if(!BONGA_ENABLED)return[];
@@ -408,7 +421,7 @@ const server=http.createServer(async(req,res)=>{
   const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();
   const regions=[...new Set(feed.rooms.map(r=>r.region||regionFor(r)))].sort((a,b)=>{const ai=REGION_ORDER.indexOf(a),bi=REGION_ORDER.indexOf(b);return (ai<0?REGION_ORDER.length:ai)-(bi<0?REGION_ORDER.length:bi)||a.localeCompare(b);});
   const languages=[...new Set(feed.rooms.flatMap(languagesFor))].sort((a,b)=>a.localeCompare(b));
-  if (url.searchParams.get("summary") === "1") { const diagnostics = url.searchParams.get("diagnostics") === "1" ? { basis: "normalized_partner_feed_snapshot", rawProviderPayloadsAvailable: false, bongaRawFieldSchemaAvailable: Boolean(latestBongaRawDiagnostics), providers: summarizeProviderFeedQuality(feed.rooms), ...(latestBongaRawDiagnostics ? { bongaRawFieldSchema: latestBongaRawDiagnostics } : {}) } : null; return send(res,200,JSON.stringify({liveCount:list.length,platforms,regions,languages,notice:feed.notice,...(coverage?{coverage}:{}),...(diagnostics?{diagnostics}:{})}),"application/json"); }
+  if (url.searchParams.get("summary") === "1") { const diagnostics = url.searchParams.get("diagnostics") === "1" ? { basis: "normalized_partner_feed_snapshot", rawProviderPayloadsAvailable: false, bongaRawFieldSchemaAvailable: Boolean(latestBongaRawDiagnostics), providers: summarizeProviderFeedQuality(feed.rooms), ...(latestBongaRawDiagnostics ? { bongaRawFieldSchema: latestBongaRawDiagnostics } : {}), providerIngestion: latestProviderFeedDiagnostics } : null; return send(res,200,JSON.stringify({liveCount:list.length,platforms,regions,languages,notice:feed.notice,...(coverage?{coverage}:{}),...(diagnostics?{diagnostics}:{})}),"application/json"); }
   const page=list.slice(offset,offset+limit);
   const regionalRooms=buildRegionalRoomGroups(list,sort,8);
   const topChaturbateByCategory = {};

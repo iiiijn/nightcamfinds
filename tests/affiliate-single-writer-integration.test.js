@@ -79,6 +79,7 @@ module.exports = { Pool };
 `);
 
   execFileSync(process.execPath, ["scripts/fix-server-syntax.js"], { cwd: projectDir, stdio: "pipe" });
+  execFileSync(process.execPath, ["scripts/patch-country-directory.js"], { cwd: projectDir, stdio: "pipe" });
   execFileSync(process.execPath, ["scripts/patch-spa-seo-routes.js"], { cwd: projectDir, stdio: "pipe" });
   const patchedServer = fs.readFileSync(path.join(projectDir, "server.js"), "utf8");
   assert.match(patchedServer, /const queryVisitId\s*=\s*url\.searchParams\.get\(["']vid["']\)\s*\|\|\s*["']["']/);
