@@ -54,3 +54,10 @@ test('dashboard loads report groups on tab selection and caches GET responses br
   assert.match(script, /function refreshDashboardReport\(loader\)/);
   assert.doesNotMatch(script, /Promise\.all\(\[loadRoomCoverage\(\),load\(\),loadRouteSettings\(\),loadDailyCountryAnalytics\(\),loadCountryCategoryAnalytics\(\),loadTrafficQualityAnalytics\(\),loadClickOrigins\(\),loadRecentRoomClicks\(\),loadCampaignPerformance\(\),loadTrafficRevenuePerformance\(\),loadConversionRevenue\(\),loadProviderAttributionHealth\(\),loadConversionFunnel\(\)\]\)/);
 });
+
+test('obsolete raw-JSON dashboard wrappers stay removed', () => {
+  assert.equal(fs.existsSync(path.join(__dirname, '../public/analytics-dashboard.html')), false);
+  assert.equal(fs.existsSync(path.join(__dirname, '../public/dashboard-v2.html')), false);
+  assert.ok(fs.existsSync(path.join(__dirname, '../public/dashboard.html')));
+  assert.ok(fs.existsSync(path.join(__dirname, '../public/revenue.html')));
+});
