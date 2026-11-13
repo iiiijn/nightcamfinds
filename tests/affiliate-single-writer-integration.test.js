@@ -88,6 +88,7 @@ module.exports = { Pool };
   assert.match(patchedServer, /const visitIdOrigin\s*=\s*visitIdentity\.origin/);
   assert.match(patchedServer, /landingPath/);
   assert.match(patchedServer, /trafficClass:\s*classifyUserAgent\(agent\)/);
+  assert.match(patchedServer, /pageType:\s*resolvePageType\(landingPath\)/);
 
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["-e", "require('./route.js')"], {
@@ -124,7 +125,7 @@ module.exports = { Pool };
 
   await waitForServer(baseUrl, child);
 
-  const cb = await fetch(`${baseUrl}/go/cbtestmodel?src=cb-single-writer&source=regression-test`, {
+  const cb = await fetch(`${baseUrl}/go/cbtestmodel?src=cb-single-writer&source=regression-test&lp=%2F`, {
     redirect: "manual", headers: { "cf-ipcountry": "US", "user-agent": "Googlebot/2.1" }
   });
   assert.equal(cb.status, 302);
@@ -132,7 +133,7 @@ module.exports = { Pool };
   assert.equal(cbTarget.searchParams.get("room"), "cbtestmodel");
   assert.equal(cbTarget.searchParams.get("sid"), cbTarget.searchParams.get("click_id"));
 
-  const bonga = await fetch(`${baseUrl}/bgo/bongatestmodel?src=bonga-single-writer&source=regression-test`, {
+  const bonga = await fetch(`${baseUrl}/bgo/bongatestmodel?src=bonga-single-writer&source=regression-test&lp=%2F`, {
     redirect: "manual", headers: { "cf-ipcountry": "GB", "user-agent": "curl/8.1" }
   });
   assert.equal(bonga.status, 302);
@@ -164,4 +165,6 @@ module.exports = { Pool };
   assert.equal(inserts[0].params[12], "known_bot_user_agent", "known crawler reason must be persisted");
   assert.equal(inserts[1].params[11], false, "suspected automation must not be mislabeled as a confirmed bot");
   assert.equal(inserts[1].params[12], "suspected_automation_user_agent", "suspected automation reason must be persisted");
+  assert.equal(inserts[0].params[13], "home", "homepage click must persist its page type");
+  assert.equal(inserts[1].params[13], "home", "Bonga homepage click must persist its page type");
 });
