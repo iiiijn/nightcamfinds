@@ -64,7 +64,9 @@ test("unknown country slugs remain unsupported", () => {
   assert.equal(getCountryPage(""), null);
 });
 
-test("country page output escapes an untrusted origin value", () => {
-  const html = getCountryPage("ie", 'https://nightcamfinds.com/" onmouseover="alert(1)');
-  assert.ok(!html.includes('href="https://nightcamfinds.com/" onmouseover='));
+test("country canonical and Open Graph URLs stay pinned to the production origin", () => {
+  const html = getCountryPage("ie", "https://preview.example.test");
+  assert.match(html, /<link rel="canonical" href="https:\/\/nightcamfinds\.com\/country\/ie\/">/);
+  assert.match(html, /<meta property="og:url" content="https:\/\/nightcamfinds\.com\/country\/ie\/">/);
+  assert.doesNotMatch(html, /preview\.example\.test/);
 });
