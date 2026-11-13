@@ -126,6 +126,22 @@ function buildDictionaryUrl(options = {}) {
   return url.toString();
 }
 
+function resolveBongaRoomImage(room = {}) {
+  const liveImages = room.live_images && typeof room.live_images === "object" ? room.live_images : {};
+  const profileImages = room.profile_images && typeof room.profile_images === "object" ? room.profile_images : {};
+  return liveImages.thumbnail_image_big ||
+    liveImages.thumbnail_image_medium ||
+    profileImages.profile_image ||
+    profileImages.thumbnail_image_big ||
+    profileImages.thumbnail_image_medium ||
+    profileImages.thumbnail_image_small ||
+    room.image_url || room.thumbnail || room.avatar || "";
+}
+
+function isBongaHd(room = {}) {
+  return room.is_hd === true || room.hd_cam === true || room.hd === true;
+}
+
 function normalizeTags(value) {
   const values = typeof value === "string"
     ? value.split(/[\s,]+/)
@@ -176,5 +192,7 @@ module.exports = {
   buildDictionaryUrl,
   parseModelsOnlineResponse,
   normalizeTags,
+  resolveBongaRoomImage,
+  isBongaHd,
   parseDictionaryResponse
 };
