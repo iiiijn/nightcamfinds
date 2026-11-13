@@ -127,7 +127,8 @@ test("country startup patch preserves V2 HD, live-image and safe tags fields", (
   const serverPath = path.join(__dirname, "..", "server.js");
   const patched = patchServerSource(fs.readFileSync(serverPath, "utf8"));
   assert.match(patched, /isHd:!!room\.is_hd/);
-  assert.match(patched, /liveImages\.thumbnail_image_big/);\n  assert.ok(patched.indexOf("liveImages.thumbnail_image_big") < patched.indexOf("images.profile_image"));
+  assert.match(patched, /liveImages\.thumbnail_image_big/);
+  assert.ok(patched.indexOf("liveImages.thumbnail_image_big") < patched.indexOf("images.profile_image"));
   assert.match(patched, /normalizeTags\(room\.tags\)\.join\(" "\)/);
 });
 
