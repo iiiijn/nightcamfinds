@@ -1,6 +1,7 @@
 const http = require("http");
 const crypto = require("crypto");
 const { normalizeChaturbatePostback, removePostbackSecrets, hasUnresolvedChaturbateMacros } = require("./src/services/chaturbate-revshare.cjs");
+const dashboardReporting = require("./src/services/dashboard-reporting.cjs");
 
 const originalCreateServer = http.createServer;
 const databaseUrl = process.env.DATABASE_URL;
@@ -215,13 +216,14 @@ async function dashboardStats(incoming) {
   await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS content VARCHAR(120) NOT NULL DEFAULT ''");
   await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS device VARCHAR(32) NOT NULL DEFAULT 'unknown'");
   await pool.query("ALTER TABLE affiliate_clicks ADD COLUMN IF NOT EXISTS click_id VARCHAR(128)");
-  const from = incoming.searchParams.get("from");
-  const to = incoming.searchParams.get("to");
-  const conditions = [];
-  const params = [];
-  if (from && /^\d{4}-\d{2}-\d{2}$/.test(from)) { params.push(`${from}T00:00:00.000Z`); conditions.push(`clicked_at >= $${params.length}`); }
-  if (to && /^\d{4}-\d{2}-\d{2}$/.test(to)) { params.push(`${to}T23:59:59.999Z`); conditions.push(`clicked_at <= $${params.length}`); }
-  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const parsedRange = dashboardReporting.parseUtcDateRange(incoming.searchParams.get("from"), incoming.searchParams.get("to"));
+  if (parsedRange.error) return { error: parsedRange.error };
+  const dateRange = parsedRange.value;
+  const clickDateFilter = dashboardReporting.buildTimestampFilter("clicked_at", dateRange);
+  const params = clickDateFilter.params;
+  const where = clickDateFilter.sql ? `WHERE ${clickDateFilter.sql}` : "";
+  const conversionDateFilter = dashboardReporting.buildTimestampFilter("received_at", dateRange);
+  const conversionWhere = conversionDateFilter.sql ? `AND ${conversionDateFilter.sql}` : "";
   const q = async (sql, p = params) => (await pool.query(sql, p)).rows;
   const platformRows = await q(`SELECT platform, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY platform`);
   const countryRows = await q(`SELECT country, COUNT(*)::int AS n FROM affiliate_clicks ${where} GROUP BY country`);
@@ -243,7 +245,8 @@ async function dashboardStats(incoming) {
     FROM cb_conversions
     WHERE matched_click IS TRUE
       AND conversion_type IN ('tokens_signup-referral','tokens_broadcaster-referral','ppr_signup-referral','ppr_broadcaster-referral','revshare_signup-referral','revshare_broadcaster-referral','revshare_purchase','revshare_webmaster-commission','revshare_payout-adjustment')
-    GROUP BY 1`);
+    ${conversionWhere}
+    GROUP BY 1`, conversionDateFilter.params);
   const earningsByCurrency = Object.fromEntries(earningsRows.rows.map(row => [row.currency, {
     registrations: Number(row.registrations || 0),
     purchases: Number(row.purchases || 0),
@@ -255,7 +258,19 @@ async function dashboardStats(incoming) {
   // The legacy dashboard money cards are USD-denominated. Never add payouts
   // from different currencies into one number; expose the full breakdown too.
   const cbUsdEarnings = Number(earningsByCurrency.USD?.earnings || 0);
-  const bongacash = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='registration')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type='purchase'),0)::numeric AS earnings FROM bonga_conversions`).catch(() => ({rows:[{}]}));
+  const bongacash = await pool.query(`SELECT COUNT(*) FILTER (WHERE conversion_type='registration')::int AS registrations, COUNT(*) FILTER (WHERE conversion_type='purchase')::int AS purchases, COALESCE(SUM(payout) FILTER (WHERE conversion_type='purchase'),0)::numeric AS earnings FROM bonga_conversions WHERE 1=1 ${conversionWhere}`, conversionDateFilter.params).catch(() => ({rows:[{}]}));
+  let clickQuality = { knownBots: null, suspectedBots: null, unverified: null, available: false };
+  try {
+    const quality = await pool.query(`SELECT
+      COUNT(*) FILTER (WHERE is_bot IS TRUE)::int AS known_bots,
+      COUNT(*) FILTER (WHERE bot_reason = 'suspected_automation_user_agent')::int AS suspected_bots,
+      COUNT(*) FILTER (WHERE is_bot IS FALSE AND bot_reason IS DISTINCT FROM 'suspected_automation_user_agent')::int AS unverified
+      FROM affiliate_clicks ${where}`, params);
+    const row = quality.rows[0] || {};
+    clickQuality = { knownBots: Number(row.known_bots || 0), suspectedBots: Number(row.suspected_bots || 0), unverified: Number(row.unverified || 0), available: true };
+  } catch (qualityError) {
+    if (!['42703', '42P01'].includes(qualityError.code)) throw qualityError;
+  }
   const platforms = Object.fromEntries(platformRows.map(r => [r.platform || "unknown", Number(r.n)]));
   const sources = Object.fromEntries(sourceRows.map(r => [`${r.platform}:${r.source}`, Number(r.n)]));
   const placements = Object.fromEntries(placementRows.map(r => [`${r.platform}:${r.placement}`, Number(r.n)]));
@@ -327,6 +342,7 @@ async function dashboardStats(incoming) {
   const cbTier = Number(tierRows.rows[0]?.n || 0) - Number(tierRows.rows[0]?.bonga || 0);
   return {
     persistent: true, totalClicks: total, chaturbateClicks: cbClicks, bongacamsClicks: bcClicks,
+    clickQuality, dateBasis: "UTC", dateRange: { from: dateRange.from, toExclusive: dateRange.toExclusive },
     tier1Clicks: Number(tierRows.rows[0]?.n || 0), bongaTier1Clicks: Number(tierRows.rows[0]?.bonga || 0),
     today: await countSince(1), week: await countSince(7), month: await countSince(30),
     registrations: cbRegistrations, purchases: cbPurchases, earnings: cbUsdEarnings, earningsByCurrency, bongacamsRegistrations: Number(bongacash.rows[0]?.registrations || 0),

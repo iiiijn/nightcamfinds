@@ -833,8 +833,14 @@ http.createServer = function routeDashboard(handler) {
     }
     if (incoming.pathname === "/api/dashboard-stats") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
-      try { return sendJson(res, 200, await dashboardStats(incoming)); }
-      catch (err) { console.error("Dashboard stats failed:", err.message); return sendJson(res, 500, { error: err.message }); }
+      try {
+        const result = await dashboardStats(incoming);
+        if (result?.error) return sendJson(res, 400, { error: result.error });
+        return sendJson(res, 200, result);
+      } catch (err) {
+        console.error("Dashboard stats failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load dashboard analytics." });
+      }
     }
     const originalWriteHead = res.writeHead.bind(res);
     // NIGHTCAMFINDS_BONGA_REVSHARE_V1: enforce BongaCash campaign on provider track redirects.
