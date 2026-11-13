@@ -118,11 +118,36 @@ function buildDictionaryUrl(options = {}) {
   return url.toString();
 }
 
+function normalizeTags(value) {
+  const values = typeof value === "string"
+    ? value.split(/[\\s,]+/)
+    : Array.isArray(value)
+      ? value
+      : value && typeof value === "object"
+        ? Object.keys(value).sort((a, b) => Number(a) - Number(b)).map(key => value[key])
+        : [];
+  return [...new Set(values.filter(item => typeof item === "string").map(item => item.trim()).filter(Boolean))];
+}
+
 function parseModelsOnlineResponse(data) {
   if (!data || typeof data !== "object" || Array.isArray(data) || !Array.isArray(data.models)) {
     throw new TypeError("BongaCash V2 response did not contain a models array.");
   }
-  return data.models;
+  const onlineModels = data.online_models == null ? null : Number(data.online_models);
+  if (onlineModels !== null && (!Number.isInteger(onlineModels) || onlineModels < 0)) {
+    throw new TypeError("BongaCash V2 online_models must be a non-negative integer.");
+  }
+  for (const room of data.models) {
+    if (!room || typeof room !== "object" || Array.isArray(room)) {
+      throw new TypeError("BongaCash V2 models must contain JSON objects.");
+    }
+  }
+  return {
+    models: data.models,
+    onlineModels,
+    randomChatUrl: typeof data.random_chat_url === "string" ? data.random_chat_url : "",
+    popularChatUrl: typeof data.popular_chat_url === "string" ? data.popular_chat_url : ""
+  };
 }
 
 function parseDictionaryResponse(data) {
@@ -139,5 +164,6 @@ module.exports = {
   buildModelsOnlineUrl,
   buildDictionaryUrl,
   parseModelsOnlineResponse,
+  normalizeTags,
   parseDictionaryResponse
 };
