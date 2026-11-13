@@ -13,6 +13,8 @@ const {
   buildDictionaryUrl,
   parseModelsOnlineResponse,
   normalizeTags,
+  resolveBongaRoomImage,
+  isBongaHd,
   parseDictionaryResponse
 } = require("../src/services/bongacash-api-v2.cjs");
 
@@ -134,4 +136,23 @@ test("V2 remains opt-in and falls back to V1 in the server integration", () => {
   assert.match(serverSource, /BONGA_API_VERSION = process\.env\.BONGACAMS_API_VERSION === "2" \? "2" : "1"/);
   assert.match(serverSource, /BONGACAMS_TRUSTED_CLIENT_IP_HEADER/);
   assert.match(serverSource, /BongaCash V2 feed failed; falling back to V1/);
+});
+
+
+test("BongaCash V2 maps documented live image and HD fields", () => {
+  const room = {
+    is_hd: true,
+    profile_images: {
+      profile_image: "https://images.example/profile.jpg",
+      thumbnail_image_big: "https://images.example/profile-big.jpg"
+    },
+    live_images: {
+      thumbnail_image_medium: "https://images.example/live-medium.jpg",
+      thumbnail_image_big: "https://images.example/live-big.jpg"
+    }
+  };
+  assert.equal(resolveBongaRoomImage(room), "https://images.example/live-big.jpg");
+  assert.equal(isBongaHd(room), true);
+  assert.equal(isBongaHd({ is_hd: false, hd: false }), false);
+  assert.equal(resolveBongaRoomImage({ profile_images: { profile_image: "https://images.example/profile.jpg" } }), "https://images.example/profile.jpg");
 });
