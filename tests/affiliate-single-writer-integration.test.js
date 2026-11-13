@@ -125,7 +125,7 @@ module.exports = { Pool };
 
   await waitForServer(baseUrl, child);
 
-  const cb = await fetch(`${baseUrl}/go/cbtestmodel?src=cb-single-writer&source=regression-test`, {
+  const cb = await fetch(`${baseUrl}/go/cbtestmodel?src=cb-single-writer&source=regression-test&lp=%2F`, {
     redirect: "manual", headers: { "cf-ipcountry": "US", "user-agent": "Googlebot/2.1" }
   });
   assert.equal(cb.status, 302);
@@ -133,7 +133,7 @@ module.exports = { Pool };
   assert.equal(cbTarget.searchParams.get("room"), "cbtestmodel");
   assert.equal(cbTarget.searchParams.get("sid"), cbTarget.searchParams.get("click_id"));
 
-  const bonga = await fetch(`${baseUrl}/bgo/bongatestmodel?src=bonga-single-writer&source=regression-test`, {
+  const bonga = await fetch(`${baseUrl}/bgo/bongatestmodel?src=bonga-single-writer&source=regression-test&lp=%2F`, {
     redirect: "manual", headers: { "cf-ipcountry": "GB", "user-agent": "curl/8.1" }
   });
   assert.equal(bonga.status, 302);
