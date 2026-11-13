@@ -18,7 +18,7 @@ const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalR
 const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
 const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");
 const { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");
-let latestProviderFeedDiagnostics = {};
+let latestProviderFeedDiagnostics = { chaturbateRegions: [] };
 const { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage } = require("./src/services/bonga-feed-diagnostics.cjs");
 const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");
 const { hasAuthenticatedOrigin, resolveTrustedClientIpv4, buildModelsOnlineUrl, parseModelsOnlineResponse, normalizeTags, resolveBongaRoomImage, isBongaHd } = require("./src/services/bongacash-api-v2.cjs");
@@ -229,11 +229,12 @@ async function fetchChaturbateRegion(req,apiRegion) {
  console.info("Chaturbate "+apiRegion+" feed pagination.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,maxPages:CHATURBATE_REGION_MAX_PAGES,stopReason:pages.stopReason}));
  const entries=pages.items.map(room=>({normalized:normalizeChaturbateRoom(room,apiRegion),rawText:[room.username,room.display_name,room.room_subject].filter(Boolean).join(" ")}));
  const diagnostics=summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:pages});
- latestProviderFeedDiagnostics.chaturbate={...diagnostics,apiRegion};
- console.info("[provider-feed-diagnostics]",JSON.stringify(latestProviderFeedDiagnostics.chaturbate));
+ latestProviderFeedDiagnostics.chaturbateRegions.push({...diagnostics,apiRegion});
+ console.info("[provider-feed-diagnostics]",JSON.stringify({...diagnostics,apiRegion}));
  return filterDisplayableRooms(entries);
 }
 async function fetchChaturbateRooms(req) {
+ latestProviderFeedDiagnostics.chaturbateRegions=[];
  const results=await Promise.allSettled(CHATURBATE_API_REGIONS.map(apiRegion=>fetchChaturbateRegion(req,apiRegion)));
  const successful=results.filter(result=>result.status==="fulfilled");
  const failed=results.map((result,index)=>result.status==="rejected"?CHATURBATE_API_REGIONS[index]:null).filter(Boolean);
@@ -252,7 +253,7 @@ async function fetchBongaV1Rooms() {
   const tagsText=typeof room.tags==="string"?room.tags:Array.isArray(room.tags)?room.tags.join(" "):"";
   return {normalized:normalizeBongaRoom(room),rawText:[room.username,room.user_name,room.nickname,room.display_name,room.name,room.chat_topic,room.room_subject,room.topic,tagsText].filter(Boolean).map(value=>plainText(value)).join(" ")};
  });
- const diagnostics=summarizeFeedIngestion({provider:"bongacams",rawRows,entries,pagination:{pagesFetched:1,receivedCount:rawRows.length,uniqueCount:rawRows.length,duplicateCount:0,truncated:false,stopReason:"short_page"}});
+ const diagnostics=summarizeFeedIngestion({provider:"bongacams",rawRows,entries,pagination:{pagesFetched:1,receivedCount:rawRows.length,uniqueCount:null,duplicateCount:null,truncated:false,stopReason:"unknown"}});
  latestProviderFeedDiagnostics.bongacams=diagnostics;
  console.info("[provider-feed-diagnostics]",JSON.stringify(diagnostics));
  return filterDisplayableRooms(entries);
