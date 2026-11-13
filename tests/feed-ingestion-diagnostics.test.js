@@ -72,6 +72,18 @@ test("Bonga diagnostics use provider country normalization and report pagination
   assert.equal(result.pagination.stopReason, "max_pages");
 });
 
+
+test("server records each Chaturbate region and exposes provider diagnostics only on request", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
+  assert.ok(server.includes('require("./src/services/feed-ingestion-diagnostics.cjs")'));
+  assert.ok(server.includes('latestProviderFeedDiagnostics.chaturbateRegions.push'));
+  assert.ok(server.includes('latestProviderFeedDiagnostics.bongacams=diagnostics'));
+  assert.ok(server.includes('providerIngestion: latestProviderFeedDiagnostics'));
+  assert.ok(server.includes('console.info("[provider-feed-diagnostics]"'));
+});
+
 test("feed diagnostics reject unsupported providers and sanitize pagination fields", () => {
   assert.throws(() => summarizeFeedIngestion({ provider: "other" }), /Unsupported feed provider/);
   const result = summarizeFeedIngestion({
