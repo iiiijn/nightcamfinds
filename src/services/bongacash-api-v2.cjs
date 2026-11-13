@@ -1,11 +1,10 @@
 "use strict";
 
 const BASE_URL = "https://bngprm.com/api/v2/";
-const TRUSTED_IP_HEADERS = new Set([
-  "cf-connecting-ip",
-  "x-real-ip",
-  "x-forwarded-for"
-]);
+// Render routes public traffic through Cloudflare. Only accept the client IP
+// header supplied by that edge; X-Forwarded-For can include visitor-controlled
+// values and must not be used as a trusted geolocation input.
+const TRUSTED_IP_HEADERS = new Set(["cf-connecting-ip"]);
 const DICTIONARY_KEYS = new Set([
   "bust_size", "butt_size", "ethnicity", "eye_color", "gender",
   "hair_color", "height", "language", "penis_size", "pubic_hair",
