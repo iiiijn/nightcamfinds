@@ -140,7 +140,7 @@ test("rejects identifiers that would be truncated into ambiguous database keys",
   const base = { click_id: "click", transaction_id: "tx", type: "revshare_purchase", payout: "1.25" };
   assert.equal(normalizeChaturbatePostback({ ...base, click_id: "x".repeat(129) }).reason, "click_id_too_long");
   assert.equal(normalizeChaturbatePostback({ ...base, transaction_id: "x".repeat(256) }).reason, "transaction_id_too_long");
-  assert.equal(normalizeChaturbatePostback({ ...base, click_id: "bad\\nclick" }).reason, "invalid_click_id");
+  assert.equal(normalizeChaturbatePostback({ ...base, click_id: "bad\nclick" }).reason, "invalid_click_id");
 });
 
 test("removes callback authentication material before storing raw payloads", () => {
