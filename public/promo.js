@@ -62,6 +62,17 @@
   }
 
   function visitId() {
+    // The shared tracker also falls back to the first-party cookie when
+    // sessionStorage is blocked or unavailable.
+    try {
+      const sharedId = window.NCFVisitTracking?.getVisitId?.();
+      if (/^[a-f0-9]{32}$/i.test(sharedId || '')) return sharedId;
+    } catch (_) {}
+    try {
+      const cookie = document.cookie.split(';').map(part => part.trim()).find(part => part.startsWith('ncf_visit_id='));
+      const cookieId = cookie ? decodeURIComponent(cookie.slice('ncf_visit_id='.length)) : '';
+      if (/^[a-f0-9]{32}$/i.test(cookieId)) return cookieId;
+    } catch (_) {}
     try {
       let id = sessionStorage.getItem('ncf_visit_id');
       if (!/^[a-f0-9]{32}$/i.test(id || '')) {
@@ -75,7 +86,15 @@
   }
   const currentVisitId = visitId();
   let originalLandingPath = location.pathname;
-  try { originalLandingPath = sessionStorage.getItem("ncf_landing_path") || location.pathname; sessionStorage.setItem("ncf_landing_path", originalLandingPath); } catch (_) {}
+  try {
+    const sharedLandingPath = window.NCFVisitTracking?.getLandingPath?.(location.pathname);
+    if (typeof sharedLandingPath === 'string' && sharedLandingPath.startsWith('/') && !sharedLandingPath.startsWith('//')) {
+      originalLandingPath = sharedLandingPath;
+    } else {
+      originalLandingPath = sessionStorage.getItem("ncf_landing_path") || location.pathname;
+      sessionStorage.setItem("ncf_landing_path", originalLandingPath);
+    }
+  } catch (_) {}
   function recordEngagement(eventType, details = {}) {
     if (!currentVisitId) return;
     const attr = getMarketingAttribution();
