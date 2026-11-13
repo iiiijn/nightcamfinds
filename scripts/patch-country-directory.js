@@ -35,7 +35,7 @@ function patchServerSource(input){
   ' const age=Number(room.display_age||room.age||0);const tags=normalizeTags(room.tags).join(" ");if(Number.isFinite(age)&&age>0&&age<18)return null;',
   ' const country=normalizeCountryCode(room.homecountry||room.country||room.country_code);',
   ' const viewers=Number(room.members_count??room.num_users??room.viewers??room.viewer_count??0)||0;',
-  ' const image=(typeof rawImages==="string"?rawImages:"")||images.profile_image||images.thumbnail_image_big||images.thumbnail_image_medium||images.thumbnail_image_small||liveImages.thumbnail_image_big||liveImages.thumbnail_image_medium||images.thumbnail_image_big_live||images.thumbnail_image_medium_live||room.image_url||room.thumbnail||room.avatar||"";',
+  ' const image=(typeof rawImages==="string"?rawImages:"")||liveImages.thumbnail_image_big||liveImages.thumbnail_image_medium||images.profile_image||images.thumbnail_image_big||images.thumbnail_image_medium||images.thumbnail_image_small||images.thumbnail_image_big_live||images.thumbnail_image_medium_live||room.image_url||room.thumbnail||room.avatar||"";',
   ' return {id:"bongacams:"+username,platform:"bongacams",platformName:"BongaCams",username,',
   '  displayName:clean(room.display_name||room.name||username)||username,gender:bongaGender(room.gender||room.sex),',
   '  country,countryName:NAMES[country]||country,region:getDiscoveryRegion({country,partnerRegion:normalizeRegion(room.region||room.region_name||room.state||room.province)}),',
