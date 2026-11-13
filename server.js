@@ -17,6 +17,7 @@ const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
 const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");
 const { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage } = require("./src/services/bonga-feed-diagnostics.cjs");
 const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");
+const { resolveTrustedClientIpv4, buildModelsOnlineUrl, parseModelsOnlineResponse } = require("./src/services/bongacash-api-v2.cjs");
 let latestBongaRawDiagnostics = null;
 
 let pgPool = null;
@@ -39,6 +40,9 @@ const CAMPAIGN = process.env.CB_CAMPAIGN || process.env.CHATURBATE_WM || "C6yxN"
 const TOUR = process.env.CB_TOUR || "LQps";
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || process.env.BONGACASH_CAMPAIGN || "840970";
 const BONGA_API_BASE = process.env.BONGACAMS_API_BASE || "https://bngprm.com/promo.php";
+// V1 remains the default. V2 requires an explicitly configured trusted proxy header.
+const BONGA_API_VERSION = process.env.BONGACAMS_API_VERSION === "2" ? "2" : "1";
+const BONGA_TRUSTED_CLIENT_IP_HEADER = String(process.env.BONGACAMS_TRUSTED_CLIENT_IP_HEADER || "").trim().toLowerCase();
 const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
 const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
 const CHATURBATE_PAGE_SIZE = 500;
@@ -229,13 +233,52 @@ async function fetchChaturbateRooms(req) {
  for(const result of successful)for(const room of result.value)if(room&&room.id&&!unique.has(room.id))unique.set(room.id,room);
  return {rooms:[...unique.values()],notice:failed.length?"Some Chaturbate regional feeds are temporarily unavailable: "+failed.join(", "):""};
 }
-async function fetchBongaRooms() { if(!BONGA_ENABLED)return[]; const params=new URLSearchParams({c:BONGA_CAMPAIGN,type:"api",api_v:"1",limit:String(BONGA_LIMIT),api_type:"json"}); const data=await fetchJson(`${BONGA_API_BASE}?${params.toString()}`); const candidateRows=Array.isArray(data)?data:(data.results||data.rooms||data.data||data.models||[]); const rawRows=Array.isArray(candidateRows)?candidateRows:[]; latestBongaRawDiagnostics={...summarizeBongaRawFields(rawRows),valueSummary:summarizeBongaFieldValues(rawRows),countryCoverage:summarizeBongaCountryCoverage(rawRows,normalizeBongaCountry)}; return filterDisplayableRooms(rawRows.map(room => ({ normalized: normalizeBongaRoom(room), rawText: [room.username, room.user_name, room.nickname, room.display_name, room.name, room.chat_topic, room.room_subject, room.topic, room.tags].filter(Boolean).map(value => plainText(value)).join(" ") }))); }
+async function fetchBongaV1Rooms() {
+ const params=new URLSearchParams({c:BONGA_CAMPAIGN,type:"api",api_v:"1",limit:String(BONGA_LIMIT),api_type:"json"});
+ const data=await fetchJson(`${BONGA_API_BASE}?${params.toString()}`);
+ const candidateRows=Array.isArray(data)?data:(data.results||data.rooms||data.data||data.models||[]);
+ const rawRows=Array.isArray(candidateRows)?candidateRows:[];
+ latestBongaRawDiagnostics={...summarizeBongaRawFields(rawRows),valueSummary:summarizeBongaFieldValues(rawRows),countryCoverage:summarizeBongaCountryCoverage(rawRows,normalizeBongaCountry)};
+ return filterDisplayableRooms(rawRows.map(room => {
+  const tagsText=typeof room.tags==="string"?room.tags:Array.isArray(room.tags)?room.tags.join(" "):"";
+  return {normalized:normalizeBongaRoom(room),rawText:[room.username,room.user_name,room.nickname,room.display_name,room.name,room.chat_topic,room.room_subject,room.topic,tagsText].filter(Boolean).map(value=>plainText(value)).join(" ")};
+ }));
+}
+async function fetchBongaV2Rooms(req) {
+ const clientIp=resolveTrustedClientIpv4(req,BONGA_TRUSTED_CLIENT_IP_HEADER);
+ if(!clientIp)throw new Error("No valid visitor IPv4 found in the configured trusted proxy header; BongaCash V2 request was not sent.");
+ const pageSize=Math.min(100,BONGA_LIMIT);
+ const maxPages=Math.max(1,Math.ceil(BONGA_LIMIT/pageSize));
+ const pages=await fetchPagedResults(async ({offset,limit})=>{
+  const requestUrl=buildModelsOnlineUrl({campaignId:BONGA_CAMPAIGN,clientIp,limit,offset});
+  const response=await fetchJson(requestUrl);
+  return parseModelsOnlineResponse(response);
+ },{pageSize,maxPages,getKey:room=>room&&room.username});
+ const rawRows=pages.items;
+ latestBongaRawDiagnostics={...summarizeBongaRawFields(rawRows),valueSummary:summarizeBongaFieldValues(rawRows),countryCoverage:summarizeBongaCountryCoverage(rawRows,normalizeBongaCountry)};
+ console.info("BongaCash V2 feed pagination.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,stopReason:pages.stopReason}));
+ return filterDisplayableRooms(rawRows.map(room=>{
+  const tagsText=typeof room.tags==="string"?room.tags:Array.isArray(room.tags)?room.tags.join(" "):"";
+  return {normalized:normalizeBongaRoom(room),rawText:[room.username,room.display_name,room.chat_topic,room.room_subject,tagsText].filter(Boolean).map(value=>plainText(value)).join(" ")};
+ }));
+}
+async function fetchBongaRooms(req) {
+ if(!BONGA_ENABLED)return[];
+ if(BONGA_API_VERSION==="2") {
+  try {
+   return await fetchBongaV2Rooms(req);
+  } catch(error) {
+   console.warn("BongaCash V2 feed failed; falling back to V1:",error.message);
+  }
+ }
+ return fetchBongaV1Rooms();
+}
 async function rooms(req) {
  const visitor=visitorCountry(req);
  const cacheKey=visitor!=="UNKNOWN"?visitor:clientIp(req);
  const cached=roomCache.get(cacheKey);
  if(cached&&Date.now()-cached.at<20000&&cached.rooms.length)return cached;
- const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms()]);
+ const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);
  const ch=results[0].status==="fulfilled"?results[0].value.rooms:[];
  const bc=results[1].status==="fulfilled"?results[1].value:[];
  const notices=[];
