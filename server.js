@@ -17,7 +17,7 @@ const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
 const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");
 const { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage } = require("./src/services/bonga-feed-diagnostics.cjs");
 const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");
-const { resolveTrustedClientIpv4, buildModelsOnlineUrl, parseModelsOnlineResponse } = require("./src/services/bongacash-api-v2.cjs");
+const { resolveTrustedClientIpv4, buildModelsOnlineUrl, parseModelsOnlineResponse, normalizeTags } = require("./src/services/bongacash-api-v2.cjs");
 let latestBongaRawDiagnostics = null;
 
 let pgPool = null;
@@ -213,7 +213,7 @@ async function statsFromDb() { if (!pgPool) return null; try { await ensureTrack
 function clientIp(req) { const fwd=String(req.headers["x-forwarded-for"]||"").split(",")[0].trim(); if (/^\d{1,3}(\.\d{1,3}){3}$/.test(fwd)||fwd.includes(":")) return fwd; return "8.8.8.8"; }
 function normalizeChaturbateRoom(room) { return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,displayName:clean(room.display_name||room.username)||room.username,gender:normalizeRoomGender(room.gender),country:(room.country||"").toUpperCase(),countryName:NAMES[(room.country||"").toUpperCase()]||room.country||"",location:clean(room.location),viewerCount:Number(room.num_users||0),isHd:!!room.is_hd,isNew:!!room.is_new,image:room.image_url_360x270||room.image_url||"",roomSubject:clean(room.room_subject),languages:room.spoken_languages||"",href:room.chat_room_url_revshare||room.chat_room_url||""}; }
 function bongaGender(value) { return normalizeRoomGender(value); }
-function normalizeBongaRoom(room) { const username=clean(room.username||room.user_name||room.nickname||room.model||room.id); if(!username)return null; const rawImages=room.profile_images||room.images||{}; const images=typeof rawImages==="string"?{}:rawImages; const age=Number(room.display_age||room.age||0); const tags=plainText(room.tags); if(Number.isFinite(age)&&age>0&&age<18)return null; const country=normalizeBongaCountry(room); const viewers=Number(room.members_count??room.num_users??room.viewers??room.viewer_count??0)||0; const image=(typeof rawImages==="string"?rawImages:"")||images.profile_image||images.thumbnail_image_big||images.thumbnail_image_medium||images.thumbnail_image_small||images.thumbnail_image_big_live||images.thumbnail_image_medium_live||room.image_url||room.thumbnail||room.avatar||""; return {id:"bongacams:"+username,platform:"bongacams",platformName:"BongaCams",username,displayName:clean(room.display_name||room.name||username)||username,gender:bongaGender(room.gender||room.sex),country:country.match(/^[A-Z]{2}$/)?.[0]||"",countryName:NAMES[country]||clean(country),location:clean(room.hometown||room.location||country),viewerCount:viewers,isHd:!!room.hd_cam||!!room.hd||/\bhd\b/i.test(tags),isNew:!!room.is_new||!!room.new,image,roomSubject:clean(room.chat_topic||room.room_subject||room.topic||tags),languages:clean([room.primary_language,room.secondary_language,room.language].map(plainText).filter(Boolean).join(", ")),href:room.chat_url||room.direct_chat_url||room.room_url||room.url||""}; }
+function normalizeBongaRoom(room) { const username=clean(room.username||room.user_name||room.nickname||room.model||room.id); if(!username)return null; const rawImages=room.profile_images||room.images||{}; const images=typeof rawImages==="string"?{}:rawImages; const age=Number(room.display_age||room.age||0); const tags=normalizeTags(room.tags).join(" "); if(Number.isFinite(age)&&age>0&&age<18)return null; const country=normalizeBongaCountry(room); const viewers=Number(room.members_count??room.num_users??room.viewers??room.viewer_count??0)||0; const image=(typeof rawImages==="string"?rawImages:"")||images.profile_image||images.thumbnail_image_big||images.thumbnail_image_medium||images.thumbnail_image_small||images.thumbnail_image_big_live||images.thumbnail_image_medium_live||room.image_url||room.thumbnail||room.avatar||""; return {id:"bongacams:"+username,platform:"bongacams",platformName:"BongaCams",username,displayName:clean(room.display_name||room.name||username)||username,gender:bongaGender(room.gender||room.sex),country:country.match(/^[A-Z]{2}$/)?.[0]||"",countryName:NAMES[country]||clean(country),location:clean(room.hometown||room.location||country),viewerCount:viewers,isHd:!!room.hd_cam||!!room.hd||/\bhd\b/i.test(tags),isNew:!!room.is_new||!!room.new,image,roomSubject:clean(room.chat_topic||room.room_subject||room.topic||tags),languages:clean([room.primary_language,room.secondary_language,room.language].map(plainText).filter(Boolean).join(", ")),href:room.chat_url||room.direct_chat_url||room.room_url||room.url||""}; }
 async function fetchChaturbateRegion(req,apiRegion) {
  const ip=encodeURIComponent(clientIp(req));
  const pages=await fetchPagedResults(async ({offset,limit})=>{
@@ -249,14 +249,16 @@ async function fetchBongaV2Rooms(req) {
  if(!clientIp)throw new Error("No valid visitor IPv4 found in the configured trusted proxy header; BongaCash V2 request was not sent.");
  const pageSize=Math.min(100,BONGA_LIMIT);
  const maxPages=Math.max(1,Math.ceil(BONGA_LIMIT/pageSize));
+ let providerMetadata=null;
  const pages=await fetchPagedResults(async ({offset,limit})=>{
   const requestUrl=buildModelsOnlineUrl({campaignId:BONGA_CAMPAIGN,clientIp,limit,offset});
-  const response=await fetchJson(requestUrl);
-  return parseModelsOnlineResponse(response);
+  const response=parseModelsOnlineResponse(await fetchJson(requestUrl));
+  if(offset===0)providerMetadata=response;
+  return response.models;
  },{pageSize,maxPages,getKey:room=>room&&room.username});
  const rawRows=pages.items;
- latestBongaRawDiagnostics={...summarizeBongaRawFields(rawRows),valueSummary:summarizeBongaFieldValues(rawRows),countryCoverage:summarizeBongaCountryCoverage(rawRows,normalizeBongaCountry)};
- console.info("BongaCash V2 feed pagination.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,stopReason:pages.stopReason}));
+ latestBongaRawDiagnostics={...summarizeBongaRawFields(rawRows),valueSummary:summarizeBongaFieldValues(rawRows),countryCoverage:summarizeBongaCountryCoverage(rawRows,normalizeBongaCountry),providerOnlineModels:providerMetadata&&providerMetadata.onlineModels,hasRandomChatUrl:Boolean(providerMetadata&&providerMetadata.randomChatUrl),hasPopularChatUrl:Boolean(providerMetadata&&providerMetadata.popularChatUrl)};
+ console.info("BongaCash V2 feed pagination.",JSON.stringify({providerOnlineModels:providerMetadata&&providerMetadata.onlineModels,pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,stopReason:pages.stopReason}));
  return filterDisplayableRooms(rawRows.map(room=>{
   const tagsText=typeof room.tags==="string"?room.tags:Array.isArray(room.tags)?room.tags.join(" "):"";
   return {normalized:normalizeBongaRoom(room),rawText:[room.username,room.display_name,room.chat_topic,room.room_subject,tagsText].filter(Boolean).map(value=>plainText(value)).join(" ")};

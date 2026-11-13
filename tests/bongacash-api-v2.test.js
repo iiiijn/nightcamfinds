@@ -12,6 +12,7 @@ const {
   buildModelsOnlineUrl,
   buildDictionaryUrl,
   parseModelsOnlineResponse,
+  normalizeTags,
   parseDictionaryResponse
 } = require("../src/services/bongacash-api-v2.cjs");
 
@@ -84,11 +85,38 @@ test("BongaCash V2 dictionary URL validates documented key and language", () => 
   assert.throws(() => buildDictionaryUrl({ key: "language", lang: "xx" }));
 });
 
-test("BongaCash V2 response parsers require the documented JSON shapes", () => {
-  const models = [{ username: "sample", homecountry: "US", is_hd: true }];
-  assert.deepEqual(parseModelsOnlineResponse({ online_models: 1, models }), models);
+test("BongaCash V2 parser preserves provider metadata and the documented model shape", () => {
+  const models = [{
+    username: "LaraBrynn",
+    profile_page_url: "https://bongacams.com/track?c=840970&csurl=https://bongacams.com/profile/LaraBrynn",
+    chat_url: "https://bongacams.com/track?c=840970&csurl=https://bongacams.com/chat-popup/LaraBrynn",
+    display_age: 23,
+    profile_images: { profile_image: "https://images.example/profile.jpg" },
+    live_images: { thumbnail_image_big: "https://images.example/live.jpg" },
+    members_count: 4423,
+    is_hd: false,
+    primary_language: "english",
+    homecountry: "US",
+    region: "europe",
+    tags: { "0": "blowjob", "1": "camshow", "3": "english" }
+  }];
+  const parsed = parseModelsOnlineResponse({
+    online_models: 1139,
+    random_chat_url: "https://bongacams.com/track?c=840970&csurl=https://bongacams.com/chat",
+    popular_chat_url: "https://bongacams.com/track?c=840970&csurl=https://bongacams.com/popular-chat",
+    models
+  });
+  assert.deepEqual(parsed.models, models);
+  assert.equal(parsed.onlineModels, 1139);
+  assert.match(parsed.randomChatUrl, /c=840970/);
+  assert.match(parsed.popularChatUrl, /popular-chat/);
+  assert.deepEqual(normalizeTags(models[0].tags), ["blowjob", "camshow", "english"]);
+  assert.deepEqual(normalizeTags([" one ", "two", 3, "one"]), ["one", "two"]);
+  assert.deepEqual(normalizeTags("one two,three"), ["one", "two", "three"]);
   assert.throws(() => parseModelsOnlineResponse({ results: models }));
   assert.throws(() => parseModelsOnlineResponse([]));
+  assert.throws(() => parseModelsOnlineResponse({ online_models: -1, models }));
+  assert.throws(() => parseModelsOnlineResponse({ online_models: 1, models: [null] }));
   assert.deepEqual(parseDictionaryResponse({ gender: { female: "Female" } }), { gender: { female: "Female" } });
   assert.throws(() => parseDictionaryResponse([]));
 });
@@ -98,7 +126,7 @@ test("country startup patch preserves V2 HD, live-image and safe tags fields", (
   const patched = patchServerSource(fs.readFileSync(serverPath, "utf8"));
   assert.match(patched, /isHd:!!room\.is_hd/);
   assert.match(patched, /liveImages\.thumbnail_image_big/);
-  assert.match(patched, /typeof room\.tags==="string"/);
+  assert.match(patched, /normalizeTags\(room\.tags\)\.join\(" "\)/);
 });
 
 test("V2 remains opt-in and falls back to V1 in the server integration", () => {
