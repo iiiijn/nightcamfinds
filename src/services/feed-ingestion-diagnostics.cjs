@@ -17,7 +17,7 @@ function rawCountryValue(row, provider) {
       if (text) return { present: true, value: text.slice(0, 80) };
     }
   }
-  return { present: fields.some(field => Object.prototype.hasOwnProperty.call(row, field)), value: "" };
+  return { present: false, value: "" };
 }
 
 function safePagination(value) {
