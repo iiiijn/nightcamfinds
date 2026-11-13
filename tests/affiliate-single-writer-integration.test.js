@@ -81,9 +81,11 @@ module.exports = { Pool };
   execFileSync(process.execPath, ["scripts/fix-server-syntax.js"], { cwd: projectDir, stdio: "pipe" });
   execFileSync(process.execPath, ["scripts/patch-spa-seo-routes.js"], { cwd: projectDir, stdio: "pipe" });
   const patchedServer = fs.readFileSync(path.join(projectDir, "server.js"), "utf8");
-  assert.match(patchedServer, /const queryVisitId\s*=\s*String\(url\.searchParams\.get\(["']vid["']\)\s*\|\|\s*["']["']\)\.match\(\/\^\[a-f0-9\]\{32\}\$\/i\)/);
-  assert.match(patchedServer, /const cookieVisitId\s*=\s*String\(cookieValue\(req,\s*["']ncf_visit_id["']\)/);
-  assert.match(patchedServer, /const visitId\s*=\s*cookieVisitId\s*\|\|\s*queryVisitId/);
+  assert.match(patchedServer, /const queryVisitId\s*=\s*url\.searchParams\.get\(["']vid["']\)\s*\|\|\s*["']["']/);
+  assert.match(patchedServer, /const cookieVisitId\s*=\s*cookieValue\(req,\s*["']ncf_visit_id["']\)\s*\|\|\s*["']["']/);
+  assert.match(patchedServer, /resolveVisitIdentity\(/);
+  assert.match(patchedServer, /const visitId\s*=\s*visitIdentity\.visitId/);
+  assert.match(patchedServer, /const visitIdOrigin\s*=\s*visitIdentity\.origin/);
   assert.match(patchedServer, /landingPath/);
   assert.match(patchedServer, /trafficClass:\s*classifyUserAgent\(agent\)/);
 
