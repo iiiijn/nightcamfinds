@@ -438,7 +438,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const source = attribution.source;
     // Ignore the client-controlled evidence parameter. This records only how the label reached this endpoint.
     // URL-supplied source labels remain self-reported and are not proof of the visitor's true origin.
-    const sourceEvidence = source !== "unknown" ? "url_parameter" : "unknown";
+    const sourceEvidence = rawSource !== "unknown" ? "url_parameter" : "unknown";
     const medium = attribution.medium;
     const campaign = attribution.campaign;
     const suppliedContent = cleanLabel(url.searchParams.get("utm_content") || url.searchParams.get("content"), "", 72);
