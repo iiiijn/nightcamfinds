@@ -68,8 +68,11 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
       BONGACAMS_API_BASE: `http://127.0.0.1:${bongaFeedPort}/promo.php`,
       BONGACAMS_ENABLED: "true"
     },
-    stdio: ["ignore", "ignore", "pipe"]
+    stdio: ["ignore", "pipe", "pipe"]
   });
+  child.testStdout = "";
+  child.stdout.setEncoding("utf8");
+  child.stdout.on("data", chunk => { child.testStdout += chunk; });
   child.testStderr = "";
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", chunk => { child.testStderr += chunk; });
@@ -87,7 +90,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
     `${baseUrl}/go/testmodel?utm_source=redirect-test&utm_medium=unit-test&utm_campaign=cb-check&src=cb-test-card&cat=female`,
     { redirect: "manual", headers: { "cf-ipcountry": "US", "user-agent": "NightCamFinds redirect test" } }
   );
-  assert.equal(chaturbateResponse.status, 302);
+  assert.equal(chaturbateResponse.status, 302, `Chaturbate redirect returned ${chaturbateResponse.status}: ${await chaturbateResponse.text()}\\nstdout: ${child.testStdout}\\nstderr: ${child.testStderr}`);
   const chaturbateTarget = new URL(chaturbateResponse.headers.get("location"));
   assert.equal(chaturbateTarget.hostname, "chaturbate.com");
   assert.equal(chaturbateTarget.pathname, "/in/");
