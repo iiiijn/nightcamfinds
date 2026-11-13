@@ -130,7 +130,8 @@ test("conversion persistence records whether a click matched and ignores duplica
   assert.ok(start.includes("SELECT EXISTS(SELECT 1 FROM cb_clicks WHERE click_id = $1::varchar(128) UNION ALL SELECT 1 FROM affiliate_clicks WHERE click_id = $1::varchar(128) AND platform = 'chaturbate') AS matched"));
   assert.ok(start.includes("ON CONFLICT (transaction_id) DO NOTHING"));
   assert.ok(start.includes("RETURNING id"));
-  assert.ok(start.includes("return { matchedClick, inserted: false, duplicate: true }"));
+  assert.ok(start.includes("inserted: false, duplicate: true"));
+  assert.ok(start.includes("Boolean(existing.matched_click ?? matchedClick)"));
   assert.ok(start.includes("Conflicting duplicate Chaturbate transaction ID"));
   assert.ok(start.includes("sameChaturbateTransaction(existing"));
 });
