@@ -8,7 +8,8 @@ test("production startup excludes staging-only and unapproved reconciliation mig
     "006_traffic_quality_engagement",
     "007_engagement_event_integrity",
     "008_chaturbate_conversion_metadata",
-    "009_click_source_evidence"
+    "009_click_source_evidence",
+    "010_engagement_event_type_capacity"
   ]);
   assert.ok(plan.every(item => !["003_click_attribution_columns", "004_country_platform_routing", "005_bongacash_daily_reconciliation"].includes(item.version)));
 });
@@ -20,7 +21,8 @@ test("production reconciliation migration requires explicit opt-in", () => {
     "006_traffic_quality_engagement",
     "007_engagement_event_integrity",
     "008_chaturbate_conversion_metadata",
-    "009_click_source_evidence"
+    "009_click_source_evidence",
+    "010_engagement_event_type_capacity"
   ]);
 });
 
@@ -32,7 +34,8 @@ test("feature branch staging creates the affiliate schema before dependent migra
     "006_traffic_quality_engagement",
     "007_engagement_event_integrity",
     "008_chaturbate_conversion_metadata",
-    "009_click_source_evidence"
+    "009_click_source_evidence",
+    "010_engagement_event_type_capacity"
   ]);
   assert.ok(plan.every(item => item.version !== "003_click_attribution_columns"));
 });
@@ -45,4 +48,15 @@ test("migration plan references only known numbered SQL files", () => {
   ]) {
     assert.match(item.file, /^\d{3}_[a-z0-9_]+\.sql$/);
   }
+});
+
+test("production migration widens engagement event labels without rebuilding or deleting event rows", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const migration = fs.readFileSync(path.join(__dirname, "../sql/010_engagement_event_type_capacity.sql"), "utf8");
+  assert.match(migration, /ALTER TABLE traffic_engagement_events/);
+  assert.ok(migration.includes("ALTER COLUMN event_type TYPE VARCHAR(48)"));
+  assert.doesNotMatch(migration, /DROP TABLE|TRUNCATE|DELETE FROM/i);
+  const plan = getMigrationPlan("main");
+  assert.equal(plan.at(-1).version, "010_engagement_event_type_capacity");
 });
