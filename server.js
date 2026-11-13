@@ -17,7 +17,7 @@ const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
 const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");
 const { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage } = require("./src/services/bonga-feed-diagnostics.cjs");
 const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");
-const { resolveTrustedClientIpv4, buildModelsOnlineUrl, parseModelsOnlineResponse, normalizeTags } = require("./src/services/bongacash-api-v2.cjs");
+const { hasAuthenticatedOrigin, resolveTrustedClientIpv4, buildModelsOnlineUrl, parseModelsOnlineResponse, normalizeTags } = require("./src/services/bongacash-api-v2.cjs");
 let latestBongaRawDiagnostics = null;
 
 let pgPool = null;
@@ -43,6 +43,7 @@ const BONGA_API_BASE = process.env.BONGACAMS_API_BASE || "https://bngprm.com/pro
 // V1 remains the default. V2 requires an explicitly configured trusted proxy header.
 const BONGA_API_VERSION = process.env.BONGACAMS_API_VERSION === "2" ? "2" : "1";
 const BONGA_TRUSTED_CLIENT_IP_HEADER = String(process.env.BONGACAMS_TRUSTED_CLIENT_IP_HEADER || "").trim().toLowerCase();
+const BONGA_ORIGIN_AUTH_SECRET = process.env.BONGACAMS_ORIGIN_AUTH_SECRET || "";
 const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
 const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
 const CHATURBATE_PAGE_SIZE = 500;
@@ -245,6 +246,7 @@ async function fetchBongaV1Rooms() {
  }));
 }
 async function fetchBongaV2Rooms(req) {
+ if(!hasAuthenticatedOrigin(req,BONGA_ORIGIN_AUTH_SECRET))throw new Error("Cloudflare origin authentication failed; BongaCash V2 request was not sent.");
  const clientIp=resolveTrustedClientIpv4(req,BONGA_TRUSTED_CLIENT_IP_HEADER);
  if(!clientIp)throw new Error("No valid visitor IPv4 found in the configured trusted proxy header; BongaCash V2 request was not sent.");
  const pageSize=Math.min(100,BONGA_LIMIT);
