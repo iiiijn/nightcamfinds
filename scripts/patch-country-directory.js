@@ -14,7 +14,7 @@ function patchServerSource(input){
   'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
   "country page import");
  replaceOnce('const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");',
-  'const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");\nconst { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");\\nlet latestProviderFeedDiagnostics = { chaturbateRegions: [] };',
+  'const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");\nconst { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");\nlet latestProviderFeedDiagnostics = { chaturbateRegions: [] };',
   "partner feed ingestion diagnostics import and state");
  replaceOnce('const { fetchPagedResults } = require("./src/services/paged-feed.cjs");',
   'const { fetchPagedResults } = require("./src/services/paged-feed.cjs");\nconst { coalesceInFlight } = require("./src/services/request-coalescing.cjs");',
