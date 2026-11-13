@@ -1,17 +1,17 @@
 "use strict";
 
-const UNSAFE_ROOM_TEXT = /\\b(?:underage|preteen|teen(?:age)?|child(?:ren)?|kids?|lolita|barely\\s*legal|18\\s*yo|19\\s*yo)\\b/i;
+const UNSAFE_ROOM_TEXT = /\b(?:underage|preteen|teen(?:age)?|child(?:ren)?|kids?|lolita|barely\s*legal|18\s*yo|19\s*yo)\b/i;
 const VALID_GENDERS = new Set(["female", "male", "trans", "couples"]);
-const URL_OR_LINK = /(?:https?:\\/\\/|www\\.|\\b[a-z0-9-]+\\.(?:com|net|org|me|io|tv)\\b)/i;
-const PROMO_SPAM = /\\b(?:telegram|whatsapp|snapchat|kik|cashapp|venmo|click\\s+here|join\\s+my\\s+(?:group|channel)|free\\s+(?:tokens|shows)|promo\\s+code)\\b/i;
+const URL_OR_LINK = /(?:https?:\/\/|www\.|\b[a-z0-9-]+\.(?:com|net|org|me|io|tv)\b)/i;
+const PROMO_SPAM = /\b(?:telegram|whatsapp|snapchat|kik|cashapp|venmo|click\s+here|join\s+my\s+(?:group|channel)|free\s+(?:tokens|shows)|promo\s+code)\b/i;
 
 function normalizeRoomGender(value) {
-  const key = String(value == null ? "" : value).normalize("NFKC").trim().toLowerCase().replace(/\\s+/g, " ");
+  const key = String(value == null ? "" : value).normalize("NFKC").trim().toLowerCase().replace(/\s+/g, " ");
   const categories = { f:"female",female:"female",woman:"female",women:"female",weiblich:"female",m:"male",male:"male",man:"male",men:"male",t:"trans",s:"trans",trans:"trans",transgender:"trans",c:"couples",couple:"couples",couples:"couples","paar weiblich + männlich":"couples","paar weiblich + weiblich":"couples" };
   return categories[key] || "";
 }
 function cleanRoomTitle(value) {
-  return String(value == null ? "" : value).replace(/[\\u0000-\\u001f\\u007f-\\u009f]/g, " ").replace(/\\s+/g, " ").trim().slice(0, 240);
+  return String(value == null ? "" : value).replace(/[\u0000-\u001f\u007f-\u009f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
 }
 function hasSpamTitle(value) {
   const title = cleanRoomTitle(value);
@@ -41,7 +41,7 @@ function getRoomRejectionReason(room, rawText = "") {
   try { destination = new URL(String(room.href || "")); } catch { return "invalid_destination"; }
   if (destination.protocol !== "https:") return "invalid_destination";
   const host = destination.hostname.toLowerCase();
-  const validHost = platform === "chaturbate" ? /(^|\\.)chaturbate\\.com$/.test(host) : /(^|\\.)bongacams4?\\.com$/.test(host);
+  const validHost = platform === "chaturbate" ? /(^|\.)chaturbate\.com$/.test(host) : /(^|\.)bongacams4?\.com$/.test(host);
   if (!validHost) return "invalid_destination";
   const title = cleanRoomTitle(room.roomSubject);
   if (hasSpamTitle(title) || hasSpamTitle(room.displayName)) return "promotional_spam";
