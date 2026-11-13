@@ -88,6 +88,7 @@ module.exports = { Pool };
   assert.match(patchedServer, /const visitIdOrigin\s*=\s*visitIdentity\.origin/);
   assert.match(patchedServer, /landingPath/);
   assert.match(patchedServer, /trafficClass:\s*classifyUserAgent\(agent\)/);
+  assert.match(patchedServer, /pageType:\s*resolvePageType\(landingPath\)/);
 
   const baseUrl = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ["-e", "require('./route.js')"], {
@@ -164,4 +165,6 @@ module.exports = { Pool };
   assert.equal(inserts[0].params[12], "known_bot_user_agent", "known crawler reason must be persisted");
   assert.equal(inserts[1].params[11], false, "suspected automation must not be mislabeled as a confirmed bot");
   assert.equal(inserts[1].params[12], "suspected_automation_user_agent", "suspected automation reason must be persisted");
+  assert.equal(inserts[0].params[13], "home", "homepage click must persist its page type");
+  assert.equal(inserts[1].params[13], "home", "Bonga homepage click must persist its page type");
 });
