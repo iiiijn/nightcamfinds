@@ -2,6 +2,9 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const { patchServerSource } = require("../scripts/patch-country-directory.js");
 const {
   BASE_URL,
   isPublicIpv4,
@@ -88,4 +91,19 @@ test("BongaCash V2 response parsers require the documented JSON shapes", () => {
   assert.throws(() => parseModelsOnlineResponse([]));
   assert.deepEqual(parseDictionaryResponse({ gender: { female: "Female" } }), { gender: { female: "Female" } });
   assert.throws(() => parseDictionaryResponse([]));
+});
+
+test("country startup patch preserves V2 HD, live-image and safe tags fields", () => {
+  const serverPath = path.join(__dirname, "..", "server.js");
+  const patched = patchServerSource(fs.readFileSync(serverPath, "utf8"));
+  assert.match(patched, /isHd:!!room\.is_hd/);
+  assert.match(patched, /liveImages\.thumbnail_image_big/);
+  assert.match(patched, /typeof room\.tags==="string"/);
+});
+
+test("V2 remains opt-in and falls back to V1 in the server integration", () => {
+  const serverSource = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+  assert.match(serverSource, /BONGA_API_VERSION = process\.env\.BONGACAMS_API_VERSION === "2" \? "2" : "1"/);
+  assert.match(serverSource, /BONGACAMS_TRUSTED_CLIENT_IP_HEADER/);
+  assert.match(serverSource, /BongaCash V2 feed failed; falling back to V1/);
 });
