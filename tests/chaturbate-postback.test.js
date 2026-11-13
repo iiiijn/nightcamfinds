@@ -87,7 +87,7 @@ test("Chaturbate postbacks accept GET and POST form or JSON payloads", () => {
 test("real Chaturbate conversion postbacks require a configured shared secret", () => {
   assert.ok(start.includes('if (!configuredSecret)'));
   assert.ok(start.includes('const suppliedSecret = String(params.secret || "")')); 
-  assert.ok(start.includes('if (!safeEqual(suppliedSecret, configuredSecret))'));
+  assert.ok(start.includes('if (!suppliedSecret || !safeEqual(suppliedSecret, configuredSecret))'));
 });
 
 test("macro test callbacks are acknowledged without recording conversions", () => {
@@ -130,7 +130,9 @@ test("conversion persistence records whether a click matched and ignores duplica
   assert.ok(start.includes("SELECT EXISTS(SELECT 1 FROM cb_clicks WHERE click_id = $1::varchar(128) UNION ALL SELECT 1 FROM affiliate_clicks WHERE click_id = $1::varchar(128) AND platform = 'chaturbate') AS matched"));
   assert.ok(start.includes("ON CONFLICT (transaction_id) DO NOTHING"));
   assert.ok(start.includes("RETURNING id"));
-  assert.ok(start.includes("return { matchedClick, inserted: inserted.rowCount === 1 }"));
+  assert.ok(start.includes("return { matchedClick, inserted: false, duplicate: true }"));
+  assert.ok(start.includes("Conflicting duplicate Chaturbate transaction ID"));
+  assert.ok(start.includes("sameChaturbateTransaction(existing"));
 });
 
 test("dashboard verified revenue includes only matched supported Chaturbate event types", () => {
@@ -154,10 +156,9 @@ test("dashboard keeps matched Chaturbate earnings separated by currency", () => 
 
 
 test("postback authentication diagnostics distinguish missing and invalid secrets without logging secret values", () => {
-  assert.ok(start.includes('Chaturbate postback rejected: missing secret'));
-  assert.ok(start.includes('Chaturbate postback rejected: invalid secret'));
-  assert.ok(start.includes('hasTokenField: Boolean(params.token || params.validation || params.validation_token)'));
-  assert.ok(start.includes('hasClickId: Boolean(params.click_id)'));
+  assert.ok(start.includes('Chaturbate postback rejected: invalid shared-secret authentication'));
+  assert.ok(start.includes('if (!suppliedSecret || !safeEqual(suppliedSecret, configuredSecret))'));
+  assert.ok(start.indexOf('CB_POSTBACK_SECRET is not configured') < start.indexOf('hasUnresolvedChaturbateMacros(params)'));
   assert.ok(!start.includes('console.warn("Chaturbate postback rejected: invalid secret", params.secret'));
   assert.ok(!start.includes('console.warn("Chaturbate postback rejected: missing secret", params.secret'));
 });
@@ -205,5 +206,6 @@ test("any unresolved documented Chaturbate macro is acknowledged as a test and n
 
 test("postback route checks all documented macro fields before normalization or persistence", () => {
   assert.ok(start.includes("hasUnresolvedChaturbateMacros(params)"));
+  assert.ok(start.indexOf("CB_POSTBACK_SECRET is not configured") < start.indexOf("hasUnresolvedChaturbateMacros(params)"));
   assert.ok(start.indexOf("hasUnresolvedChaturbateMacros(params)") < start.indexOf("normalizeChaturbatePostback(params)"));
 });
