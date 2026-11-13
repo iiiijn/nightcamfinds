@@ -14,6 +14,8 @@ const {
   buildDictionaryUrl,
   parseModelsOnlineResponse,
   normalizeTags,
+  resolveBongaRoomImage,
+  isBongaHd,
   parseDictionaryResponse
 } = require("../src/services/bongacash-api-v2.cjs");
 
@@ -137,6 +139,7 @@ test("country startup patch preserves V2 HD, live-image and safe tags fields", (
   const patched = patchServerSource(fs.readFileSync(serverPath, "utf8"));
   assert.match(patched, /isHd:!!room\.is_hd/);
   assert.match(patched, /liveImages\.thumbnail_image_big/);
+  assert.ok(patched.indexOf("liveImages.thumbnail_image_big") < patched.indexOf("images.profile_image"));
   assert.match(patched, /normalizeTags\(room\.tags\)\.join\(" "\)/);
 });
 
@@ -147,4 +150,23 @@ test("V2 remains opt-in and falls back to V1 in the server integration", () => {
   assert.match(serverSource, /BONGACAMS_ORIGIN_AUTH_SECRET/);
   assert.match(serverSource, /hasAuthenticatedOrigin\(req,BONGA_ORIGIN_AUTH_SECRET\)/);
   assert.match(serverSource, /BongaCash V2 feed failed; falling back to V1/);
+});
+
+
+test("BongaCash V2 maps documented live image and HD fields", () => {
+  const room = {
+    is_hd: true,
+    profile_images: {
+      profile_image: "https://images.example/profile.jpg",
+      thumbnail_image_big: "https://images.example/profile-big.jpg"
+    },
+    live_images: {
+      thumbnail_image_medium: "https://images.example/live-medium.jpg",
+      thumbnail_image_big: "https://images.example/live-big.jpg"
+    }
+  };
+  assert.equal(resolveBongaRoomImage(room), "https://images.example/live-big.jpg");
+  assert.equal(isBongaHd(room), true);
+  assert.equal(isBongaHd({ is_hd: false, hd: false }), false);
+  assert.equal(resolveBongaRoomImage({ profile_images: { profile_image: "https://images.example/profile.jpg" } }), "https://images.example/profile.jpg");
 });
