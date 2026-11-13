@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import {
   countryTier,
   normalizeChaturbatePostback,
-  buildChaturbateUrl
+  buildChaturbateUrl,
+  removePostbackSecrets,
+  sameChaturbateTransaction
 } from "../src/services/chaturbate-revshare.cjs";
 
 test("maps affiliate country tiers without treating Kenya as a paid tier", () => {
@@ -132,4 +134,23 @@ test("accepts every documented Chaturbate conversion type with an explicit payou
     assert.equal(result.event.currency, "USD");
     assert.equal(result.event.payout, index === 8 ? -0.25 : 0.75);
   }
+});
+
+test("rejects identifiers that would be truncated into ambiguous database keys", () => {
+  const base = { click_id: "click", transaction_id: "tx", type: "revshare_purchase", payout: "1.25" };
+  assert.equal(normalizeChaturbatePostback({ ...base, click_id: "x".repeat(129) }).reason, "click_id_too_long");
+  assert.equal(normalizeChaturbatePostback({ ...base, transaction_id: "x".repeat(256) }).reason, "transaction_id_too_long");
+  assert.equal(normalizeChaturbatePostback({ ...base, click_id: "bad\\nclick" }).reason, "invalid_click_id");
+});
+
+test("removes callback authentication material before storing raw payloads", () => {
+  const cleaned = removePostbackSecrets({ click_id: "c", secret: "private", checksum: "sig", validation_token: "token", payout: "1" });
+  assert.deepEqual(cleaned, { click_id: "c", payout: "1" });
+});
+
+test("treats exact transaction retries as idempotent but rejects conflicting reuse", () => {
+  const stored = { click_id: "click-1", conversion_type: "revshare_purchase", payout: "1.250000", currency: "USD" };
+  assert.equal(sameChaturbateTransaction(stored, { click_id: "click-1", type: "revshare_purchase", payout: 1.25, currency: "usd" }), true);
+  assert.equal(sameChaturbateTransaction(stored, { click_id: "click-2", type: "revshare_purchase", payout: 1.25, currency: "USD" }), false);
+  assert.equal(sameChaturbateTransaction(stored, { click_id: "click-1", type: "revshare_purchase", payout: 2, currency: "USD" }), false);
 });
