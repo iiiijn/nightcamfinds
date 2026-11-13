@@ -11,7 +11,7 @@ function patchServerSource(input){
   source=source.replace(before,after);
  };
  replaceOnce('const { getCountryPage } = require("./country-pages.js");',
-  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeTags } = require("./src/services/bongacash-api-v2.cjs");\nconst { normalizeCountryCode, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
+  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
   "country page import");
  const normalizers=/function normalizeChaturbateRoom\(room\) \{[^\n]*\}\nfunction bongaGender\(value\) \{[^\n]*\}\nfunction normalizeBongaRoom\(room\) \{[^\n]*\}/;
  if(!normalizers.test(source))throw new Error("Country directory patch could not locate both partner normalizers");
