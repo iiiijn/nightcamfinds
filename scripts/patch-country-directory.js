@@ -11,7 +11,7 @@ function patchServerSource(input){
   source=source.replace(before,after);
  };
  replaceOnce('const { getCountryPage } = require("./country-pages.js");',
-  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
+  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeTags } = require("./src/services/bongacash-api-v2.cjs");\nconst { normalizeCountryCode, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
   "country page import");
  const normalizers=/function normalizeChaturbateRoom\(room\) \{[^\n]*\}\nfunction bongaGender\(value\) \{[^\n]*\}\nfunction normalizeBongaRoom\(room\) \{[^\n]*\}/;
  if(!normalizers.test(source))throw new Error("Country directory patch could not locate both partner normalizers");
@@ -32,7 +32,7 @@ function patchServerSource(input){
   ' const username=clean(room.username||room.user_name||room.nickname||room.model||room.id);if(!username)return null;',
   ' const rawImages=room.profile_images||room.images||{};const images=typeof rawImages==="string"?{}:rawImages;',
   ' const liveImages=room.live_images&&typeof room.live_images==="object"?room.live_images:{};',
-  ' const age=Number(room.display_age||room.age||0);const tags=typeof room.tags==="string"?room.tags:Array.isArray(room.tags)?room.tags.join(" "):"";if(Number.isFinite(age)&&age>0&&age<18)return null;',
+  ' const age=Number(room.display_age||room.age||0);const tags=normalizeTags(room.tags).join(" ");if(Number.isFinite(age)&&age>0&&age<18)return null;',
   ' const country=normalizeCountryCode(room.homecountry||room.country||room.country_code);',
   ' const viewers=Number(room.members_count??room.num_users??room.viewers??room.viewer_count??0)||0;',
   ' const image=(typeof rawImages==="string"?rawImages:"")||images.profile_image||images.thumbnail_image_big||images.thumbnail_image_medium||images.thumbnail_image_small||liveImages.thumbnail_image_big||liveImages.thumbnail_image_medium||images.thumbnail_image_big_live||images.thumbnail_image_medium_live||room.image_url||room.thumbnail||room.avatar||"";',
