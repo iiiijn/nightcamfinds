@@ -34,7 +34,8 @@ test("feature branch staging creates the affiliate schema before dependent migra
     "006_traffic_quality_engagement",
     "007_engagement_event_integrity",
     "008_chaturbate_conversion_metadata",
-    "009_click_source_evidence"
+    "009_click_source_evidence",
+    "010_engagement_event_type_capacity"
   ]);
   assert.ok(plan.every(item => item.version !== "003_click_attribution_columns"));
 });
