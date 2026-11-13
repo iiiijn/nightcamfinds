@@ -120,7 +120,7 @@ function buildDictionaryUrl(options = {}) {
 
 function normalizeTags(value) {
   const values = typeof value === "string"
-    ? value.split(/[\\s,]+/)
+    ? value.split(/[\s,]+/)
     : Array.isArray(value)
       ? value
       : value && typeof value === "object"
