@@ -1,7 +1,8 @@
 "use strict";
 
 const { normalizeCountryCode } = require("./country-directory.cjs");
-const { isDisplayableRoom } = require("./room-quality.cjs");
+const { getRoomRejectionReason } = require("./room-quality.cjs");
+const { normalizeBongaCountry } = require("./bonga-country-normalizer.cjs");
 
 function rawCountryValue(row, provider) {
   if (!row || typeof row !== "object" || Array.isArray(row)) return { present: false, value: "" };
@@ -46,7 +47,7 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
       else missingCountry += 1;
       continue;
     }
-    const code = normalizeCountryCode(rawCountry.value);
+    const code = name === "bongacams" ? normalizeBongaCountry(row) : normalizeCountryCode(rawCountry.value);
     if (!code) {
       unrecognizedCountry += 1;
       continue;
@@ -64,7 +65,7 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     const room = wrapped ? entry.normalized : entry;
     const rawText = wrapped ? entry.rawText || "" : "";
     if (room) normalizedCount += 1;
-    const reason = require("./room-quality.cjs").getRoomRejectionReason(room, rawText);
+    const reason = getRoomRejectionReason(room, rawText);
     if (reason) {
       rejectionReasons[reason] = (rejectionReasons[reason] || 0) + 1;
       continue;
