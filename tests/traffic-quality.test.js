@@ -247,7 +247,10 @@ test('affiliate redirect handler accepts source attribution and validates visit 
   const path = require('node:path');
   const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
   assert.match(server, /url\.searchParams\.get\("utm_source"\) \|\| url\.searchParams\.get\("source"\)/);
-  assert.match(server, /match\(\/\^\[a-f0-9\]\{32\}\$\/i\)\?\.\[0\]/);
+  const resolver = fs.readFileSync(path.join(__dirname, '../src/services/visit-id-attribution.cjs'), 'utf8');
+  assert.match(server, /resolveVisitIdentity\(/);
+  assert.match(resolver, /VISIT_ID_PATTERN/);
+  assert.match(resolver, /origin: "redirect_fallback"/);
   assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
 });
 
@@ -374,9 +377,10 @@ test('server establishes first-party visit cookies before directory affiliate li
   assert.match(countryPatch, /active country route visit cookies/);
   assert.match(countryPatch, /visitCookieHeaders\(req, pathname\)/);
   assert.match(server, /return cookies\.length \? \{ "Set-Cookie": cookies \} : \{\}/);
-  assert.match(server, /const queryVisitId = String\(url\.searchParams\.get\("vid"\)/);
-  assert.match(server, /const cookieVisitId = String\(cookieValue\(req, "ncf_visit_id"\)/);
-  assert.match(server, /const visitId = cookieVisitId \|\| queryVisitId/);
+  assert.match(server, /const queryVisitId = url\.searchParams\.get\("vid"\)/);
+  assert.match(server, /const cookieVisitId = cookieValue\(req, "ncf_visit_id"\)/);
+  assert.match(server, /resolveVisitIdentity\(/);
+  assert.match(server, /const visitId = visitIdentity\.visitId/);
   const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
   const engageStart = route.indexOf('if (incoming.pathname === "/api/engage")');
   const engageEnd = route.indexOf('if (incoming.pathname === "/api/traffic-quality-analytics")', engageStart);

@@ -8,6 +8,7 @@ const { getCountryPage } = require("./country-pages.js");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
+const { resolveVisitIdentity, buildVisitCookieHeaders } = require("./src/services/visit-id-attribution.cjs");
 const { isPriorityMarket, MARKET_META, MARKET_PRIORITY_CODES } = require("./src/config/market-countries.cjs");
 const { fetchPagedResults } = require("./src/services/paged-feed.cjs");
 const { resolveRegionalMaxPages } = require("./src/services/regional-feed-config.cjs");
@@ -442,10 +443,15 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const agent = String(req.headers["user-agent"] || "").toLowerCase();
     const device = /mobile|android|iphone|ipad/.test(agent) ? "mobile" : "desktop";
     const clickId = "ncf_" + Date.now().toString(36) + "_" + require("crypto").randomBytes(8).toString("hex");
-    const queryVisitId = String(url.searchParams.get("vid") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
-    const cookieVisitId = String(cookieValue(req, "ncf_visit_id") || "").match(/^[a-f0-9]{32}$/i)?.[0] || null;
-    // Prefer the first-party cookie when present; retain query fallback for restricted-cookie browsers.
-    const visitId = cookieVisitId || queryVisitId;
+    const queryVisitId = url.searchParams.get("vid") || "";
+    const cookieVisitId = cookieValue(req, "ncf_visit_id") || "";
+    const visitIdentity = resolveVisitIdentity({
+      queryVisitId,
+      cookieVisitId,
+      createVisitId: () => require("crypto").randomBytes(16).toString("hex")
+    });
+    const visitId = visitIdentity.visitId;
+    const visitIdOrigin = visitIdentity.origin;
     const isSafeLandingPath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && value.length <= 255 && !/[\r\n]/.test(value);
     const queryLandingPath = url.searchParams.get("lp") || "";
     const cookieLandingPath = cookieValue(req, "ncf_landing_path");
@@ -453,6 +459,15 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const room = isBonga ? (await rooms(req)).rooms.find(r => r.platform === platform && r.username === username) : null;
     if (isBonga && !room) return send(res, 404, "Live room not found", "text/plain; charset=utf-8");
     await countClick({ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath, trafficClass: classifyUserAgent(agent) });
+    // This diagnostic records provenance without treating a fallback ID as a
+    // previously established browsing session or storing raw visitor data.
+    console.info(JSON.stringify({
+      event: "affiliate_redirect_visit_identity",
+      clickId,
+      platform,
+      visitIdOrigin,
+      landingPath
+    }));
     let target;
     if (isBonga) {
       // Exact account-generated BongaCash Direct Link pattern: type, version,
@@ -492,7 +507,18 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
           + "&utm_campaign=" + encodeURIComponent(campaign);
       }
     }
-    res.writeHead(302, { Location: target, "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" });
+    const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+    const secureCookies = forwardedProto === "https" || Boolean(req.socket && req.socket.encrypted);
+    const setCookies = buildVisitCookieHeaders({
+      existingVisitCookie: cookieVisitId,
+      existingLandingCookie: cookieValue(req, "ncf_landing_path"),
+      visitId,
+      landingPath,
+      secure: secureCookies
+    });
+    const redirectHeaders = { Location: target, "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" };
+    if (setCookies.length) redirectHeaders["Set-Cookie"] = setCookies;
+    res.writeHead(302, redirectHeaders);
     return res.end();
   }
   const countryRoute = pathname.match(/^\/country\/([a-z]{2})\/$/i);
