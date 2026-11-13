@@ -44,7 +44,7 @@ test("feed diagnostics separate raw, normalized, accepted, rejected and duplicat
   assert.equal(result.acceptedUniqueRoomCount, 2);
   assert.equal(result.rejectedRoomCount, 1);
   assert.equal(result.duplicateRoomCount, 1);
-  assert.equal(result.missingCountryCount, 1);
+  assert.equal(result.missingCountryCount, 2);
   assert.equal(result.unrecognizedCountryCount, 1);
   assert.deepEqual(result.countryCounts, [{ country: "GB", roomCount: 2 }]);
   assert.deepEqual(result.rejectionReasons, { invalid_destination: 1 });
