@@ -272,7 +272,9 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
 function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup = "", hasRooms = false) {
   const country = COUNTRIES[String(slug || "").toLowerCase()];
   if (!country) return null;
-  const canonical = `${origin.replace(/\/$/, "")}/country/${String(slug).toLowerCase()}/`;
+  // Country canonicals always use the one production origin. Do not derive
+  // canonical identity from request Host or forwarded-host headers.
+  const canonical = `https://nightcamfinds.com/country/${String(slug).toLowerCase()}/`;
   const title = country.seoTitle || `${country.name} Live Cams | NightCamFinds`;
   const description = country.metaDescription || `Browse public live rooms associated with ${country.name}. Compare categories and current activity on NightCamFinds.`;
   const paragraphs = [country.intro, ...country.paragraphs];
@@ -298,7 +300,7 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(title)}</title><meta name="description" content="${escapeHtml(description)}">
-<meta name="robots" content="${hasRooms ? "index,follow" : "noindex,follow"}"><link rel="canonical" href="${escapeHtml(canonical)}">
+<meta name="robots" content="${hasRooms ? "index,follow" : "noindex,follow"}"><link rel="canonical" href="${escapeHtml(canonical)}"><meta property="og:url" content="${escapeHtml(canonical)}">
 <script type="application/ld+json">${faqStructuredData}</script>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
