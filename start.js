@@ -208,7 +208,7 @@ async function saveConversion(params) {
   );
   if (inserted.rowCount === 1) return { matchedClick, inserted: true, duplicate: false };
   const existingResult = await pool.query(
-    "SELECT click_id, conversion_type, payout, currency FROM cb_conversions WHERE transaction_id = $1",
+    "SELECT click_id, conversion_type, payout, currency, matched_click FROM cb_conversions WHERE transaction_id = $1",
     [transactionId]
   );
   const existing = existingResult.rows[0];
