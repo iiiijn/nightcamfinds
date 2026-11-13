@@ -1,11 +1,8 @@
 "use strict";
 
 const BASE_URL = "https://bngprm.com/api/v2/";
-const TRUSTED_IP_HEADERS = new Set([
-  "cf-connecting-ip",
-  "x-real-ip",
-  "x-forwarded-for"
-]);
+// Only trust the client address supplied by the Cloudflare edge. X-Forwarded-For and X-Real-IP can be visitor-controlled at the origin.
+const TRUSTED_IP_HEADERS = new Set(["cf-connecting-ip"]);
 const DICTIONARY_KEYS = new Set([
   "bust_size", "butt_size", "ethnicity", "eye_color", "gender",
   "hair_color", "height", "language", "penis_size", "pubic_hair",
