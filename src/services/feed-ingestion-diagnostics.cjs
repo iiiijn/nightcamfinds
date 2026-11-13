@@ -7,7 +7,7 @@ const { normalizeBongaCountry } = require("./bonga-country-normalizer.cjs");
 function rawCountryValue(row, provider) {
   if (!row || typeof row !== "object" || Array.isArray(row)) return { present: false, value: "" };
   const fields = provider === "bongacams"
-    ? ["homecountry", "country", "country_code"]
+    ? ["homecountry", "country", "country_code", "hometown"]
     : ["country"];
   for (const field of fields) {
     if (!Object.prototype.hasOwnProperty.call(row, field)) continue;
