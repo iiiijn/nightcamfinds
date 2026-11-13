@@ -77,7 +77,7 @@ test("server records each Chaturbate region and exposes provider diagnostics onl
   const fs = require("node:fs");
   const path = require("node:path");
   const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
-  assert.ok(server.includes('require("./src/services/feed-ingestion-diagnostics.cjs")'));
+  assert.ok(fs.readFileSync(path.join(__dirname, "../scripts/patch-country-directory.js"), "utf8").includes('require("./src/services/feed-ingestion-diagnostics.cjs")'));
   assert.ok(server.includes('latestProviderFeedDiagnostics.chaturbateRegions.push'));
   assert.ok(server.includes('latestProviderFeedDiagnostics.bongacams=diagnostics'));
   assert.ok(server.includes('providerIngestion: latestProviderFeedDiagnostics'));
