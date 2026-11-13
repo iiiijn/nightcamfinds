@@ -54,7 +54,7 @@ test("production migration widens engagement event labels without rebuilding or 
   const path = require("node:path");
   const migration = fs.readFileSync(path.join(__dirname, "../sql/010_engagement_event_type_capacity.sql"), "utf8");
   assert.match(migration, /ALTER TABLE traffic_engagement_events/);
-  assert.match(migration, /ALTER COLUMN event_type TYPE VARCHAR\\(48\\)/);
+  assert.ok(migration.includes("ALTER COLUMN event_type TYPE VARCHAR(48)"));
   assert.doesNotMatch(migration, /DROP TABLE|TRUNCATE|DELETE FROM/i);
   const plan = getMigrationPlan("main");
   assert.equal(plan.at(-1).version, "010_engagement_event_type_capacity");
