@@ -126,7 +126,7 @@ test("country startup patch preserves V2 HD, live-image and safe tags fields", (
   const patched = patchServerSource(fs.readFileSync(serverPath, "utf8"));
   assert.match(patched, /isHd:!!room\.is_hd/);
   assert.match(patched, /liveImages\.thumbnail_image_big/);
-  assert.match(patched, /typeof room\.tags==="string"/);
+  assert.match(patched, /normalizeTags\(room\.tags\)\.join\(" "\)/);
 });
 
 test("V2 remains opt-in and falls back to V1 in the server integration", () => {
