@@ -1,11 +1,11 @@
 "use strict";
 
+const crypto = require("node:crypto");
+
 const BASE_URL = "https://bngprm.com/api/v2/";
-const TRUSTED_IP_HEADERS = new Set([
-  "cf-connecting-ip",
-  "x-real-ip",
-  "x-forwarded-for"
-]);
+const TRUSTED_IP_HEADER = "cf-connecting-ip";
+const ORIGIN_AUTH_HEADER = "x-ncf-origin-auth";
+const MIN_ORIGIN_SECRET_LENGTH = 32;
 const DICTIONARY_KEYS = new Set([
   "bust_size", "butt_size", "ethnicity", "eye_color", "gender",
   "hair_color", "height", "language", "penis_size", "pubic_hair",
@@ -40,14 +40,22 @@ function isPublicIpv4(value) {
   return true;
 }
 
+function hasAuthenticatedOrigin(req, configuredSecret) {
+  if (typeof configuredSecret !== "string" || configuredSecret.length < MIN_ORIGIN_SECRET_LENGTH) return false;
+  const supplied = req && req.headers ? req.headers[ORIGIN_AUTH_HEADER] : null;
+  if (typeof supplied !== "string") return false;
+  const expectedBuffer = Buffer.from(configuredSecret, "utf8");
+  const suppliedBuffer = Buffer.from(supplied, "utf8");
+  return expectedBuffer.length === suppliedBuffer.length && crypto.timingSafeEqual(expectedBuffer, suppliedBuffer);
+}
+
 function resolveTrustedClientIpv4(req, configuredHeader) {
   const header = String(configuredHeader || "").trim().toLowerCase();
-  if (!TRUSTED_IP_HEADERS.has(header)) return null;
+  if (header !== TRUSTED_IP_HEADER) return null;
   const raw = req && req.headers ? req.headers[header] : null;
   if (typeof raw !== "string") return null;
   const value = raw.trim();
-  // Reject comma-separated proxy chains. The configured proxy must supply one
-  // client address in this header; selecting an arbitrary hop is unsafe.
+  // Trust CF-Connecting-IP only after independent origin authentication succeeds.
   return isPublicIpv4(value) ? value : null;
 }
 
@@ -159,7 +167,10 @@ function parseDictionaryResponse(data) {
 
 module.exports = {
   BASE_URL,
+  ORIGIN_AUTH_HEADER,
+  MIN_ORIGIN_SECRET_LENGTH,
   isPublicIpv4,
+  hasAuthenticatedOrigin,
   resolveTrustedClientIpv4,
   buildModelsOnlineUrl,
   buildDictionaryUrl,
