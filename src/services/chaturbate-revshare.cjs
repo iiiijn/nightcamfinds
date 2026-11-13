@@ -59,7 +59,11 @@ function normalizeChaturbatePostback(raw = {}) {
 
   if (!SUPPORTED_TYPES.has(type)) return { ok: false, reason: "unsupported_event_type" };
   if (!clickId) return { ok: false, reason: "missing_click_id" };
+  if (clickId.length > 128) return { ok: false, reason: "click_id_too_long" };
+  if (/[\u0000-\u001f\u007f]/.test(clickId)) return { ok: false, reason: "invalid_click_id" };
   if (!transactionId) return { ok: false, reason: "missing_transaction_id" };
+  if (transactionId.length > 255) return { ok: false, reason: "transaction_id_too_long" };
+  if (/[\u0000-\u001f\u007f]/.test(transactionId)) return { ok: false, reason: "invalid_transaction_id" };
   if (payout == null) return { ok: false, reason: "missing_or_invalid_payout" };
 
   const country = get("country").toUpperCase();
@@ -109,9 +113,17 @@ function hasUnresolvedChaturbateMacros(raw = {}) {
 }
 
 function removePostbackSecrets(raw = {}) {
+  const privateFields = new Set(["secret", "checksum", "validation", "validation_token", "validation_salt"]);
   return Object.fromEntries(
-    Object.entries(raw).filter(([key]) => key.toLowerCase() !== "secret")
+    Object.entries(raw).filter(([key]) => !privateFields.has(key.toLowerCase()))
   );
+}
+
+function sameChaturbateTransaction(existing = {}, incoming = {}) {
+  return String(existing.click_id || "") === String(incoming.click_id || "") &&
+    String(existing.conversion_type || existing.type || "") === String(incoming.conversion_type || incoming.type || "") &&
+    Number(existing.payout || 0) === Number(incoming.payout || 0) &&
+    String(existing.currency || "").toUpperCase() === String(incoming.currency || "").toUpperCase();
 }
 
 function buildChaturbateUrl(options = {}) {
@@ -150,5 +162,6 @@ function buildChaturbateUrl(options = {}) {
 exports.countryTier = countryTier;
 exports.normalizeChaturbatePostback = normalizeChaturbatePostback;
 exports.removePostbackSecrets = removePostbackSecrets;
+exports.sameChaturbateTransaction = sameChaturbateTransaction;
 exports.hasUnresolvedChaturbateMacros = hasUnresolvedChaturbateMacros;
 exports.buildChaturbateUrl = buildChaturbateUrl;
