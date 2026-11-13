@@ -55,6 +55,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   fs.writeFileSync(path.join(pgStub, "index.js"), "class Pool { constructor() { throw new Error('Unexpected database pool creation in redirect test'); } } module.exports = { Pool };");
   const baseUrl = `http://127.0.0.1:${port}`;
   execFileSync(process.execPath, ["scripts/fix-server-syntax.js"], { cwd: projectDir, stdio: "pipe" });
+  execFileSync(process.execPath, ["scripts/patch-country-directory.js"], { cwd: projectDir, stdio: "pipe" });
   execFileSync(process.execPath, ["scripts/patch-spa-seo-routes.js"], { cwd: projectDir, stdio: "pipe" });
   const child = spawn(process.execPath, ["-e", "require('./route.js')"], {
     cwd: projectDir,
