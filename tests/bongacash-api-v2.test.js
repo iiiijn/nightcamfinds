@@ -8,6 +8,7 @@ const { patchServerSource } = require("../scripts/patch-country-directory.js");
 const {
   BASE_URL,
   isPublicIpv4,
+  hasAuthenticatedOrigin,
   resolveTrustedClientIpv4,
   buildModelsOnlineUrl,
   buildDictionaryUrl,
@@ -41,6 +42,16 @@ test("BongaCash V2 refuses missing, malformed, private or reserved visitor IPs",
     assert.throws(() => buildModelsOnlineUrl({ campaignId: "840970", clientIp: value }));
   }
   assert.equal(isPublicIpv4("8.8.8.8"), true);
+});
+
+test("BongaCash V2 requires an independent shared secret from the Cloudflare Worker", () => {
+  const secret = "a".repeat(64);
+  const req = { headers: { "x-ncf-origin-auth": secret } };
+  assert.equal(hasAuthenticatedOrigin(req, secret), true);
+  assert.equal(hasAuthenticatedOrigin({ headers: {} }, secret), false);
+  assert.equal(hasAuthenticatedOrigin({ headers: { "x-ncf-origin-auth": "attacker-value" } }, secret), false);
+  assert.equal(hasAuthenticatedOrigin(req, ""), false);
+  assert.equal(hasAuthenticatedOrigin(req, "short"), false);
 });
 
 test("BongaCash V2 only reads a single address from an explicitly configured proxy header", () => {
@@ -133,5 +144,7 @@ test("V2 remains opt-in and falls back to V1 in the server integration", () => {
   const serverSource = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
   assert.match(serverSource, /BONGA_API_VERSION = process\.env\.BONGACAMS_API_VERSION === "2" \? "2" : "1"/);
   assert.match(serverSource, /BONGACAMS_TRUSTED_CLIENT_IP_HEADER/);
+  assert.match(serverSource, /BONGACAMS_ORIGIN_AUTH_SECRET/);
+  assert.match(serverSource, /hasAuthenticatedOrigin\(req,BONGA_ORIGIN_AUTH_SECRET\)/);
   assert.match(serverSource, /BongaCash V2 feed failed; falling back to V1/);
 });
