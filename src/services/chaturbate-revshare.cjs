@@ -60,10 +60,10 @@ function normalizeChaturbatePostback(raw = {}) {
   if (!SUPPORTED_TYPES.has(type)) return { ok: false, reason: "unsupported_event_type" };
   if (!clickId) return { ok: false, reason: "missing_click_id" };
   if (clickId.length > 128) return { ok: false, reason: "click_id_too_long" };
-  if (/[\\u0000-\\u001f\\u007f]/.test(clickId)) return { ok: false, reason: "invalid_click_id" };
+  if (/[\u0000-\u001f\u007f]/.test(clickId)) return { ok: false, reason: "invalid_click_id" };
   if (!transactionId) return { ok: false, reason: "missing_transaction_id" };
   if (transactionId.length > 255) return { ok: false, reason: "transaction_id_too_long" };
-  if (/[\\u0000-\\u001f\\u007f]/.test(transactionId)) return { ok: false, reason: "invalid_transaction_id" };
+  if (/[\u0000-\u001f\u007f]/.test(transactionId)) return { ok: false, reason: "invalid_transaction_id" };
   if (payout == null) return { ok: false, reason: "missing_or_invalid_payout" };
 
   const country = get("country").toUpperCase();
