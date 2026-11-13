@@ -114,7 +114,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
     `${baseUrl}/bgo/testbongamodel?utm_source=redirect-test&utm_medium=unit-test&utm_campaign=bonga-check&src=bonga-test-card&cat=male`,
     { redirect: "manual", headers: { "cf-ipcountry": "GB", "user-agent": "NightCamFinds redirect test" } }
   );
-  assert.equal(bongaResponse.status, 302);
+  assert.equal(bongaResponse.status, 302, `BongaCams redirect returned ${bongaResponse.status}: ${await bongaResponse.text()}\\nstdout: ${child.testStdout}\\nstderr: ${child.testStderr}`);
   const bongaTarget = new URL(bongaResponse.headers.get("location"));
   assert.equal(bongaTarget.hostname, "bngprm.com");
   assert.equal(bongaTarget.pathname, "/promo.php");
