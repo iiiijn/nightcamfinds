@@ -11,7 +11,7 @@ function patchServerSource(input){
   source=source.replace(before,after);
  };
  replaceOnce('const { getCountryPage } = require("./country-pages.js");',
-  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
+  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
   "country page import");
  replaceOnce('const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");',
   'const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");\nconst { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");\nlet latestProviderFeedDiagnostics = { chaturbateRegions: [] };',
@@ -27,7 +27,7 @@ function patchServerSource(input){
  if(!normalizers.test(source))throw new Error("Country directory patch could not locate both partner normalizers");
  const normalizedPartnerCode = [
   'function normalizeChaturbateRoom(room,apiRegion="") {',
-  '  const country=normalizeCountryCode(room.country);',
+  '  const country=resolveChaturbateCountry(room.country,room.location);',
   '  return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,',
   '   displayName:clean(room.display_name||room.username)||room.username,gender:normalizeRoomGender(room.gender),',
   '   country,countryName:NAMES[country]||country,',
