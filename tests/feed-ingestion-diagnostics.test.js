@@ -52,7 +52,7 @@ test("feed diagnostics separate raw, normalized, accepted, rejected and duplicat
     pagesFetched: 2, receivedCount: 5, uniqueCount: 5, duplicateCount: 0,
     pageSize: null, maxPages: null, truncated: false, stopReason: "short_page"
   });
-  assert.equal(JSON.stringify(result).includes("one"), false);
+  assert.equal(JSON.stringify(result).includes('"one"'), false);
 });
 
 test("Bonga diagnostics classify country using the same fallback rules as room normalization", () => {
@@ -144,7 +144,19 @@ test("Chaturbate diagnostics count metadata presence without exposing values or 
     fieldPresenceCounts: { country: 1, location: 2, region: 2, region_name: 1, state: 1, province: 0 }
   });
   const result = summarizeFeedIngestion({ provider: "chaturbate", rawRows: rows });
-  assert.deepEqual(result.metadata, presence);
+  assert.deepEqual(result.metadata, {
+    ...presence,
+    locationShapes: {
+      inspectedRoomCount: 3,
+      locationShapeCounts: {
+        missing: 1,
+        exact_country: 0,
+        city_country: 0,
+        comma_unrecognized: 0,
+        other_nonempty: 2
+      }
+    }
+  });
   assert.equal(JSON.stringify(result).includes("private-one"), false);
   assert.equal(JSON.stringify(result).includes("London"), false);
   assert.equal(JSON.stringify(result).includes("Paris"), false);
