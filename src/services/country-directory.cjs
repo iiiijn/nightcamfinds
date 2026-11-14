@@ -25,6 +25,18 @@ function normalizeCountryCode(value) {
  if(/^[A-Za-z]{2}$/.test(raw)) { const code=raw.toUpperCase(); return isIso3166Alpha2(code) ? code : ""; }
  return COUNTRY_NAME_CODES.get(raw.toUpperCase())||"";
 }
+function resolveChaturbateCountry(country, location) {
+ const explicit = normalizeCountryCode(country);
+ if (explicit) return explicit;
+ if (typeof location !== "string") return "";
+ const text = location.trim();
+ if (!text) return "";
+ const exact = normalizeCountryCode(text);
+ if (exact) return exact;
+ const parts = text.split(",").map((part) => part.trim());
+ if (parts.length < 2 || parts.some((part) => !part)) return "";
+ return normalizeCountryCode(parts[parts.length - 1]);
+}
 function normalizeRegion(value){return textValue(value).replaceAll("\t"," ").replaceAll("\n"," ").split(" ").filter(Boolean).join(" ").slice(0,80);}
 function normalizeLanguages(value){
  const values=(Array.isArray(value)?value:[value]).map(textValue).flatMap(v=>v.split(/[,;|]/)).map(v=>v.trim()).filter(Boolean);
@@ -62,4 +74,4 @@ function buildCountrySitemap(origin,rooms,countryEntries,lastmodByPath={}){
   return "<url><loc>"+esc(base+p)+"</loc>"+lastmod+"</url>";
  }).join("")+"</urlset>";
 }
-module.exports={normalizeCountryCode,normalizeRegion,normalizeLanguages,isValidCountryRoom,isIndexableCountryRooms,buildCountrySitemap};
+module.exports={normalizeCountryCode,resolveChaturbateCountry,normalizeRegion,normalizeLanguages,isValidCountryRoom,isIndexableCountryRooms,buildCountrySitemap};
