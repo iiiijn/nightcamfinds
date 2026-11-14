@@ -3,7 +3,7 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const path=require("node:path");
-const {normalizeCountryCode,normalizeRegion,normalizeLanguages,isValidCountryRoom,isIndexableCountryRooms,buildCountrySitemap}=require("../src/services/country-directory.cjs");
+const {normalizeCountryCode,resolveChaturbateCountry,normalizeRegion,normalizeLanguages,isValidCountryRoom,isIndexableCountryRooms,buildCountrySitemap}=require("../src/services/country-directory.cjs");
 const {patchServerSource}=require("../scripts/patch-country-directory.js");
 const {COUNTRIES,getCountryPage}=require("../country-pages.js");
 const {MARKET_META,MARKET_PRIORITY_CODES,REGION_GROUPS}=require("../src/config/market-countries.cjs");
@@ -214,4 +214,27 @@ test("country route health distinguishes healthy, partial, unavailable and thin 
  assert.equal(disabled.feedHealth,"healthy");
  const thin=summarizeCountryRouteHealth({providerHealth:{chaturbate:"available",bongacams:"disabled"},rooms:ten.slice(0,9)});
  assert.equal(thin.feedHealth,"healthy");assert.equal(thin.indexable,false);assert.equal(thin.qualifyingRoomCount,9);
+});
+
+test("Chaturbate country fallback accepts only an explicit recognized country at the end of location",()=>{
+ assert.equal(resolveChaturbateCountry("GB","Paris, France"),"GB","a valid country field takes precedence");
+ assert.equal(resolveChaturbateCountry("","London, United Kingdom"),"GB");
+ assert.equal(resolveChaturbateCountry("","Paris, France"),"FR");
+ assert.equal(resolveChaturbateCountry("","New York, NY, United States"),"US");
+ assert.equal(resolveChaturbateCountry("","Berlin, DE"),"DE");
+ assert.equal(resolveChaturbateCountry("","Kenya"),"KE");
+ assert.equal(resolveChaturbateCountry("","Nairobi"),"");
+ assert.equal(resolveChaturbateCountry("","Springfield, Unknownland"),"");
+ assert.equal(resolveChaturbateCountry("","Paris, France, Europe"),"");
+ assert.equal(resolveChaturbateCountry("","Paris, France (near centre)"),"");
+ assert.equal(resolveChaturbateCountry("",""),"");
+ assert.equal(resolveChaturbateCountry("","London, NY"),"");
+ assert.equal(resolveChaturbateCountry("","Paris, France".split(",")),"");
+});
+test("country startup patch uses strict Chaturbate country fallback and remains idempotent",()=>{
+ const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");
+ const patched=patchServerSource(source);
+ assert.ok(patched.includes('resolveChaturbateCountry(room.country,room.location)'));
+ assert.ok(patched.includes('const { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion'));
+ assert.equal(patchServerSource(patched),patched);
 });
