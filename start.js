@@ -1,7 +1,8 @@
 const http = require("http");
 const crypto = require("crypto");
-const { normalizeChaturbatePostback, removePostbackSecrets, hasUnresolvedChaturbateMacros, sameChaturbateTransaction } = require("./src/services/chaturbate-revshare.cjs");
+const { normalizeChaturbatePostback, removePostbackSecrets, unresolvedChaturbateMacroFields, sameChaturbateTransaction } = require("./src/services/chaturbate-revshare.cjs");
 const dashboardReporting = require("./src/services/dashboard-reporting.cjs");
+const conversionRevenueService = require("./src/services/conversion-revenue.cjs");
 
 const originalCreateServer = http.createServer;
 const databaseUrl = process.env.DATABASE_URL;
@@ -223,6 +224,23 @@ async function saveConversion(params) {
   return { matchedClick: Boolean(existing.matched_click ?? matchedClick), inserted: false, duplicate: true };
 }
 
+async function conversionRevenueReport(incoming) {
+  if (!pool) throw new Error("Database is not configured");
+  const built = conversionRevenueService.buildQuery({
+    from: incoming.searchParams.get("from"),
+    to: incoming.searchParams.get("to")
+  });
+  if (built.error) return { error: built.error };
+  const result = await pool.query(built.text, built.params);
+  return {
+    timezone: "UTC",
+    dateBasis: built.dateBasis,
+    filters: built.filters,
+    rows: conversionRevenueService.toDashboardRows(result.rows),
+    truncated: result.rows.length === 2000
+  };
+}
+
 async function dashboardStats(incoming) {
   if (!pool) throw new Error("Database is not configured");
   await ensurePostbackTables();
@@ -432,7 +450,7 @@ http.createServer = function wrappedCreateServer(handler) {
     const incoming = new URL(req.url, "http://localhost");
     const authHandled = await handleAuth(req,res,incoming);
     if(authHandled !== false) return;
-    if(["/api/dashboard-stats","/api/daily-country-analytics","/api/country-category-analytics","/api/revshare","/api/stats","/api/stats.csv"].includes(incoming.pathname) && !validSession(req)) {
+    if(["/api/dashboard-stats","/api/daily-country-analytics","/api/country-category-analytics","/api/conversion-revenue","/api/revshare","/api/stats","/api/stats.csv"].includes(incoming.pathname) && !validSession(req)) {
       return json(res,401,{error:"Authentication required."});
     }
     if(incoming.pathname === "/api/country-category-analytics") {
@@ -453,6 +471,16 @@ http.createServer = function wrappedCreateServer(handler) {
       } catch(err) {
         console.error("Daily country analytics failed:", err.message);
         return json(res, 500, { error: "Could not load daily country analytics." });
+      }
+    }
+    if(incoming.pathname === "/api/conversion-revenue") {
+      try {
+        const result = await conversionRevenueReport(incoming);
+        if (result.error) return json(res, 400, { error: result.error });
+        return json(res, 200, result);
+      } catch(err) {
+        console.error("Conversion revenue report failed:", err.message);
+        return json(res, 500, { error: "Could not load conversion revenue report." });
       }
     }
     if(incoming.pathname === "/api/dashboard-stats") {
@@ -496,8 +524,9 @@ http.createServer = function wrappedCreateServer(handler) {
         }
         // A provider test may leave documented macros unresolved. Acknowledge
         // only after authentication and never persist placeholder values.
-        if (hasUnresolvedChaturbateMacros(params)) {
-          console.log("Chaturbate postback test acknowledged; no conversion recorded");
+        const unresolvedFields = unresolvedChaturbateMacroFields(params);
+        if (unresolvedFields.length) {
+          console.warn("Chaturbate postback contains unresolved macro placeholders; no conversion recorded", JSON.stringify({ unresolvedFields }));
           res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
           return res.end("OK");
         }
