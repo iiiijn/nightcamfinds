@@ -89,12 +89,12 @@ test("server records each Chaturbate region and exposes provider diagnostics onl
   const { patchServerSource } = require("../scripts/patch-country-directory.js");
   const patchedServer = patchServerSource(server);
   assert.ok(patchedServer.includes('require("./src/services/feed-ingestion-diagnostics.cjs")'));
-  assert.ok(patchedServer.includes('summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:{...pages,pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES}})'));
-  assert.ok(patchedServer.includes("pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES"));
+  assert.ok(patchedServer.includes('summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:{...pages,pageSize:CHATURBATE_PAGE_SIZE,maxPages}})'));
+  assert.ok(patchedServer.includes("pageSize:CHATURBATE_PAGE_SIZE,maxPages"));
   assert.ok(patchedServer.includes("stopReason:pages.stopReason"));
   assert.ok(server.includes("latestProviderFeedDiagnostics.chaturbateRegions.push"));
-  assert.ok(server.includes('summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:{...pages,pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES}})'));
-  assert.ok(server.includes("pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES"));
+  assert.ok(server.includes('summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:{...pages,pageSize:CHATURBATE_PAGE_SIZE,maxPages}})'));
+  assert.ok(server.includes("pageSize:CHATURBATE_PAGE_SIZE,maxPages"));
   assert.ok(server.includes("latestProviderFeedDiagnostics.bongacams=diagnostics"));
   assert.ok(server.includes("providerIngestion: latestProviderFeedDiagnostics"));
   assert.ok(server.includes('console.info("[provider-feed-diagnostics]"'));
