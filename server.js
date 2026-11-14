@@ -13,6 +13,7 @@ const { normalizeClickAttribution, resolvePageType } = require("./src/services/a
 const { isPriorityMarket, MARKET_META, MARKET_PRIORITY_CODES } = require("./src/config/market-countries.cjs");
 const { fetchPagedResults } = require("./src/services/paged-feed.cjs");
 const { resolveRegionalMaxPages } = require("./src/services/regional-feed-config.cjs");
+const { resolveChaturbateRegionMaxPages } = require("./src/services/chaturbate-region-pagination.cjs");
 const { filterDisplayableRooms, normalizeRoomGender } = require("./src/services/room-quality.cjs");
 const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalRoomGroups } = require("./src/services/regional-discovery.cjs");
 const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
@@ -51,6 +52,7 @@ const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMI
 const CHATURBATE_PAGE_SIZE = 500;
 const CHATURBATE_MAX_PAGES = Math.max(1, Math.min(20, Number(process.env.CHATURBATE_MAX_PAGES || 10)));
 const CHATURBATE_REGION_MAX_PAGES = resolveRegionalMaxPages(process.env.CHATURBATE_REGION_MAX_PAGES, CHATURBATE_MAX_PAGES);
+const CHATURBATE_SOUTHAMERICA_MAX_PAGES = process.env.CHATURBATE_SOUTHAMERICA_MAX_PAGES;
 const CONTACT = process.env.CONTACT_EMAIL || "bunnybelle188@gmail.com";
 const PUBLIC = path.join(__dirname, "public");
 
@@ -219,14 +221,15 @@ function bongaGender(value) { return normalizeRoomGender(value); }
 function normalizeBongaRoom(room) { const username=clean(room.username||room.user_name||room.nickname||room.model||room.id); if(!username)return null; const rawImages=room.profile_images||room.images||{}; const images=typeof rawImages==="string"?{}:rawImages; const age=Number(room.display_age||room.age||0); const tags=normalizeTags(room.tags).join(" "); if(Number.isFinite(age)&&age>0&&age<18)return null; const country=normalizeBongaCountry(room); const viewers=Number(room.members_count??room.num_users??room.viewers??room.viewer_count??0)||0; const image=(typeof rawImages==="string"?rawImages:"")||resolveBongaRoomImage(room); return {id:"bongacams:"+username,platform:"bongacams",platformName:"BongaCams",username,displayName:clean(room.display_name||room.name||username)||username,gender:bongaGender(room.gender||room.sex),country:country.match(/^[A-Z]{2}$/)?.[0]||"",countryName:NAMES[country]||clean(country),location:clean(room.hometown||room.location||country),viewerCount:viewers,isHd:isBongaHd(room)||/\bhd\b/i.test(tags),isNew:!!room.is_new||!!room.new,image,roomSubject:clean(room.chat_topic||room.room_subject||room.topic||tags),languages:clean([room.primary_language,room.secondary_language,room.language].map(plainText).filter(Boolean).join(", ")),href:room.chat_url||room.direct_chat_url||room.room_url||room.url||""}; }
 async function fetchChaturbateRegion(req,apiRegion) {
  const ip=encodeURIComponent(clientIp(req));
+ const maxPages=resolveChaturbateRegionMaxPages(apiRegion,{globalMaxPages:CHATURBATE_MAX_PAGES,regionalMaxPages:CHATURBATE_REGION_MAX_PAGES,southAmericaMaxPages:CHATURBATE_SOUTHAMERICA_MAX_PAGES});
  const pages=await fetchPagedResults(async ({offset,limit})=>{
   const data=await fetchJson(`https://chaturbate.com/api/public/affiliates/onlinerooms/?wm=${encodeURIComponent(CAMPAIGN)}&client_ip=${ip}&format=json&limit=${limit}&offset=${offset}&region=${encodeURIComponent(apiRegion)}`);
   if(!data||!Array.isArray(data.results))throw new TypeError("Chaturbate regional feed response did not contain a results array.");
   return data.results;
- },{pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES,getKey:room=>room&&room.username});
- console.info("Chaturbate "+apiRegion+" feed pagination.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES,stopReason:pages.stopReason,pageMetrics:pages.pageMetrics}));
+ },{pageSize:CHATURBATE_PAGE_SIZE,maxPages,getKey:room=>room&&room.username});
+ console.info("Chaturbate "+apiRegion+" feed pagination.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,pageSize:CHATURBATE_PAGE_SIZE,maxPages,stopReason:pages.stopReason,pageMetrics:pages.pageMetrics}));
  const entries=pages.items.map(room=>({normalized:normalizeChaturbateRoom(room,apiRegion),rawText:[room.username,room.display_name,room.room_subject].filter(Boolean).join(" ")}));
- const diagnostics=summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:{...pages,pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES}});
+ const diagnostics=summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:{...pages,pageSize:CHATURBATE_PAGE_SIZE,maxPages}});
  latestProviderFeedDiagnostics.chaturbateRegions.push({...diagnostics,apiRegion});
  console.info("[provider-feed-diagnostics]",JSON.stringify({...diagnostics,apiRegion}));
  return filterDisplayableRooms(entries);
