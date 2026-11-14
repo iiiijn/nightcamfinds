@@ -225,3 +225,28 @@ test("Chaturbate feed metadata includes location shape counts but never raw loca
   assert.equal(serialized.includes("secret-user"), false);
   assert.equal(serialized.includes("Los Angeles"), false);
 });
+
+test("Chaturbate feed diagnostics use a recognized location country without exposing raw location",()=>{
+ const result=summarizeFeedIngestion({
+  provider:"chaturbate",
+  rawRows:[
+   {username:"private-1",country:"",location:"London, United Kingdom"},
+   {username:"private-2",country:"Atlantis",location:"Paris, France"},
+   {username:"private-3",country:"",location:"Nairobi"},
+   {username:"private-4",country:"",location:"Springfield, Unknownland"},
+   {username:"private-5",country:"US",location:"Paris, France"},
+   {username:"private-6",country:"",location:["Paris","France"]}
+  ]
+ });
+ assert.deepEqual(result.countryCounts,[
+  {country:"FR",roomCount:1},
+  {country:"GB",roomCount:1},
+  {country:"US",roomCount:1}
+ ]);
+ assert.equal(result.missingCountryCount,0);
+ assert.equal(result.unrecognizedCountryCount,3);
+ const serialized=JSON.stringify(result);
+ for(const privateValue of ["private-1","London","United Kingdom","Paris","Atlantis","Springfield","Nairobi"]) {
+  assert.equal(serialized.includes(privateValue),false);
+ }
+});
