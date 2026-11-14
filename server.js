@@ -224,7 +224,7 @@ async function fetchChaturbateRegion(req,apiRegion) {
   if(!data||!Array.isArray(data.results))throw new TypeError("Chaturbate regional feed response did not contain a results array.");
   return data.results;
  },{pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES,getKey:room=>room&&room.username});
- console.info("Chaturbate "+apiRegion+" feed pagination.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,maxPages:CHATURBATE_REGION_MAX_PAGES,stopReason:pages.stopReason}));
+ console.info("Chaturbate "+apiRegion+" feed pagination.",JSON.stringify({pagesFetched:pages.pagesFetched,receivedCount:pages.receivedCount,uniqueCount:pages.uniqueCount,duplicateCount:pages.duplicateCount,truncated:pages.truncated,pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES,stopReason:pages.stopReason}));
  const entries=pages.items.map(room=>({normalized:normalizeChaturbateRoom(room,apiRegion),rawText:[room.username,room.display_name,room.room_subject].filter(Boolean).join(" ")}));
  const diagnostics=summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:pages});
  latestProviderFeedDiagnostics.chaturbateRegions.push({...diagnostics,apiRegion});
