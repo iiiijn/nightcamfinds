@@ -9,15 +9,16 @@ function rawCountryValue(row, provider) {
   const fields = provider === "bongacams"
     ? ["homecountry", "country", "country_code", "hometown"]
     : ["country"];
+  let firstValue = "";
   for (const field of fields) {
     if (!Object.prototype.hasOwnProperty.call(row, field)) continue;
     const value = row[field];
-    if (typeof value === "string" || typeof value === "number") {
-      const text = String(value).trim();
-      if (text) return { present: true, value: text.slice(0, 80) };
-    }
+    if (typeof value !== "string" && typeof value !== "number") continue;
+    const text = String(value).trim();
+    if (!text) continue;
+    if (!firstValue) firstValue = text.slice(0, 80);
   }
-  return { present: false, value: "" };
+  return { present: Boolean(firstValue), value: firstValue };
 }
 
 function safePagination(value) {
@@ -42,14 +43,12 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
   let unrecognizedCountry = 0;
   for (const row of raw) {
     const rawCountry = rawCountryValue(row, name);
-    if (!rawCountry.value) {
+    const code = name === "bongacams"
+      ? normalizeBongaCountry(row)
+      : (rawCountry.value ? normalizeCountryCode(rawCountry.value) : "");
+    if (!code) {
       if (rawCountry.present) unrecognizedCountry += 1;
       else missingCountry += 1;
-      continue;
-    }
-    const code = name === "bongacams" ? normalizeBongaCountry(row) : normalizeCountryCode(rawCountry.value);
-    if (!code) {
-      unrecognizedCountry += 1;
       continue;
     }
     countryCounts.set(code, (countryCounts.get(code) || 0) + 1);
