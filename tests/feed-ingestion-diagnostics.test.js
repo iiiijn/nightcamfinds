@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { summarizeFeedIngestion } = require("../src/services/feed-ingestion-diagnostics.cjs");
+const { summarizeFeedIngestion, summarizeMetadataFieldPresence } = require("../src/services/feed-ingestion-diagnostics.cjs");
 
 const room = (username, overrides = {}) => ({
   normalized: {
@@ -50,7 +50,7 @@ test("feed diagnostics separate raw, normalized, accepted, rejected and duplicat
   assert.deepEqual(result.rejectionReasons, { invalid_destination: 1 });
   assert.deepEqual(result.pagination, {
     pagesFetched: 2, receivedCount: 5, uniqueCount: 5, duplicateCount: 0,
-    truncated: false, stopReason: "short_page"
+    pageSize: null, maxPages: null, truncated: false, stopReason: "short_page"
   });
   assert.equal(JSON.stringify(result).includes("one"), false);
 });
@@ -102,7 +102,7 @@ test("feed diagnostics reject unsupported providers and sanitize pagination fiel
   });
   assert.deepEqual(result.pagination, {
     pagesFetched: null, receivedCount: null, uniqueCount: null,
-    duplicateCount: null, truncated: false, stopReason: "unknown"
+    duplicateCount: null, pageSize: null, maxPages: null, truncated: false, stopReason: "unknown"
   });
 });
 
@@ -121,4 +121,35 @@ test("age-related and promotional rejections are counted without exposing raw pr
     promotional_spam: 1
   });
   assert.equal(JSON.stringify(result).includes("Telegram"), false);
+});
+
+
+test("Chaturbate diagnostics count metadata presence without exposing values or identities", () => {
+  const rows = [
+    { username: "private-one", country: "GB", location: "London", region: "Europe", region_name: "", state: null, province: "" },
+    { username: "private-two", country: "", location: "Paris", region: { code: "EU" }, region_name: "West", state: 0, province: [] },
+    { username: "private-three", country: null, location: "", region: "", region_name: undefined, state: "", province: null }
+  ];
+  const presence = summarizeMetadataFieldPresence(rows);
+  assert.deepEqual(presence, {
+    inspectedRoomCount: 3,
+    fieldPresenceCounts: { country: 1, location: 2, region: 2, region_name: 1, state: 1, province: 0 }
+  });
+  const result = summarizeFeedIngestion({ provider: "chaturbate", rawRows: rows });
+  assert.deepEqual(result.metadata, presence);
+  assert.equal(JSON.stringify(result).includes("private-one"), false);
+  assert.equal(JSON.stringify(result).includes("London"), false);
+  assert.equal(JSON.stringify(result).includes("Paris"), false);
+  assert.equal(result.missingCountryCount, 2);
+});
+
+test("Chaturbate pagination diagnostics preserve bounded config without raising defaults", () => {
+  const result = summarizeFeedIngestion({
+    provider: "chaturbate", rawRows: [],
+    pagination: { pagesFetched: 6, receivedCount: 3000, uniqueCount: 3000, duplicateCount: 0, pageSize: 500, maxPages: 6, truncated: true, stopReason: "max_pages" }
+  });
+  assert.equal(result.pagination.pageSize, 500);
+  assert.equal(result.pagination.maxPages, 6);
+  assert.equal(result.pagination.truncated, true);
+  assert.equal(result.pagination.stopReason, "max_pages");
 });
