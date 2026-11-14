@@ -160,7 +160,8 @@ test("Chaturbate diagnostics count metadata presence without exposing values or 
   assert.equal(JSON.stringify(result).includes("private-one"), false);
   assert.equal(JSON.stringify(result).includes("London"), false);
   assert.equal(JSON.stringify(result).includes("Paris"), false);
-  assert.equal(result.missingCountryCount, 2);
+  assert.equal(result.missingCountryCount, 1);
+  assert.equal(result.unrecognizedCountryCount, 1);
 });
 
 test("Chaturbate pagination diagnostics preserve bounded config without raising defaults", () => {
