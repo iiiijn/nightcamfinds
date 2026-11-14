@@ -45,10 +45,11 @@ function classifyChaturbateLocation(value) {
   if (typeof value !== "string" || !value.trim()) return "missing";
   const text = value.trim();
   if (normalizeCountryCode(text)) return "exact_country";
-  const parts = text.split(",").map((part) => part.trim()).filter(Boolean);
-  if (parts.length === 2) {
+  const parts = text.split(",").map((part) => part.trim());
+  if (parts.length === 2 && parts[0] && parts[1]) {
     return normalizeCountryCode(parts[1]) ? "city_country" : "comma_unrecognized";
   }
+  if (text.includes(",")) return "other_nonempty";
   return "other_nonempty";
 }
 
