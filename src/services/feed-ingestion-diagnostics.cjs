@@ -42,8 +42,10 @@ function summarizeMetadataFieldPresence(rows, fields = CHATURBATE_METADATA_FIELD
 }
 
 function classifyChaturbateLocation(value) {
-  if (typeof value !== "string" || !value.trim()) return "missing";
+  if (value === null || value === undefined || value === "") return "missing";
+  if (typeof value !== "string") return "other_nonempty";
   const text = value.trim();
+  if (!text) return "missing";
   if (normalizeCountryCode(text)) return "exact_country";
   const parts = text.split(",").map((part) => part.trim());
   if (parts.length === 2 && parts[0] && parts[1]) {
