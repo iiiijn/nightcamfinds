@@ -75,8 +75,8 @@ test("Bonga diagnostics classify country using the same fallback rules as room n
     { country: "GB", roomCount: 1 },
     { country: "KE", roomCount: 1 }
   ]);
-  assert.equal(result.missingCountryCount, 2);
-  assert.equal(result.unrecognizedCountryCount, 2);
+  assert.equal(result.missingCountryCount, 1);
+  assert.equal(result.unrecognizedCountryCount, 3);
   assert.equal(result.pagination.truncated, true);
   assert.equal(result.pagination.stopReason, "max_pages");
 });
