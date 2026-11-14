@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { summarizeFeedIngestion, summarizeMetadataFieldPresence } = require("../src/services/feed-ingestion-diagnostics.cjs");
+const { summarizeFeedIngestion, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation } = require("../src/services/feed-ingestion-diagnostics.cjs");
 
 const room = (username, overrides = {}) => ({
   normalized: {
@@ -52,7 +52,7 @@ test("feed diagnostics separate raw, normalized, accepted, rejected and duplicat
     pagesFetched: 2, receivedCount: 5, uniqueCount: 5, duplicateCount: 0,
     pageSize: null, maxPages: null, truncated: false, stopReason: "short_page"
   });
-  assert.equal(JSON.stringify(result).includes("one"), false);
+  assert.equal(JSON.stringify(result).includes('"one"'), false);
 });
 
 test("Bonga diagnostics classify country using the same fallback rules as room normalization", () => {
@@ -144,7 +144,19 @@ test("Chaturbate diagnostics count metadata presence without exposing values or 
     fieldPresenceCounts: { country: 1, location: 2, region: 2, region_name: 1, state: 1, province: 0 }
   });
   const result = summarizeFeedIngestion({ provider: "chaturbate", rawRows: rows });
-  assert.deepEqual(result.metadata, presence);
+  assert.deepEqual(result.metadata, {
+    ...presence,
+    locationShapes: {
+      inspectedRoomCount: 3,
+      locationShapeCounts: {
+        missing: 1,
+        exact_country: 0,
+        city_country: 0,
+        comma_unrecognized: 0,
+        other_nonempty: 2
+      }
+    }
+  });
   assert.equal(JSON.stringify(result).includes("private-one"), false);
   assert.equal(JSON.stringify(result).includes("London"), false);
   assert.equal(JSON.stringify(result).includes("Paris"), false);
@@ -160,4 +172,56 @@ test("Chaturbate pagination diagnostics preserve bounded config without raising 
   assert.equal(result.pagination.maxPages, 6);
   assert.equal(result.pagination.truncated, true);
   assert.equal(result.pagination.stopReason, "max_pages");
+});
+
+test("Chaturbate location diagnostics classify shapes without exposing location values or identities", () => {
+  const rows = [
+    { username: "private-a", location: "GB" },
+    { username: "private-b", location: "United States" },
+    { username: "private-c", location: "London, United Kingdom" },
+    { username: "private-d", location: "Paris, France" },
+    { username: "private-e", location: "Springfield, Unknownland" },
+    { username: "private-f", location: "Some freeform profile text" },
+    { username: "private-g", location: "" },
+    { username: "private-h" },
+    { username: "private-i", location: null },
+    { username: "private-j", location: ["Paris", "France"] }
+  ];
+  const result = summarizeChaturbateLocationShapes(rows);
+  assert.deepEqual(result, {
+    inspectedRoomCount: 10,
+    locationShapeCounts: {
+      missing: 3,
+      exact_country: 2,
+      city_country: 2,
+      comma_unrecognized: 1,
+      other_nonempty: 2
+    }
+  });
+  assert.equal(JSON.stringify(result).includes("London"), false);
+  assert.equal(JSON.stringify(result).includes("private-a"), false);
+  assert.equal(classifyChaturbateLocation("Nairobi, Kenya"), "city_country");
+  assert.equal(classifyChaturbateLocation("Nairobi"), "other_nonempty");
+  assert.equal(classifyChaturbateLocation(""), "missing");
+});
+
+test("Chaturbate feed metadata includes location shape counts but never raw location text", () => {
+  const result = summarizeFeedIngestion({
+    provider: "chaturbate",
+    rawRows: [
+      { username: "secret-user", country: "", location: "Berlin, Germany" },
+      { username: "secret-user-two", country: "US", location: "Los Angeles, California" }
+    ]
+  });
+  assert.deepEqual(result.metadata.locationShapes.locationShapeCounts, {
+    missing: 0,
+    exact_country: 0,
+    city_country: 1,
+    comma_unrecognized: 1,
+    other_nonempty: 0
+  });
+  const serialized = JSON.stringify(result);
+  assert.equal(serialized.includes("Berlin"), false);
+  assert.equal(serialized.includes("secret-user"), false);
+  assert.equal(serialized.includes("Los Angeles"), false);
 });

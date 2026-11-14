@@ -41,6 +41,36 @@ function summarizeMetadataFieldPresence(rows, fields = CHATURBATE_METADATA_FIELD
   return { inspectedRoomCount: source.length, fieldPresenceCounts: counts };
 }
 
+function classifyChaturbateLocation(value) {
+  if (value === null || value === undefined || value === "") return "missing";
+  if (typeof value !== "string") return "other_nonempty";
+  const text = value.trim();
+  if (!text) return "missing";
+  if (normalizeCountryCode(text)) return "exact_country";
+  const parts = text.split(",").map((part) => part.trim());
+  if (parts.length === 2 && parts[0] && parts[1]) {
+    return normalizeCountryCode(parts[1]) ? "city_country" : "comma_unrecognized";
+  }
+  if (text.includes(",")) return "other_nonempty";
+  return "other_nonempty";
+}
+
+function summarizeChaturbateLocationShapes(rows) {
+  const source = Array.isArray(rows) ? rows : [];
+  const counts = {
+    missing: 0,
+    exact_country: 0,
+    city_country: 0,
+    comma_unrecognized: 0,
+    other_nonempty: 0
+  };
+  for (const row of source) {
+    const value = row && typeof row === "object" && !Array.isArray(row) ? row.location : null;
+    counts[classifyChaturbateLocation(value)] += 1;
+  }
+  return { inspectedRoomCount: source.length, locationShapeCounts: counts };
+}
+
 function safePagination(value) {
   const input = value && typeof value === "object" ? value : {};
   return {
@@ -110,9 +140,9 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     unrecognizedCountryCount: unrecognizedCountry,
     countryCounts: [...countryCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([country, roomCount]) => ({ country, roomCount })),
     rejectionReasons,
-    ...(name === "chaturbate" ? { metadata: summarizeMetadataFieldPresence(raw) } : {}),
+    ...(name === "chaturbate" ? { metadata: { ...summarizeMetadataFieldPresence(raw), locationShapes: summarizeChaturbateLocationShapes(raw) } } : {}),
     pagination: safePagination(pagination)
   };
 }
 
-module.exports = { summarizeFeedIngestion, rawCountryValue, safePagination, summarizeMetadataFieldPresence, CHATURBATE_METADATA_FIELDS };
+module.exports = { summarizeFeedIngestion, rawCountryValue, safePagination, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation, CHATURBATE_METADATA_FIELDS };
