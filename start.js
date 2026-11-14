@@ -1,6 +1,6 @@
 const http = require("http");
 const crypto = require("crypto");
-const { normalizeChaturbatePostback, removePostbackSecrets, unresolvedChaturbateMacroFields, sameChaturbateTransaction } = require("./src/services/chaturbate-revshare.cjs");
+const { normalizeChaturbatePostback, removePostbackSecrets, hasUnresolvedChaturbateMacros, unresolvedChaturbateMacroFields, sameChaturbateTransaction } = require("./src/services/chaturbate-revshare.cjs");
 const dashboardReporting = require("./src/services/dashboard-reporting.cjs");
 const conversionRevenueService = require("./src/services/conversion-revenue.cjs");
 
@@ -524,8 +524,8 @@ http.createServer = function wrappedCreateServer(handler) {
         }
         // A provider test may leave documented macros unresolved. Acknowledge
         // only after authentication and never persist placeholder values.
-        const unresolvedFields = unresolvedChaturbateMacroFields(params);
-        if (unresolvedFields.length) {
+        if (hasUnresolvedChaturbateMacros(params)) {
+          const unresolvedFields = unresolvedChaturbateMacroFields(params);
           console.warn("Chaturbate postback contains unresolved macro placeholders; no conversion recorded", JSON.stringify({ unresolvedFields }));
           res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
           return res.end("OK");
