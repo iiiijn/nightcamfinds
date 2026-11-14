@@ -21,6 +21,26 @@ function rawCountryValue(row, provider) {
   return { present: Boolean(firstValue), value: firstValue };
 }
 
+const CHATURBATE_METADATA_FIELDS = Object.freeze(["country", "location", "region", "region_name", "state", "province"]);
+
+function summarizeMetadataFieldPresence(rows, fields = CHATURBATE_METADATA_FIELDS) {
+  const source = Array.isArray(rows) ? rows : [];
+  const allowed = fields.filter((field) => CHATURBATE_METADATA_FIELDS.includes(field));
+  const counts = Object.fromEntries(allowed.map((field) => [field, 0]));
+  for (const row of source) {
+    if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+    for (const field of allowed) {
+      const value = row[field];
+      const present = typeof value === "string" ? value.trim().length > 0
+        : typeof value === "number" ? Number.isFinite(value)
+        : Array.isArray(value) ? value.length > 0
+        : Boolean(value && typeof value === "object");
+      if (present) counts[field] += 1;
+    }
+  }
+  return { inspectedRoomCount: source.length, fieldPresenceCounts: counts };
+}
+
 function safePagination(value) {
   const input = value && typeof value === "object" ? value : {};
   return {
@@ -28,6 +48,8 @@ function safePagination(value) {
     receivedCount: Number.isInteger(input.receivedCount) && input.receivedCount >= 0 ? input.receivedCount : null,
     uniqueCount: Number.isInteger(input.uniqueCount) && input.uniqueCount >= 0 ? input.uniqueCount : null,
     duplicateCount: Number.isInteger(input.duplicateCount) && input.duplicateCount >= 0 ? input.duplicateCount : null,
+    pageSize: Number.isInteger(input.pageSize) && input.pageSize > 0 ? input.pageSize : null,
+    maxPages: Number.isInteger(input.maxPages) && input.maxPages > 0 ? input.maxPages : null,
     truncated: input.truncated === true,
     stopReason: ["short_page", "max_pages", "empty_page", "unknown"].includes(input.stopReason) ? input.stopReason : "unknown"
   };
@@ -88,8 +110,9 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     unrecognizedCountryCount: unrecognizedCountry,
     countryCounts: [...countryCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([country, roomCount]) => ({ country, roomCount })),
     rejectionReasons,
+    ...(name === "chaturbate" ? { metadata: summarizeMetadataFieldPresence(raw) } : {}),
     pagination: safePagination(pagination)
   };
 }
 
-module.exports = { summarizeFeedIngestion, rawCountryValue, safePagination };
+module.exports = { summarizeFeedIngestion, rawCountryValue, safePagination, summarizeMetadataFieldPresence, CHATURBATE_METADATA_FIELDS };
