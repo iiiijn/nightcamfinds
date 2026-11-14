@@ -55,32 +55,40 @@ test("feed diagnostics separate raw, normalized, accepted, rejected and duplicat
   assert.equal(JSON.stringify(result).includes("one"), false);
 });
 
-test("Bonga diagnostics use provider country normalization and report pagination truncation", () => {
+test("Bonga diagnostics classify country using the same fallback rules as room normalization", () => {
   const result = summarizeFeedIngestion({
     provider: "bongacams",
     rawRows: [
-      { username: "a", homecountry: "United Kingdom" },
-      { username: "b", country_code: "GB" },
-      { username: "c", homecountry: "mysteryland" }
+      { username: "a", homecountry: "not-a-country", country: "Germany" },
+      { username: "b", homecountry: "unknown", country_code: "GB" },
+      { username: "c", homecountry: "mysteryland" },
+      { username: "d", hometown: "Nairobi, Kenya" },
+      { username: "e", hometown: "Nairobi" },
+      { username: "f", homecountry: "", country: null, country_code: 0, hometown: "" },
+      { username: "g" }
     ],
     entries: [room("a"), room("b")],
     pagination: { pagesFetched: 5, receivedCount: 500, uniqueCount: 490, duplicateCount: 10, truncated: true, stopReason: "max_pages" }
   });
-  assert.equal(result.countryCounts.find((row) => row.country === "GB").roomCount, 2);
-  assert.equal(result.unrecognizedCountryCount, 1);
+  assert.deepEqual(result.countryCounts, [
+    { country: "DE", roomCount: 1 },
+    { country: "GB", roomCount: 1 },
+    { country: "KE", roomCount: 1 }
+  ]);
+  assert.equal(result.missingCountryCount, 2);
+  assert.equal(result.unrecognizedCountryCount, 2);
   assert.equal(result.pagination.truncated, true);
   assert.equal(result.pagination.stopReason, "max_pages");
 });
-
 
 test("server records each Chaturbate region and exposes provider diagnostics only on request", () => {
   const fs = require("node:fs");
   const path = require("node:path");
   const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
   assert.ok(fs.readFileSync(path.join(__dirname, "../scripts/patch-country-directory.js"), "utf8").includes('require("./src/services/feed-ingestion-diagnostics.cjs")'));
-  assert.ok(server.includes('latestProviderFeedDiagnostics.chaturbateRegions.push'));
-  assert.ok(server.includes('latestProviderFeedDiagnostics.bongacams=diagnostics'));
-  assert.ok(server.includes('providerIngestion: latestProviderFeedDiagnostics'));
+  assert.ok(server.includes("latestProviderFeedDiagnostics.chaturbateRegions.push"));
+  assert.ok(server.includes("latestProviderFeedDiagnostics.bongacams=diagnostics"));
+  assert.ok(server.includes("providerIngestion: latestProviderFeedDiagnostics"));
   assert.ok(server.includes('console.info("[provider-feed-diagnostics]"'));
 });
 
