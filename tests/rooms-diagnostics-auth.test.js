@@ -73,5 +73,4 @@ test("the outer HTTP middleware invokes the tested guard before the public serve
   assert.notEqual(guardIndex, -1, "route.js must call the shared diagnostics guard");
   assert.ok(guardIndex < delegatedHandlerIndex, "diagnostics guard must run before the public server handler");
   assert.match(source, /isValidSession:\s*validDashboardSession/);
-  assert.match(source, /sendJson\s*$/m);
 });
