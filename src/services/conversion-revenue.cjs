@@ -36,4 +36,23 @@ function buildQuery(filters = {}) {
   ].filter(Boolean).join('\n');
   return {text,params,filters:{from,to},dateBasis:'callback_received_at_utc'};
 }
-module.exports={buildQuery};
+function toDashboardRows(rows = []) {
+  return rows.map((row) => ({
+    country: String(row.country || 'UNKNOWN'),
+    platform: String(row.platform || 'chaturbate'),
+    source: String(row.source || 'unknown'),
+    campaign: String(row.campaign || 'unknown'),
+    conversionType: String(row.conversion_type || 'unknown'),
+    currency: String(row.currency || 'UNSPECIFIED'),
+    isTest: row.is_test === true,
+    matchStatus: String(row.match_status || 'unknown'),
+    eventClass: String(row.event_class || 'other'),
+    conversions: Number(row.conversions || 0),
+    matchedConversions: Number(row.matched_conversions || 0),
+    unmatchedConversions: Number(row.unmatched_conversions || 0),
+    reportedPayout: Number(row.reported_payout || 0),
+    reportedSpend: Number(row.reported_spend || 0)
+  }));
+}
+
+module.exports={buildQuery,toDashboardRows};

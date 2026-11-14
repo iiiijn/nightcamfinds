@@ -34,3 +34,40 @@ const result=summarizeConversions([
 ]);
 assert.deepEqual(result.attributedPayoutsByCurrency,{USD:-2.25,EUR:3.2});assert.deepEqual(result.illustrative20PercentByCurrency,{EUR:3.2});
 });
+
+test('maps grouped conversion query rows to the dashboard contract without raw payloads',()=>{
+const rows=conversionRevenue.toDashboardRows([{
+country:'US',platform:'chaturbate',source:'x',campaign:'campaign-a',
+conversion_type:'revshare_purchase',currency:'USD',is_test:false,match_status:'matched',
+event_class:'member_purchase_revshare',conversions:'2',matched_conversions:'2',
+unmatched_conversions:'0',reported_payout:'3.50',reported_spend:'17.50',
+raw_payload:{secret:'must-not-leak'},click_id:'private-click-id'
+}]);
+assert.deepEqual(rows,[{
+country:'US',platform:'chaturbate',source:'x',campaign:'campaign-a',
+conversionType:'revshare_purchase',currency:'USD',isTest:false,matchStatus:'matched',
+eventClass:'member_purchase_revshare',conversions:2,matchedConversions:2,
+unmatchedConversions:0,reportedPayout:3.5,reportedSpend:17.5
+}]);
+});
+
+test('conversion revenue endpoint is authenticated and uses the existing reporting service',()=>{
+const fs=require('node:fs');
+const source=fs.readFileSync(require.resolve('../start.js'),'utf8');
+assert.match(source,/"\/api\/conversion-revenue"/);
+assert.match(source,/if\(\[.*"\/api\/conversion-revenue".*\]\.includes\(incoming\.pathname\) && !validSession\(req\)\)/);
+assert.match(source,/conversionRevenueService\.buildQuery/);
+assert.match(source,/conversionRevenueService\.toDashboardRows/);
+assert.match(source,/incoming\.pathname === "\/api\/conversion-revenue"/);
+});
+
+test('unresolved macro callback diagnostics log field names only and do not persist',()=>{
+const fs=require('node:fs');
+const source=fs.readFileSync(require.resolve('../start.js'),'utf8');
+assert.match(source,/const unresolvedFields = unresolvedChaturbateMacroFields\(params\)/);
+assert.match(source,/JSON\.stringify\(\{ unresolvedFields \}\)/);
+assert.match(source,/no conversion recorded/);
+assert.match(source,/return res\.end\("OK"\)/);
+const block=source.slice(source.indexOf('const unresolvedFields = unresolvedChaturbateMacroFields(params)'),source.indexOf('const normalized = normalizeChaturbatePostback(params)'));
+assert.doesNotMatch(block,/JSON\.stringify\(params\)|console\.(?:log|warn)\([^\n]*params/);
+});

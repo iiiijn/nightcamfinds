@@ -5,7 +5,9 @@ import {
   normalizeChaturbatePostback,
   buildChaturbateUrl,
   removePostbackSecrets,
-  sameChaturbateTransaction
+  sameChaturbateTransaction,
+  hasUnresolvedChaturbateMacros,
+  unresolvedChaturbateMacroFields
 } from "../src/services/chaturbate-revshare.cjs";
 
 test("maps affiliate country tiers without treating Kenya as a paid tier", () => {
@@ -153,4 +155,18 @@ test("treats exact transaction retries as idempotent but rejects conflicting reu
   assert.equal(sameChaturbateTransaction(stored, { click_id: "click-1", type: "revshare_purchase", payout: 1.25, currency: "usd" }), true);
   assert.equal(sameChaturbateTransaction(stored, { click_id: "click-2", type: "revshare_purchase", payout: 1.25, currency: "USD" }), false);
   assert.equal(sameChaturbateTransaction(stored, { click_id: "click-1", type: "revshare_purchase", payout: 2, currency: "USD" }), false);
+});
+
+test("identifies unresolved Chaturbate macro parameter names without returning values", () => {
+  const raw = {
+    click_id: "{click_id}",
+    type: "{type}",
+    payout: "2.50",
+    secret: "never-log-this",
+    unrelated: "{not_a_provider_macro}"
+  };
+  assert.deepEqual(unresolvedChaturbateMacroFields(raw), ["click_id", "type"]);
+  assert.equal(hasUnresolvedChaturbateMacros(raw), true);
+  assert.deepEqual(unresolvedChaturbateMacroFields({ type: "revshare_purchase", payout: "1.00" }), []);
+  assert.equal(hasUnresolvedChaturbateMacros({ type: "revshare_purchase", payout: "1.00" }), false);
 });

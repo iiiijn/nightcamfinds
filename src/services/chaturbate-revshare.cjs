@@ -105,11 +105,15 @@ const POSTBACK_MACRO_FIELDS = [
   "referral", "attempt", "region"
 ];
 
-function hasUnresolvedChaturbateMacros(raw = {}) {
-  return POSTBACK_MACRO_FIELDS.some((field) => {
+function unresolvedChaturbateMacroFields(raw = {}) {
+  return POSTBACK_MACRO_FIELDS.filter((field) => {
     const value = raw[field];
     return value != null && /\{[^{}]+\}/.test(String(value).trim());
   });
+}
+
+function hasUnresolvedChaturbateMacros(raw = {}) {
+  return unresolvedChaturbateMacroFields(raw).length > 0;
 }
 
 function removePostbackSecrets(raw = {}) {
@@ -164,4 +168,5 @@ exports.normalizeChaturbatePostback = normalizeChaturbatePostback;
 exports.removePostbackSecrets = removePostbackSecrets;
 exports.sameChaturbateTransaction = sameChaturbateTransaction;
 exports.hasUnresolvedChaturbateMacros = hasUnresolvedChaturbateMacros;
+exports.unresolvedChaturbateMacroFields = unresolvedChaturbateMacroFields;
 exports.buildChaturbateUrl = buildChaturbateUrl;
