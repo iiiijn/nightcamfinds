@@ -33,6 +33,7 @@ const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
 const { isPriorityMarket } = require("./src/config/market-countries.cjs");
+const { guardProviderFeedDiagnostics } = require("./src/services/provider-diagnostics-access.cjs");
 
 async function ensureAffiliateSchema() {
   if (!pool) return;
@@ -319,11 +320,15 @@ http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
     // Provider-feed diagnostics are operational metadata, not part of the public room summary.
-    // Keep ordinary /api/rooms requests public, but require the same admin session as dashboard APIs
-    // whenever the optional diagnostics payload is requested.
-    if (incoming.pathname === "/api/rooms" && incoming.searchParams.get("diagnostics") === "1" && !validDashboardSession(req)) {
-      return sendJson(res, 401, { error: "Unauthorized" });
-    }
+    // Keep ordinary /api/rooms requests public, but require the same admin session as dashboard APIs.
+    if (guardProviderFeedDiagnostics({
+      pathname: incoming.pathname,
+      searchParams: incoming.searchParams,
+      req,
+      res,
+      isValidSession: validDashboardSession,
+      sendJson
+    })) return;
 
     if (incoming.pathname === "/api/engage") {
       if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
