@@ -1,6 +1,6 @@
 "use strict";
 
-const { normalizeCountryCode } = require("./country-directory.cjs");
+const { normalizeCountryCode, resolveChaturbateCountry } = require("./country-directory.cjs");
 const { getRoomRejectionReason } = require("./room-quality.cjs");
 const { normalizeBongaCountry } = require("./bonga-country-normalizer.cjs");
 
@@ -97,9 +97,13 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     const rawCountry = rawCountryValue(row, name);
     const code = name === "bongacams"
       ? normalizeBongaCountry(row)
-      : (rawCountry.value ? normalizeCountryCode(rawCountry.value) : "");
+      : resolveChaturbateCountry(rawCountry.value, row && row.location);
     if (!code) {
-      if (rawCountry.present) unrecognizedCountry += 1;
+      const location = row && row.location;
+      const locationPresent = typeof location === "string"
+        ? location.trim().length > 0
+        : location !== null && location !== undefined && location !== "";
+      if (rawCountry.present || (name === "chaturbate" && locationPresent)) unrecognizedCountry += 1;
       else missingCountry += 1;
       continue;
     }
