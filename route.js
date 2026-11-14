@@ -318,6 +318,12 @@ async function dashboardStats(incoming) {
 http.createServer = function routeDashboard(handler) {
   return originalCreateServer.call(http, async (req, res) => {
     const incoming = new URL(req.url, "http://localhost");
+    // Provider-feed diagnostics are operational metadata, not part of the public room summary.
+    // Keep ordinary /api/rooms requests public, but require the same admin session as dashboard APIs
+    // whenever the optional diagnostics payload is requested.
+    if (incoming.pathname === "/api/rooms" && incoming.searchParams.get("diagnostics") === "1" && !validDashboardSession(req)) {
+      return sendJson(res, 401, { error: "Unauthorized" });
+    }
 
     if (incoming.pathname === "/api/engage") {
       if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
