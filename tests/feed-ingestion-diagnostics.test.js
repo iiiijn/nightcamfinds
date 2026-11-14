@@ -88,8 +88,8 @@ test("server records each Chaturbate region and exposes provider diagnostics onl
   assert.ok(fs.readFileSync(path.join(__dirname, "../scripts/patch-country-directory.js"), "utf8").includes('require("./src/services/feed-ingestion-diagnostics.cjs")'));
   const { patchServerSource } = require("../scripts/patch-country-directory.js");
   const patchedServer = patchServerSource(server);
-  assert.ok(patchedServer.includes("summarizeMetadataFieldPresence"));
-  assert.ok(patchedServer.includes("fieldPresenceCounts"));
+  assert.ok(patchedServer.includes('require("./src/services/feed-ingestion-diagnostics.cjs")'));
+  assert.ok(patchedServer.includes('summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:{...pages,pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES}})'));
   assert.ok(patchedServer.includes("pageSize:CHATURBATE_PAGE_SIZE,maxPages:CHATURBATE_REGION_MAX_PAGES"));
   assert.ok(patchedServer.includes("stopReason:pages.stopReason"));
   assert.ok(server.includes("latestProviderFeedDiagnostics.chaturbateRegions.push"));
