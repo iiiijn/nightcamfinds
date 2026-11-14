@@ -43,8 +43,13 @@ test("stops safely when a provider repeats the same page", async () => {
   assert.equal(result.items.length, 2);
   assert.equal(result.receivedCount, 4);
   assert.equal(result.duplicateCount, 2);
-  assert.equal(result.truncated, false);
+  assert.equal(result.truncated, true);
   assert.equal(result.stopReason, "repeated_page");
+  assert.deepEqual(result.pageMetrics.map(({ offset, receivedCount, uniqueCount, duplicateCount }) => ({ offset, receivedCount, uniqueCount, duplicateCount })), [
+    { offset: 0, receivedCount: 2, uniqueCount: 2, duplicateCount: 0 },
+    { offset: 2, receivedCount: 2, uniqueCount: 0, duplicateCount: 2 }
+  ]);
+  assert.ok(result.pageMetrics.every((metric) => Number.isInteger(metric.responseTimeMs) && metric.responseTimeMs >= 0));
 });
 
 test("marks a feed as truncated when the configured page ceiling is reached", async () => {

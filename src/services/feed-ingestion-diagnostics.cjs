@@ -81,7 +81,14 @@ function safePagination(value) {
     pageSize: Number.isInteger(input.pageSize) && input.pageSize > 0 ? input.pageSize : null,
     maxPages: Number.isInteger(input.maxPages) && input.maxPages > 0 ? input.maxPages : null,
     truncated: input.truncated === true,
-    stopReason: ["short_page", "max_pages", "empty_page", "unknown"].includes(input.stopReason) ? input.stopReason : "unknown"
+    stopReason: ["short_page", "max_pages", "empty_page", "repeated_page", "unknown"].includes(input.stopReason) ? input.stopReason : "unknown",
+    pageMetrics: Array.isArray(input.pageMetrics) ? input.pageMetrics.slice(0, 20).map((metric) => ({
+      offset: Number.isInteger(metric && metric.offset) && metric.offset >= 0 ? metric.offset : null,
+      responseTimeMs: Number.isInteger(metric && metric.responseTimeMs) && metric.responseTimeMs >= 0 ? metric.responseTimeMs : null,
+      receivedCount: Number.isInteger(metric && metric.receivedCount) && metric.receivedCount >= 0 ? metric.receivedCount : null,
+      uniqueCount: Number.isInteger(metric && metric.uniqueCount) && metric.uniqueCount >= 0 ? metric.uniqueCount : null,
+      duplicateCount: Number.isInteger(metric && metric.duplicateCount) && metric.duplicateCount >= 0 ? metric.duplicateCount : null
+    })) : []
   };
 }
 

@@ -50,7 +50,7 @@ test("feed diagnostics separate raw, normalized, accepted, rejected and duplicat
   assert.deepEqual(result.rejectionReasons, { invalid_destination: 1 });
   assert.deepEqual(result.pagination, {
     pagesFetched: 2, receivedCount: 5, uniqueCount: 5, duplicateCount: 0,
-    pageSize: null, maxPages: null, truncated: false, stopReason: "short_page"
+    pageSize: null, maxPages: null, truncated: false, stopReason: "short_page", pageMetrics: []
   });
   assert.equal(JSON.stringify(result).includes('"one"'), false);
 });
@@ -110,7 +110,7 @@ test("feed diagnostics reject unsupported providers and sanitize pagination fiel
   });
   assert.deepEqual(result.pagination, {
     pagesFetched: null, receivedCount: null, uniqueCount: null,
-    duplicateCount: null, pageSize: null, maxPages: null, truncated: false, stopReason: "unknown"
+    duplicateCount: null, pageSize: null, maxPages: null, truncated: false, stopReason: "unknown", pageMetrics: []
   });
 });
 
@@ -250,4 +250,27 @@ test("Chaturbate feed diagnostics use a recognized location country without expo
  for(const privateValue of ["private-1","London","United Kingdom","Paris","Atlantis","Springfield","Nairobi"]) {
   assert.equal(serialized.includes(privateValue),false);
  }
+});
+
+test("pagination diagnostics preserve repeated-page truncation and sanitize page metrics", () => {
+  const result = summarizeFeedIngestion({
+    provider: "chaturbate", rawRows: [],
+    pagination: {
+      pagesFetched: 2, receivedCount: 4, uniqueCount: 2, duplicateCount: 2,
+      pageSize: 2, maxPages: 5, truncated: true, stopReason: "repeated_page",
+      pageMetrics: [
+        { offset: 0, responseTimeMs: 18, receivedCount: 2, uniqueCount: 2, duplicateCount: 0 },
+        { offset: 2, responseTimeMs: 23, receivedCount: 2, uniqueCount: 0, duplicateCount: 2, username: "must-not-appear" },
+        { offset: -1, responseTimeMs: "fast", receivedCount: 1, uniqueCount: 1, duplicateCount: 0 }
+      ]
+    }
+  });
+  assert.equal(result.pagination.truncated, true);
+  assert.equal(result.pagination.stopReason, "repeated_page");
+  assert.deepEqual(result.pagination.pageMetrics, [
+    { offset: 0, responseTimeMs: 18, receivedCount: 2, uniqueCount: 2, duplicateCount: 0 },
+    { offset: 2, responseTimeMs: 23, receivedCount: 2, uniqueCount: 0, duplicateCount: 2 },
+    { offset: null, responseTimeMs: null, receivedCount: 1, uniqueCount: 1, duplicateCount: 0 }
+  ]);
+  assert.equal(JSON.stringify(result).includes("must-not-appear"), false);
 });
