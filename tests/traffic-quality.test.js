@@ -394,14 +394,21 @@ test('server establishes first-party visit cookies before directory affiliate li
 
 
 test('affiliate redirect limiter enforces minute and hourly limits per key', () => {
-  const allow = createRedirectRateLimiter({ perMinute: 2, perHour: 3 });
-  assert.equal(allow('ip:203.0.113.10', 1000), true);
-  assert.equal(allow('ip:203.0.113.10', 2000), true);
-  assert.equal(allow('ip:203.0.113.10', 3000), false);
-  assert.equal(allow('ip:203.0.113.10', 61000), true);
-  assert.equal(allow('ip:203.0.113.10', 62000), false);
-  assert.equal(allow('visit:' + 'a'.repeat(32), 62000), true);
-  assert.equal(allow('', 62000), false);
+  const perMinute = createRedirectRateLimiter({ perMinute: 2, perHour: 10 });
+  assert.equal(perMinute('ip:203.0.113.10', 1000), true);
+  assert.equal(perMinute('ip:203.0.113.10', 2000), true);
+  assert.equal(perMinute('ip:203.0.113.10', 3000), false);
+  assert.equal(perMinute('ip:203.0.113.10', 61000), true);
+  assert.equal(perMinute('ip:203.0.113.10', 62000), true);
+  assert.equal(perMinute('ip:203.0.113.10', 62001), false);
+
+  const perHour = createRedirectRateLimiter({ perMinute: 10, perHour: 3 });
+  assert.equal(perHour('visit:' + 'a'.repeat(32), 1000), true);
+  assert.equal(perHour('visit:' + 'a'.repeat(32), 2000), true);
+  assert.equal(perHour('visit:' + 'a'.repeat(32), 3000), true);
+  assert.equal(perHour('visit:' + 'a'.repeat(32), 4000), false);
+  assert.equal(perHour('visit:' + 'a'.repeat(32), 3601001), true);
+  assert.equal(perHour('', 62000), false);
 });
 
 test('normalizes valid client IP values and rejects malformed values', () => {
