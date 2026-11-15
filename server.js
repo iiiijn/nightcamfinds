@@ -6,7 +6,7 @@ const { URL } = require("url");
 const { rankRoomsByPreferredPlatform } = require("./src/services/platform-ranking.cjs");
 const { getCountryPage } = require("./country-pages.js");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
-const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
+const { classifyUserAgent, createRedirectRateLimiter, normalizeClientIp } = require("./src/services/traffic-quality.cjs");
 const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
 const { resolveVisitIdentity, buildVisitCookieHeaders } = require("./src/services/visit-id-attribution.cjs");
 const { normalizeClickAttribution, resolvePageType } = require("./src/services/attribution-metadata.cjs");
@@ -49,6 +49,17 @@ const BONGA_TRUSTED_CLIENT_IP_HEADER = String(process.env.BONGACAMS_TRUSTED_CLIE
 const BONGA_ORIGIN_AUTH_SECRET = process.env.BONGACAMS_ORIGIN_AUTH_SECRET || "";
 const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
 const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
+const CLOUDFLARE_ORIGIN_AUTH_SECRET = String(process.env.NCF_CLOUDFLARE_ORIGIN_SECRET || "");
+const allowRedirectByIp = createRedirectRateLimiter({ perMinute: 20, perHour: 120 });
+const allowRedirectByVisit = createRedirectRateLimiter({ perMinute: 8, perHour: 40 });
+function trustedCloudflareClientIp(req) {
+  const supplied = String(req.headers["x-ncf-cloudflare-auth"] || "");
+  if (!CLOUDFLARE_ORIGIN_AUTH_SECRET || !supplied) return null;
+  const expected = Buffer.from(CLOUDFLARE_ORIGIN_AUTH_SECRET);
+  const actual = Buffer.from(supplied);
+  if (expected.length !== actual.length || !require("crypto").timingSafeEqual(expected, actual)) return null;
+  return normalizeClientIp(req.headers["cf-connecting-ip"]);
+}
 const CHATURBATE_PAGE_SIZE = 500;
 const CHATURBATE_MAX_PAGES = Math.max(1, Math.min(20, Number(process.env.CHATURBATE_MAX_PAGES || 10)));
 const CHATURBATE_REGION_MAX_PAGES = resolveRegionalMaxPages(process.env.CHATURBATE_REGION_MAX_PAGES, CHATURBATE_MAX_PAGES);
@@ -473,6 +484,19 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     });
     const visitId = visitIdentity.visitId;
     const visitIdOrigin = visitIdentity.origin;
+    // The visitor IP header is trusted only when Cloudflare has added the
+    // separately configured origin-authentication secret. Direct requests to
+    // the Render hostname cannot forge a usable client-IP value.
+    const trustedIp = trustedCloudflareClientIp(req);
+    if ((trustedIp && !allowRedirectByIp(trustedIp)) || !allowRedirectByVisit(visitId)) {
+      console.warn(JSON.stringify({
+        event: "affiliate_redirect_rate_limited",
+        platform,
+        limitScope: trustedIp && !allowRedirectByIp(trustedIp) ? "trusted_ip" : "visit",
+        path: isBonga ? "/bgo/" : "/go/"
+      }));
+      return send(res, 429, "Too many requests. Please try again shortly.", "text/plain; charset=utf-8", { "Cache-Control": "no-store", "Retry-After": "60" });
+    }
     const isSafeLandingPath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && value.length <= 255 && !/[\r\n]/.test(value);
     const queryLandingPath = url.searchParams.get("lp") || "";
     const cookieLandingPath = cookieValue(req, "ncf_landing_path");
