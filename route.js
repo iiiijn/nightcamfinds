@@ -212,7 +212,8 @@ async function dashboardStats(incoming) {
   const cbEarningsByCurrency = {};
   try {
     const testCallbackExclusion = invalidCallbackPredicate("cc");
-    const conversionWhere = conv.where ? conv.where + " AND NOT " + testCallbackExclusion : "WHERE NOT " + testCallbackExclusion;
+    const ownerCallbackExclusion = "NOT EXISTS (SELECT 1 FROM affiliate_clicks owner_click WHERE owner_click.click_id=cc.click_id AND owner_click.is_owner_traffic IS TRUE)";
+    const conversionWhere = conv.where ? conv.where + " AND NOT " + testCallbackExclusion + " AND " + ownerCallbackExclusion : "WHERE NOT " + testCallbackExclusion + " AND " + ownerCallbackExclusion;
     const conversionSql = [
       "SELECT UPPER(COALESCE(NULLIF(cc.currency,''),'UNSPECIFIED')) AS currency,",
       "COUNT(*) FILTER (WHERE LOWER(cc.conversion_type) IN ('tokens_signup-referral','ppr_signup-referral','revshare_signup-referral'))::int AS registrations,",

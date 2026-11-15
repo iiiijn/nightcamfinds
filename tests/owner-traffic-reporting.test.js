@@ -48,6 +48,8 @@ test('business reporting queries exclude owner traffic and trace retains owner-o
   assert.ok(revenue.includes('ac.is_owner_traffic'));
   assert.ok(revenue.includes('tv.is_owner_traffic'));
   assert.ok(conversions.includes('owner_click.is_owner_traffic IS TRUE'));
+  const route = read('route.js');
+  assert.ok(route.includes('ownerCallbackExclusion'));
   assert.ok(trace.includes("filters.ownerMode === 'only'"));
   assert.ok(trace.includes("COALESCE(c.is_owner_traffic, FALSE) IS TRUE"));
 });
