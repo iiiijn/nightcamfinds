@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS, CORE_ENGAGEMENT_EVENTS, BONGA_BANNER_EVENTS } = require('../src/services/traffic-quality.cjs');
+const { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, createRedirectRateLimiter, normalizeClientIp, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS, CORE_ENGAGEMENT_EVENTS, BONGA_BANNER_EVENTS } = require('../src/services/traffic-quality.cjs');
 
 test('classifies known crawlers separately from suspected automation', () => {
   assert.equal(classifyUserAgent('Googlebot/2.1'), 'known_bot');
@@ -390,4 +390,38 @@ test('server establishes first-party visit cookies before directory affiliate li
   assert.match(server, /const queryLandingPath = url\.searchParams\.get\("lp"\)/);
   assert.match(server, /const cookieLandingPath = cookieValue\(req, "ncf_landing_path"\)/);
   assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
+});
+
+
+test('affiliate redirect limiter enforces minute and hourly limits per key', () => {
+  const allow = createRedirectRateLimiter({ perMinute: 2, perHour: 3 });
+  assert.equal(allow('ip:203.0.113.10', 1000), true);
+  assert.equal(allow('ip:203.0.113.10', 2000), true);
+  assert.equal(allow('ip:203.0.113.10', 3000), false);
+  assert.equal(allow('ip:203.0.113.10', 61000), true);
+  assert.equal(allow('ip:203.0.113.10', 62000), false);
+  assert.equal(allow('visit:' + 'a'.repeat(32), 62000), true);
+  assert.equal(allow('', 62000), false);
+});
+
+test('normalizes valid client IP values and rejects malformed values', () => {
+  assert.equal(normalizeClientIp('203.0.113.7'), '203.0.113.7');
+  assert.equal(normalizeClientIp('::ffff:203.0.113.7'), '203.0.113.7');
+  assert.equal(normalizeClientIp('2001:db8::1'), '2001:db8::1');
+  assert.equal(normalizeClientIp('not-an-ip'), null);
+  assert.equal(normalizeClientIp('203.0.113.7, 198.51.100.2'), null);
+});
+
+test('affiliate redirect rate limiting only trusts Cloudflare client IP with origin secret', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+  assert.match(server, /NCF_CLOUDFLARE_ORIGIN_SECRET/);
+  assert.match(server, /x-ncf-cloudflare-auth/);
+  assert.match(server, /timingSafeEqual/);
+  assert.match(server, /normalizeClientIp\(req\.headers\["cf-connecting-ip"\]\)/);
+  assert.match(server, /allowRedirectByIp/);
+  assert.match(server, /allowRedirectByVisit/);
+  assert.match(server, /Retry-After/);
+  assert.match(server, /affiliate_redirect_rate_limited/);
 });
