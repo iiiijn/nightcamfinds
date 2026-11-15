@@ -23,7 +23,8 @@ const STAGING_MIGRATIONS = [
   { version: "008_chaturbate_conversion_metadata", file: "008_chaturbate_conversion_metadata.sql" },
   { version: "009_click_source_evidence", file: "009_click_source_evidence.sql" },
   { version: "010_engagement_event_type_capacity", file: "010_engagement_event_type_capacity.sql" },
-  { version: "011_owner_traffic", file: "011_owner_traffic.sql" }
+  { version: "011_owner_traffic", file: "011_owner_traffic.sql" },
+  { version: "012_redirect_rate_limits", file: "012_redirect_rate_limits.sql" }
 ];
 
 function getMigrationPlan(branch, options = {}) {

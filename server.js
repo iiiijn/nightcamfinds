@@ -52,7 +52,7 @@ const BONGA_ORIGIN_AUTH_SECRET = process.env.BONGACAMS_ORIGIN_AUTH_SECRET || "";
 const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
 const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
 const NCF_CLOUDFLARE_ORIGIN_SECRET = String(process.env.NCF_CLOUDFLARE_ORIGIN_SECRET || "");
-const redirectRateLimiter = pgPool && process.env.SESSION_SECRET
+const redirectRateLimiter = pgPool && typeof process.env.SESSION_SECRET === "string" && process.env.SESSION_SECRET.length >= 32
   ? createPostgresRedirectRateLimiter({ pool: pgPool, secret: process.env.SESSION_SECRET })
   : null;
 function trustedCloudflareClientIp(req) {
