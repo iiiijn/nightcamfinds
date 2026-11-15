@@ -67,7 +67,7 @@ test('enforces IP and visit limits together and reports only the limited scope',
   assert.ok(pool.calls.some(call => call.sql.startsWith('SELECT pg_advisory_xact_lock')));
 });
 
-test('requires PostgreSQL and a stable secret; storage errors propagate for fail-closed redirects', async () => {
+test('requires PostgreSQL and a stable secret; storage errors propagate to the emergency fallback', async () => {
   assert.throws(() => createPostgresRedirectRateLimiter({ pool: null, secret: 's'.repeat(48) }), /PostgreSQL pool/);
   assert.throws(() => createPostgresRedirectRateLimiter({ pool: makePool(), secret: 'short' }), /32 characters/);
   const broken = { async connect() { throw new Error('database unavailable'); } };
@@ -83,7 +83,8 @@ test('redirect handler rate-limits only trusted Cloudflare IPs and established f
   assert.match(server, /visitId: visitIdOrigin === "cookie" \? visitId : null/);
   assert.match(server, /affiliate_redirect_rate_limit_storage_error/);
   assert.match(server, /Retry-After/);
-  assert.match(server, /affiliate_redirect_rate_limits/);
+  const limiter = fs.readFileSync(path.join(__dirname, '../src/services/redirect-rate-limiter.cjs'), 'utf8');
+  assert.match(limiter, /affiliate_redirect_rate_limits/);
   const migration = fs.readFileSync(path.join(__dirname, '../sql/012_redirect_rate_limits.sql'), 'utf8');
   assert.match(migration, /key_hash CHAR\(64\) NOT NULL/);
   assert.doesNotMatch(migration, /CREATE TABLE[^;]*(ip_address|visit_id)/i);
