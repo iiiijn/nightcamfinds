@@ -488,11 +488,13 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     // separately configured origin-authentication secret. Direct requests to
     // the Render hostname cannot forge a usable client-IP value.
     const trustedIp = trustedCloudflareClientIp(req);
-    if ((trustedIp && !allowRedirectByIp(trustedIp)) || !allowRedirectByVisit(visitId)) {
+    const ipAllowed = trustedIp ? allowRedirectByIp(trustedIp) : true;
+    const visitAllowed = allowRedirectByVisit(visitId);
+    if (!ipAllowed || !visitAllowed) {
       console.warn(JSON.stringify({
         event: "affiliate_redirect_rate_limited",
         platform,
-        limitScope: trustedIp && !allowRedirectByIp(trustedIp) ? "trusted_ip" : "visit",
+        limitScope: !ipAllowed ? "trusted_ip" : "visit",
         path: isBonga ? "/bgo/" : "/go/"
       }));
       return send(res, 429, "Too many requests. Please try again shortly.", "text/plain; charset=utf-8", { "Cache-Control": "no-store", "Retry-After": "60" });
