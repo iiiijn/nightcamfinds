@@ -9,6 +9,7 @@ const { isSameOriginRequest } = require("./src/services/country-settings-origin.
 const { validateCountryPlatformPayload } = require("./src/services/country-settings-validation.cjs");
 const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
 const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRateLimiter } = require("./src/services/traffic-quality.cjs");
+const { classifySourceChannel, normalizeSpikeThreshold, classifyClickEvidence } = require("./src/services/traffic-reporting.cjs");
 const clickOrigins = require("./src/services/click-origins.cjs");
 const { displaySource } = require("./src/services/source-evidence.cjs");
 const campaignPerformance = require("./src/services/campaign-performance.cjs");
@@ -19,6 +20,7 @@ const trafficRevenuePerformance = require("./src/services/traffic-revenue-perfor
 const { cleanRoomTitle, filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const { isIso3166Alpha2 } = require("./src/services/iso-country-codes.cjs");
 const allowEngagement = createEngagementRateLimiter();
+let lastTrafficSpikeAlertAt = 0;
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
@@ -462,6 +464,42 @@ http.createServer = function routeDashboard(handler) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
         console.error("Traffic quality analytics failed:", err.message);
         return sendJson(res, 500, { error: "Could not load traffic quality analytics." });
+      }
+    }
+    if (incoming.pathname === "/api/traffic-quality-since-cutoff") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const cutoff = "2026-11-10T00:00:00.000Z";
+      const threshold = normalizeSpikeThreshold(process.env.NCF_CLICK_SPIKE_THRESHOLD, 60);
+      try {
+        const result = await pool.query("SELECT c.is_bot, c.bot_reason, c.visit_id, v.traffic_class AS visit_class, c.source, c.campaign, CASE WHEN c.visit_id IS NOT NULL AND v.visit_id IS NOT NULL THEN TRUE ELSE FALSE END AS linked_visit FROM affiliate_clicks c LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id WHERE c.clicked_at >= $1::timestamptz AND LOWER(COALESCE(c.source, '')) <> 'test' AND LOWER(COALESCE(c.campaign, '')) NOT LIKE 'test_%'", [cutoff]);
+        const summary = { total: 0, knownBot: 0, suspectedBot: 0, notFlaggedAsBot: 0, clicksWithVisitId: 0, clicksWithoutVisitId: 0, clicksWithVisitRecord: 0, clicksWithMissingVisitRecord: 0, bySourceChannel: {} };
+        for (const row of result.rows) {
+          summary.total++;
+          const classification = classifyClickEvidence({ isBot: row.is_bot, botReason: row.bot_reason, visitClass: row.visit_class });
+          if (classification === "known_bot") summary.knownBot++;
+          else if (classification === "suspected_bot") summary.suspectedBot++;
+          else summary.notFlaggedAsBot++;
+          if (row.visit_id) summary.clicksWithVisitId++; else summary.clicksWithoutVisitId++;
+          if (row.linked_visit) summary.clicksWithVisitRecord++; else if (row.visit_id) summary.clicksWithMissingVisitRecord++;
+          const channel = classifySourceChannel(row.source);
+          summary.bySourceChannel[channel] = (summary.bySourceChannel[channel] || 0) + 1;
+        }
+        const spike = await pool.query("SELECT date_trunc('minute', clicked_at) AS minute, COUNT(*)::int AS clicks FROM affiliate_clicks WHERE clicked_at >= NOW() - INTERVAL '15 minutes' AND LOWER(COALESCE(source, '')) <> 'test' AND LOWER(COALESCE(campaign, '')) NOT LIKE 'test_%' GROUP BY 1 ORDER BY clicks DESC LIMIT 1");
+        const peakMinute = spike.rows[0] || null;
+        const peakClicksPerMinute = Number(peakMinute?.clicks || 0);
+        const alertActive = peakClicksPerMinute >= threshold;
+        const now = Date.now();
+        if (alertActive && now - lastTrafficSpikeAlertAt >= 10 * 60 * 1000) {
+          console.warn(JSON.stringify({ event: "affiliate_click_spike", threshold, peakClicksPerMinute, windowMinutes: 15 }));
+          lastTrafficSpikeAlertAt = now;
+        }
+        return sendJson(res, 200, { cutoff, timezone: "UTC", ...summary, botSharePercent: summary.total ? Math.round(((summary.knownBot + summary.suspectedBot) / summary.total) * 10000) / 100 : 0, spike: { active: alertActive, threshold, peakClicksPerMinute, peakMinute: peakMinute?.minute || null, windowMinutes: 15 }, note: "Reporting includes recorded affiliate redirects since 10 November 2026 00:00 UTC. Not flagged as bot is not human verification. Suspected automation is shown separately and is not silently counted as confirmed bot traffic. Source channels are normalized reporting groups; URL-provided source labels are self-reported. Rows labelled test are excluded, but this is not an owner-cookie mechanism." });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic reporting requires the existing affiliate click and traffic-quality schema." });
+        console.error("Traffic reporting since cutoff failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load traffic reporting since cutoff." });
       }
     }
     if (incoming.pathname === "/api/provider-attribution-health") {
