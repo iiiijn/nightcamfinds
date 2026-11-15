@@ -473,18 +473,24 @@ http.createServer = function routeDashboard(handler) {
       const cutoff = "2026-11-10T00:00:00.000Z";
       const threshold = normalizeSpikeThreshold(process.env.NCF_CLICK_SPIKE_THRESHOLD, 60);
       try {
-        const result = await pool.query("SELECT c.is_bot, c.bot_reason, c.visit_id, v.traffic_class AS visit_class, c.source, c.campaign, CASE WHEN c.visit_id IS NOT NULL AND v.visit_id IS NOT NULL THEN TRUE ELSE FALSE END AS linked_visit FROM affiliate_clicks c LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id WHERE c.clicked_at >= $1::timestamptz AND LEFT(LOWER(COALESCE(c.source, '')), 5) <> 'test_' AND LOWER(COALESCE(c.source, '')) <> 'test' AND LEFT(LOWER(COALESCE(c.campaign, '')), 5) <> 'test_'", [cutoff]);
+        const result = await pool.query("SELECT c.is_bot, c.bot_reason, v.traffic_class AS visit_class, c.source, CASE WHEN c.visit_id IS NULL THEN 'missing_visit_id' WHEN v.visit_id IS NULL THEN 'missing_visit_record' ELSE 'linked' END AS linkage_status, COUNT(*)::int AS clicks FROM affiliate_clicks c LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id WHERE c.clicked_at >= $1::timestamptz AND LEFT(LOWER(COALESCE(c.source, '')), 5) <> 'test_' AND LOWER(COALESCE(c.source, '')) <> 'test' AND LEFT(LOWER(COALESCE(c.campaign, '')), 5) <> 'test_' GROUP BY 1, 2, 3, 4, 5", [cutoff]);
         const summary = { total: 0, knownBot: 0, suspectedBot: 0, notFlaggedAsBot: 0, clicksWithVisitId: 0, clicksWithoutVisitId: 0, clicksWithVisitRecord: 0, clicksWithMissingVisitRecord: 0, bySourceChannel: {} };
         for (const row of result.rows) {
-          summary.total++;
+          const clicks = Number(row.clicks || 0);
+          summary.total += clicks;
           const classification = classifyClickEvidence({ isBot: row.is_bot, botReason: row.bot_reason, visitClass: row.visit_class });
-          if (classification === "known_bot") summary.knownBot++;
-          else if (classification === "suspected_bot") summary.suspectedBot++;
-          else summary.notFlaggedAsBot++;
-          if (row.visit_id) summary.clicksWithVisitId++; else summary.clicksWithoutVisitId++;
-          if (row.linked_visit) summary.clicksWithVisitRecord++; else if (row.visit_id) summary.clicksWithMissingVisitRecord++;
+          if (classification === "known_bot") summary.knownBot += clicks;
+          else if (classification === "suspected_bot") summary.suspectedBot += clicks;
+          else summary.notFlaggedAsBot += clicks;
+          if (row.linkage_status === "linked") {
+            summary.clicksWithVisitId += clicks;
+            summary.clicksWithVisitRecord += clicks;
+          } else if (row.linkage_status === "missing_visit_record") {
+            summary.clicksWithVisitId += clicks;
+            summary.clicksWithMissingVisitRecord += clicks;
+          } else summary.clicksWithoutVisitId += clicks;
           const channel = classifySourceChannel(row.source);
-          summary.bySourceChannel[channel] = (summary.bySourceChannel[channel] || 0) + 1;
+          summary.bySourceChannel[channel] = (summary.bySourceChannel[channel] || 0) + clicks;
         }
         const spike = await pool.query("SELECT date_trunc('minute', clicked_at) AS minute, COUNT(*)::int AS clicks FROM affiliate_clicks WHERE clicked_at >= NOW() - INTERVAL '15 minutes' AND LEFT(LOWER(COALESCE(source, '')), 5) <> 'test_' AND LOWER(COALESCE(source, '')) <> 'test' AND LEFT(LOWER(COALESCE(campaign, '')), 5) <> 'test_' GROUP BY 1 ORDER BY clicks DESC LIMIT 1");
         const peakMinute = spike.rows[0] || null;
