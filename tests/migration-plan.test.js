@@ -10,7 +10,8 @@ test("production startup excludes staging-only and unapproved reconciliation mig
     "008_chaturbate_conversion_metadata",
     "009_click_source_evidence",
     "010_engagement_event_type_capacity",
-    "011_owner_traffic"
+    "011_owner_traffic",
+    "012_redirect_rate_limits"
   ]);
   assert.ok(plan.every(item => !["003_click_attribution_columns", "004_country_platform_routing", "005_bongacash_daily_reconciliation"].includes(item.version)));
 });
@@ -24,7 +25,8 @@ test("production reconciliation migration requires explicit opt-in", () => {
     "008_chaturbate_conversion_metadata",
     "009_click_source_evidence",
     "010_engagement_event_type_capacity",
-    "011_owner_traffic"
+    "011_owner_traffic",
+    "012_redirect_rate_limits"
   ]);
 });
 
@@ -38,7 +40,8 @@ test("feature branch staging creates the affiliate schema before dependent migra
     "008_chaturbate_conversion_metadata",
     "009_click_source_evidence",
     "010_engagement_event_type_capacity",
-    "011_owner_traffic"
+    "011_owner_traffic",
+    "012_redirect_rate_limits"
   ]);
   assert.ok(plan.every(item => item.version !== "003_click_attribution_columns"));
 });
@@ -61,5 +64,5 @@ test("production migration widens engagement event labels without rebuilding or 
   assert.ok(migration.includes("ALTER COLUMN event_type TYPE VARCHAR(48)"));
   assert.doesNotMatch(migration, /DROP TABLE|TRUNCATE|DELETE FROM/i);
   const plan = getMigrationPlan("main");
-  assert.equal(plan.at(-1).version, "011_owner_traffic");
+  assert.equal(plan.at(-1).version, "012_redirect_rate_limits");
 });
