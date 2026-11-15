@@ -12,13 +12,15 @@ function parseFilters(params) {
   const to = String(params.get('to') || '').trim();
   const platformRaw = String(params.get('platform') || 'ALL').trim().toLowerCase();
   const platform = platformRaw === 'all' ? 'ALL' : platformRaw;
+  const ownerMode = String(params.get('owner') || 'exclude').trim().toLowerCase();
+  if (!['exclude', 'only'].includes(ownerMode)) return { error: 'Owner filter must be exclude or only.' };
   const limitRaw = params.get('limit');
   const limit = limitRaw === null ? 100 : Number(limitRaw);
   if ((from && !validDate(from)) || (to && !validDate(to))) return { error: 'Dates must be valid calendar dates in YYYY-MM-DD format.' };
   if (from && to && from > to) return { error: 'Start date must be on or before end date.' };
   if (platform !== 'ALL' && !PLATFORMS.includes(platform)) return { error: 'Platform must be ALL, chaturbate or bongacams.' };
   if (!Number.isInteger(limit) || limit < 1 || limit > 100) return { error: 'Limit must be a whole number from 1 to 100.' };
-  return { value: { from, to, platform, limit } };
+  return { value: { from, to, platform, limit, ownerMode } };
 }
 function buildQuery(filters) {
   const params = [];
@@ -26,6 +28,7 @@ function buildQuery(filters) {
   if (filters.from) { params.push(filters.from); where.push("c.clicked_at >= ($" + params.length + "::date AT TIME ZONE 'UTC')"); }
   if (filters.to) { params.push(filters.to); where.push("(c.clicked_at < (($" + params.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC'))"); }
   if (filters.platform !== 'ALL') { params.push(filters.platform); where.push("LOWER(c.platform) = $" + params.length); }
+  where.push(filters.ownerMode === 'only' ? 'COALESCE(c.is_owner_traffic, FALSE) IS TRUE' : 'COALESCE(c.is_owner_traffic, FALSE) IS FALSE');
   params.push(filters.limit);
   return {
     text: `SELECT c.id, c.clicked_at, c.click_id, UPPER(c.country) AS country,
@@ -38,7 +41,7 @@ function buildQuery(filters) {
       COALESCE(NULLIF(LOWER(c.placement), ''), 'unknown') AS placement,
       COALESCE(NULLIF(c.landing_path, ''), 'unknown') AS landing_path,
       COALESCE(NULLIF(LOWER(c.device), ''), 'unknown') AS device,
-      c.visit_id::text AS visit_id, (to_jsonb(c)->>'is_bot') AS is_bot, (to_jsonb(c)->>'bot_reason') AS bot_reason,
+      c.visit_id::text AS visit_id, COALESCE(c.is_owner_traffic, FALSE) AS is_owner_traffic, (to_jsonb(c)->>'is_bot') AS is_bot, (to_jsonb(c)->>'bot_reason') AS bot_reason,
       v.traffic_class AS visit_traffic_class
       FROM affiliate_clicks c
       LEFT JOIN traffic_visits v ON v.visit_id = c.visit_id
@@ -64,7 +67,7 @@ function mapRow(row) {
     medium: row.medium || 'unknown', campaign: row.campaign || 'unknown',
     content: row.content || 'unknown', placement: row.placement || 'unknown',
     landingPath: row.landing_path || 'unknown', device: row.device || 'unknown',
-    visitId: row.visit_id || null, trafficClass
+    visitId: row.visit_id || null, isOwnerTraffic: row.is_owner_traffic === true || row.is_owner_traffic === 'true', trafficClass
   };
 }
 module.exports = { PLATFORMS, validDate, parseFilters, buildQuery, mapRow };

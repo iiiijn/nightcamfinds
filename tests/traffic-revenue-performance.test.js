@@ -52,6 +52,9 @@ test('excludes only identified internal test and audit traffic from click and vi
   assert.match(built.text, /LOWER\(COALESCE\(ac\.source, ''\)\) <> 'test'/);
   assert.match(built.text, /LOWER\(COALESCE\(ac\.campaign, ''\)\) NOT IN \('test_female_01', 'revshare_audit_01'\)/);
   assert.match(built.text, /LOWER\(COALESCE\(tv\.source, ''\)\) <> 'test'/);
+  assert.ok(built.text.includes('COALESCE(ac.is_owner_traffic, FALSE) IS FALSE'));
+  assert.ok(built.text.includes('COALESCE(tv.is_owner_traffic, FALSE) IS FALSE'));
+  assert.ok(built.text.includes('COALESCE(acv.is_owner_traffic, FALSE) IS FALSE'));
   assert.match(built.text, /LOWER\(COALESCE\(tv\.campaign, ''\)\) NOT IN \('test_female_01', 'revshare_audit_01'\)/);
 });
 

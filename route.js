@@ -11,6 +11,7 @@ const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash
 const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRateLimiter } = require("./src/services/traffic-quality.cjs");
 const { classifySourceChannel, normalizeSpikeThreshold, classifyClickEvidence } = require("./src/services/traffic-reporting.cjs");
 const clickOrigins = require("./src/services/click-origins.cjs");
+const ownerTrafficCookie = require("./src/services/owner-traffic-cookie.cjs");
 const { displaySource } = require("./src/services/source-evidence.cjs");
 const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
@@ -184,7 +185,7 @@ async function dashboardStats(incoming) {
   await pool.query("CREATE INDEX IF NOT EXISTS affiliate_clicks_click_id_idx ON affiliate_clicks(click_id)");
 
   const cb = rangeClause(incoming, "clicked_at");
-  const internalTrafficExclusion = "LOWER(COALESCE(source, '')) <> 'test' AND LOWER(COALESCE(campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')";
+  const internalTrafficExclusion = "COALESCE(is_owner_traffic,FALSE) IS FALSE AND LOWER(COALESCE(source, '')) <> 'test' AND LOWER(COALESCE(campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')";
   const businessClickWhere = cb.where ? cb.where + " AND " + internalTrafficExclusion : "WHERE " + internalTrafficExclusion;
   const conv = rangeClause(incoming, "received_at");
   await bongacash.ensureTable(pool);
@@ -199,7 +200,9 @@ async function dashboardStats(incoming) {
     }
   } catch {
     try {
-      const r = await pool.query(`SELECT COUNT(*)::int AS clicks FROM cb_clicks ${businessClickWhere}`, cb.params);
+      const legacyExclusion = "LOWER(COALESCE(source, '')) <> 'test' AND LOWER(COALESCE(campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01') AND NOT EXISTS (SELECT 1 FROM affiliate_clicks owner_click WHERE owner_click.click_id=cb_clicks.click_id AND owner_click.is_owner_traffic IS TRUE)";
+      const legacyWhere = cb.where ? cb.where + " AND " + legacyExclusion : "WHERE " + legacyExclusion;
+      const r = await pool.query(`SELECT COUNT(*)::int AS clicks FROM cb_clicks ${legacyWhere}`, cb.params);
       cbClicks = Number(r.rows[0]?.clicks || 0);
     } catch {}
   }
@@ -209,7 +212,8 @@ async function dashboardStats(incoming) {
   const cbEarningsByCurrency = {};
   try {
     const testCallbackExclusion = invalidCallbackPredicate("cc");
-    const conversionWhere = conv.where ? conv.where + " AND NOT " + testCallbackExclusion : "WHERE NOT " + testCallbackExclusion;
+    const ownerCallbackExclusion = "NOT EXISTS (SELECT 1 FROM affiliate_clicks owner_click WHERE owner_click.click_id=cc.click_id AND owner_click.is_owner_traffic IS TRUE)";
+    const conversionWhere = conv.where ? conv.where + " AND NOT " + testCallbackExclusion + " AND " + ownerCallbackExclusion : "WHERE NOT " + testCallbackExclusion + " AND " + ownerCallbackExclusion;
     const conversionSql = [
       "SELECT UPPER(COALESCE(NULLIF(cc.currency,''),'UNSPECIFIED')) AS currency,",
       "COUNT(*) FILTER (WHERE LOWER(cc.conversion_type) IN ('tokens_signup-referral','ppr_signup-referral','revshare_signup-referral'))::int AS registrations,",
@@ -332,6 +336,40 @@ http.createServer = function routeDashboard(handler) {
       sendJson
     })) return;
 
+    if (incoming.pathname === "/api/owner-traffic") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET" && req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool || !SESSION_SECRET) return sendJson(res, 503, { error: "Owner traffic mode requires the database and dashboard session secret." });
+      if (req.method === "POST" && !isSameOriginRequest(req.headers)) return sendJson(res, 403, { error: "Origin check failed." });
+      let enabled;
+      if (req.method === "POST") {
+        if (!String(req.headers["content-type"] || "").toLowerCase().includes("application/json")) return sendJson(res, 415, { error: "Use application/json." });
+        let body = "";
+        for await (const chunk of req) { body += chunk; if (body.length > 1000) return sendJson(res, 413, { error: "Request too large." }); }
+        let payload;
+        try { payload = JSON.parse(body || "{}"); } catch { return sendJson(res, 400, { error: "Invalid JSON." }); }
+        if (!payload || typeof payload.enabled !== "boolean") return sendJson(res, 400, { error: "enabled must be true or false." });
+        enabled = payload.enabled;
+      }
+      try {
+        const schema = await pool.query("SELECT to_regclass('public.affiliate_clicks') IS NOT NULL AS clicks_table, to_regclass('public.traffic_visits') IS NOT NULL AS visits_table, EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='affiliate_clicks' AND column_name='is_owner_traffic') AS clicks_column, EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='traffic_visits' AND column_name='is_owner_traffic') AS visits_column");
+        const ready = schema.rows[0] && schema.rows[0].clicks_table && schema.rows[0].visits_table && schema.rows[0].clicks_column && schema.rows[0].visits_column;
+        if (!ready) return sendJson(res, 503, { error: "Owner traffic migration 011 is not installed. No cookie was changed." });
+        const secure = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim() === "https" || Boolean(req.socket && req.socket.encrypted);
+        if (req.method === "POST") {
+          const cookie = enabled
+            ? ownerTrafficCookie.cookieHeader(ownerTrafficCookie.createOwnerCookie(SESSION_SECRET), secure, false)
+            : ownerTrafficCookie.cookieHeader("", secure, true);
+          res.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Set-Cookie": [cookie, "ncf_visit_id=; Path=/; SameSite=Lax; Max-Age=0" + (secure ? "; Secure" : "")] });
+          return res.end(JSON.stringify({ enabled, expiresInSeconds: enabled ? ownerTrafficCookie.DEFAULT_TTL_SECONDS : 0 }));
+        }
+        const token = parseCookies(req)[ownerTrafficCookie.COOKIE_NAME];
+        return sendJson(res, 200, { enabled: ownerTrafficCookie.verifyOwnerCookie(token, SESSION_SECRET) });
+      } catch (err) {
+        console.error("Owner traffic control failed:", err.message);
+        return sendJson(res, 500, { error: "Could not check owner traffic mode." });
+      }
+    }
     if (incoming.pathname === "/api/engage") {
       if (req.method !== "POST") return sendJson(res, 405, { error: "Method not allowed." });
       if (!isSameOriginRequest(req.headers)) return sendJson(res, 403, { error: "Origin check failed." });
@@ -386,7 +424,7 @@ http.createServer = function routeDashboard(handler) {
       try {
         const visits = await pool.query(
           `SELECT traffic_class, COUNT(*)::int AS visits
-           FROM traffic_visits WHERE first_seen_at >= $1 AND first_seen_at < $2
+           FROM traffic_visits WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE AND first_seen_at >= $1 AND first_seen_at < $2
            GROUP BY traffic_class`, [bounds.from, bounds.toExclusive]
         );
         const engagement = await pool.query(
@@ -415,7 +453,7 @@ http.createServer = function routeDashboard(handler) {
            FROM traffic_engagement_events e
            JOIN traffic_visits v ON v.visit_id=e.visit_id
            WHERE e.occurred_at >= $1 AND e.occurred_at < $2
-             AND v.traffic_class='unverified'`, [bounds.from, bounds.toExclusive]
+             AND v.traffic_class='unverified' AND COALESCE(v.is_owner_traffic,FALSE) IS FALSE`, [bounds.from, bounds.toExclusive]
         );
         const clickQuality = await pool.query(
           `SELECT CASE
@@ -432,7 +470,7 @@ http.createServer = function routeDashboard(handler) {
                   COUNT(*)::int AS clicks
            FROM affiliate_clicks c
            LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id
-           WHERE c.clicked_at >= $1 AND c.clicked_at < $2
+           WHERE c.clicked_at >= $1 AND c.clicked_at < $2 AND COALESCE(c.is_owner_traffic,FALSE) IS FALSE
            GROUP BY 1, 2`, [bounds.from, bounds.toExclusive]
         );
         const clickCounts = {};
@@ -473,7 +511,7 @@ http.createServer = function routeDashboard(handler) {
       const cutoff = "2026-11-10T00:00:00.000Z";
       const threshold = normalizeSpikeThreshold(process.env.NCF_CLICK_SPIKE_THRESHOLD, 60);
       try {
-        const result = await pool.query("SELECT c.is_bot, c.bot_reason, v.traffic_class AS visit_class, c.source, c.source_evidence, CASE WHEN c.visit_id IS NULL THEN 'missing_visit_id' WHEN v.visit_id IS NULL THEN 'missing_visit_record' ELSE 'linked' END AS linkage_status, COUNT(*)::int AS clicks FROM affiliate_clicks c LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id WHERE c.clicked_at >= $1::timestamptz AND LEFT(LOWER(COALESCE(c.source, '')), 5) <> 'test_' AND LOWER(COALESCE(c.source, '')) <> 'test' AND LEFT(LOWER(COALESCE(c.campaign, '')), 5) <> 'test_' AND LOWER(COALESCE(c.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01') GROUP BY 1, 2, 3, 4, 5, 6", [cutoff]);
+        const result = await pool.query("SELECT c.is_bot, c.bot_reason, v.traffic_class AS visit_class, c.source, c.source_evidence, CASE WHEN c.visit_id IS NULL THEN 'missing_visit_id' WHEN v.visit_id IS NULL THEN 'missing_visit_record' ELSE 'linked' END AS linkage_status, COUNT(*)::int AS clicks FROM affiliate_clicks c LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id WHERE c.clicked_at >= $1::timestamptz AND COALESCE(c.is_owner_traffic,FALSE) IS FALSE AND LEFT(LOWER(COALESCE(c.source, '')), 5) <> 'test_' AND LOWER(COALESCE(c.source, '')) <> 'test' AND LEFT(LOWER(COALESCE(c.campaign, '')), 5) <> 'test_' AND LOWER(COALESCE(c.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01') GROUP BY 1, 2, 3, 4, 5, 6", [cutoff]);
         const summary = { total: 0, knownBot: 0, suspectedBot: 0, notFlaggedAsBot: 0, clicksWithVisitId: 0, clicksWithoutVisitId: 0, clicksWithVisitRecord: 0, clicksWithMissingVisitRecord: 0, bySourceChannel: {} };
         for (const row of result.rows) {
           const clicks = Number(row.clicks || 0);
@@ -492,7 +530,7 @@ http.createServer = function routeDashboard(handler) {
           const channel = classifySourceChannel(row.source, row.source_evidence);
           summary.bySourceChannel[channel] = (summary.bySourceChannel[channel] || 0) + clicks;
         }
-        const spike = await pool.query("SELECT date_trunc('minute', clicked_at) AS minute, COUNT(*)::int AS clicks FROM affiliate_clicks WHERE clicked_at >= NOW() - INTERVAL '15 minutes' AND LEFT(LOWER(COALESCE(source, '')), 5) <> 'test_' AND LOWER(COALESCE(source, '')) <> 'test' AND LEFT(LOWER(COALESCE(campaign, '')), 5) <> 'test_' AND LOWER(COALESCE(campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01') GROUP BY 1 ORDER BY clicks DESC LIMIT 1");
+        const spike = await pool.query("SELECT date_trunc('minute', clicked_at) AS minute, COUNT(*)::int AS clicks FROM affiliate_clicks WHERE clicked_at >= NOW() - INTERVAL '15 minutes' AND COALESCE(is_owner_traffic,FALSE) IS FALSE AND LEFT(LOWER(COALESCE(source, '')), 5) <> 'test_' AND LOWER(COALESCE(source, '')) <> 'test' AND LEFT(LOWER(COALESCE(campaign, '')), 5) <> 'test_' AND LOWER(COALESCE(campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01') GROUP BY 1 ORDER BY clicks DESC LIMIT 1");
         const peakMinute = spike.rows[0] || null;
         const peakClicksPerMinute = Number(peakMinute?.clicks || 0);
         const alertActive = peakClicksPerMinute >= threshold;
@@ -744,7 +782,7 @@ http.createServer = function routeDashboard(handler) {
       params.push(limit);
       try {
         const result = await pool.query(
-          "SELECT clicked_at, country, category, LOWER(platform) AS platform, source, source_evidence, campaign, placement, content, landing_path, click_id FROM affiliate_clicks WHERE (LOWER(content) LIKE 'room-%' OR LOWER(content) LIKE '%:room-%')" + platformClause + " ORDER BY clicked_at DESC, id DESC LIMIT $" + params.length,
+          "SELECT clicked_at, country, category, LOWER(platform) AS platform, source, source_evidence, campaign, placement, content, landing_path, click_id FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE AND (LOWER(content) LIKE 'room-%' OR LOWER(content) LIKE '%:room-%')" + platformClause + " ORDER BY clicked_at DESC, id DESC LIMIT $" + params.length,
           params
         );
         return sendJson(res, 200, {

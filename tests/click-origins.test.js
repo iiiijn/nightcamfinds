@@ -45,6 +45,7 @@ test('builds a parameterized aggregation across country, platform, category and 
   assert.match(built.text, /placement/);
   assert.doesNotMatch(built.text, /2026-11-01|chaturbate|x/);
   assert.match(built.text, /LIMIT 2000/);
+  assert.ok(built.text.includes('COALESCE(is_owner_traffic, FALSE) IS FALSE'));
 });
 
 test('uses no raw IP, exact location, names or email fields', () => {
@@ -75,6 +76,7 @@ test('click origins API is protected by dashboard session and validates GET filt
   assert.ok(block.includes('clickOrigins.parseFilters'));
   assert.ok(block.includes('pool.query(query.text, query.params)'));
   assert.ok(block.includes('sourceEvidence: row.source_evidence'));
+  assert.ok(route.includes('/api/owner-traffic'));
 });
 
 test('fresh login loads the click origins report through shared dashboard initialization', () => {
@@ -90,7 +92,7 @@ test('fresh login loads the click origins report through shared dashboard initia
   const tabLoaderStart = html.indexOf('async function loadDashboardTab(tab,force=false)');
   const tabLoaderEnd = html.indexOf('function setDashboardTab(tab)', tabLoaderStart);
   assert.ok(tabLoaderStart >= 0 && tabLoaderEnd > tabLoaderStart);
-  assert.match(html.slice(tabLoaderStart, tabLoaderEnd), /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadClickOrigins\]/);
+  assert.match(html.slice(tabLoaderStart, tabLoaderEnd), /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins\]/);
   assert.match(html.slice(loginStart, loginEnd), /await loadDashboardData\(\)/);
 });
 

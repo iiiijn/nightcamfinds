@@ -28,8 +28,8 @@ function buildQuery(filters = {}) {
     "COALESCE(SUM(cc.amount) FILTER (WHERE LOWER(cc.conversion_type)='revshare_purchase'), 0)::numeric AS reported_spend",
     'FROM cb_conversions cc',
     'LEFT JOIN cb_clicks bc ON bc.click_id = cc.click_id',
-    "LEFT JOIN LATERAL (SELECT country, source, campaign FROM affiliate_clicks WHERE click_id = cc.click_id AND LOWER(platform) = 'chaturbate' ORDER BY clicked_at ASC, id ASC LIMIT 1) ac ON TRUE",
-    where.length?'WHERE '+where.join(' AND '):'',
+    "LEFT JOIN LATERAL (SELECT country, source, campaign FROM affiliate_clicks WHERE click_id = cc.click_id AND LOWER(platform) = 'chaturbate' AND COALESCE(is_owner_traffic,FALSE) IS FALSE ORDER BY clicked_at ASC, id ASC LIMIT 1) ac ON TRUE",
+    (where.length?'WHERE '+where.join(' AND ')+' AND ':'WHERE ') + "NOT EXISTS (SELECT 1 FROM affiliate_clicks owner_click WHERE owner_click.click_id=cc.click_id AND owner_click.is_owner_traffic IS TRUE)",
     'GROUP BY 1,2,3,4,5,6,7,8,9',
     'ORDER BY is_test ASC, conversions DESC, currency ASC, country ASC, source ASC, campaign ASC',
     'LIMIT 2000'

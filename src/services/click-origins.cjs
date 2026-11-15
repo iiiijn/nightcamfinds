@@ -38,7 +38,7 @@ function parseFilters(params) {
 
 function buildQuery(filters) {
   const params = [];
-  const where = [];
+  const where = ["COALESCE(is_owner_traffic, FALSE) IS FALSE"];
   if (filters.from) { params.push(filters.from); where.push("clicked_at >= ($" + params.length + "::date AT TIME ZONE 'UTC')"); }
   if (filters.to) { params.push(filters.to); where.push("(clicked_at < (($" + params.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC'))"); }
   if (filters.country !== 'ALL') { params.push(filters.country); where.push("UPPER(country) = $" + params.length); }

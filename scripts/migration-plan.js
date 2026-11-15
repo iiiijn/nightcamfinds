@@ -5,7 +5,8 @@ const PRODUCTION_MIGRATIONS = [
   { version: "007_engagement_event_integrity", file: "007_engagement_event_integrity.sql" },
   { version: "008_chaturbate_conversion_metadata", file: "008_chaturbate_conversion_metadata.sql" },
   { version: "009_click_source_evidence", file: "009_click_source_evidence.sql" },
-  { version: "010_engagement_event_type_capacity", file: "010_engagement_event_type_capacity.sql" }
+  { version: "010_engagement_event_type_capacity", file: "010_engagement_event_type_capacity.sql" },
+  { version: "011_owner_traffic", file: "011_owner_traffic.sql" }
 ];
 
 const PRODUCTION_RECONCILIATION_MIGRATION = {
@@ -20,7 +21,8 @@ const STAGING_MIGRATIONS = [
   { version: "007_engagement_event_integrity", file: "007_engagement_event_integrity.sql" },
   { version: "008_chaturbate_conversion_metadata", file: "008_chaturbate_conversion_metadata.sql" },
   { version: "009_click_source_evidence", file: "009_click_source_evidence.sql" },
-  { version: "010_engagement_event_type_capacity", file: "010_engagement_event_type_capacity.sql" }
+  { version: "010_engagement_event_type_capacity", file: "010_engagement_event_type_capacity.sql" },
+  { version: "011_owner_traffic", file: "011_owner_traffic.sql" }
 ];
 
 function getMigrationPlan(branch, options = {}) {
