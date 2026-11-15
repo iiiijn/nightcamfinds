@@ -115,8 +115,9 @@ function createInMemoryRedirectRateLimiter({
   maxEntries = 50000
 } = {}) {
   const requests = new Map();
+  const fallbackSecret = crypto.randomBytes(32);
   const hashKey = (scope, value) => crypto
-    .createHmac('sha256', crypto.randomBytes(32))
+    .createHmac('sha256', fallbackSecret)
     .update(scope + ':' + value)
     .digest('hex');
   // A process-local fallback is intentionally degraded: it preserves redirect

@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createPostgresRedirectRateLimiter, normalizeClientIp } = require('../src/services/redirect-rate-limiter.cjs');
+const { createPostgresRedirectRateLimiter, createInMemoryRedirectRateLimiter, normalizeClientIp } = require('../src/services/redirect-rate-limiter.cjs');
 
 function makePool() {
   const events = new Map();
@@ -88,4 +88,13 @@ test('redirect handler rate-limits only trusted Cloudflare IPs and established f
   assert.match(migration, /key_hash CHAR\(64\) NOT NULL/);
   assert.doesNotMatch(migration, /CREATE TABLE[^;]*(ip_address|visit_id)/i);
   assert.doesNotMatch(migration, /DROP TABLE|TRUNCATE|DELETE FROM/i);
+});
+
+test('emergency in-memory fallback still throttles repeat identities during a database outage', () => {
+  const fallback = createInMemoryRedirectRateLimiter({ perMinuteVisit: 2, perHourVisit: 3 });
+  const visitId = 'f'.repeat(32);
+  assert.deepEqual(fallback({ visitId }, 1000), { allowed: true, limitedScopes: [], degraded: true });
+  assert.deepEqual(fallback({ visitId }, 2000), { allowed: true, limitedScopes: [], degraded: true });
+  assert.deepEqual(fallback({ visitId }, 3000), { allowed: false, limitedScopes: ['visit'], degraded: true });
+  assert.deepEqual(fallback({ visitId: 'e'.repeat(32) }, 3000), { allowed: true, limitedScopes: [], degraded: true });
 });
