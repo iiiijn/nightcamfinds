@@ -473,7 +473,7 @@ http.createServer = function routeDashboard(handler) {
       const cutoff = "2026-11-10T00:00:00.000Z";
       const threshold = normalizeSpikeThreshold(process.env.NCF_CLICK_SPIKE_THRESHOLD, 60);
       try {
-        const result = await pool.query("SELECT c.is_bot, c.bot_reason, c.visit_id, v.traffic_class AS visit_class, c.source, c.campaign, CASE WHEN c.visit_id IS NOT NULL AND v.visit_id IS NOT NULL THEN TRUE ELSE FALSE END AS linked_visit FROM affiliate_clicks c LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id WHERE c.clicked_at >= $1::timestamptz AND LOWER(COALESCE(c.source, '')) <> 'test' AND LOWER(COALESCE(c.campaign, '')) NOT LIKE 'test_%'", [cutoff]);
+        const result = await pool.query("SELECT c.is_bot, c.bot_reason, c.visit_id, v.traffic_class AS visit_class, c.source, c.campaign, CASE WHEN c.visit_id IS NOT NULL AND v.visit_id IS NOT NULL THEN TRUE ELSE FALSE END AS linked_visit FROM affiliate_clicks c LEFT JOIN traffic_visits v ON v.visit_id=c.visit_id WHERE c.clicked_at >= $1::timestamptz AND LEFT(LOWER(COALESCE(c.source, '')), 5) <> 'test_' AND LOWER(COALESCE(c.source, '')) <> 'test' AND LEFT(LOWER(COALESCE(c.campaign, '')), 5) <> 'test_'", [cutoff]);
         const summary = { total: 0, knownBot: 0, suspectedBot: 0, notFlaggedAsBot: 0, clicksWithVisitId: 0, clicksWithoutVisitId: 0, clicksWithVisitRecord: 0, clicksWithMissingVisitRecord: 0, bySourceChannel: {} };
         for (const row of result.rows) {
           summary.total++;
@@ -486,7 +486,7 @@ http.createServer = function routeDashboard(handler) {
           const channel = classifySourceChannel(row.source);
           summary.bySourceChannel[channel] = (summary.bySourceChannel[channel] || 0) + 1;
         }
-        const spike = await pool.query("SELECT date_trunc('minute', clicked_at) AS minute, COUNT(*)::int AS clicks FROM affiliate_clicks WHERE clicked_at >= NOW() - INTERVAL '15 minutes' AND LOWER(COALESCE(source, '')) <> 'test' AND LOWER(COALESCE(campaign, '')) NOT LIKE 'test_%' GROUP BY 1 ORDER BY clicks DESC LIMIT 1");
+        const spike = await pool.query("SELECT date_trunc('minute', clicked_at) AS minute, COUNT(*)::int AS clicks FROM affiliate_clicks WHERE clicked_at >= NOW() - INTERVAL '15 minutes' AND LEFT(LOWER(COALESCE(source, '')), 5) <> 'test_' AND LOWER(COALESCE(source, '')) <> 'test' AND LEFT(LOWER(COALESCE(campaign, '')), 5) <> 'test_' GROUP BY 1 ORDER BY clicks DESC LIMIT 1");
         const peakMinute = spike.rows[0] || null;
         const peakClicksPerMinute = Number(peakMinute?.clicks || 0);
         const alertActive = peakClicksPerMinute >= threshold;
