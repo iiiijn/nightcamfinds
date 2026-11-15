@@ -62,3 +62,22 @@ test('dashboard exposes owner mode and a separate owner-only trace filter', () =
   assert.ok(html.includes('Owner diagnostics only'));
   assert.ok(html.includes('/api/owner-traffic'));
 });
+
+test('BongaCash conversion totals and breakdowns exclude owner-linked clicks without deleting conversions', async () => {
+  const bongacash = require('../bongacash');
+  const statements = [];
+  const pool = {
+    async query(sql) {
+      statements.push(String(sql));
+      return { rows: [{}], rowCount: 0 };
+    }
+  };
+  await bongacash.stats(pool, '2026-11-10', '2026-11-16');
+  const reports = statements.slice(-3);
+  assert.equal(reports.length, 3);
+  for (const sql of reports) {
+    assert.match(sql, /NOT EXISTS \\(SELECT 1 FROM affiliate_clicks owner_click WHERE owner_click\\.click_id = bonga_conversions\\.click_id AND owner_click\\.is_owner_traffic IS TRUE\\)/);
+    assert.match(sql, /WHERE .*received_at/);
+  }
+  assert.doesNotMatch(bongacash.stats.toString(), /DELETE FROM bonga_conversions|UPDATE bonga_conversions/);
+});

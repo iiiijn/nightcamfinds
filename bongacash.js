@@ -187,7 +187,12 @@ async function stats(pool, from, to) {
   const where = [];
   if (from && /^\d{4}-\d{2}-\d{2}$/.test(from)) { params.push(`${from}T00:00:00.000Z`); where.push(`received_at >= $${params.length}`); }
   if (to && /^\d{4}-\d{2}-\d{2}$/.test(to)) { params.push(`${to}T23:59:59.999Z`); where.push(`received_at <= $${params.length}`); }
-  const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  // Keep BongaCash conversion records intact, but do not attribute owner test activity
+  // to business registrations, purchases, refunds, country or source performance.
+  const ownerTrafficExclusion = "NOT EXISTS (SELECT 1 FROM affiliate_clicks owner_click WHERE owner_click.click_id = bonga_conversions.click_id AND owner_click.is_owner_traffic IS TRUE)";
+  const clause = where.length
+    ? `WHERE ${where.join(" AND ")} AND ${ownerTrafficExclusion}`
+    : `WHERE ${ownerTrafficExclusion}`;
   const row = (await pool.query(`SELECT
     COUNT(*) FILTER (WHERE conversion_type='registration')::int AS registrations,
     COUNT(*) FILTER (WHERE conversion_type='purchase')::int AS purchases,
