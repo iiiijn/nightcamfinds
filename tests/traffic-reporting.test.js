@@ -13,6 +13,7 @@ test('normalizes only recognized source labels into fixed reporting channels', (
   assert.equal(classifySourceChannel('test_campaign'), 'test');
   assert.equal(classifySourceChannel('reddit'), 'other');
   assert.equal(classifySourceChannel('unknown'), 'direct');
+  assert.equal(classifySourceChannel('direct', 'legacy'), 'other');
 });
 
 test('validates click spike thresholds and uses a safe default', () => {
@@ -42,7 +43,8 @@ test('since-cutoff traffic endpoint is session protected, bounded by 10 November
   assert.match(endpoint, /2026-11-10T00:00:00\.000Z/);
   assert.match(endpoint, /NCF_CLICK_SPIKE_THRESHOLD/);
   assert.match(endpoint, /affiliate_click_spike/);
-  assert.match(endpoint, /test_%/);
+  assert.match(endpoint, /revshare_audit_01/);
+  assert.match(endpoint, /source_evidence/);
   assert.doesNotMatch(endpoint, /ip_address|user_agent|email|full_name|raw_referrer/i);
 });
 
