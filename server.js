@@ -7,7 +7,7 @@ const { rankRoomsByPreferredPlatform } = require("./src/services/platform-rankin
 const { getCountryPage } = require("./country-pages.js");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
-const { createPostgresRedirectRateLimiter, normalizeClientIp } = require("./src/services/redirect-rate-limiter.cjs");
+const { createPostgresRedirectRateLimiter, createInMemoryRedirectRateLimiter, normalizeClientIp } = require("./src/services/redirect-rate-limiter.cjs");
 const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
 const { resolveVisitIdentity, buildVisitCookieHeaders } = require("./src/services/visit-id-attribution.cjs");
 const { COOKIE_NAME: OWNER_COOKIE_NAME, verifyOwnerCookie } = require("./src/services/owner-traffic-cookie.cjs");
@@ -55,6 +55,8 @@ const NCF_CLOUDFLARE_ORIGIN_SECRET = String(process.env.NCF_CLOUDFLARE_ORIGIN_SE
 const redirectRateLimiter = pgPool && typeof process.env.SESSION_SECRET === "string" && process.env.SESSION_SECRET.length >= 32
   ? createPostgresRedirectRateLimiter({ pool: pgPool, secret: process.env.SESSION_SECRET })
   : null;
+const emergencyRedirectRateLimiter = createInMemoryRedirectRateLimiter();
+let redirectRateLimitDegradedLogged = false;
 function trustedCloudflareClientIp(req) {
   const supplied = String(req.headers["x-ncf-cloudflare-auth"] || "");
   if (!NCF_CLOUDFLARE_ORIGIN_SECRET || !supplied) return null;
@@ -490,21 +492,29 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const visitId = visitIdentity.visitId;
     const isOwnerTraffic = verifyOwnerCookie(cookieValue(req, OWNER_COOKIE_NAME), process.env.SESSION_SECRET || "");
     const visitIdOrigin = visitIdentity.origin;
-    if (!redirectRateLimiter) {
-      console.error(JSON.stringify({ event: "affiliate_redirect_rate_limit_unavailable", platform }));
-      return send(res, 503, "Affiliate redirects are temporarily unavailable. Please try again shortly.", "text/plain; charset=utf-8", { "Cache-Control": "no-store", "Retry-After": "60" });
-    }
+    const rateLimitIdentity = {
+      ip: trustedCloudflareClientIp(req),
+      // Query-string visit IDs are visitor-controlled. Only an established
+      // first-party visit cookie participates in the visit-key limit.
+      visitId: visitIdOrigin === "cookie" ? visitId : null
+    };
     let rateLimitResult;
-    try {
-      rateLimitResult = await redirectRateLimiter({
-        ip: trustedCloudflareClientIp(req),
-        // Query-string visit IDs are visitor-controlled. Only an established
-        // first-party visit cookie participates in the visit-key limit.
-        visitId: visitIdOrigin === "cookie" ? visitId : null
-      });
-    } catch (error) {
-      console.error(JSON.stringify({ event: "affiliate_redirect_rate_limit_storage_error", platform, code: String(error.code || "unknown").slice(0, 32) }));
-      return send(res, 503, "Affiliate redirects are temporarily unavailable. Please try again shortly.", "text/plain; charset=utf-8", { "Cache-Control": "no-store", "Retry-After": "60" });
+    if (redirectRateLimiter) {
+      try {
+        rateLimitResult = await redirectRateLimiter(rateLimitIdentity);
+      } catch (error) {
+        if (!redirectRateLimitDegradedLogged) {
+          redirectRateLimitDegradedLogged = true;
+          console.warn(JSON.stringify({ event: "affiliate_redirect_rate_limit_storage_error_using_memory_fallback", platform, code: String(error.code || "unknown").slice(0, 32) }));
+        }
+        rateLimitResult = emergencyRedirectRateLimiter(rateLimitIdentity);
+      }
+    } else {
+      if (!redirectRateLimitDegradedLogged) {
+        redirectRateLimitDegradedLogged = true;
+        console.warn(JSON.stringify({ event: "affiliate_redirect_rate_limit_unavailable_using_memory_fallback", platform }));
+      }
+      rateLimitResult = emergencyRedirectRateLimiter(rateLimitIdentity);
     }
     if (!rateLimitResult.allowed) {
       console.warn(JSON.stringify({ event: "affiliate_redirect_rate_limited", platform, scopes: rateLimitResult.limitedScopes }));

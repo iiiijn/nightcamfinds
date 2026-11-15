@@ -106,4 +106,45 @@ function createPostgresRedirectRateLimiter({
   };
 }
 
-module.exports = { createPostgresRedirectRateLimiter, normalizeClientIp };
+
+function createInMemoryRedirectRateLimiter({
+  perMinuteIp = 20,
+  perHourIp = 120,
+  perMinuteVisit = 8,
+  perHourVisit = 40,
+  maxEntries = 50000
+} = {}) {
+  const requests = new Map();
+  const hashKey = (scope, value) => crypto
+    .createHmac('sha256', crypto.randomBytes(32))
+    .update(scope + ':' + value)
+    .digest('hex');
+  // A process-local fallback is intentionally degraded: it preserves redirect
+  // availability during a database outage but is not shared across instances
+  // and resets on restart. Persistent PostgreSQL remains the normal path.
+  return function checkInMemoryRedirectRateLimit({ ip, visitId } = {}, now = Date.now()) {
+    const entries = [];
+    const normalizedIp = normalizeClientIp(ip);
+    if (normalizedIp) entries.push({ scope: 'ip', hash: hashKey('ip', normalizedIp), perMinute: perMinuteIp, perHour: perHourIp });
+    const normalizedVisitId = String(visitId || '').trim().toLowerCase();
+    if (/^[a-f0-9]{32}$/.test(normalizedVisitId)) entries.push({ scope: 'visit', hash: hashKey('visit', normalizedVisitId), perMinute: perMinuteVisit, perHour: perHourVisit });
+    const limitedScopes = [];
+    for (const entry of entries) {
+      const recent = (requests.get(entry.hash) || []).filter(timestamp => now - timestamp < 60 * 60 * 1000);
+      if (recent.filter(timestamp => now - timestamp < 60 * 1000).length >= entry.perMinute || recent.length >= entry.perHour) {
+        limitedScopes.push(entry.scope);
+      }
+    }
+    if (limitedScopes.length) return { allowed: false, limitedScopes, degraded: true };
+    for (const entry of entries) {
+      const recent = (requests.get(entry.hash) || []).filter(timestamp => now - timestamp < 60 * 60 * 1000);
+      recent.push(now);
+      requests.delete(entry.hash);
+      requests.set(entry.hash, recent);
+    }
+    while (requests.size > maxEntries) requests.delete(requests.keys().next().value);
+    return { allowed: true, limitedScopes: [], degraded: true };
+  };
+}
+
+module.exports = { createPostgresRedirectRateLimiter, createInMemoryRedirectRateLimiter, normalizeClientIp };
