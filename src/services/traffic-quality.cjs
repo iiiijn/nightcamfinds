@@ -63,6 +63,39 @@ function createEngagementRateLimiter({ perMinute = 6, perHour = 30, maxEntries =
   };
 }
 
+
+function createRedirectRateLimiter({ perMinute = 12, perHour = 60, maxEntries = 50000 } = {}) {
+  const requests = new Map();
+  return function allowRedirect(key, now = Date.now()) {
+    const id = String(key || '').trim();
+    if (!id || id.length > 160) return false;
+    const recent = (requests.get(id) || []).filter(time => now - time < 60 * 60 * 1000);
+    if (recent.filter(time => now - time < 60 * 1000).length >= perMinute || recent.length >= perHour) {
+      requests.set(id, recent);
+      return false;
+    }
+    if (!requests.has(id) && requests.size >= maxEntries) {
+      const oldestKey = requests.keys().next().value;
+      if (oldestKey !== undefined) requests.delete(oldestKey);
+    }
+    recent.push(now);
+    requests.delete(id);
+    requests.set(id, recent);
+    return true;
+  };
+}
+
+function normalizeClientIp(value) {
+  const net = require('node:net');
+  const ip = String(value || '').trim().replace(/^\\[|\\]$/g, '');
+  if (net.isIP(ip) === 4) return ip;
+  if (net.isIP(ip) === 6 && ip.toLowerCase().startsWith('::ffff:')) {
+    const mapped = ip.slice(7);
+    return net.isIP(mapped) === 4 ? mapped : null;
+  }
+  return net.isIP(ip) === 6 ? ip.toLowerCase() : null;
+}
+
 function newVisitId() {
   return crypto.randomBytes(16).toString('hex');
 }
@@ -81,4 +114,4 @@ function nairobiWeekBounds(date = new Date()) {
   };
 }
 
-module.exports = { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS, CORE_ENGAGEMENT_EVENTS, BONGA_BANNER_EVENTS };
+module.exports = { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, createRedirectRateLimiter, normalizeClientIp, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS, CORE_ENGAGEMENT_EVENTS, BONGA_BANNER_EVENTS };
