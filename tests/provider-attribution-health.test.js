@@ -40,8 +40,10 @@ test('supports all-time reports without date predicates', () => {
   const q = health.buildQueries({});
   assert.deepEqual(q.callbacks.params, []);
   assert.deepEqual(q.clicks.params, []);
-  assert.doesNotMatch(q.callbacks.text, /\nWHERE /);
-  assert.doesNotMatch(q.clicks.text, /\nWHERE /);
+  assert.match(q.callbacks.text, /\nWHERE NOT EXISTS/);
+  assert.match(q.clicks.text, /\nWHERE COALESCE\(ac\.is_owner_traffic,FALSE\) IS FALSE/);
+  assert.doesNotMatch(q.callbacks.text, /received_at >=/);
+  assert.doesNotMatch(q.clicks.text, /clicked_at >=/);
 });
 
 
