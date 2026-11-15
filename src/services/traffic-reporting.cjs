@@ -2,8 +2,9 @@
 
 const SOURCE_CHANNELS = Object.freeze(['organic_search', 'direct', 'email', 'partner', 'test', 'other']);
 
-function classifySourceChannel(value) {
+function classifySourceChannel(value, evidence = 'unknown') {
   const source = String(value || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (String(evidence || '').toLowerCase() === 'legacy' && source === 'direct') return 'other';
   if (!source || source === 'unknown' || source === 'none' || source === 'direct') return 'direct';
   if (['organic_search', 'organic-search', 'google', 'bing', 'duckduckgo', 'yahoo', 'ecosia'].includes(source)) return 'organic_search';
   if (['email', 'newsletter', 'mailchimp', 'campaign_monitor'].includes(source)) return 'email';
