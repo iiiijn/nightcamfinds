@@ -9,11 +9,14 @@ test('validates individual click trace filters', () => {
   assert.match(trace.parseFilters(new URLSearchParams('limit=101')).error, /Limit/);
   assert.match(trace.parseFilters(new URLSearchParams('from=2026-02-30')).error, /valid calendar dates/);
   assert.match(trace.parseFilters(new URLSearchParams('from=2026-11-12&to=2026-11-11')).error, /on or before/);
+  assert.equal(trace.parseFilters(new URLSearchParams('owner=only')).value.ownerMode, 'only');
+  assert.match(trace.parseFilters(new URLSearchParams('owner=all')).error, /Owner filter/);
 });
 
 test('builds a parameterized read-only query with bounded results', () => {
   const query = trace.buildQuery({ from: '2026-11-01', to: '2026-11-12', platform: 'bongacams', limit: 25 });
   assert.match(query.text, /LEFT JOIN traffic_visits/);
+  assert.ok(query.text.includes('COALESCE(c.is_owner_traffic, FALSE) IS FALSE'));
   assert.match(query.text, /ORDER BY c\.clicked_at DESC/);
   assert.match(query.text, /LIMIT \$4/);
   assert.deepEqual(query.params, ['2026-11-01', '2026-11-12', 'bongacams', 25]);
@@ -31,4 +34,5 @@ test('maps a click to a room and preserves unknown source evidence', () => {
   assert.equal(row.trafficClass, 'unclassified');
   assert.equal(row.source, 'unknown');
   assert.equal(row.visitId, null);
+  assert.equal(row.isOwnerTraffic, false);
 });

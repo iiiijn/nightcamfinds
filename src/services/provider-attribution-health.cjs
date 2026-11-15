@@ -7,8 +7,8 @@ function buildQueries(filters = {}) {
   const to = String(filters.to || '').trim();
   if ((from && !validDate(from)) || (to && !validDate(to))) return { error: 'Dates must be valid calendar dates in YYYY-MM-DD format.' };
   if (from && to && from > to) return { error: 'Start date must be on or before end date.' };
-  const callbackParams = [], callbackWhere = [];
-  const clickParams = [], clickWhere = [];
+  const callbackParams = [], callbackWhere = ["NOT EXISTS (SELECT 1 FROM affiliate_clicks owner_click WHERE owner_click.click_id=cc.click_id AND owner_click.is_owner_traffic IS TRUE)"];
+  const clickParams = [], clickWhere = ["COALESCE(ac.is_owner_traffic,FALSE) IS FALSE"];
   if (from) {
     callbackParams.push(from); callbackWhere.push("cc.received_at >= ($" + callbackParams.length + "::date AT TIME ZONE 'UTC')");
     clickParams.push(from); clickWhere.push("ac.clicked_at >= ($" + clickParams.length + "::date AT TIME ZONE 'UTC')");

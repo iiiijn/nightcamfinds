@@ -24,8 +24,8 @@ function buildQuery(filters = {}) {
   }
 
   const invalidCallback = invalidCallbackPredicate('cc');
-  const internalClickExclusion = "LOWER(COALESCE(ac.source, '')) <> 'test' AND LOWER(COALESCE(ac.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')";
-  const internalVisitExclusion = "LOWER(COALESCE(tv.source, '')) <> 'test' AND LOWER(COALESCE(tv.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')";
+  const internalClickExclusion = "COALESCE(ac.is_owner_traffic, FALSE) IS FALSE AND LOWER(COALESCE(ac.source, '')) <> 'test' AND LOWER(COALESCE(ac.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')";
+  const internalVisitExclusion = "COALESCE(tv.is_owner_traffic, FALSE) IS FALSE AND LOWER(COALESCE(tv.source, '')) <> 'test' AND LOWER(COALESCE(tv.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')";
 
   const text = [
     'WITH click_groups AS (',
@@ -49,7 +49,7 @@ function buildQuery(filters = {}) {
     "           SELECT 1 FROM traffic_engagement_events e WHERE e.visit_id = tv.visit_id AND e.event_type IN ('active_10s','scroll_50')",
     '         ))::int AS engaged_visits,',
     '         COUNT(*) FILTER (WHERE EXISTS (',
-    '           SELECT 1 FROM affiliate_clicks acv WHERE acv.visit_id = tv.visit_id AND ' + [...visitClickWhere, "LOWER(COALESCE(acv.source, '')) <> 'test'", "LOWER(COALESCE(acv.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')"].join(' AND '),
+    '           SELECT 1 FROM affiliate_clicks acv WHERE acv.visit_id = tv.visit_id AND ' + [...visitClickWhere, "COALESCE(acv.is_owner_traffic, FALSE) IS FALSE", "LOWER(COALESCE(acv.source, '')) <> 'test'", "LOWER(COALESCE(acv.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')"].join(' AND '),
     '         ))::int AS visits_with_affiliate_click',
     '  FROM traffic_visits tv',
     '  WHERE ' + [...visitWhere, internalVisitExclusion].join(' AND '),
@@ -65,7 +65,7 @@ function buildQuery(filters = {}) {
     '  FROM cb_conversions cc',
     '  JOIN LATERAL (',
     '    SELECT country, source, campaign FROM affiliate_clicks',
-    "    WHERE click_id = cc.click_id AND LOWER(platform) = 'chaturbate' AND LOWER(COALESCE(source, '')) <> 'test' AND LOWER(COALESCE(campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')",
+    "    WHERE click_id = cc.click_id AND LOWER(platform) = 'chaturbate' AND COALESCE(is_owner_traffic, FALSE) IS FALSE AND LOWER(COALESCE(source, '')) <> 'test' AND LOWER(COALESCE(campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')",
     '    ORDER BY clicked_at ASC, id ASC LIMIT 1',
     '  ) ac ON TRUE',
     '  WHERE cc.matched_click IS TRUE',

@@ -44,6 +44,7 @@ test('since-cutoff traffic endpoint is session protected, bounded by 10 November
   assert.match(endpoint, /NCF_CLICK_SPIKE_THRESHOLD/);
   assert.match(endpoint, /affiliate_click_spike/);
   assert.match(endpoint, /revshare_audit_01/);
+  assert.ok(endpoint.includes('COALESCE(c.is_owner_traffic,FALSE) IS FALSE'));
   assert.match(endpoint, /source_evidence/);
   assert.doesNotMatch(endpoint, /ip_address|user_agent|email|full_name|raw_referrer/i);
 });
@@ -55,5 +56,7 @@ test('dashboard exposes and loads the since-cutoff report in the traffic tab', (
     assert.match(html, new RegExp('id="' + id + '"'));
   }
   assert.match(html, /loadTrafficSinceCutoff/);
-  assert.match(html, /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadClickOrigins\]/);
+  assert.ok(html.includes('ownerTrafficToggle'));
+  assert.ok(html.includes('traceOwnerMode'));
+  assert.match(html, /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins\]/);
 });

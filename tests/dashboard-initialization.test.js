@@ -21,7 +21,7 @@ test('dashboard uses one shared loader for restored sessions and fresh sign-ins'
   const tabLoader = dashboard.slice(tabLoaderStart, tabLoaderEnd);
   for (const group of [
     /overview:\[loadRoomCoverage,load,loadRouteSettings,loadCountryCategoryAnalytics\]/,
-    /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadClickOrigins\]/,
+    /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins\]/,
     /investigation:\[loadRecentRoomClicks,loadIndividualClickTrace\]/,
     /revenue:\[loadCampaignPerformance,loadTrafficRevenuePerformance,loadConversionRevenue,loadConversionFunnel\]/,
     /health:\[loadProviderAttributionHealth\]/

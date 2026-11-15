@@ -9,6 +9,7 @@ const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/r
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
 const { resolveVisitIdentity, buildVisitCookieHeaders } = require("./src/services/visit-id-attribution.cjs");
+const { COOKIE_NAME: OWNER_COOKIE_NAME, verifyOwnerCookie } = require("./src/services/owner-traffic-cookie.cjs");
 const { normalizeClickAttribution, resolvePageType } = require("./src/services/attribution-metadata.cjs");
 const { isPriorityMarket, MARKET_META, MARKET_PRIORITY_CODES } = require("./src/config/market-countries.cjs");
 const { fetchPagedResults } = require("./src/services/paged-feed.cjs");
@@ -137,7 +138,7 @@ async function ensureAffiliateLedgers() {
   await pgPool.query("CREATE INDEX IF NOT EXISTS cb_clicks_clicked_at_idx ON cb_clicks(clicked_at)");
   await pgPool.query("CREATE INDEX IF NOT EXISTS bonga_clicks_clicked_at_idx ON bonga_clicks(clicked_at)");
 }
-async function countClick({ src, country, category="unknown", source="unknown", sourceEvidence="unknown", campaign="unknown", medium="unknown", content="", device="unknown", clickId, platform="chaturbate", visitId=null, landingPath="/", pageType="unknown", trafficClass="unverified" }) {
+async function countClick({ src, country, category="unknown", source="unknown", sourceEvidence="unknown", campaign="unknown", medium="unknown", content="", device="unknown", clickId, platform="chaturbate", visitId=null, landingPath="/", pageType="unknown", trafficClass="unverified", isOwnerTraffic=false }) {
   if (pgPool) {
     let client = null;
     try {
@@ -146,13 +147,13 @@ async function countClick({ src, country, category="unknown", source="unknown", 
       client = await pgPool.connect();
       await client.query("BEGIN");
       const inserted = await client.query(
-        "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,source_evidence,click_id,visit_id,landing_path,is_bot,bot_reason,page_type) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id",
-        [country,category,source,campaign,src,platform,medium,content,device,sourceEvidence,clickId||null,visitId,landingPath,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null, pageType]
+        "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,source_evidence,click_id,visit_id,landing_path,is_bot,bot_reason,page_type,is_owner_traffic) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id",
+        [country,category,source,campaign,src,platform,medium,content,device,sourceEvidence,clickId||null,visitId,landingPath,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null, pageType,isOwnerTraffic]
       );
       if (visitId) {
         await client.query(
-          "INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) ON CONFLICT (visit_id) DO UPDATE SET traffic_class = CASE WHEN traffic_visits.traffic_class = 'known_bot' OR EXCLUDED.traffic_class = 'known_bot' THEN 'known_bot' WHEN traffic_visits.traffic_class = 'suspected_bot' OR EXCLUDED.traffic_class = 'suspected_bot' THEN 'suspected_bot' ELSE 'unverified' END, last_seen_at=NOW()",
-          [visitId,country,platform,source,medium,campaign,content,src,landingPath,trafficClass]
+          "INSERT INTO traffic_visits (visit_id,country,platform,source,medium,campaign,content,placement,landing_path,traffic_class,last_seen_at,is_owner_traffic) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW(),$11) ON CONFLICT (visit_id) DO UPDATE SET is_owner_traffic = traffic_visits.is_owner_traffic OR EXCLUDED.is_owner_traffic, traffic_class = CASE WHEN traffic_visits.traffic_class = 'known_bot' OR EXCLUDED.traffic_class = 'known_bot' THEN 'known_bot' WHEN traffic_visits.traffic_class = 'suspected_bot' OR EXCLUDED.traffic_class = 'suspected_bot' THEN 'suspected_bot' ELSE 'unverified' END, last_seen_at=NOW()",
+          [visitId,country,platform,source,medium,campaign,content,src,landingPath,trafficClass,isOwnerTraffic]
         );
       }
       if (platform === "chaturbate" && clickId) {
@@ -182,8 +183,8 @@ async function countClick({ src, country, category="unknown", source="unknown", 
           fallbackClient = await pgPool.connect();
           await fallbackClient.query("BEGIN");
           const legacy = await fallbackClient.query(
-            "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,source_evidence,click_id,is_bot,bot_reason,page_type) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id",
-            [country,category,source,campaign,src,platform,medium,content,device,sourceEvidence,clickId||null,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null, pageType]
+            "INSERT INTO affiliate_clicks (country,category,source,campaign,placement,platform,medium,content,device,source_evidence,click_id,is_bot,bot_reason,page_type,is_owner_traffic) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING id",
+            [country,category,source,campaign,src,platform,medium,content,device,sourceEvidence,clickId||null,trafficClass === "known_bot", trafficClass === "known_bot" ? "known_bot_user_agent" : trafficClass === "suspected_bot" ? "suspected_automation_user_agent" : null, pageType,isOwnerTraffic]
           );
           if (platform === "chaturbate" && clickId) {
             await fallbackClient.query(
@@ -212,9 +213,10 @@ async function countClick({ src, country, category="unknown", source="unknown", 
       if (client) client.release();
     }
   }
+  if (isOwnerTraffic) { console.warn("Owner traffic was not persisted because database tracking is unavailable."); return; }
   const stats=readStats(); stats.total=(stats.total||0)+1; stats.countries=stats.countries||{}; stats.countries[country]=(stats.countries[country]||0)+1; stats.byCategory=stats.byCategory||{}; stats.byCategory[category]=(stats.byCategory[category]||0)+1; stats.byCountryCategory=stats.byCountryCategory||{}; stats.byCountryCategory[`${country}:${category}`]=(stats.byCountryCategory[`${country}:${category}`]||0)+1; stats.bySource=stats.bySource||{}; stats.bySource[source]=(stats.bySource[source]||0)+1; stats.byCampaign=stats.byCampaign||{}; stats.byCampaign[campaign]=(stats.byCampaign[campaign]||0)+1; stats.byCountrySource=stats.byCountrySource||{}; stats.byCountrySource[`${country}:${source}`]=(stats.byCountrySource[`${country}:${source}`]||0)+1; stats.byCountryCampaign=stats.byCountryCampaign||{}; stats.byCountryCampaign[`${country}:${campaign}`]=(stats.byCountryCampaign[`${country}:${campaign}`]||0)+1; stats.byPlacement=stats.byPlacement||{}; stats.byPlacement[`${platform}:${src}`]=(stats.byPlacement[`${platform}:${src}`]||0)+1; stats.byPlatform=stats.byPlatform||{}; stats.byPlatform[platform]=(stats.byPlatform[platform]||0)+1; stats.byMedium=stats.byMedium||{}; stats.byMedium[medium]=(stats.byMedium[medium]||0)+1; stats.byRoom=stats.byRoom||{}; const roomMatch=String(content||"").match(/(?:^|:)room-([a-z0-9_-]{1,64})(?::|$)/i); if(roomMatch) stats.byRoom[`${platform}:${roomMatch[1]}`]=(stats.byRoom[`${platform}:${roomMatch[1]}`]||0)+1; stats.byDevice=stats.byDevice||{}; stats.byDevice[device]=(stats.byDevice[device]||0)+1; stats.updatedAt=new Date().toISOString(); writeStats(stats);
 }
-async function statsFromDb() { if (!pgPool) return null; try { await ensureTrackingTable(); const q=async(sql,params=[]) => (await pgPool.query(sql,params)).rows; const countries={}; for(const r of await q("SELECT country, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country ORDER BY count DESC")) countries[r.country]=r.count; const byCountryCategory={}; for(const r of await q("SELECT country, category, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, category ORDER BY count DESC")) byCountryCategory[`${r.country}:${r.category}`]=r.count; const byCountrySource={}; for(const r of await q("SELECT country, source, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY country, source ORDER BY count DESC")) byCountrySource[`${r.country}:${r.source}`]=r.count; const byPlatform={}; for(const r of await q("SELECT platform, COUNT(*)::int AS count FROM affiliate_clicks GROUP BY platform ORDER BY count DESC")) byPlatform[r.platform]=r.count; const total=Number((await q("SELECT COUNT(*)::int AS count FROM affiliate_clicks"))[0]?.count||0); const updated=await q("SELECT MAX(clicked_at) AS updated_at FROM affiliate_clicks"); return {total,countries,byCountryCategory,byCountrySource,byPlatform,updatedAt:updated[0]?.updated_at||null,persistent:true}; } catch(err) { console.error("Postgres stats read failed:",err.message); return null; } }
+async function statsFromDb() { if (!pgPool) return null; try { await ensureTrackingTable(); const q=async(sql,params=[]) => (await pgPool.query(sql,params)).rows; const countries={}; for(const r of await q("SELECT country, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY country ORDER BY count DESC")) countries[r.country]=r.count; const byCountryCategory={}; for(const r of await q("SELECT country, category, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY country, category ORDER BY count DESC")) byCountryCategory[`${r.country}:${r.category}`]=r.count; const byCountrySource={}; for(const r of await q("SELECT country, source, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY country, source ORDER BY count DESC")) byCountrySource[`${r.country}:${r.source}`]=r.count; const byPlatform={}; for(const r of await q("SELECT platform, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY platform ORDER BY count DESC")) byPlatform[r.platform]=r.count; const total=Number((await q("SELECT COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE"))[0]?.count||0); const updated=await q("SELECT MAX(clicked_at) AS updated_at FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE"); return {total,countries,byCountryCategory,byCountrySource,byPlatform,updatedAt:updated[0]?.updated_at||null,persistent:true}; } catch(err) { console.error("Postgres stats read failed:",err.message); return null; } }
 function clientIp(req) { const fwd=String(req.headers["x-forwarded-for"]||"").split(",")[0].trim(); if (/^\d{1,3}(\.\d{1,3}){3}$/.test(fwd)||fwd.includes(":")) return fwd; return "8.8.8.8"; }
 function normalizeChaturbateRoom(room) { return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,displayName:clean(room.display_name||room.username)||room.username,gender:normalizeRoomGender(room.gender),country:(room.country||"").toUpperCase(),countryName:NAMES[(room.country||"").toUpperCase()]||room.country||"",location:clean(room.location),viewerCount:Number(room.num_users||0),isHd:!!room.is_hd,isNew:!!room.is_new,image:room.image_url_360x270||room.image_url||"",roomSubject:clean(room.room_subject),languages:room.spoken_languages||"",href:room.chat_room_url_revshare||room.chat_room_url||""}; }
 function bongaGender(value) { return normalizeRoomGender(value); }
@@ -472,6 +474,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
       createVisitId: () => require("crypto").randomBytes(16).toString("hex")
     });
     const visitId = visitIdentity.visitId;
+    const isOwnerTraffic = verifyOwnerCookie(cookieValue(req, OWNER_COOKIE_NAME), process.env.SESSION_SECRET || "");
     const visitIdOrigin = visitIdentity.origin;
     const isSafeLandingPath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && value.length <= 255 && !/[\r\n]/.test(value);
     const queryLandingPath = url.searchParams.get("lp") || "";
@@ -479,7 +482,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const landingPath = isSafeLandingPath(queryLandingPath) ? queryLandingPath : isSafeLandingPath(cookieLandingPath) ? cookieLandingPath : pathname;
     const room = isBonga ? (await rooms(req)).rooms.find(r => r.platform === platform && r.username === username) : null;
     if (isBonga && !room) return send(res, 404, "Live room not found", "text/plain; charset=utf-8");
-    await countClick({ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath, pageType: resolvePageType(landingPath), trafficClass: classifyUserAgent(agent) });
+    await countClick({ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath, pageType: resolvePageType(landingPath), trafficClass: classifyUserAgent(agent), isOwnerTraffic });
     // This diagnostic records provenance without treating a fallback ID as a
     // previously established browsing session or storing raw visitor data.
     console.info(JSON.stringify({

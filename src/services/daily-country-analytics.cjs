@@ -21,7 +21,7 @@ function parseFilters(searchParams) {
 }
 
 function buildQuery(filters, options = {}) {
-  const params = [], conditions = [];
+  const params = [], conditions = ["COALESCE(is_owner_traffic,FALSE) IS FALSE"];
   if (filters.from) { params.push(filters.from); conditions.push("clicked_at >= ($" + params.length + "::date AT TIME ZONE 'UTC')"); }
   if (filters.to) { params.push(filters.to); conditions.push("clicked_at < (($" + params.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')"); }
   if (filters.tier1) { params.push(TIER1_COUNTRIES); conditions.push('UPPER(country) = ANY($' + params.length + '::text[])'); }
