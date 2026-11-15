@@ -7,6 +7,7 @@ const { rankRoomsByPreferredPlatform } = require("./src/services/platform-rankin
 const { getCountryPage } = require("./country-pages.js");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
+const { createPostgresRedirectRateLimiter, createInMemoryRedirectRateLimiter, normalizeClientIp } = require("./src/services/redirect-rate-limiter.cjs");
 const { buildChaturbateUrl } = require("./src/services/chaturbate-revshare.cjs");
 const { resolveVisitIdentity, buildVisitCookieHeaders } = require("./src/services/visit-id-attribution.cjs");
 const { COOKIE_NAME: OWNER_COOKIE_NAME, verifyOwnerCookie } = require("./src/services/owner-traffic-cookie.cjs");
@@ -50,6 +51,21 @@ const BONGA_TRUSTED_CLIENT_IP_HEADER = String(process.env.BONGACAMS_TRUSTED_CLIE
 const BONGA_ORIGIN_AUTH_SECRET = process.env.BONGACAMS_ORIGIN_AUTH_SECRET || "";
 const BONGA_ENABLED = process.env.BONGACAMS_ENABLED !== "false";
 const BONGA_LIMIT = Math.max(10, Math.min(500, Number(process.env.BONGACAMS_LIMIT || 100)));
+const NCF_CLOUDFLARE_ORIGIN_SECRET = String(process.env.NCF_CLOUDFLARE_ORIGIN_SECRET || "");
+const redirectRateLimiter = pgPool && typeof process.env.SESSION_SECRET === "string" && process.env.SESSION_SECRET.length >= 32
+  ? createPostgresRedirectRateLimiter({ pool: pgPool, secret: process.env.SESSION_SECRET })
+  : null;
+const emergencyRedirectRateLimiter = createInMemoryRedirectRateLimiter();
+let redirectRateLimitDegradedLogged = false;
+function trustedCloudflareClientIp(req) {
+  const supplied = String(req.headers["x-ncf-cloudflare-auth"] || "");
+  if (!NCF_CLOUDFLARE_ORIGIN_SECRET || !supplied) return null;
+  const expected = Buffer.from(NCF_CLOUDFLARE_ORIGIN_SECRET);
+  const actual = Buffer.from(supplied);
+  const crypto = require("node:crypto");
+  if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) return null;
+  return normalizeClientIp(req.headers["cf-connecting-ip"]);
+}
 const CHATURBATE_PAGE_SIZE = 500;
 const CHATURBATE_MAX_PAGES = Math.max(1, Math.min(20, Number(process.env.CHATURBATE_MAX_PAGES || 10)));
 const CHATURBATE_REGION_MAX_PAGES = resolveRegionalMaxPages(process.env.CHATURBATE_REGION_MAX_PAGES, CHATURBATE_MAX_PAGES);
@@ -476,6 +492,34 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const visitId = visitIdentity.visitId;
     const isOwnerTraffic = verifyOwnerCookie(cookieValue(req, OWNER_COOKIE_NAME), process.env.SESSION_SECRET || "");
     const visitIdOrigin = visitIdentity.origin;
+    const rateLimitIdentity = {
+      ip: trustedCloudflareClientIp(req),
+      // Query-string visit IDs are visitor-controlled. Only an established
+      // first-party visit cookie participates in the visit-key limit.
+      visitId: visitIdOrigin === "cookie" ? visitId : null
+    };
+    let rateLimitResult;
+    if (redirectRateLimiter) {
+      try {
+        rateLimitResult = await redirectRateLimiter(rateLimitIdentity);
+      } catch (error) {
+        if (!redirectRateLimitDegradedLogged) {
+          redirectRateLimitDegradedLogged = true;
+          console.warn(JSON.stringify({ event: "affiliate_redirect_rate_limit_storage_error_using_memory_fallback", platform, code: String(error.code || "unknown").slice(0, 32) }));
+        }
+        rateLimitResult = emergencyRedirectRateLimiter(rateLimitIdentity);
+      }
+    } else {
+      if (!redirectRateLimitDegradedLogged) {
+        redirectRateLimitDegradedLogged = true;
+        console.warn(JSON.stringify({ event: "affiliate_redirect_rate_limit_unavailable_using_memory_fallback", platform }));
+      }
+      rateLimitResult = emergencyRedirectRateLimiter(rateLimitIdentity);
+    }
+    if (!rateLimitResult.allowed) {
+      console.warn(JSON.stringify({ event: "affiliate_redirect_rate_limited", platform, scopes: rateLimitResult.limitedScopes }));
+      return send(res, 429, "Too many requests. Please try again shortly.", "text/plain; charset=utf-8", { "Cache-Control": "no-store", "Retry-After": "60" });
+    }
     const isSafeLandingPath = value => typeof value === "string" && value.startsWith("/") && !value.startsWith("//") && value.length <= 255 && !/[\r\n]/.test(value);
     const queryLandingPath = url.searchParams.get("lp") || "";
     const cookieLandingPath = cookieValue(req, "ncf_landing_path");
