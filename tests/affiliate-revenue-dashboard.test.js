@@ -68,3 +68,10 @@ test('environment and operational documentation distinguish Chaturbate secret fr
   assert.match(readiness, /BONGACASH_POSTBACK_SECRET.*not consumed/i);
   assert.match(runbook, /BongaCash automatic conversion tracking is not implemented/i);
 });
+
+
+test('legacy dashboard stats never infer BongaCash connectivity from an unused secret', () => {
+  const legacyRoute = fs.readFileSync(path.join(__dirname, '../start.js'), 'utf8');
+  assert.match(legacyRoute, /bongacashConnected:\\s*false/);
+  assert.doesNotMatch(legacyRoute, /bongacashConnected:\\s*Boolean\\(String\\(process\\.env\\.BONGACASH_POSTBACK_SECRET/);
+});
