@@ -484,3 +484,36 @@ footer span { flex: 1 1 100%; }
 .cb-category-link span:last-child{color:var(--amber)}
 .cb-category-link:hover{border-color:var(--accent);color:var(--amber)}
 @media(max-width:640px){.cb-category-promo{padding:12px}.cb-category-links{grid-template-columns:repeat(2,minmax(0,1fr))}.cb-category-link{padding:10px;font-size:12px}}
+
+
+/* Phase A1.14.1: keep the room directory usable across tablet widths. */
+.image-fallback {
+  object-fit: contain;
+  padding: 18px;
+  background: var(--panel-2);
+}
+.directory-layout .directory-main,
+.directory-layout .bonga-promo-sidebar {
+  min-width: 0;
+}
+@media (max-width: 980px) {
+  .directory-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .bonga-promo-sidebar {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    align-items: start;
+    margin-top: 0;
+  }
+  .bonga-dynamic-banner {
+    margin: 0 auto;
+  }
+}
+@media (max-width: 720px) {
+  .directory-layout { display: block; }
+  .bonga-promo-sidebar {
+    grid-template-columns: minmax(0, 1fr);
+    margin-top: 18px;
+  }
+}
