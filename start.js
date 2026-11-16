@@ -379,7 +379,8 @@ async function dashboardStats(incoming) {
     today: await countSince(1), week: await countSince(7), month: await countSince(30),
     registrations: cbRegistrations, purchases: cbPurchases, earnings: cbUsdEarnings, earningsByCurrency, bongacamsRegistrations: Number(bongacash.rows[0]?.registrations || 0),
     bongacamsPurchases: Number(bongacash.rows[0]?.purchases || 0), bongacamsEarnings: Number(bongacash.rows[0]?.earnings || 0),
-    bongacashConnected: Boolean(String(process.env.BONGACASH_POSTBACK_SECRET || "").trim()),
+    // Legacy BONGACASH_POSTBACK_SECRET is not consumed by the callback route. Never infer provider connectivity from its presence.
+    bongacashConnected: false,
     platforms, countries, sources, placements, campaigns, devices, mediums,
     countryPlatformMetrics, countryPlatformMetricsAvailable
   };

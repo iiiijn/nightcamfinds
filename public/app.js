@@ -388,7 +388,12 @@ async function load(offset = 0, append = false) {
   if (countrySelect.value) params.set("country", countrySelect.value);
   if (regionSelect.value) params.set("region", regionSelect.value);
   if (languageSelect.value) params.set("language", languageSelect.value);
-  const data = await fetch("/api/rooms?" + params).then((r) => r.json());
+  const response = await fetch("/api/rooms?" + params);
+  if (!response.ok) throw new Error("Room feed request failed (" + response.status + ").");
+  const data = await response.json();
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new Error("Room feed returned an invalid response.");
+  }
   if (countrySelect.options.length === 1) {
     for (const iso of data.countries || []) {
       const opt = document.createElement("option");
@@ -489,7 +494,10 @@ load().catch(() => {
 });
 setInterval(() => {
   if (document.hidden || q.value) return;
-  load().catch(() => {});
+  load().catch(() => {
+    notice.hidden = false;
+    notice.textContent = "Could not refresh rooms. Please try again.";
+  });
 }, 30000);
 // NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V2
 // NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V3
