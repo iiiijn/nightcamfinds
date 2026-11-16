@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const root = path.join(__dirname, "..");
 const start = fs.readFileSync(path.join(root, "start.js"), "utf8");
+const routes = fs.readFileSync(path.join(root, "route.js"), "utf8");
 const helper = fs.readFileSync(path.join(root, "src/services/chaturbate-revshare.cjs"), "utf8");
 const revenue = fs.readFileSync(path.join(root, "src/services/conversion-revenue.cjs"), "utf8");
 const audit = fs.readFileSync(path.join(root, "docs/phase-a1-16-conversion-readiness.md"), "utf8");
@@ -40,8 +41,8 @@ test("verified revenue excludes unmatched events and preserves currency grouping
 
 test("BongaCash automatic callback remains explicitly unsupported and not connected", () => {
   assert.ok(start.includes("bongacashConnected: false"));
-  assert.ok(start.includes('incoming.pathname === "/api/bongacash/postback"'));
-  assert.ok(start.includes("410"));
+  assert.ok(routes.includes('incoming.pathname === "/api/bongacash/postback"'));
+  assert.ok(routes.includes("sendJson(res, 410"));
   assert.match(audit, /must remain disabled/i);
   assert.match(audit, /does not document a server-to-server postback endpoint/i);
 });
