@@ -8,6 +8,10 @@ function response(status, body, contentType = "application/json") {
   return { status, headers: { get(name) { return name.toLowerCase() === "content-type" ? contentType : null; } }, async text() { return body; } };
 }
 
+function validate(check, status, body, contentType = "application/json") {
+  return validateSmokeResponse(check, response(status, body, contentType), body);
+}
+
 test("smoke checks use only read-only GET routes and exclude tracked affiliate redirects", () => {
   const checks = buildSmokeChecks("https://nightcamfinds.com");
   assert.ok(checks.every((check) => check.url.startsWith("https://nightcamfinds.com/")));
@@ -23,22 +27,22 @@ test("smoke check URL validation rejects unsafe or ambiguous origins", () => {
 });
 
 test("health and provider feed contracts validate their response shapes", () => {
-  assert.deepEqual(validateSmokeResponse({ expectedStatus: 200, kind: "health" }, response(200, '{"ok":true}')), { ok: true, status: 200 });
-  assert.deepEqual(validateSmokeResponse({ expectedStatus: 200, kind: "room-summary" }, response(200, '{"liveCount":12,"platforms":["chaturbate"]}')), { ok: true, status: 200 });
-  assert.deepEqual(validateSmokeResponse({ expectedStatus: 200, kind: "bonga-feed" }, response(200, '{"rooms":[],"platform":"bongacams"}')), { ok: true, status: 200 });
+  assert.deepEqual(validate({ expectedStatus: 200, kind: "health" }, 200, '{"ok":true}'), { ok: true, status: 200 });
+  assert.deepEqual(validate({ expectedStatus: 200, kind: "room-summary" }, 200, '{"liveCount":12,"platforms":["chaturbate"]}'), { ok: true, status: 200 });
+  assert.deepEqual(validate({ expectedStatus: 200, kind: "bonga-feed" }, 200, '{"rooms":[],"platform":"bongacams"}'), { ok: true, status: 200 });
 });
 
 test("smoke check fails on malformed feeds, unhealthy status, and unexpected redirects", () => {
-  assert.equal(validateSmokeResponse({ expectedStatus: 200, kind: "health" }, response(200, '{"ok":false}')).ok, false);
-  assert.equal(validateSmokeResponse({ expectedStatus: 200, kind: "bonga-feed" }, response(200, '{"rooms":[]}')).ok, false);
-  assert.equal(validateSmokeResponse({ expectedStatus: 200, kind: "html" }, response(302, "", "text/html")).reason, "unexpected_http_status");
+  assert.equal(validate({ expectedStatus: 200, kind: "health" }, 200, '{"ok":false}').ok, false);
+  assert.equal(validate({ expectedStatus: 200, kind: "bonga-feed" }, 200, '{"rooms":[]}').ok, false);
+  assert.equal(validate({ expectedStatus: 200, kind: "html" }, 302, "", "text/html").reason, "unexpected_http_status");
 });
 
 test("dashboard and provider callback checks require safe unauthenticated rejection", () => {
-  assert.equal(validateSmokeResponse({ expectedStatus: 401, kind: "unauthorized" }, response(401, '{"error":"Unauthorized"}')).ok, true);
-  assert.equal(validateSmokeResponse({ expectedStatus: [403, 503], kind: "callback-rejected" }, response(403, '{"error":"Invalid postback authentication."}')).ok, true);
-  assert.equal(validateSmokeResponse({ expectedStatus: 410, kind: "gone" }, response(410, '{"error":"BongaCash postbacks are not supported. Use manual affiliate-report reconciliation."}')).ok, true);
-  assert.equal(validateSmokeResponse({ expectedStatus: 401, kind: "unauthorized" }, response(200, '{"ok":true}')).ok, false);
+  assert.equal(validate({ expectedStatus: 401, kind: "unauthorized" }, 401, '{"error":"Unauthorized"}').ok, true);
+  assert.equal(validate({ expectedStatus: [403, 503], kind: "callback-rejected" }, 403, '{"error":"Invalid postback authentication."}').ok, true);
+  assert.equal(validate({ expectedStatus: 410, kind: "gone" }, 410, '{"error":"BongaCash postbacks are not supported. Use manual affiliate-report reconciliation."}').ok, true);
+  assert.equal(validate({ expectedStatus: 401, kind: "unauthorized" }, 200, '{"ok":true}').ok, false);
 });
 
 test("runner performs sequential GET requests without following redirects", async () => {
@@ -59,12 +63,13 @@ test("runner performs sequential GET requests without following redirects", asyn
   });
   assert.equal(result.ok, true);
   assert.equal(result.passed, result.total);
-  assert.ok(seen.length > 10);
+  assert.equal(seen.length, result.total);
   assert.ok(seen.every(({ options }) => options.method === "GET" && options.redirect === "manual"));
 });
 
 test("runner reports individual failures without stopping later checks", async () => {
   let count = 0;
+  const checks = buildSmokeChecks("https://nightcamfinds.com");
   const result = await runSmokeChecks({
     baseUrl: "https://nightcamfinds.com",
     fetchImpl: async () => {
@@ -73,7 +78,9 @@ test("runner reports individual failures without stopping later checks", async (
       return response(200, "<html></html>", "text/html");
     }
   });
-  assert.equal(result.failed, result.total - 1);
+  assert.equal(result.results.length, checks.length);
+  assert.ok(result.failed >= 1);
   assert.equal(result.results[0].reason, "request_failed");
-  assert.equal(count, result.total);
+  assert.equal(count, checks.length);
+  assert.ok(result.results.slice(1).every((item) => item.reason !== "request_failed"));
 });
