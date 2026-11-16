@@ -42,3 +42,29 @@ test('dashboard business statistics exclude known internal test and audit clicks
   assert.match(stats, /revshare_webmaster-commission/);
   assert.match(stats, /const where = x\.where \? x\.where \+ " AND " \+ internalTrafficExclusion/);
 });
+
+
+test('provider attribution health explicitly reports BongaCash as manual-only, never connected', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const dashboard = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
+  assert.match(route, /bongacashPostback:\s*\{\s*enabled:\s*false,\s*clickIdPassThroughConfigured:\s*false,\s*reconciliation:\s*"manual"\s*\}/);
+  assert.match(route, /Automatic BongaCash postbacks are disabled/);
+  assert.match(route, /BongaCash's public FAQ/);
+  assert.match(dashboard, /BongaCash automatic postbacks are disabled/);
+  assert.match(route, /\/api\/bongacash\/postback/);
+  assert.match(route, /sendJson\(res, 410/);
+});
+
+test('environment and operational documentation distinguish Chaturbate secret from legacy BongaCash setting', () => {
+  const env = fs.readFileSync(path.join(__dirname, '../.env.example'), 'utf8');
+  const cbDoc = fs.readFileSync(path.join(__dirname, '../docs/chaturbate-postback-setup.md'), 'utf8');
+  const readiness = fs.readFileSync(path.join(__dirname, '../docs/production-readiness.md'), 'utf8');
+  const runbook = fs.readFileSync(path.join(__dirname, '../docs/PRODUCTION-RUNBOOK.md'), 'utf8');
+  assert.match(env, /CB_POSTBACK_SECRET=/);
+  assert.match(cbDoc, /CB_POSTBACK_SECRET/);
+  assert.match(readiness, /CB_POSTBACK_SECRET/);
+  assert.doesNotMatch(readiness, /POSTBACK_TOKEN before accepting live Chaturbate/);
+  assert.match(readiness, /BONGACAMS_ENABLED/);
+  assert.match(readiness, /BONGACASH_POSTBACK_SECRET.*not consumed/i);
+  assert.match(runbook, /BongaCash automatic conversion tracking is not implemented/i);
+});

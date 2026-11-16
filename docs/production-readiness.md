@@ -36,7 +36,7 @@ Required secrets, set in the host secret manager, never in git:
 - `ADMIN_PASSWORD` (not `change-me`, at least 12 characters)
 - `SESSION_SECRET` (at least 24 characters, not the example value)
 - `OWNER_MFA_SECRET` (40 hex characters; see MFA)
-- `POSTBACK_TOKEN` before accepting live Chaturbate postbacks
+- `CB_POSTBACK_SECRET` only when the Chaturbate Dynamic Postback URL includes the matching static `secret` query parameter. The handler rejects callbacks when this secret is missing or invalid. This is a NightCamFinds shared secret, not a Chaturbate macro.
 
 Required non-secret configuration:
 
@@ -46,17 +46,18 @@ Required non-secret configuration:
 - `ADMIN_USER`
 - `CHATURBATE_WM=C6yxN`
 - `CHATURBATE_ENABLED=true` only if that campaign is the one you intend to use
-- `BONGACASH_ENABLED=false`
-- `BONGACASH_POSTBACKS=false`
-- `BONGACASH_CAMPAIGN=840970`
-- `BONGACASH_PROGRAM=RevShare`
+- `BONGACAMS_ENABLED=true` only when the BongaCams room feed is intentionally enabled
+- `BONGACAMS_CAMPAIGN=840970`
+- `BONGACAMS_API_BASE=https://bngprm.com/promo.php` only after confirming the campaign and destination with the account
+
+Legacy `BONGACASH_*` variables are compatibility settings and do not enable automatic BongaCash conversion tracking. `BONGACASH_POSTBACK_SECRET` is not consumed by the current postback handler. Do not configure it or report BongaCash postbacks as active.
 
 Optional:
 
 - `PORT`
 - `REDIS_URL` (unused at launch)
 - `EMAIL_PROVIDER`, `EMAIL_FROM` (disabled)
-- `BONGACASH_API_BASE` (leave empty until verified)
+- `BONGACASH_API_BASE` (legacy compatibility variable; not the active BongaCams feed setting)
 
 No production secret values are generated or shown here.
 
@@ -78,15 +79,15 @@ Do not assume the selected program.
 - Record the selected payout program from the account. Do not copy a guessed rate.
 - Open a room from NightCamFinds `/go/{id}` and confirm the landing URL is on `chaturbate.com` and carries `click_id`.
 - Confirm in Chaturbate docs/account that `click_id` is an accepted pass-through for your program.
-- The production handler is `GET https://nightcamfinds.com/api/chaturbate/postback` (also accepts `/cb/postback`). The older `/postback/chaturbate` path in prior notes is not the active handler.
-- For Dynamic Postbacks, use the documented Chaturbate macros: `{click_id}`, `{transaction_id}`, `{type}`, `{payout}`, `{currency}`, `{amount}`, `{country}`, `{track}`, `{source}`, `{campaign_id}`, `{program_id}`, `{user_id}`, `{timestamp}`, `{device}`, and `{language}`. Chaturbate documents GET and POST delivery; the current NightCamFinds handler is verified for GET only, so select GET.
+- The production handler is `https://nightcamfinds.com/api/chaturbate/postback` (also accepts `/cb/postback`). It accepts GET and POST. The older `/postback/chaturbate` path in prior notes is not the active handler.
+- For Dynamic Postbacks, use the documented Chaturbate macros: `{click_id}`, `{transaction_id}`, `{type}`, `{payout}`, `{currency}`, `{amount}`, `{country}`, `{track}`, `{source}`, `{campaign_id}`, `{program_id}`, `{user_id}`, `{timestamp}`, `{device}`, and `{language}`. The NightCamFinds handler accepts GET, form-encoded POST, and JSON POST.
 - The handler requires real `click_id` and `transaction_id`, ignores literal macro-placeholder test probes, and stores conversion events idempotently by transaction ID. It checks the click against the legacy `cb_clicks` mirror; a live click ID was confirmed in both `cb_clicks` and `affiliate_clicks` on 2026-10-31.
-- The optional Chaturbate validation-salt/checksum mechanism is not yet implemented in NightCamFinds. Do not configure checksum validation until its exact signature algorithm is implemented and tested. Do not set `CB_POSTBACK_SECRET` unless the postback request actually sends a matching `secret` parameter; Chaturbate's documented dynamic macro list does not include one.
+- The optional Chaturbate validation-salt/checksum mechanism is not yet implemented in NightCamFinds. Do not configure checksum validation until its exact signature algorithm is implemented and tested. The current handler requires a static `secret` parameter matching Render's `CB_POSTBACK_SECRET`. This is separate from Chaturbate's macro list. If your account cannot append a static query parameter to the callback URL, do not enable the callback until an alternative supported authentication method is implemented and reviewed.
 - Configure the URL in the Chaturbate account only after verifying the selected campaign/program and the account's Dynamic Postbacks page. Send the URL tester first; it should receive `200 OK` without creating a conversion row. Real signup/purchase events remain REQUIRES VERIFICATION until one arrives with a real click ID and is matched.
 
 ## 5. BongaCash verification checklist
 
-Keep `BONGACASH_ENABLED=false` and `BONGACASH_POSTBACKS=false`.
+Keep automatic BongaCash postbacks disabled. The active feed settings use `BONGACAMS_ENABLED` and `BONGACAMS_CAMPAIGN`; they do not enable conversion attribution.
 
 - Confirm campaign `840970` in the account.
 - Copy the documented API base from the account or official docs. Do not invent it.
