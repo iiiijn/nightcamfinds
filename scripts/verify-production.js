@@ -10,6 +10,7 @@ const requiredFiles = [
   "scripts/patch-origin-auth.js",
   "src/services/origin-auth.cjs",
   "tests/origin-auth.test.js",
+  "docs/phase-a1-7-security-rollout.md",
   ".github/workflows/verify-production.yml",
   "render.yaml",
   "public/index.html",
