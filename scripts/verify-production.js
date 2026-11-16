@@ -7,6 +7,10 @@ const requiredFiles = [
   "scripts/fix-server-syntax.js",
   "scripts/patch-country-directory.js",
   "scripts/patch-spa-seo-routes.js",
+  "scripts/patch-origin-auth.js",
+  "src/services/origin-auth.cjs",
+  "tests/origin-auth.test.js",
+  "docs/phase-a1-7-security-rollout.md",
   ".github/workflows/verify-production.yml",
   "render.yaml",
   "public/index.html",
@@ -44,9 +48,15 @@ if (!render.includes("buildCommand: npm ci")) fail("Render build configuration m
 if (!render.includes("scripts/patch-seo-attribution-v2.js")) fail("Render build must apply the SEO attribution patch");
 if (!render.includes("scripts/patch-spa-seo-routes.js")) fail("Render build must apply the SPA SEO patch");
 if (!render.includes("scripts/fix-bonga-affiliate.js")) fail("Render build must apply the Bonga affiliate patch");
+if (!render.includes("scripts/patch-origin-auth.js")) fail("Render build must apply the staged origin-auth patch after the other route patches");
 if (!render.includes("startCommand: npm start")) fail("Render must start through npm start");
 
 const route = fs.readFileSync("route.js", "utf8");
+const originAuthPatch = require("./patch-origin-auth.js");
+const patchedRoute = originAuthPatch.patchSource(route);
+if (!patchedRoute.includes(originAuthPatch.MARKER)) fail("Cloudflare origin-auth guard is missing from the build output");
+const originAuthSource = fs.readFileSync("src/services/origin-auth.cjs", "utf8");
+if (!originAuthSource.includes('"/api/chaturbate/postback"') || !originAuthSource.includes('"/cb/postback"')) fail("origin-auth guard must preserve the independently authenticated Chaturbate callback paths");
 if (!route.includes("NIGHTCAMFINDS_CB_POSTBACK_PATCH_V6")) fail("route.js is missing the Chaturbate route marker");
 if (!route.includes("NIGHTCAMFINDS_BONGA_REVSHARE_V1")) fail("route.js is missing BongaCash RevShare routing");
 if (!route.includes('target.searchParams.set("c", BONGA_CAMPAIGN)')) fail("BongaCash campaign routing is missing");
