@@ -152,6 +152,7 @@ test("Chaturbate diagnostics count metadata presence without exposing values or 
         missing: 1,
         exact_country: 0,
         city_country: 0,
+        location_country: 0,
         comma_unrecognized: 0,
         other_nonempty: 2
       }
@@ -195,6 +196,7 @@ test("Chaturbate location diagnostics classify shapes without exposing location 
       missing: 3,
       exact_country: 2,
       city_country: 2,
+      location_country: 0,
       comma_unrecognized: 1,
       other_nonempty: 2
     }
@@ -218,6 +220,7 @@ test("Chaturbate feed metadata includes location shape counts but never raw loca
     missing: 0,
     exact_country: 0,
     city_country: 1,
+    location_country: 0,
     comma_unrecognized: 1,
     other_nonempty: 0
   });
@@ -273,4 +276,28 @@ test("pagination diagnostics preserve repeated-page truncation and sanitize page
     { offset: null, responseTimeMs: null, receivedCount: 1, uniqueCount: 1, duplicateCount: 0 }
   ]);
   assert.equal(JSON.stringify(result).includes("must-not-appear"), false);
+});
+
+test("Chaturbate location diagnostics recognize a valid country suffix after multiple location components", () => {
+  const rows = [
+    { username: "private-a", location: "New York, NY, United States" },
+    { username: "private-b", location: "Berlin, State, Germany" },
+    { username: "private-c", location: "Springfield, Unknownland, Region" },
+    { username: "private-d", location: "Nairobi, Kenya" }
+  ];
+  const result = summarizeChaturbateLocationShapes(rows);
+  assert.deepEqual(result.locationShapeCounts, {
+    missing: 0,
+    exact_country: 0,
+    city_country: 1,
+    location_country: 2,
+    comma_unrecognized: 1,
+    other_nonempty: 0
+  });
+  assert.equal(classifyChaturbateLocation("New York, NY, United States"), "location_country");
+  assert.equal(classifyChaturbateLocation("Springfield, Unknownland, Region"), "comma_unrecognized");
+  const serialized = JSON.stringify(result);
+  for (const privateValue of ["New York", "Berlin", "Nairobi", "private-a"]) {
+    assert.equal(serialized.includes(privateValue), false);
+  }
 });
