@@ -327,27 +327,32 @@ function renderRegionalSections(regionalRooms) {
     }
   }
   if (homeLike) {
-    const topByCategory = window.__ncfTopChaturbateByCategory || {};
-    for (const [gender, label] of [["female", "Female"], ["male", "Male"], ["trans", "Trans"], ["couples", "Couples"]]) {
-      const rooms = Array.isArray(topByCategory[gender]) ? topByCategory[gender] : [];
-      if (!rooms.length) continue;
-      const section = document.createElement("section");
-      section.className = "home-group global-chaturbate-group";
-      const heading = document.createElement("h2");
-      heading.className = "row-heading";
-      const title = document.createElement("span");
-      title.textContent = "Popular Chaturbate " + label + " Rooms";
-      const count = document.createElement("small");
-      count.textContent = "Top " + rooms.length + " worldwide by current viewers";
-      const more = document.createElement("a");
-      more.href = "/" + gender + "/?ncf_platform=chaturbate&sort=viewers";
-      more.textContent = "See all";
-      heading.append(title, count, more);
-      const row = document.createElement("div");
-      row.className = "category-row";
-      row.append(...rooms.map(card));
-      section.append(heading, row);
-      categoryRows.append(section);
+    const providerRows = [
+      ["Chaturbate", "chaturbate", window.__ncfTopChaturbateByCategory || {}],
+      ["BongaCams", "bongacams", window.__ncfTopBongaByCategory || {}]
+    ];
+    for (const [platformLabel, platformKey, byCategory] of providerRows) {
+      for (const [gender, label] of [["female", "Female"], ["male", "Male"], ["trans", "Trans"], ["couples", "Couples"]]) {
+        const rooms = Array.isArray(byCategory[gender]) ? byCategory[gender] : [];
+        if (!rooms.length) continue;
+        const section = document.createElement("section");
+        section.className = "home-group global-platform-group " + platformKey + "-group";
+        const heading = document.createElement("h2");
+        heading.className = "row-heading";
+        const title = document.createElement("span");
+        title.textContent = "Popular " + platformLabel + " " + label + " Rooms";
+        const count = document.createElement("small");
+        count.textContent = rooms.length + " live rooms worldwide";
+        const more = document.createElement("a");
+        more.href = "/" + gender + "/?ncf_platform=" + platformKey + "&sort=viewers";
+        more.textContent = "See all";
+        heading.append(title, count, more);
+        const row = document.createElement("div");
+        row.className = "category-row";
+        row.append(...rooms.map(card));
+        section.append(heading, row);
+        categoryRows.append(section);
+      }
     }
   }
   for (const region of regions) {
@@ -427,6 +432,7 @@ async function load(offset = 0, append = false) {
   }
   const rooms = data.rooms || [];
   window.__ncfTopChaturbateByCategory = data.topChaturbateByCategory || {};
+  window.__ncfTopBongaByCategory = data.topBongaByCategory || {};
   if (append) {
     const displayed = balanceCategoryRooms(rooms);
     grid.append(...displayed.map(card));
