@@ -55,3 +55,20 @@ test("responsive redesign preserves real room rendering and affiliate redirect d
   assert.ok(html.includes("Some links are affiliate links"));
   assert.ok(html.includes("18+ only"));
 });
+
+
+test("homepage exposes separate official model signup paths without misusing viewer affiliate routes", () => {
+  assert.ok(html.includes('id="become-a-model"'));
+  assert.ok(html.includes('href="#become-a-model">Become a model</a>'));
+  assert.ok(html.includes("https://chaturbate.com/accounts/broadcaster_register/"));
+  assert.ok(html.includes("https://bongamodels.com/"));
+  assert.ok(html.includes("Model-recruitment referral tracking has not been enabled"));
+  assert.ok(!html.includes('href="/go/" target="_blank"'));
+  assert.ok(!html.includes('href="/bgo/" target="_blank"'));
+});
+
+test("model recruitment section has responsive two-platform cards", () => {
+  assert.ok(css.includes(".model-platforms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));"));
+  assert.ok(css.includes("@media (max-width: 640px)"));
+  assert.ok(css.includes(".model-platforms { grid-template-columns: 1fr;"));
+});
