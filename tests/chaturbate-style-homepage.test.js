@@ -63,8 +63,8 @@ test("homepage exposes separate official model signup paths without misusing vie
   assert.ok(html.includes('href="/broadcast/">Become a model</a>'));
   assert.ok(modelPage.includes("Become a live broadcaster"));
   assert.ok(modelPage.includes("https://chaturbate.com/in/?tour=LQps&amp;campaign=C6yxN&amp;track=broadcast"));
-  assert.ok(modelPage.includes("https://bongamodels.com/"));
-  assert.ok(modelPage.includes("A verified NightCamFinds model-recruitment referral URL has not yet been configured"));
+  assert.ok(modelPage.includes("https://bongacash.com/model-ref?c=840974"));
+  assert.ok(modelPage.includes("BongaCash model-recruitment referral link supplied for NightCamFinds"));
   assert.ok(!html.includes('href="/go/" target="_blank"'));
   assert.ok(!html.includes('href="/bgo/" target="_blank"'));
   assert.ok(!html.includes("https://chaturbate.com/accounts/broadcaster_register/"));
