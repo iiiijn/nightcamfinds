@@ -14,7 +14,7 @@ function patchServerSource(input){
   source=source.replace(before,after);
  };
  replaceOnce('const { getCountryPage } = require("./country-pages.js");',
-  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
+  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap, buildHtmlSitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
   "country page import");
  replaceOnce('const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");',
   'const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");\nconst { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");\nlet latestProviderFeedDiagnostics = { chaturbateRegions: [] };',
@@ -66,10 +66,13 @@ function patchServerSource(input){
  replaceOnce(' const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly.")};',
   '  const providerHealth={chaturbate:results[0].status==="fulfilled"?"available":"unavailable",bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"};\n  const entry={at:Date.now(),rooms:combined,providerHealth,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly.")};',
   "provider feed health");
+ replaceOnce('  if(pathname==="/robots.txt") return send(res,200,`User-agent: *\\nAllow: /\\nDisallow: /go/\\nDisallow: /bgo/\\nDisallow: /api/\\nSitemap: ${pageOrigin(req)}/sitemap.xml\\n`,"text/plain");',
+  '  if(pathname==="/robots.txt") return send(res,200,`User-agent: *\\nAllow: /\\nDisallow: /admin.html\\nDisallow: /dashboard.html\\nDisallow: /dashboard-v2.html\\nDisallow: /dashboard-ui.html\\nDisallow: /analytics-dashboard.html\\nDisallow: /campaign-center.html\\nDisallow: /promotools.html\\nDisallow: /revenue.html\\nDisallow: /go/\\nDisallow: /bgo/\\nDisallow: /api/\\nSitemap: ${pageOrigin(req)}/sitemap.xml\\n`,"text/plain");
+  "robots exclusions");
  const oldSitemap=/function sitemap\(origin\)\{[^\n]*\}/;
  if(!oldSitemap.test(source))throw new Error("Country directory patch could not locate sitemap builder");
  source=source.replace(oldSitemap,'function sitemap(origin,feedRooms){return buildCountrySitemap(origin,feedRooms,Object.entries(COUNTRIES).map(([slug,country])=>({slug,code:country.code})),{});}');
- replaceOnce('  if(pathname==="/sitemap.xml")return send(res,200,sitemap(pageOrigin(req)),"application/xml");',
+ replaceOnce('  if(pathname==="/sitemap.xml"){const feed=await rooms(req);return send(res,200,sitemap(pageOrigin(req),feed.rooms),"application/xml");}\n  if(pathname==="/sitemap"){res.writeHead(301,{Location:"/sitemap/"+url.search,"Cache-Control":"public, max-age=3600","X-Content-Type-Options":"nosniff"});return res.end();}\n  if(pathname==="/sitemap/"){const feed=await rooms(req);const entries=Object.entries(COUNTRIES).map(([slug,country])=>({slug,code:country.code,name:country.name}));return send(res,200,buildHtmlSitemap(pageOrigin(req),feed.rooms,entries),"text/html; charset=utf-8");}',
   '  if(pathname==="/sitemap.xml"){const feed=await rooms(req);return send(res,200,sitemap(pageOrigin(req),feed.rooms),"application/xml");}',
   "sitemap route");
  replaceOnce('    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended").slice(0, 60);\n    const roomMarkup = renderRoomCards(countryRooms, { category: "all", pagePath: pathname });\n    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, countryRooms.length > 0);',
