@@ -32,6 +32,35 @@ async function waitForServer(baseUrl, child) {
   throw new Error("Test server did not become ready");
 }
 
+async function stopChild(child) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+
+  const exited = new Promise(resolve => child.once("exit", resolve));
+  child.kill("SIGTERM");
+
+  let timer;
+  const gracefulStop = await Promise.race([
+    exited.then(() => true),
+    new Promise(resolve => {
+      timer = setTimeout(() => resolve(false), 5000);
+    })
+  ]);
+  if (timer) clearTimeout(timer);
+  if (gracefulStop) return;
+
+  const forcedExit = new Promise(resolve => child.once("exit", resolve));
+  child.kill("SIGKILL");
+  let forceTimer;
+  const stopped = await Promise.race([
+    forcedExit.then(() => true),
+    new Promise(resolve => {
+      forceTimer = setTimeout(() => resolve(false), 2000);
+    })
+  ]);
+  if (forceTimer) clearTimeout(forceTimer);
+  if (!stopped) throw new Error("Test server process did not exit after termination");
+}
+
 test("affiliate redirects survive database write failures and fall back to local click storage", async t => {
   const port = await freePort();
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-fallback-stats-"));
@@ -72,8 +101,8 @@ test("affiliate redirects survive database write failures and fall back to local
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", chunk => { child.testStderr += chunk; });
 
-  t.after(() => {
-    if (child.exitCode === null) child.kill("SIGTERM");
+  t.after(async () => {
+    await stopChild(child);
     fs.rmSync(dataDir, { recursive: true, force: true });
     fs.rmSync(stubRoot, { recursive: true, force: true });
     fs.rmSync(projectDir, { recursive: true, force: true });

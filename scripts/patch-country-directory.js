@@ -5,6 +5,9 @@ const MARKER="NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1";
 function patchServerSource(input){
  let source=String(input||"");
  if(source.includes(MARKER))return source;
+ const outputNewline=source.includes("\r\n")?"\r\n":"\n";
+ // Match source snippets consistently on Windows and Unix checkouts.
+ source=source.replace(/\r\n/g,"\n");
  const replaceOnce=(before,after,label)=>{
   const count=source.split(before).length-1;
   if(count!==1)throw new Error(`Country directory patch expected one ${label} match, found ${count}`);
@@ -94,7 +97,7 @@ function patchServerSource(input){
    '  const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();\n  const regions=[...new Set(feed.rooms.map(r=>r.region).filter(Boolean))].sort();\n  const languages=[...new Set(feed.rooms.flatMap(r=>String(r.languages||"").split(/[,;|]/).map(v=>v.trim()).filter(Boolean)))].sort();\n  if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,notice:feed.notice}),"application/json");\n  return send(res,200,JSON.stringify({rooms:list.slice(0,60),liveCount:list.length,countries,regions,languages,platforms,notice:feed.notice,',
    "room API discovery facets");
  }
- return "// "+MARKER+"\n"+source;
+ return ("// "+MARKER+"\n"+source).replace(/\n/g,outputNewline);
 }
 if(require.main===module){
  const file=path.join(__dirname,"..","server.js");const before=fs.readFileSync(file,"utf8");const after=patchServerSource(before);

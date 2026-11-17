@@ -206,17 +206,20 @@ function ncfApplySeoRouteMetadataV14(req, res) {
 
 `;
 
-const listenerAnchor = '  return originalCreateServer.call(http, async (req, res) => {\n';
+const newline = s.includes("\r\n") ? "\r\n" : "\n";
+const listenerAnchor = "  return originalCreateServer.call(http, async (req, res) => {" + newline;
 if (!s.includes(listenerAnchor)) {
   throw new Error("route.js server listener anchor not found");
 }
 
-s = s.replace(listenerAnchor, helper + listenerAnchor);
+const helperWithMatchingLineEndings = helper.replace(/\n/g, newline);
+s = s.replace(listenerAnchor, helperWithMatchingLineEndings + listenerAnchor);
 
-const insertion =
-  '    if (ncfRedirectSeoNoSlashV14(req, res)) return;\n' +
-  '    ncfRewriteSeoRequestV14(req);\n' +
-  '    ncfApplySeoRouteMetadataV14(req, res);\n';
+const insertion = [
+  "    if (ncfRedirectSeoNoSlashV14(req, res)) return;",
+  "    ncfRewriteSeoRequestV14(req);",
+  "    ncfApplySeoRouteMetadataV14(req, res);"
+].join(newline) + newline;
 
 if (!s.includes(insertion)) {
   s = s.replace(listenerAnchor, listenerAnchor + insertion);
