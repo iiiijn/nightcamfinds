@@ -48,8 +48,9 @@ function classifyChaturbateLocation(value) {
   if (!text) return "missing";
   if (normalizeCountryCode(text)) return "exact_country";
   const parts = text.split(",").map((part) => part.trim());
-  if (parts.length === 2 && parts[0] && parts[1]) {
-    return normalizeCountryCode(parts[1]) ? "city_country" : "comma_unrecognized";
+  if (parts.length >= 2 && parts.every(Boolean)) {
+    if (!normalizeCountryCode(parts[parts.length - 1])) return "comma_unrecognized";
+    return parts.length === 2 ? "city_country" : "location_country";
   }
   if (text.includes(",")) return "other_nonempty";
   return "other_nonempty";
@@ -61,6 +62,7 @@ function summarizeChaturbateLocationShapes(rows) {
     missing: 0,
     exact_country: 0,
     city_country: 0,
+    location_country: 0,
     comma_unrecognized: 0,
     other_nonempty: 0
   };
