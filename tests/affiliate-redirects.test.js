@@ -79,9 +79,35 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   child.testStderr = "";
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", chunk => { child.testStderr += chunk; });
-  t.after(() => {
-    if (child.exitCode === null) child.kill("SIGTERM");
-    bongaFeed.close();
+  t.after(async () => {
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGTERM");
+      await new Promise(resolve => {
+        const timer = setTimeout(resolve, 5000);
+        child.once("close", () => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
+    }
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGKILL");
+      await new Promise(resolve => {
+        const timer = setTimeout(resolve, 5000);
+        child.once("close", () => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
+    }
+    if (child.exitCode === null && child.signalCode === null) {
+      throw new Error("Test server process did not stop; refusing to delete its working directory");
+    }
+    if (bongaFeed.listening) {
+      await new Promise((resolve, reject) => {
+        bongaFeed.close(error => error ? reject(error) : resolve());
+      });
+    }
     fs.rmSync(dataDir, { recursive: true, force: true });
     fs.rmSync(stubRoot, { recursive: true, force: true });
     fs.rmSync(projectDir, { recursive: true, force: true });
