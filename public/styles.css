@@ -662,7 +662,7 @@ footer span { flex: 1 1 100%; }
 .header-tools select { min-height: 34px; padding: 5px 10px; font-size: 12px; }
 .category-nav { gap: 22px; padding: 0 0 9px; }
 .category-nav a { font-size: 13px; }
-#top > .hero { padding: 8px 0 2px; }
+#top > .hero { display: block; padding: 8px 0 2px; }
 #top > .hero .hero-copy h1 { font-size: clamp(23px, 2.4vw, 31px); line-height: 1.12; }
 #top > .hero .hero-copy .eyebrow { margin-bottom: 2px; }
 #top > .country-hint { padding: 8px 12px; border-radius: 8px; }
