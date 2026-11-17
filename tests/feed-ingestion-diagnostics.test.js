@@ -310,6 +310,12 @@ test("Chaturbate location diagnostics recognize a valid country suffix after mul
     city_country: 1,
     location_country: 2,
     comma_unrecognized: 1,
+    semicolon_country: 0,
+    pipe_country: 0,
+    semicolon_unrecognized: 0,
+    pipe_unrecognized: 0,
+    mixed_delimiter: 0,
+    delimited_empty_component: 0,
     other_nonempty: 0
   });
   assert.equal(classifyChaturbateLocation("New York, NY, United States"), "location_country");
