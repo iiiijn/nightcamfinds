@@ -9,6 +9,7 @@ const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8")
 const css = read("public/styles.css");
 const app = read("public/app.js");
 const html = read("public/index.html");
+const modelPage = read("public/become-a-model.html");
 
 test("homepage puts live discovery ahead of secondary promotional content", () => {
   assert.ok(css.includes("#top > .directory-section { order: 3"));
@@ -59,10 +60,11 @@ test("responsive redesign preserves real room rendering and affiliate redirect d
 
 test("homepage exposes separate official model signup paths without misusing viewer affiliate routes", () => {
   assert.ok(html.includes('id="become-a-model"'));
-  assert.ok(html.includes('href="#become-a-model">Become a model</a>'));
-  assert.ok(html.includes("https://chaturbate.com/accounts/broadcaster_register/"));
-  assert.ok(html.includes("https://bongamodels.com/"));
-  assert.ok(html.includes("Model-recruitment referral tracking has not been enabled"));
+  assert.ok(html.includes('href="/become-a-model.html">Become a model</a>'));
+  assert.ok(modelPage.includes("Become a live broadcaster"));
+  assert.ok(modelPage.includes("https://chaturbate.com/accounts/broadcaster_register/"));
+  assert.ok(modelPage.includes("https://bongamodels.com/"));
+  assert.ok(modelPage.includes("Model referral tracking is not enabled yet"));
   assert.ok(!html.includes('href="/go/" target="_blank"'));
   assert.ok(!html.includes('href="/bgo/" target="_blank"'));
 });
