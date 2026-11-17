@@ -127,6 +127,7 @@ test("country page robots directives follow the live-room quality threshold",()=
  const indexed=getCountryPage("us","https://nightcamfinds.com",'<a href="/go/chaturbate%3Aone">Room</a>',true);
  const thin=getCountryPage("us","https://nightcamfinds.com","",false);
  assert.match(indexed,/<meta name="robots" content="index,follow">/);
+ assert.ok(indexed.includes('href="/sitemap/">Site map</a>'));
  assert.match(indexed,/<a href="\/go\/chaturbate%3Aone">Room<\/a>/);
  assert.match(thin,/<meta name="robots" content="noindex,follow">/);
  assert.match(indexed,/<link rel="canonical" href="https:\/\/nightcamfinds\.com\/country\/us\/">/);
@@ -269,4 +270,9 @@ test("checked-in sitemap fallback excludes nonexistent guide URLs and advertises
  const xml=fs.readFileSync(path.join(__dirname,"..","public","sitemap.xml"),"utf8");
  assert.ok(xml.includes("https://nightcamfinds.com/sitemap/"));
  assert.ok(!xml.includes("/guides/"));
+});
+
+test("homepage discovery footer links to the HTML sitemap",()=>{
+ const html=fs.readFileSync(path.join(__dirname,"..","public","index.html"),"utf8");
+ assert.ok(html.includes('<a href="/sitemap/">Site map</a>'));
 });
