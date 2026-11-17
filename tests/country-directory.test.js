@@ -238,3 +238,35 @@ test("country startup patch uses strict Chaturbate country fallback and remains 
  assert.ok(patched.includes('const { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion'));
  assert.equal(patchServerSource(patched),patched);
 });
+
+test("HTML sitemap lists real discovery pages and only countries meeting the ten-room threshold",()=>{
+ const {buildHtmlSitemap}=require("../src/services/country-directory.cjs");
+ const rooms=[
+  ...Array.from({length:10},(_,i)=>({id:"us:"+i,platform:"chaturbate",country:"US"})),
+  ...Array.from({length:9},(_,i)=>({id:"gb:"+i,platform:"bongacams",country:"GB"}))
+ ];
+ const html=buildHtmlSitemap("https://nightcamfinds.com",rooms,[
+  {slug:"us",code:"US",name:"United States"},
+  {slug:"gb",code:"GB",name:"United Kingdom"}
+ ]);
+ assert.ok(html.includes("<title>Site Map | NightCamFinds</title>"));
+ assert.ok(html.includes('href="/male/">Male models'));
+ assert.ok(html.includes('href="/country/us/">United States'));
+ assert.ok(!html.includes('href="/country/gb/">'));
+ assert.ok(html.includes("at least 10 distinct valid live rooms"));
+ assert.ok(!html.includes("/guides/"));
+});
+test("country startup patch adds the HTML sitemap and keeps runtime robots exclusions synchronized",()=>{
+ const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");
+ const patched=patchServerSource(source);
+ assert.ok(patched.includes("buildHtmlSitemap"));
+ assert.ok(patched.includes('if(pathname==="/sitemap/")'));
+ assert.ok(patched.includes("Disallow: /dashboard.html"));
+ assert.ok(patched.includes("Disallow: /promotools.html"));
+ assert.equal(patchServerSource(patched),patched);
+});
+test("checked-in sitemap fallback excludes nonexistent guide URLs and advertises the HTML sitemap",()=>{
+ const xml=fs.readFileSync(path.join(__dirname,"..","public","sitemap.xml"),"utf8");
+ assert.ok(xml.includes("https://nightcamfinds.com/sitemap/"));
+ assert.ok(!xml.includes("/guides/"));
+});
