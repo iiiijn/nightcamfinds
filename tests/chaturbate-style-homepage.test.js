@@ -9,7 +9,7 @@ const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8")
 const css = read("public/styles.css");
 const app = read("public/app.js");
 const html = read("public/index.html");
-const modelPage = read("public/become-a-model.html");
+const modelPage = read("public/broadcast.html");
 
 test("homepage puts live discovery ahead of secondary promotional content", () => {
   assert.ok(css.includes("#top > .directory-section { order: 3"));
@@ -60,11 +60,11 @@ test("responsive redesign preserves real room rendering and affiliate redirect d
 
 test("homepage exposes separate official model signup paths without misusing viewer affiliate routes", () => {
   assert.ok(html.includes('id="become-a-model"'));
-  assert.ok(html.includes('href="/become-a-model.html">Become a model</a>'));
+  assert.ok(html.includes('href="/broadcast/">Become a model</a>'));
   assert.ok(modelPage.includes("Become a live broadcaster"));
-  assert.ok(modelPage.includes("https://chaturbate.com/accounts/broadcaster_register/"));
+  assert.ok(modelPage.includes("https://chaturbate.com/in/?tour=LQps&amp;campaign=C6yxN&amp;track=broadcast"));
   assert.ok(modelPage.includes("https://bongamodels.com/"));
-  assert.ok(modelPage.includes("Model referral tracking is not enabled yet"));
+  assert.ok(modelPage.includes("A verified NightCamFinds model-recruitment referral URL has not yet been configured"));
   assert.ok(!html.includes('href="/go/" target="_blank"'));
   assert.ok(!html.includes('href="/bgo/" target="_blank"'));
 });
