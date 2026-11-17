@@ -127,6 +127,7 @@ test("country page robots directives follow the live-room quality threshold",()=
  const indexed=getCountryPage("us","https://nightcamfinds.com",'<a href="/go/chaturbate%3Aone">Room</a>',true);
  const thin=getCountryPage("us","https://nightcamfinds.com","",false);
  assert.match(indexed,/<meta name="robots" content="index,follow">/);
+ assert.ok(indexed.includes('href="/sitemap/">Site map</a>'));
  assert.match(indexed,/<a href="\/go\/chaturbate%3Aone">Room<\/a>/);
  assert.match(thin,/<meta name="robots" content="noindex,follow">/);
  assert.match(indexed,/<link rel="canonical" href="https:\/\/nightcamfinds\.com\/country\/us\/">/);
@@ -237,4 +238,41 @@ test("country startup patch uses strict Chaturbate country fallback and remains 
  assert.ok(patched.includes('resolveChaturbateCountry(room.country,room.location)'));
  assert.ok(patched.includes('const { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion'));
  assert.equal(patchServerSource(patched),patched);
+});
+
+test("HTML sitemap lists real discovery pages and only countries meeting the ten-room threshold",()=>{
+ const {buildHtmlSitemap}=require("../src/services/country-directory.cjs");
+ const rooms=[
+  ...Array.from({length:10},(_,i)=>({id:"us:"+i,platform:"chaturbate",country:"US"})),
+  ...Array.from({length:9},(_,i)=>({id:"gb:"+i,platform:"bongacams",country:"GB"}))
+ ];
+ const html=buildHtmlSitemap("https://nightcamfinds.com",rooms,[
+  {slug:"us",code:"US",name:"United States"},
+  {slug:"gb",code:"GB",name:"United Kingdom"}
+ ]);
+ assert.ok(html.includes("<title>Site Map | NightCamFinds</title>"));
+ assert.ok(html.includes('href="/male/">Male models'));
+ assert.ok(html.includes('href="/country/us/">United States'));
+ assert.ok(!html.includes('href="/country/gb/">'));
+ assert.ok(html.includes("at least 10 distinct valid live rooms"));
+ assert.ok(!html.includes("/guides/"));
+});
+test("country startup patch adds the HTML sitemap and keeps runtime robots exclusions synchronized",()=>{
+ const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");
+ const patched=patchServerSource(source);
+ assert.ok(patched.includes("buildHtmlSitemap"));
+ assert.ok(patched.includes('if(pathname==="/sitemap/")'));
+ assert.ok(patched.includes("Disallow: /dashboard.html"));
+ assert.ok(patched.includes("Disallow: /promotools.html"));
+ assert.equal(patchServerSource(patched),patched);
+});
+test("checked-in sitemap fallback excludes nonexistent guide URLs and advertises the HTML sitemap",()=>{
+ const xml=fs.readFileSync(path.join(__dirname,"..","public","sitemap.xml"),"utf8");
+ assert.ok(xml.includes("https://nightcamfinds.com/sitemap/"));
+ assert.ok(!xml.includes("/guides/"));
+});
+
+test("homepage discovery footer links to the HTML sitemap",()=>{
+ const html=fs.readFileSync(path.join(__dirname,"..","public","index.html"),"utf8");
+ assert.ok(html.includes('<a href="/sitemap/">Site map</a>'));
 });

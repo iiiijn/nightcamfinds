@@ -55,7 +55,7 @@ function isIndexableCountryRooms(rooms,minimum=10){
 }
 function buildCountrySitemap(origin,rooms,countryEntries,lastmodByPath={}){
  const base=(String(origin||"").endsWith("/")?String(origin||"").slice(0,-1):String(origin||""));
- const staticPaths=["/","/live/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/popular/","/countries/","/broadcast","/about","/affiliate-disclosure","/privacy","/terms","/contact"];
+ const staticPaths=["/","/live/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/popular/","/countries/","/sitemap/","/broadcast","/about","/affiliate-disclosure","/privacy","/terms","/contact"];
  const byCountry=new Map();
  for(const room of Array.isArray(rooms)?rooms:[]){
   if(!isValidCountryRoom(room))continue;
@@ -74,4 +74,34 @@ function buildCountrySitemap(origin,rooms,countryEntries,lastmodByPath={}){
   return "<url><loc>"+esc(base+p)+"</loc>"+lastmod+"</url>";
  }).join("")+"</urlset>";
 }
-module.exports={normalizeCountryCode,resolveChaturbateCountry,normalizeRegion,normalizeLanguages,isValidCountryRoom,isIndexableCountryRooms,buildCountrySitemap};
+
+function buildHtmlSitemap(origin,rooms,countryEntries){
+ let base=String(origin||"");while(base.endsWith("/"))base=base.slice(0,-1);
+ const escapeHtml=value=>String(value??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+ const sections=[
+  {title:"Live room discovery",links:[["/live/","All live rooms"],["/popular/","Popular live rooms"],["/new/","New live rooms"],["/hd/","HD live rooms"]]},
+  {title:"Browse by category",links:[["/female/","Female models"],["/male/","Male models"],["/trans/","Trans models"],["/couples/","Couple models"]]},
+  {title:"For broadcasters",links:[["/broadcast","Become a broadcaster"]]},
+  {title:"About NightCamFinds",links:[["/about","About us"],["/contact","Contact"],["/affiliate-disclosure","Affiliate disclosure"],["/privacy","Privacy policy"],["/terms","Terms and conditions"]]}
+ ];
+ const byCountry=new Map();
+ for(const room of Array.isArray(rooms)?rooms:[]){
+  if(!isValidCountryRoom(room))continue;
+  const code=normalizeCountryCode(room.country);
+  if(!byCountry.has(code))byCountry.set(code,new Map());
+  byCountry.get(code).set(room.id.trim(),room);
+ }
+ const countries=(Array.isArray(countryEntries)?countryEntries:[])
+  .filter(entry=>{
+   const code=normalizeCountryCode(entry&&entry.code);
+   const slug=String(entry&&entry.slug||"").toLowerCase();
+   return !!code&&slug===code.toLowerCase()&&isIndexableCountryRooms([...(byCountry.get(code)||new Map()).values()]);
+  })
+  .sort((a,b)=>String(a.name||a.slug).localeCompare(String(b.name||b.slug)));
+ const renderLinks=links=>"<ul>"+links.map(([href,label])=>'<li><a href="'+escapeHtml(href)+'">'+escapeHtml(label)+"</a></li>").join("")+"</ul>";
+ const sectionMarkup=sections.map(section=>"<section><h2>"+escapeHtml(section.title)+"</h2>"+renderLinks(section.links)+"</section>").join("");
+ const countryMarkup=countries.length?renderLinks(countries.map(country=>["/country/"+country.slug.toLowerCase()+"/",country.name||country.code])):"<p>No country pages currently meet the live-room availability threshold. Please check again later.</p>";
+ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Site Map | NightCamFinds</title><meta name="description" content="Explore NightCamFinds live room categories, country directories and broadcaster information."><meta name="robots" content="index,follow"><link rel="canonical" href="'+escapeHtml(base+"/sitemap/")+'"><style>body{font-family:system-ui,sans-serif;line-height:1.6;max-width:960px;margin:0 auto;padding:24px;color:#20212a}a{color:#2455a4;text-decoration:none}a:hover{text-decoration:underline}.brand{font-weight:800;font-size:1.25rem;color:inherit}.intro{max-width:720px;color:#555}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:24px}section{border:1px solid #e5e7eb;border-radius:12px;padding:16px}h1{margin-bottom:4px}h2{font-size:1.05rem;margin-top:0}ul{padding-left:20px;margin-bottom:0}li{margin:6px 0}.note{font-size:.9rem;color:#666}@media(max-width:520px){body{padding:16px}}</style></head><body><a class="brand" href="/">NightCamFinds</a><h1>Site Map</h1><p class="intro">Find your way around NightCamFinds. Browse live room categories, explore countries with sufficient current room inventory, or learn about the directory.</p><main>'+sectionMarkup+'<section><h2>Discover by country</h2><ul><li><a href="/countries/">Browse all countries</a></li></ul>'+countryMarkup+'<p class="note">Country links appear when the partner feeds contain at least 10 distinct valid live rooms for that country. Availability can change.</p></section></main><p class="note">NightCamFinds is an independent 18+ discovery directory. Streams and broadcaster accounts are provided by partner platforms.</p></body></html>';
+}
+
+module.exports={normalizeCountryCode,resolveChaturbateCountry,normalizeRegion,normalizeLanguages,isValidCountryRoom,isIndexableCountryRooms,buildCountrySitemap,buildHtmlSitemap};
