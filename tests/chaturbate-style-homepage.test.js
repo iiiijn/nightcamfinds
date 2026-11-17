@@ -67,6 +67,8 @@ test("homepage exposes separate official model signup paths without misusing vie
   assert.ok(modelPage.includes("A verified NightCamFinds model-recruitment referral URL has not yet been configured"));
   assert.ok(!html.includes('href="/go/" target="_blank"'));
   assert.ok(!html.includes('href="/bgo/" target="_blank"'));
+  assert.ok(!html.includes("https://chaturbate.com/accounts/broadcaster_register/"));
+  assert.ok(!html.includes("https://bongamodels.com/"));
 });
 
 test("model recruitment section has responsive two-platform cards", () => {
