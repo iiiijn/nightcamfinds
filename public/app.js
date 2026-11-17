@@ -492,8 +492,8 @@ load().catch(() => {
   notice.hidden = false;
   notice.textContent = "Could not load rooms. Please try again.";
 });
-// Refresh live partner room data every ten minutes while the page is visible.
-const ROOM_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
+// Refresh live partner room data every 30 seconds while the page is visible.
+const ROOM_REFRESH_INTERVAL_MS = 30 * 1000;
 setInterval(() => {
   if (document.hidden || q.value) return;
   load().catch(() => {
