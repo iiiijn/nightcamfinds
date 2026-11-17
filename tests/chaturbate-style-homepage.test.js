@@ -26,6 +26,13 @@ test("homepage model rows use a dense five-column desktop grid and two-column ph
   assert.match(css, /\.category-row\s*\{\s*overflow:\s*visible;\s*scroll-snap-type:\s*none/);
 });
 
+test("live room feed refreshes every ten minutes without interrupting hidden pages or active searches", () => {
+  assert.match(app, /const ROOM_REFRESH_INTERVAL_MS = 10 \* 60 \* 1000/);
+  assert.match(app, /if \(document\.hidden \|\| q\.value\) return/);
+  assert.match(app, /\}, ROOM_REFRESH_INTERVAL_MS\)/);
+  assert.doesNotMatch(app, /\}, 30000\)/);
+});
+
 test("responsive redesign preserves real room rendering and affiliate redirect destinations", () => {
   assert.match(app, /function card\(room\)/);
   assert.match(app, /const redirect = isBonga \? "\/bgo\/" : "\/go\/"/);
