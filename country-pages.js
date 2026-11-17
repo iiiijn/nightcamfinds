@@ -281,7 +281,7 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
   const links = [
     ["Female live rooms", "/female/"], ["Male live rooms", "/male/"],
     ["Trans live rooms", "/trans/"], ["Couples live rooms", "/couples/"],
-    ["All live rooms", "/live/"], ["Browse countries", "/countries/"], ...(country.regionGroup ? [[`More ${country.regionGroup} markets`, `/#markets-${country.regionGroup.toLowerCase().replace(/[^a-z]+/g, "-")}`]] : [])
+    ["All live rooms", "/live/"], ["Browse countries", "/countries/"], ["Site map", "/sitemap/"], ...(country.regionGroup ? [[`More ${country.regionGroup} markets`, `/#markets-${country.regionGroup.toLowerCase().replace(/[^a-z]+/g, "-")}`]] : [])
   ];
   const faqHtml = country.faqs.map(([question, answer]) =>
     `<section class="country-faq-item"><h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p></section>`
