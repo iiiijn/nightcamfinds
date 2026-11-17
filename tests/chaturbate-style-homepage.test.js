@@ -59,32 +59,31 @@ test("responsive redesign preserves real room rendering and affiliate redirect d
 
 
 test("homepage exposes separate official model signup paths without misusing viewer affiliate routes", () => {
-  assert.ok(html.includes('id="become-a-model"'));
+  const modelPage = read("public/broadcast.html");
   assert.ok(html.includes('href="/broadcast/">Become a model</a>'));
   assert.ok(modelPage.includes("Become a live broadcaster"));
   assert.ok(modelPage.includes("https://chaturbate.com/in/?tour=LQps&amp;campaign=C6yxN&amp;track=broadcast"));
   assert.ok(modelPage.includes("https://bongacash.com/model-ref?c=840974"));
-  assert.ok(modelPage.includes("BongaCash model-recruitment referral link supplied for NightCamFinds"));
+  assert.ok(modelPage.includes('id="platform-chaturbate"'));
+  assert.ok(modelPage.includes('id="platform-bongacams"'));
   assert.ok(!html.includes('href="/go/" target="_blank"'));
   assert.ok(!html.includes('href="/bgo/" target="_blank"'));
   assert.ok(!html.includes("https://chaturbate.com/accounts/broadcaster_register/"));
   assert.ok(!html.includes("https://bongamodels.com/"));
 });
 
-test("homepage model recruitment copy accurately describes the separate referral signup paths", () => {
-  assert.ok(html.includes("Open the Chaturbate broadcaster referral option"));
-  assert.ok(html.includes("Open the BongaCams model referral option"));
-  assert.ok(html.includes("Both model signup options use separate recruitment referral links on the next page."));
-  assert.ok(!html.includes("Model-recruitment referral tracking has not been enabled"));
-  assert.ok(!html.includes("official BongaModels website"));
+test("model recruitment copy accurately describes separate referral signup paths", () => {
+  const modelPage = read("public/broadcast.html");
+  assert.ok(modelPage.includes("Register for a broadcaster account through the existing NightCamFinds Chaturbate broadcaster referral link."));
+  assert.ok(modelPage.includes("Register through the BongaCash model referral link."));
+  assert.ok(modelPage.includes("Viewer room links and viewer affiliate codes do not automatically credit model signups."));
 });
 
-test("model recruitment section has responsive two-platform cards", () => {
+test("model recruitment page retains responsive two-platform cards", () => {
   assert.ok(css.includes(".model-platforms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));"));
   assert.ok(css.includes("@media (max-width: 640px)"));
   assert.ok(css.includes(".model-platforms { grid-template-columns: 1fr;"));
 });
-
 
 test("homepage places both broadcaster signup choices beside the room directory", () => {
   const directory = html.slice(html.indexOf('<section class="directory-section"'), html.indexOf('<section class="model-recruitment"'));
