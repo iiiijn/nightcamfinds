@@ -84,3 +84,24 @@ test("model recruitment section has responsive two-platform cards", () => {
   assert.ok(css.includes("@media (max-width: 640px)"));
   assert.ok(css.includes(".model-platforms { grid-template-columns: 1fr;"));
 });
+
+
+test("homepage places both broadcaster signup choices beside the room directory", () => {
+  const directory = html.slice(html.indexOf('<section class="directory-section"'), html.indexOf('<section class="model-recruitment"'));
+  assert.ok(directory.includes('class="broadcaster-sidebar"'));
+  assert.ok(directory.includes('href="/broadcast/#platform-chaturbate"'));
+  assert.ok(directory.includes('href="/broadcast/#platform-bongacams"'));
+  assert.ok(!html.includes('id="become-a-model"'));
+  assert.ok(read("public/broadcast.html").includes('id="platform-chaturbate"'));
+  assert.ok(read("public/broadcast.html").includes('id="platform-bongacams"'));
+});
+
+test("homepage exposes independent live category rows for both providers", () => {
+  assert.ok(app.includes('["BongaCams", "bongacams", window.__ncfTopBongaByCategory || {}]'));
+  assert.ok(app.includes('["Chaturbate", "chaturbate", window.__ncfTopChaturbateByCategory || {}]'));
+  assert.ok(app.includes('window.__ncfTopBongaByCategory = data.topBongaByCategory || {};'));
+  assert.ok(css.includes(".global-platform-group"));
+  const server = read("server.js");
+  assert.ok(server.includes("const topBongaByCategory = {};"));
+  assert.ok(server.includes("topBongaByCategory,liveCount"));
+});
