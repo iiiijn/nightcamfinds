@@ -154,6 +154,12 @@ test("Chaturbate diagnostics count metadata presence without exposing values or 
         city_country: 0,
         location_country: 0,
         comma_unrecognized: 0,
+        semicolon_country: 0,
+        pipe_country: 0,
+        semicolon_unrecognized: 0,
+        pipe_unrecognized: 0,
+        mixed_delimiter: 0,
+        delimited_empty_component: 0,
         other_nonempty: 2
       }
     }
@@ -198,6 +204,12 @@ test("Chaturbate location diagnostics classify shapes without exposing location 
       city_country: 2,
       location_country: 0,
       comma_unrecognized: 1,
+      semicolon_country: 0,
+      pipe_country: 0,
+      semicolon_unrecognized: 0,
+      pipe_unrecognized: 0,
+      mixed_delimiter: 0,
+      delimited_empty_component: 0,
       other_nonempty: 2
     }
   });
@@ -222,6 +234,12 @@ test("Chaturbate feed metadata includes location shape counts but never raw loca
     city_country: 1,
     location_country: 0,
     comma_unrecognized: 1,
+    semicolon_country: 0,
+    pipe_country: 0,
+    semicolon_unrecognized: 0,
+    pipe_unrecognized: 0,
+    mixed_delimiter: 0,
+    delimited_empty_component: 0,
     other_nonempty: 0
   });
   const serialized = JSON.stringify(result);
@@ -292,12 +310,58 @@ test("Chaturbate location diagnostics recognize a valid country suffix after mul
     city_country: 1,
     location_country: 2,
     comma_unrecognized: 1,
+    semicolon_country: 0,
+    pipe_country: 0,
+    semicolon_unrecognized: 0,
+    pipe_unrecognized: 0,
+    mixed_delimiter: 0,
+    delimited_empty_component: 0,
     other_nonempty: 0
   });
   assert.equal(classifyChaturbateLocation("New York, NY, United States"), "location_country");
   assert.equal(classifyChaturbateLocation("Springfield, Unknownland, Region"), "comma_unrecognized");
   const serialized = JSON.stringify(result);
   for (const privateValue of ["New York", "Berlin", "Nairobi", "private-a"]) {
+    assert.equal(serialized.includes(privateValue), false);
+  }
+});
+
+
+test("Chaturbate location diagnostics classify semicolon and pipe country suffixes without inferring ambiguous formats", () => {
+  const rows = [
+    { username: "private-a", location: "Toronto; Canada" },
+    { username: "private-b", location: "Sydney | Australia" },
+    { username: "private-c", location: "Springfield; Unknownland" },
+    { username: "private-d", location: "Berlin | Unknownland" },
+    { username: "private-e", location: "Paris, France | Europe" },
+    { username: "private-f", location: "London,, United Kingdom" },
+    { username: "private-g", location: "Somewhere / Germany" },
+    { username: "private-h", location: "Nairobi, Kenya" }
+  ];
+  const result = summarizeChaturbateLocationShapes(rows);
+  assert.deepEqual(result.locationShapeCounts, {
+    missing: 0,
+    exact_country: 0,
+    city_country: 1,
+    location_country: 0,
+    comma_unrecognized: 0,
+    semicolon_country: 1,
+    pipe_country: 1,
+    semicolon_unrecognized: 1,
+    pipe_unrecognized: 1,
+    mixed_delimiter: 1,
+    delimited_empty_component: 1,
+    other_nonempty: 1
+  });
+  assert.equal(classifyChaturbateLocation("Toronto; Canada"), "semicolon_country");
+  assert.equal(classifyChaturbateLocation("Sydney | Australia"), "pipe_country");
+  assert.equal(classifyChaturbateLocation("Springfield; Unknownland"), "semicolon_unrecognized");
+  assert.equal(classifyChaturbateLocation("Berlin | Unknownland"), "pipe_unrecognized");
+  assert.equal(classifyChaturbateLocation("Paris, France | Europe"), "mixed_delimiter");
+  assert.equal(classifyChaturbateLocation("London,, United Kingdom"), "delimited_empty_component");
+  assert.equal(classifyChaturbateLocation("Somewhere / Germany"), "other_nonempty");
+  const serialized = JSON.stringify(result);
+  for (const privateValue of ["Toronto", "Sydney", "Springfield", "Unknownland", "private-a"]) {
     assert.equal(serialized.includes(privateValue), false);
   }
 });
