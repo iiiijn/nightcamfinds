@@ -1231,3 +1231,5 @@ footer span { flex: 1 1 100%; }
 .directory-main .card .meta>.btn{font-size:10px;padding:6px 4px;min-height:31px}
 .bonga-promo-sidebar{grid-template-columns:1fr}
 }
+/* Hide model-save controls and the separate loyalty block for the clean discovery-first homepage. */
+.favorite-toggle,.loyalty-section{display:none!important}
