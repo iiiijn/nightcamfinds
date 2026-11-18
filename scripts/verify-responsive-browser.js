@@ -96,6 +96,8 @@ const roomFeed = {
         const header = document.querySelector(".topbar");
         const grid = document.querySelector("#grid");
         const sidebar = document.querySelector(".bonga-promo-sidebar");
+        const featuredPanel = document.querySelector(".featured-panel");
+        const nav = document.querySelector(".category-nav");
         const categoryCards = [...document.querySelectorAll("#category-rows .card")];
         const featuredCards = [...document.querySelectorAll(".featured-panel .card")];
         const watchActions = [...document.querySelectorAll("#category-rows .card .btn")]
@@ -113,6 +115,9 @@ const roomFeed = {
           headerRect: rect(header),
           gridRect: rect(grid),
           sidebarRect: rect(sidebar),
+          featuredPanelRect: rect(featuredPanel),
+          navRect: rect(nav),
+          topbarRect: rect(header),
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
           featuredRoom: featuredCards.length > 0,
@@ -129,6 +134,8 @@ const roomFeed = {
       if (!result.title.includes("Who's live in your country")) failures.push(viewport.name + ": homepage heading missing");
       if (!result.roomSizeFilter || !result.regionFilter) failures.push(viewport.name + ": directory filters missing");
       if (!result.featuredRoom || !result.countryShortcuts) failures.push(viewport.name + ": featured room or country shortcuts missing");
+      if (!result.featuredPanelRect || result.featuredPanelRect.width <= 0 || result.featuredPanelRect.height <= 0) failures.push(viewport.name + ": featured panel is not visibly laid out");
+      if (result.navRect && result.topbarRect && viewport.width <= 640 && result.navRect.top < result.topbarRect.bottom - 2) failures.push(viewport.name + ": category navigation overlaps the topbar");
       if (result.categoryCardCount < 2 || result.watchActionCount < 2 || !result.categoryCardsVisible) {
         failures.push(viewport.name + ": mock room cards or Watch actions did not render visibly");
       }
