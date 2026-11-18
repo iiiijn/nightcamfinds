@@ -2,76 +2,44 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { classifyBongaV2Failure, summarizeBongaFeedHealth } = require("../src/services/bonga-feed-health.cjs");
+const { resolveBongaV1Limit, summarizeBongaV1Feed } = require("../src/services/bonga-feed-health.cjs");
+const fs = require("node:fs");
+const path = require("node:path");
 
-test("Bonga V2 failures are reduced to safe operational reason codes", () => {
-  assert.equal(classifyBongaV2Failure(new Error("Cloudflare origin authentication failed; secret abc")), "origin_authentication_failed");
-  assert.equal(classifyBongaV2Failure(new Error("No valid visitor IPv4 found in the configured trusted proxy header")), "trusted_client_ip_unavailable");
-  assert.equal(classifyBongaV2Failure(new Error("BongaCash V2 response did not contain a models array")), "invalid_provider_response");
-  assert.equal(classifyBongaV2Failure(new Error("Feed 403")), "provider_authorization_failed");
-  assert.equal(classifyBongaV2Failure(new Error("Feed 503")), "provider_http_error");
-  assert.equal(classifyBongaV2Failure(new Error("request timeout")), "provider_timeout");
-  assert.equal(classifyBongaV2Failure(new Error("unexpected socket close")), "request_failed");
+test("Bonga V1 limit preserves the existing default and clamps configuration", () => {
+  assert.equal(resolveBongaV1Limit(undefined), 10);
+  assert.equal(resolveBongaV1Limit("25"), 25);
+  assert.equal(resolveBongaV1Limit("1"), 10);
+  assert.equal(resolveBongaV1Limit("5000"), 100);
+  assert.equal(resolveBongaV1Limit("invalid"), 10);
 });
 
-test("Bonga health distinguishes configured V2 fallback from healthy V2", () => {
-  const fallback = summarizeBongaFeedHealth({
-    requestedApiVersion: "2",
-    activeApiVersion: "1",
-    fallbackReason: "origin_authentication_failed",
-    pagination: { pagesFetched: 1, receivedCount: 100, uniqueCount: 98, duplicateCount: 2, truncated: false, stopReason: "unknown" },
-    checkedAt: "2026-11-18T00:00:00.000Z"
+test("Bonga V1 diagnostics report counts without exposing model identities or raw country values", () => {
+  const result = summarizeBongaV1Feed({
+    rows: [{ username: "private-a", homecountry: "GB" }, { username: "private-b", country: "Germany" }, { username: "private-c" }],
+    normalized: [{ username: "private-a" }, { username: "private-b" }], rooms: [{ username: "private-a" }],
+    requestedLimit: 20, checkedAt: "2026-11-18T00:00:00.000Z"
   });
-  assert.equal(fallback.status, "v2_fallback_to_v1");
-  assert.equal(fallback.fallbackReason, "origin_authentication_failed");
-  assert.equal(fallback.activeApiVersion, "1");
-  assert.equal(fallback.coverageStatus, "single_response_limit_unverified");
-  assert.equal(JSON.stringify(fallback).includes("secret"), false);
-
-  const healthy = summarizeBongaFeedHealth({
-    requestedApiVersion: "2",
-    activeApiVersion: "2",
-    pagination: { pagesFetched: 2, receivedCount: 150, uniqueCount: 150, duplicateCount: 0, truncated: false, stopReason: "short_page" }
-  });
-  assert.equal(healthy.status, "active_v2");
-  assert.equal(healthy.fallbackReason, "");
-  assert.equal(healthy.coverageStatus, "pagination_completed");
+  assert.equal(result.status, "active_v1");
+  assert.equal(result.pagination, "not_verified_single_response");
+  assert.equal(result.rawRoomCount, 3);
+  assert.equal(result.normalizedRoomCount, 2);
+  assert.equal(result.acceptedRoomCount, 1);
+  assert.equal(result.rejectedOrDuplicateCount, 1);
+  assert.equal(result.missingCountryCount, 1);
+  assert.equal(result.unrecognizedCountryCount, 1);
+  assert.equal(result.requestedLimit, 20);
+  const serialized = JSON.stringify(result);
+  for (const value of ["private-a", "private-b", "Germany"]) assert.equal(serialized.includes(value), false);
 });
 
-test("Bonga health reports truncation and disabled feed without claiming complete coverage", () => {
-  const truncated = summarizeBongaFeedHealth({
-    requestedApiVersion: "2",
-    activeApiVersion: "2",
-    pagination: { pagesFetched: 5, receivedCount: 500, uniqueCount: 490, duplicateCount: 10, truncated: true, stopReason: "max_pages" }
-  });
-  assert.equal(truncated.status, "v2_truncated");
-  assert.equal(truncated.coverageStatus, "truncated");
-  assert.equal(truncated.pagination.stopReason, "max_pages");
-
-  const disabled = summarizeBongaFeedHealth({ enabled: false, requestedApiVersion: "2", activeApiVersion: "1" });
-  assert.equal(disabled.status, "disabled");
-  assert.equal(disabled.activeApiVersion, "");
-});
-
-test("Bonga health accepts only bounded pagination metadata", () => {
-  const result = summarizeBongaFeedHealth({
-    requestedApiVersion: "2",
-    activeApiVersion: "2",
-    pagination: { pagesFetched: -1, receivedCount: "100", uniqueCount: 10, duplicateCount: 0, truncated: false, stopReason: "secret" }
-  });
-  assert.equal(result.pagination.pagesFetched, null);
-  assert.equal(result.pagination.receivedCount, null);
-  assert.equal(result.pagination.uniqueCount, 10);
-  assert.equal(result.pagination.stopReason, "unknown");
-});
-
-test("server records V2 fallback reasons as safe codes and exposes feed health through protected diagnostics", () => {
-  const fs = require("node:fs");
-  const path = require("node:path");
-  const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
-  assert.match(server, /classifyBongaV2Failure\(error\)/);
-  assert.match(server, /feedHealth\}\s*;/);
-  assert.match(server, /reason:latestBongaV2FallbackReason/);
-  assert.doesNotMatch(server, /falling back to V1:\",error\.message/);
-  assert.match(server, /providerIngestion: latestProviderFeedDiagnostics/);
+test("Bonga feed route uses the production entry point and protects diagnostics", () => {
+  const route = fs.readFileSync(path.join(__dirname, "../route.js"), "utf8");
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "../package.json"), "utf8"));
+  assert.match(pkg.scripts.start, /node route\.js$/);
+  assert.match(route, /BONGACAMS_V1_LIMIT/);
+  assert.match(route, /diagnosticsRequested && !validDashboardSession\(req\)/);
+  assert.match(route, /summarizeBongaV1Feed/);
+  assert.match(route, /BongaCams feed temporarily unavailable/);
+  assert.doesNotMatch(route, /Bonga API HTTP \$\{res\.statusCode\}: \$\{body\.slice/);
 });
