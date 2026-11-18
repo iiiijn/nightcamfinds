@@ -1035,4 +1035,12 @@ footer span { flex: 1 1 100%; }
     overflow-wrap: anywhere;
     word-break: break-word;
   }
+  .directory-main .card .meta > strong {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+  .directory-main .card .badges > .badge:nth-child(5) {
+    display: inline-flex;
+  }
 }
