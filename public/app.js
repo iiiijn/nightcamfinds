@@ -122,19 +122,6 @@ if (paidCampaign && category !== "all") {
   }
 }
 
-const quick = document.querySelector("#quick");
-for (const iso of QUICK) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "ghost";
-  button.textContent = NAMES[iso];
-  button.addEventListener("click", () => {
-    countrySelect.value = iso;
-    load();
-  });
-  quick.append(button);
-}
-
 function placement() {
   if (campaignPlacement) return campaignPlacement;
   const country = countrySelect.value ? "country-" + countrySelect.value.toLowerCase() : "";
@@ -215,6 +202,8 @@ function partners(rooms = []) {
   }
 }
 
+function countryFlag(country) { const code = String(country || "").trim().toUpperCase(); if (!/^[A-Z]{2}$/.test(code)) return ""; return String.fromCodePoint(...[...code].map(letter => 127397 + letter.charCodeAt(0))); }
+
 function card(room) {
   const isBonga = room.platform === "bongacams";
   const a = document.createElement("a");
@@ -242,7 +231,7 @@ function card(room) {
   meta.className = "meta";
   const badges = document.createElement("div");
   badges.className = "badges";
-  const bits = [[isBonga ? "BongaCams" : "Chaturbate", "platform"], ["Live", "live"], room.isHd ? ["HD", ""] : null, room.isNew ? ["New", ""] : null, [Number(room.viewerCount || 0).toLocaleString() + " watching", ""], room.country ? [room.countryName || NAMES[room.country] || room.country, ""] : null].filter(Boolean);
+  const bits = [[isBonga ? "BongaCams" : "Chaturbate", "platform"], ["Live", "live"], room.isHd ? ["HD", ""] : null, room.isNew ? ["New", ""] : null].filter(Boolean);
   for (const [label, extra] of bits) {
     const span = document.createElement("span");
     span.className = extra ? "badge " + extra : "badge";
@@ -252,13 +241,20 @@ function card(room) {
   }
   const strong = document.createElement("strong");
   strong.textContent = room.displayName;
+  const identity = document.createElement("div");
+  identity.className = "model-identity";
+  const flag = countryFlag(room.country);
+  if (flag) { const flagEl = document.createElement("span"); flagEl.className = "model-country-flag"; flagEl.textContent = flag; flagEl.title = room.countryName || NAMES[room.country] || room.country; flagEl.setAttribute("aria-label", flagEl.title); identity.append(flagEl); }
+  identity.append(strong);
+  const stats = document.createElement("div"); stats.className = "model-stats";
+  const viewers = document.createElement("span"); viewers.textContent = Number(room.viewerCount || 0).toLocaleString() + " viewers"; stats.append(viewers);
   const subject = document.createElement("p");
   subject.className = "muted subject";
   subject.textContent = room.roomSubject || "Live room";
   const cta = document.createElement("span");
   cta.className = "btn";
   cta.textContent = isBonga ? "Watch on BongaCams" : "Watch on Chaturbate";
-  meta.append(badges, strong, subject, cta);
+  meta.append(badges, identity, subject, stats, cta);
   a.append(img, meta);
   return a;
 }
@@ -455,14 +451,8 @@ async function load(offset = 0, append = false) {
   }
   currentOffset = rooms.length;
   partners(rooms);
-  const isUnfilteredRegionalView = ["all","live","female","male","trans","couples","hd","new","popular"].includes(category) &&
+  const isUnfilteredRegionalView = category !== "all" && ["live","female","male","trans","couples","hd","new","popular"].includes(category) &&
     !q.value && !countrySelect.value && !regionSelect.value && !languageSelect.value && !selectedTag;
-  const countryHint = document.querySelector("#country-hint");
-  if (countryHint) {
-    countryHint.textContent = countrySelect.value
-      ? "Showing rooms with the partner-feed country code " + (NAMES[countrySelect.value] || countrySelect.value) + ". Country labels are not independently verified."
-      : "Choose a country to filter available rooms. Country and language details come from partner feeds.";
-  }
   if (isUnfilteredRegionalView) {
     renderRegionalSections(data.regionalRooms || {});
   } else {
