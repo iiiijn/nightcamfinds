@@ -639,3 +639,129 @@ footer span { flex: 1 1 100%; }
   .category-row { gap: 6px; }
   .card .meta { padding: 5px; }
 }
+
+
+/* Phase A1.22.3: compact discovery-first layout inspired by familiar live directories.
+   Keep partner feeds, tracked redirects and all existing filter IDs intact. */
+.w { width: min(1440px, calc(100% - 36px)); }
+.site-header .w { display: grid; grid-template-columns: minmax(0,1fr); }
+.topbar { min-height: 58px; gap: 10px; }
+.logo { flex: 0 0 auto; font-size: 25px; }
+.topbar #q {
+  flex: 1 1 360px;
+  min-width: 140px;
+  max-width: 620px;
+  min-height: 39px;
+  padding: 8px 13px;
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.topbar #country { flex: 0 1 170px; min-height: 39px; }
+.topbar .quick-exit { min-height: 39px; padding: 7px 12px; }
+.header-tools { justify-content: flex-end; padding: 0 0 7px; margin-top: -2px; }
+.header-tools select { min-height: 34px; padding: 5px 10px; font-size: 12px; }
+.category-nav { gap: 22px; padding: 0 0 9px; }
+.category-nav a { font-size: 13px; }
+#top > .hero { display: block; padding: 8px 0 2px; }
+#top > .hero .hero-copy h1 { font-size: clamp(23px, 2.4vw, 31px); line-height: 1.12; }
+#top > .hero .hero-copy .eyebrow { margin-bottom: 2px; }
+#top > .country-hint { padding: 8px 12px; border-radius: 8px; }
+#top > .quick { gap: 7px; margin: 3px 0 8px; }
+.quick button { min-height: 33px; padding: 6px 11px; }
+.directory-section { padding-top: 10px; }
+.directory-section .section-heading { align-items: center; margin-bottom: 5px; }
+.directory-section .section-heading h2 { font-size: 23px; }
+.directory-section .eyebrow { margin-bottom: 2px; }
+.secondary-filters select { min-height: 36px; padding: 7px 10px; border-radius: 8px; font-size: 12px; }
+.result-count { margin: 3px 0 8px; }
+.grid, .home-group .grid, .category-row {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 11px;
+}
+.card { border-radius: 9px; background: #17121f; }
+.card .thumb { aspect-ratio: 4 / 3; }
+.card .meta { padding: 6px 7px; gap: 4px; }
+.card .meta > strong { font-size: 12px; }
+.card .badge { font-size: 9px; padding: 2px 5px; }
+.card .badge:nth-child(3), .card .badge:nth-child(4), .card .badge:nth-child(6) { display: inline-flex; }
+.card .badge:nth-child(5) { display: none; }
+.home-group { margin: 12px 0 17px; }
+.home-group h2 { font-size: 19px; margin-bottom: 4px; }
+.row-heading { display: flex; align-items: baseline; gap: 8px; }
+.row-heading small { font-size: 11px; }
+.directory-layout { display: block; }
+.bonga-promo-sidebar { margin-top: 18px; }
+#top > #cb-banner-promo, #top > .promo-strip, #top > .cb-category-promo { margin-top: 12px; }
+@media (max-width: 1180px) {
+  .grid, .home-group .grid, .category-row { grid-template-columns: repeat(5, minmax(0,1fr)); }
+}
+@media (max-width: 980px) {
+  .w { width: min(100% - 28px, 980px); }
+  .grid, .home-group .grid, .category-row { grid-template-columns: repeat(4, minmax(0,1fr)); gap: 9px; }
+  .topbar #q { flex-basis: 230px; }
+}
+@media (max-width: 720px) {
+  .w { width: calc(100% - 22px); }
+  .topbar { min-height: 52px; flex-wrap: wrap; gap: 7px; padding: 7px 0; }
+  .logo { font-size: 22px; }
+  .topbar #q { order: 5; flex: 1 0 100%; max-width: none; }
+  .topbar #country { flex: 0 1 135px; }
+  .header-tools { margin: 0; padding-bottom: 6px; }
+  .category-nav { gap: 17px; padding-bottom: 8px; }
+  .grid, .home-group .grid, .category-row { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+  .directory-section .section-heading { align-items: flex-start; flex-direction: column; }
+  .secondary-filters { width: 100%; }
+  .secondary-filters select { flex: 1; min-width: 0; }
+}
+@media (max-width: 480px) {
+  .grid, .home-group .grid, .category-row { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 7px; }
+  .card .meta { padding: 6px; }
+  .card .meta > strong { font-size: 12px; }
+  .home-group h2 { font-size: 17px; }
+}
+
+/* Visual correction: keep the desktop search row compact at laptop CSS widths,
+   and reserve the five-column room grid for the full usable desktop canvas. */
+@media (min-width: 761px) and (max-width: 980px) {
+  .topbar {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .logo {
+    margin-right: 4px;
+    font-size: 22px;
+  }
+  .topbar #q {
+    flex: 1 1 180px;
+    min-width: 150px;
+    max-width: none;
+  }
+  .topbar #country {
+    flex: 0 0 138px;
+  }
+  .topbar .age-chip {
+    padding: 3px 7px;
+    font-size: 11px;
+  }
+  .topbar .quick-exit {
+    flex: 0 0 auto;
+    padding-inline: 9px;
+    font-size: 12px;
+  }
+}
+@media (min-width: 761px) and (max-width: 980px) {
+  .grid,
+  .home-group .grid,
+  .category-row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 9px;
+  }
+}
+@media (min-width: 641px) and (max-width: 760px) {
+  .grid,
+  .home-group .grid,
+  .category-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
