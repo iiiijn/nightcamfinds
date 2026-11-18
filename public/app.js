@@ -492,12 +492,14 @@ load().catch(() => {
   notice.hidden = false;
   notice.textContent = "Could not load rooms. Please try again.";
 });
+// Refresh live partner room data every 30 seconds while the page is visible.
+const ROOM_REFRESH_INTERVAL_MS = 30 * 1000;
 setInterval(() => {
   if (document.hidden || q.value) return;
   load().catch(() => {
     notice.hidden = false;
     notice.textContent = "Could not refresh rooms. Please try again.";
   });
-}, 30000);
+}, ROOM_REFRESH_INTERVAL_MS);
 // NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V2
 // NIGHTCAMFINDS_SEO_ATTRIBUTION_CLIENT_V3

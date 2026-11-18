@@ -517,3 +517,125 @@ footer span { flex: 1 1 100%; }
     margin-top: 18px;
   }
 }
+
+
+/* Phase A1.22.1: compact, Chaturbate-style responsive discovery homepage.
+   The provider feeds, card renderer and tracked /go/ and /bgo/ links stay unchanged. */
+#top {
+  display: flex;
+  flex-direction: column;
+}
+#top > .hero { order: 0; max-width: none; padding: 12px 0 5px; }
+#top > .hero .hero-copy h1 { font-size: clamp(22px, 2.5vw, 30px); margin: 0; }
+#top > .hero .hero-copy .eyebrow { margin-bottom: 3px; }
+#top > .hero .hero-copy .lead,
+#top > .hero .hero-copy .actions,
+#top > .hero .hero-categories,
+#top > .hero .featured-panel { display: none !important; }
+#top > .country-hint { order: 1; margin: 3px 0 4px; font-size: 12px; }
+#top > .quick { order: 2; margin: 3px 0 10px; }
+#top > .directory-section { order: 3; margin-top: 0; }
+#top > #cb-banner-promo,
+#top > .promo-strip,
+#top > .cb-category-promo { order: 4; }
+#top > .loyalty-section { order: 5; }
+#top > .two { order: 6; }
+#top > .content-section { order: 7; }
+#top > .market-links { order: 8; }
+#top > footer { order: 9; }
+
+.directory-section { min-width: 0; }
+.directory-section .section-heading { margin-bottom: 6px; }
+.directory-section .section-heading h2 { margin: 0; font-size: 21px; }
+.directory-layout { display: block; }
+.directory-main { min-width: 0; }
+.bonga-promo-sidebar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  align-items: start;
+  margin-top: 20px;
+}
+.bonga-dynamic-banner { margin-inline: auto; }
+.grid,
+.home-group .grid,
+.category-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.category-row {
+  overflow: visible;
+  scroll-snap-type: none;
+  padding: 7px 0 12px;
+}
+.category-row .card {
+  width: auto;
+  min-width: 0;
+  flex: initial;
+  scroll-snap-align: unset;
+}
+.home-group { margin: 15px 0 22px; min-width: 0; }
+.home-group h2 { margin: 0 0 5px; font-size: 20px; }
+.row-heading { flex-wrap: wrap; gap: 4px 10px; }
+.row-heading small { font-size: 11px; }
+.row-heading a { margin-left: auto; }
+.card {
+  min-width: 0;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.card .thumb { aspect-ratio: 4 / 3; }
+.card .meta { min-width: 0; padding: 7px 8px; gap: 4px; }
+.card .meta > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.card .subject,
+.card .meta > .btn { display: none !important; }
+.card .badges { flex-wrap: nowrap; gap: 4px; overflow: hidden; }
+.card .badge { flex: 0 0 auto; font-size: 10px; padding: 2px 5px; }
+.card .badge:nth-child(3),
+.card .badge:nth-child(4),
+.card .badge:nth-child(6) { display: none; }
+.result-count { margin: 5px 0 8px; font-size: 12px; }
+#category-rows { min-width: 0; }
+@media (max-width: 1050px) {
+  .grid,
+  .home-group .grid,
+  .category-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+}
+@media (max-width: 820px) {
+  .grid,
+  .home-group .grid,
+  .category-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+}
+@media (max-width: 640px) {
+  #top > .hero { padding: 8px 0 3px; }
+  #top > .hero .hero-copy h1 { font-size: 21px; }
+  #top > .country-hint { font-size: 11px; }
+  #top > .quick { margin-bottom: 7px; }
+  .directory-section .section-heading { align-items: center; flex-direction: row; gap: 8px; }
+  .directory-section .section-heading h2 { font-size: 18px; }
+  .grid,
+  .home-group .grid,
+  .category-row { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .category-row { padding: 6px 0 10px; }
+  .home-group { margin: 12px 0 18px; }
+  .home-group h2 { font-size: 17px; }
+  .row-heading { align-items: center; }
+  .row-heading small { flex-basis: 100%; order: 3; }
+  .card { border-radius: 8px; }
+  .card .meta { padding: 6px; }
+  .card .meta > strong { font-size: 12px; }
+  .card .badge { font-size: 9px; padding: 2px 4px; }
+  .bonga-promo-sidebar { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 380px) {
+  .grid,
+  .home-group .grid,
+  .category-row { gap: 6px; }
+  .card .meta { padding: 5px; }
+}
