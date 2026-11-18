@@ -117,7 +117,8 @@ if (paidCampaign && category !== "all") {
     couples: `Live couples cams in ${marketName}`
   }[category];
   if (campaignTitle) {
-    document.querySelector("#page-title").textContent = campaignTitle;
+    const campaignPageTitle = document.querySelector("#page-title");
+    if (campaignPageTitle) campaignPageTitle.textContent = campaignTitle;
     document.querySelector("#page-intro").textContent = `See who is live now, compare viewer counts, and choose a public room. Click a room to continue on its partner platform.`;
   }
 }
