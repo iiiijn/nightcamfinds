@@ -33,7 +33,7 @@ test("provider-supplied tags are normalized, safety-screened, counted and filter
   assert.match(server, /popularTags,liveCount:list\.length/);
   assert.match(server, /rawText:\[room\.username,room\.display_name,room\.room_subject,\.\.\.normalizeTags\(room\.tags\)\]/);
   assert.match(app, /params\.set\("tag", selectedTag\)/);
-  assert.match(app, /id="popular-tags"/);
+  assert.match(html, /id="popular-tags"/);
 });
 
 test("rooms API supports bounded pagination and reports remaining results", () => {
