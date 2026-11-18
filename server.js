@@ -623,7 +623,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   const feed = await rooms(req);
   const routeKey = pathname.replace(/^\/+|\/+$/g, "") || "all";
   const pageCopy = {
-    all:["Independent discovery","Discover live cams right now","Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.","NightCamFinds — Live cam directory"],
+    all:["Independent discovery","Who's live in your country, tonight.","Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.","NightCamFinds — Live cam directory"],
     live:["Live now","Rooms that are live now","Currently online rooms from partner platforms. Counts and subjects come from the feed and can change every minute.","Live cams now — NightCamFinds"],
     female:["Female","Find live female cams","Browse public female rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Female live cams — NightCamFinds"],
     male:["Male","Find live male cams","Browse public male rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Male live cams — NightCamFinds"],
