@@ -22,7 +22,7 @@ document.querySelector("#enter")?.addEventListener("click", () => {
 });
 
 const PAGES = {
-  all: ["Independent discovery", "Discover live cams right now", "Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.", "NightCamFinds — Live cam directory"],
+  all: ["Independent discovery", "Who's live in your country, tonight.", "Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.", "NightCamFinds — Live cam directory"],
   live: ["Live now", "Rooms that are live now", "Currently online rooms from partner platforms. Counts and subjects come from the feed and can change every minute.", "Live cams now — NightCamFinds"],
   female: ["Female", "Find live female cams", "Browse public female rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.", "Female live cams — NightCamFinds"],
   male: ["Male", "Find live male cams", "Browse public male rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.", "Male live cams — NightCamFinds"],
@@ -58,7 +58,7 @@ const campaignCountry = /^[a-z]{2}$/i.test(queryParams.get("ncf_country") || "")
 const campaignPlatform = ["chaturbate", "bongacams"].includes((queryParams.get("ncf_platform") || "").toLowerCase()) ? queryParams.get("ncf_platform").toLowerCase() : "";
 const campaignCategory = ["all", "live", "female", "male", "trans", "couples", "hd", "new"].includes((queryParams.get("ncf_category") || "").toLowerCase()) ? queryParams.get("ncf_category").toLowerCase() : "";
 const campaignPlacement = String(queryParams.get("ncf_placement") || "").trim().replace(/[^a-z0-9._-]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
-const initialFilters = { country: queryParams.get("country") || campaignCountry, region: queryParams.get("region") || "", language: queryParams.get("language") || "", q: queryParams.get("q") || "" };
+const initialFilters = { country: queryParams.get("country") || campaignCountry, region: queryParams.get("region") || "", language: queryParams.get("language") || "", q: queryParams.get("q") || "", roomSize: queryParams.get("roomSize") || "" };
 selectedTag = String(queryParams.get("tag") || "").trim().toLowerCase();
 let initialFiltersApplied = false;
 if (initialFilters.q) q.value = initialFilters.q;
@@ -394,6 +394,8 @@ async function load(offset = 0, append = false) {
   if (campaignPlatform) params.set("platform", campaignPlatform);
   if (countrySelect.value) params.set("country", countrySelect.value);
   if (regionSelect.value) params.set("region", regionSelect.value);
+  const roomSizeSelect = document.querySelector("#room-size");
+  if (roomSizeSelect?.value) params.set("roomSize", roomSizeSelect.value);
   if (languageSelect.value) params.set("language", languageSelect.value);
   if (selectedTag) params.set("tag", selectedTag);
   const response = await fetch("/api/rooms?" + params);
@@ -429,9 +431,11 @@ async function load(offset = 0, append = false) {
       countrySelect.value = initialFilters.country;
     }
     if (initialFilters.region && [...regionSelect.options].some(option => option.value === initialFilters.region)) regionSelect.value = initialFilters.region;
+    const roomSizeSelect = document.querySelector("#room-size");
+    if (initialFilters.roomSize && roomSizeSelect && [...roomSizeSelect.options].some(option => option.value === initialFilters.roomSize)) roomSizeSelect.value = initialFilters.roomSize;
     if (initialFilters.language && [...languageSelect.options].some(option => option.value === initialFilters.language)) languageSelect.value = initialFilters.language;
     initialFiltersApplied = true;
-    if (countrySelect.value || regionSelect.value || languageSelect.value || q.value) return load();
+    if (countrySelect.value || regionSelect.value || languageSelect.value || q.value || document.querySelector("#room-size")?.value) return load();
   }
   const rooms = data.rooms || [];
   const tagSection = document.querySelector("#popular-tags");
@@ -508,6 +512,7 @@ loadMoreButton?.addEventListener("click", () => {
 sort.addEventListener("change", load);
 countrySelect.addEventListener("change", load);
 regionSelect.addEventListener("change", load);
+document.querySelector("#room-size")?.addEventListener("change", load);
 languageSelect.addEventListener("change", load);
 q.addEventListener("input", schedule);
 document.querySelector("#quick-exit")?.addEventListener("click", () => {
