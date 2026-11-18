@@ -9,6 +9,7 @@ const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
 const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
 const html = fs.readFileSync(path.join(__dirname, "../public/index.html"), "utf8");
 const loyalty = fs.readFileSync(path.join(__dirname, "../public/loyalty.js"), "utf8");
+const css = fs.readFileSync(path.join(__dirname, "../public/styles.css"), "utf8");
 
 test("Chaturbate feed requests bounded regional pages and deduplicates partner results", () => {
   assert.match(server, /fetchPagedResults/);
