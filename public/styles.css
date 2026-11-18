@@ -719,3 +719,49 @@ footer span { flex: 1 1 100%; }
   .card .meta > strong { font-size: 12px; }
   .home-group h2 { font-size: 17px; }
 }
+
+/* Visual correction: keep the desktop search row compact at laptop CSS widths,
+   and reserve the five-column room grid for the full usable desktop canvas. */
+@media (min-width: 761px) and (max-width: 980px) {
+  .topbar {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .logo {
+    margin-right: 4px;
+    font-size: 22px;
+  }
+  .topbar #q {
+    flex: 1 1 180px;
+    min-width: 150px;
+    max-width: none;
+  }
+  .topbar #country {
+    flex: 0 0 138px;
+  }
+  .topbar .age-chip {
+    padding: 3px 7px;
+    font-size: 11px;
+  }
+  .topbar .quick-exit {
+    flex: 0 0 auto;
+    padding-inline: 9px;
+    font-size: 12px;
+  }
+}
+@media (min-width: 761px) and (max-width: 980px) {
+  .grid,
+  .home-group .grid,
+  .category-row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 9px;
+  }
+}
+@media (min-width: 641px) and (max-width: 760px) {
+  .grid,
+  .home-group .grid,
+  .category-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
