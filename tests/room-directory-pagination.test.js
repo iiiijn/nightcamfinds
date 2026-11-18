@@ -96,7 +96,7 @@ test("URL query parameters are initialized before their first use during directo
 });
 
 
-test("homepage restores original hero and country shortcuts",()=>{assert.ok(html.includes("tonight."));assert.ok(html.includes('id="featured-room"'));assert.ok(html.includes('id="quick"'));assert.ok(html.includes("Browse live rooms"));});
+test("homepage keeps the simplified hero and country shortcuts",()=>{assert.ok(html.includes("tonight."));assert.ok(!html.includes('id="featured-room"'));assert.ok(!html.includes('class="featured-panel"'));assert.ok(!html.includes("Independent discovery"));assert.ok(html.includes('id="quick"'));assert.ok(html.includes("Browse live rooms"));assert.ok(html.includes("Become a model"));});
 test("room-size filters are applied by API and initialized from URL",()=>{assert.ok(server.includes('const roomSize=(url.searchParams.get("roomSize")||"").trim().toLowerCase()'));assert.ok(server.includes('if(roomSize==="intimate")'));assert.ok(server.includes('if(roomSize==="mid-sized")'));assert.ok(server.includes('if(roomSize==="high-traffic")'));assert.ok(app.includes('params.set("roomSize", roomSizeSelect.value)'));assert.ok(app.includes("initialFilters.roomSize"));});
 test("sidebar groups creator signup, region, room size and popular tags",()=>{assert.ok(html.includes('class="broadcaster-sidebar"'));assert.ok(html.includes('id="region"'));assert.ok(html.includes('id="room-size"'));assert.ok(html.includes('id="popular-tags"'));});
 test("room card Watch buttons and subjects are explicitly visible",()=>{assert.ok(css.includes(".card .subject,.card .meta>.btn{display:block!important}"));});
