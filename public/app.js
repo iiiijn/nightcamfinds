@@ -460,7 +460,7 @@ async function load(offset = 0, append = false) {
   currentOffset = rooms.length;
   partners(rooms);
   const isUnfilteredRegionalView = ["all","live","female","male","trans","couples","hd","new","popular"].includes(category) &&
-    !q.value && !countrySelect.value && !regionSelect.value && !languageSelect.value;
+    !q.value && !countrySelect.value && !regionSelect.value && !languageSelect.value && !selectedTag;
   const countryHint = document.querySelector("#country-hint");
   if (countryHint) {
     countryHint.textContent = countrySelect.value
