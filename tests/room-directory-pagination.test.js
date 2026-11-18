@@ -114,3 +114,19 @@ test("homepage uses one sidebar for broadcaster signup, regions, room size and t
 test("room cards do not render save or favorite star controls", () => {
   assert.doesNotMatch(loyalty, /favorite-toggle|☆ Save|★ Saved/);
 });
+
+
+test("A1.25 mobile header keeps search, country, language and quick exit in a compact grid", () => {
+  assert.match(css, /grid-template-areas:[\s\S]*"brand age age"[\s\S]*"search search search"[\s\S]*"country language exit"/);
+  assert.match(css, /\.header-tools \{ display: contents; \}/);
+  assert.match(css, /\.category-nav[\s\S]*overscroll-behavior-x: contain/);
+  assert.match(html, /id="q"/);
+  assert.match(html, /id="country"/);
+  assert.match(html, /id="language"/);
+  assert.match(html, /id="quick-exit"/);
+});
+test("A1.25 desktop room cards use five columns on wide screens and four on medium screens", () => {
+  assert.match(css, /@media \(min-width: 1200px\)[\s\S]*repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(min-width: 901px\) and \(max-width: 1199px\)[\s\S]*repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);
+});
