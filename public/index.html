@@ -53,30 +53,18 @@
         <select id="language" aria-label="Language"><option value="">All languages</option></select>
       </div>
       <nav class="category-nav" aria-label="Room categories">
-        <a href="/live/">Live now</a><a href="/female/">Female</a><a href="/male/">Male</a><a href="/trans/">Trans</a><a href="/couples/">Couples</a><a href="/countries/">Countries</a><a href="/broadcast/">Become a model</a>
+        <a href="/live/">Live now</a><a href="/female/">Female</a><a href="/male/">Male</a><a href="/trans/">Trans</a><a href="/couples/">Couples</a><a href="/broadcast/">Become a model</a>
       </nav>
     </div>
   </header>
 
   <main id="top" class="w">
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow" id="kicker">Independent discovery</p>
-        <h1 id="page-title">Discover live cams right now</h1>
-        <p class="lead" id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.</p>
-        <div class="actions"><a class="btn" href="#category-rows">Browse live rooms</a><a class="btn ghost" href="/broadcast/">Become a model</a></div>
-        <div class="hero-categories" aria-label="Browse categories">
-          <a href="/female/">Female rooms</a><a href="/male/">Male rooms</a><a href="/trans/">Trans rooms</a><a href="/couples/">Couples rooms</a>
-        </div>
-      </div>
-      <aside class="featured-panel" aria-label="Featured live room">
-        <p class="eyebrow">Featured room</p>
-        <div id="featured-room"><p class="muted">Loading a room from the live feed…</p></div>
-      </aside>
+    <section class="sr-only" aria-label="Page metadata">
+      <p id="kicker">Independent discovery</p>
+      <h1 id="page-title">Discover live cams right now</h1>
+      <p id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.</p>
+      <aside class="featured-panel" aria-label="Featured live room"><div id="featured-room"></div></aside>
     </section>
-
-    <div class="country-hint" id="country-hint">Choose a country to filter available rooms. Country labels come from partner feeds.</div>
-    <div class="quick" id="quick" aria-label="Popular country shortcuts"></div>
 
     <div id="cb-banner-promo" class="promo-banner" hidden aria-label="Partner banner promotion"></div>
     <section class="promo-strip" id="chaturbate-live-promo" aria-label="Chaturbate live promotion"></section>
@@ -94,7 +82,6 @@
       <div class="section-heading">
         <div><p class="eyebrow">Live directory</p><h2>Find a room</h2></div>
         <div class="secondary-filters">
-          <select id="region" aria-label="Region"><option value="">All regions</option></select>
           <select id="sort" aria-label="Sort rooms"><option value="recommended">Recommended</option><option value="viewers">Most viewers</option><option value="newest">Newest</option></select>
         </div>
       </div>
@@ -103,11 +90,10 @@
           <div id="notice" class="notice" hidden>Live rooms are temporarily unavailable. Please check again shortly.</div>
           <p id="result-count" class="result-count" aria-live="polite"></p>
           <div id="category-rows"></div>
-          <section id="popular-tags" class="popular-tags" aria-label="Popular room tags" hidden><div class="popular-tags-heading"><h2>Popular tags</h2><button id="clear-tag" class="btn ghost" type="button" hidden>Clear tag</button></div><div id="popular-tags-list" class="popular-tags-list"></div></section>
           <div id="grid" class="grid" aria-live="polite"></div>
           <button id="load-more" class="btn ghost" type="button" hidden>Load more rooms</button>
         </div>
-        <aside class="bonga-promo-sidebar" aria-label="Broadcaster signup and BongaCams promotions">
+        <aside class="bonga-promo-sidebar" aria-label="Creator signup and room filters">
           <section class="broadcaster-sidebar" aria-labelledby="broadcaster-sidebar-title">
             <p class="eyebrow">For adult creators</p>
             <h2 id="broadcaster-sidebar-title">Become a broadcaster</h2>
@@ -116,6 +102,9 @@
             <a class="btn ghost broadcaster-choice" href="/broadcast/#platform-bongacams">Become a BongaCams model</a>
             <p class="model-recruitment-note">18+ only. Eligibility and earnings depend on each platform.</p>
           </section>
+          <section class="sidebar-filter-group" aria-labelledby="regions-title"><h3 id="regions-title">Regions</h3><select id="region" aria-label="Region"><option value="">All regions</option></select></section>
+          <section class="sidebar-filter-group" aria-labelledby="room-size-title"><h3 id="room-size-title">Room size</h3><select id="room-size" aria-label="Room size"><option value="">All room sizes</option><option value="intimate">Intimate · 0–50 viewers</option><option value="mid-sized">Mid-sized · 51–500 viewers</option><option value="high-traffic">High-traffic · 501+ viewers</option></select></section>
+          <section id="popular-tags" class="popular-tags sidebar-filter-group" aria-label="Popular room tags" hidden><div class="popular-tags-heading"><h3>Tags</h3><button id="clear-tag" class="btn ghost" type="button" hidden>Clear</button></div><div id="popular-tags-list" class="popular-tags-list"></div></section>
           <div id="bonga-dynamic-banner" class="bonga-dynamic-banner" hidden aria-label="BongaCams live model promotion"></div>
           <section id="bonga-static-banners" class="bonga-static-banners" hidden aria-label="BongaCams banner promotions"></section>
           <section id="bonga-category-widget" class="bonga-category-widget" hidden aria-label="BongaCams category widget"></section>

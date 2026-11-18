@@ -8,6 +8,7 @@ const path = require("node:path");
 const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
 const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
 const html = fs.readFileSync(path.join(__dirname, "../public/index.html"), "utf8");
+const loyalty = fs.readFileSync(path.join(__dirname, "../public/loyalty.js"), "utf8");
 
 test("Chaturbate feed requests bounded regional pages and deduplicates partner results", () => {
   assert.match(server, /fetchPagedResults/);
@@ -91,4 +92,25 @@ test("URL query parameters are initialized before their first use during directo
   assert.notEqual(firstUse, -1);
   assert.ok(declaration < firstUse, "queryParams must be initialized before any query string is read");
   assert.equal(app.split("const queryParams = new URLSearchParams(location.search);").length - 1, 1);
+});
+
+test("rooms API supports room-size filters with stable viewer-count bands", () => {
+  assert.match(server, /roomSize=\(url\.searchParams\.get\("roomSize"\)/);
+  assert.match(server, /roomSize==="intimate"\)list=list\.filter\(r=>Number\(r\.viewerCount\|\|0\)<=50\)/);
+  assert.match(server, /roomSize==="mid-sized"\)list=list\.filter\(r=>Number\(r\.viewerCount\|\|0\)>50&&Number\(r\.viewerCount\|\|0\)<=500\)/);
+  assert.match(server, /roomSize==="high-traffic"\)list=list\.filter\(r=>Number\(r\.viewerCount\|\|0\)>500\)/);
+  assert.match(app, /params\.set\("roomSize", roomSizeSelect\.value\)/);
+  assert.match(html, /id="room-size"/);
+});
+test("homepage uses one sidebar for broadcaster signup, regions, room size and tags", () => {
+  assert.match(html, /class="broadcaster-sidebar"/);
+  assert.match(html, /id="region"/);
+  assert.match(html, /id="room-size"/);
+  assert.match(html, /id="popular-tags"/);
+  assert.doesNotMatch(html, /id="quick"/);
+  assert.doesNotMatch(html, /id="country-hint"/);
+  assert.doesNotMatch(html, /href="\/countries\/">Countries/);
+});
+test("room cards do not render save or favorite star controls", () => {
+  assert.doesNotMatch(loyalty, /favorite-toggle|☆ Save|★ Saved/);
 });

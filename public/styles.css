@@ -770,3 +770,27 @@ footer span { flex: 1 1 100%; }
   .broadcaster-sidebar { margin: 16px 0; }
   .broadcaster-sidebar .broadcaster-choice { width: 100%; }
 }
+
+/* Phase A1.25: Chaturbate-inspired compact discovery layout and sidebar filters. */
+#top > .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+#top > .directory-section { order:0; margin-top:0; }
+#top > .loyalty-section { order:4; }
+#top > .two { order:5; }
+#top > .content-section { order:6; }
+.bonga-promo-sidebar { display:grid; gap:14px; align-content:start; }
+.sidebar-filter-group { padding:14px; border:1px solid var(--line); border-radius:14px; background:var(--panel); }
+.sidebar-filter-group h3 { margin:0 0 10px; font-size:15px; letter-spacing:.04em; text-transform:uppercase; }
+.sidebar-filter-group select { width:100%; }
+.bonga-promo-sidebar .popular-tags { margin:0; padding:14px; }
+.bonga-promo-sidebar .popular-tags-heading h3 { margin:0; }
+.bonga-promo-sidebar .popular-tag { padding:6px 9px; }
+.directory-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(270px,300px); gap:16px; align-items:start; }
+.grid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; }
+.card { border-radius:10px; }
+.thumb { aspect-ratio:4/3; }
+.meta { padding:8px; gap:4px; }
+.card .btn { min-height:34px; padding:7px 8px; font-size:12px; }
+.badge { font-size:10px; padding:2px 6px; }
+@media(max-width:1100px){ .grid,.home-group .grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
+@media(max-width:900px){ .directory-layout { grid-template-columns:minmax(0,1fr); } .bonga-promo-sidebar { grid-template-columns:repeat(2,minmax(0,1fr)); } .broadcaster-sidebar { grid-column:1/-1; } }
+@media(max-width:640px){ .bonga-promo-sidebar { grid-template-columns:minmax(0,1fr); } .grid,.home-group .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; } }
