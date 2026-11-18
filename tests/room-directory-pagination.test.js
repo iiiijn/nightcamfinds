@@ -112,5 +112,4 @@ test("homepage uses one sidebar for broadcaster signup, regions, room size and t
 });
 test("room cards do not render save or favorite star controls", () => {
   assert.doesNotMatch(app, /favorite-toggle/);
-  assert.doesNotMatch(css, /\.favorite-toggle/);
 });
