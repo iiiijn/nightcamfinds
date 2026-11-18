@@ -1164,3 +1164,23 @@ footer span { flex: 1 1 100%; }
   #top > .hero { padding: 16px 0 10px; }
   #top > .hero .hero-copy .actions { display: flex; }
 }
+
+
+/* A1.25.3.6 repair: keep both primary hero actions visible on narrow phones. */
+@media (max-width: 640px) {
+  #top > .hero .hero-copy .actions .ghost {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  #top > .hero .hero-copy .actions .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    flex: 1 1 145px;
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+  }
+}
