@@ -58,7 +58,7 @@ const campaignCountry = /^[a-z]{2}$/i.test(queryParams.get("ncf_country") || "")
 const campaignPlatform = ["chaturbate", "bongacams"].includes((queryParams.get("ncf_platform") || "").toLowerCase()) ? queryParams.get("ncf_platform").toLowerCase() : "";
 const campaignCategory = ["all", "live", "female", "male", "trans", "couples", "hd", "new"].includes((queryParams.get("ncf_category") || "").toLowerCase()) ? queryParams.get("ncf_category").toLowerCase() : "";
 const campaignPlacement = String(queryParams.get("ncf_placement") || "").trim().replace(/[^a-z0-9._-]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
-const initialFilters = { country: queryParams.get("country") || campaignCountry, region: queryParams.get("region") || "", language: queryParams.get("language") || "", q: queryParams.get("q") || "" };
+const initialFilters = { country: queryParams.get("country") || campaignCountry, region: queryParams.get("region") || "", language: queryParams.get("language") || "", q: queryParams.get("q") || "", roomSize: queryParams.get("roomSize") || "" };
 selectedTag = String(queryParams.get("tag") || "").trim().toLowerCase();
 let initialFiltersApplied = false;
 if (initialFilters.q) q.value = initialFilters.q;
@@ -118,19 +118,6 @@ if (paidCampaign && category !== "all") {
     document.querySelector("#page-title").textContent = campaignTitle;
     document.querySelector("#page-intro").textContent = `See who is live now, compare viewer counts, and choose a public room. Click a room to continue on its partner platform.`;
   }
-}
-
-const quick = document.querySelector("#quick");
-for (const iso of QUICK) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "ghost";
-  button.textContent = NAMES[iso];
-  button.addEventListener("click", () => {
-    countrySelect.value = iso;
-    load();
-  });
-  quick.append(button);
 }
 
 function placement() {
@@ -394,6 +381,8 @@ async function load(offset = 0, append = false) {
   if (campaignPlatform) params.set("platform", campaignPlatform);
   if (countrySelect.value) params.set("country", countrySelect.value);
   if (regionSelect.value) params.set("region", regionSelect.value);
+  const roomSizeSelect = document.querySelector("#room-size");
+  if (roomSizeSelect?.value) params.set("roomSize", roomSizeSelect.value);
   if (languageSelect.value) params.set("language", languageSelect.value);
   if (selectedTag) params.set("tag", selectedTag);
   const response = await fetch("/api/rooms?" + params);
@@ -429,9 +418,11 @@ async function load(offset = 0, append = false) {
       countrySelect.value = initialFilters.country;
     }
     if (initialFilters.region && [...regionSelect.options].some(option => option.value === initialFilters.region)) regionSelect.value = initialFilters.region;
+    const roomSizeSelect = document.querySelector("#room-size");
+    if (initialFilters.roomSize && roomSizeSelect && [...roomSizeSelect.options].some(option => option.value === initialFilters.roomSize)) roomSizeSelect.value = initialFilters.roomSize;
     if (initialFilters.language && [...languageSelect.options].some(option => option.value === initialFilters.language)) languageSelect.value = initialFilters.language;
     initialFiltersApplied = true;
-    if (countrySelect.value || regionSelect.value || languageSelect.value || q.value) return load();
+    if (countrySelect.value || regionSelect.value || languageSelect.value || q.value || document.querySelector("#room-size")?.value) return load();
   }
   const rooms = data.rooms || [];
   const tagSection = document.querySelector("#popular-tags");
@@ -500,6 +491,7 @@ loadMoreButton?.addEventListener("click", () => {
 sort.addEventListener("change", load);
 countrySelect.addEventListener("change", load);
 regionSelect.addEventListener("change", load);
+document.querySelector("#room-size")?.addEventListener("change", load);
 languageSelect.addEventListener("change", load);
 q.addEventListener("input", schedule);
 document.querySelector("#quick-exit")?.addEventListener("click", () => {
