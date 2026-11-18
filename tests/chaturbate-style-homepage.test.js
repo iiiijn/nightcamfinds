@@ -79,3 +79,12 @@ test("model recruitment cards stack on mobile and remain two columns on wider sc
   assert.ok(css.includes(".model-platforms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));"));
   assert.ok(css.includes(".model-platforms { grid-template-columns: 1fr;"));
 });
+
+
+test("homepage model recruitment copy accurately describes the separate referral signup paths", () => {
+  assert.ok(html.includes("Open the Chaturbate broadcaster referral option"));
+  assert.ok(html.includes("Open the BongaCams model referral option"));
+  assert.ok(html.includes("Both model signup options use separate recruitment referral links on the next page."));
+  assert.ok(!html.includes("Model-recruitment referral tracking has not been enabled"));
+  assert.ok(!html.includes("official BongaModels website"));
+});
