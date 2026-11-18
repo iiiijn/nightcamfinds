@@ -36,31 +36,12 @@
     renderCollection(favoritesGrid,favorites,"favorites");renderCollection(recentGrid,recent,"recent");
     const fc=document.querySelector("#favorites-count"),rc=document.querySelector("#recent-count");
     if(fc)fc.textContent=String(favorites.length);if(rc)rc.textContent=String(recent.length);
-    document.querySelectorAll(".favorite-toggle").forEach(button=>{
-      const card=button.parentElement?.querySelector("a.card");
-      const room=card&&roomFromCard(card);
-      if(!room)return;
-      const saved=favorites.some(x=>x.id===room.id&&x.platform===room.platform);
-      button.textContent=saved?"★ Saved":"☆ Save";
-      button.setAttribute("aria-pressed",String(saved));
-    });
   }
   function enhance(card){
     if(card.dataset.loyaltyReady==="1")return;
-    const room=roomFromCard(card);if(!room)return;
+    if(!roomFromCard(card))return;
     card.dataset.loyaltyReady="1";
     const wrapper=el("div","loyalty-card-wrap");card.parentNode.insertBefore(wrapper,card);wrapper.append(card);
-    const button=el("button","favorite-toggle","☆ Save");button.type="button";button.setAttribute("aria-pressed","false");
-    button.addEventListener("click",event=>{
-      event.preventDefault();event.stopPropagation();
-      const favorites=read(KEYS.favorites),exists=favorites.some(x=>x.id===room.id&&x.platform===room.platform);
-      const next=exists?favorites.filter(x=>x.id!==room.id||x.platform!==room.platform):[room,...favorites].slice(0,MAX_FAVORITES);
-      if(!write(KEYS.favorites,next)){button.textContent="Storage unavailable";return;}
-      render();
-    });
-    wrapper.append(button);
-    const saved=read(KEYS.favorites).some(x=>x.id===room.id&&x.platform===room.platform);
-    button.textContent=saved?"★ Saved":"☆ Save";button.setAttribute("aria-pressed",String(saved));
   }
   document.addEventListener("click",event=>{
     const card=event.target.closest?.("a.card");if(!card||event.target.closest(".favorite-toggle"))return;
