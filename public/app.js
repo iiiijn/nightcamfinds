@@ -9,6 +9,7 @@ const q = document.querySelector("#q");
 const countrySelect = document.querySelector("#country");
 const regionSelect = document.querySelector("#region");
 const languageSelect = document.querySelector("#language");
+let selectedTag = "";
 
 let ageAccepted = false;
 try { ageAccepted = localStorage.getItem("ncf18") === "1"; } catch (_) {}
@@ -58,6 +59,7 @@ const campaignPlatform = ["chaturbate", "bongacams"].includes((queryParams.get("
 const campaignCategory = ["all", "live", "female", "male", "trans", "couples", "hd", "new"].includes((queryParams.get("ncf_category") || "").toLowerCase()) ? queryParams.get("ncf_category").toLowerCase() : "";
 const campaignPlacement = String(queryParams.get("ncf_placement") || "").trim().replace(/[^a-z0-9._-]/gi, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 80);
 const initialFilters = { country: queryParams.get("country") || campaignCountry, region: queryParams.get("region") || "", language: queryParams.get("language") || "", q: queryParams.get("q") || "" };
+selectedTag = String(queryParams.get("tag") || "").trim().toLowerCase();
 let initialFiltersApplied = false;
 if (initialFilters.q) q.value = initialFilters.q;
 const incomingAttribution = {
@@ -393,6 +395,7 @@ async function load(offset = 0, append = false) {
   if (countrySelect.value) params.set("country", countrySelect.value);
   if (regionSelect.value) params.set("region", regionSelect.value);
   if (languageSelect.value) params.set("language", languageSelect.value);
+  if (selectedTag) params.set("tag", selectedTag);
   const response = await fetch("/api/rooms?" + params);
   if (!response.ok) throw new Error("Room feed request failed (" + response.status + ").");
   const data = await response.json();
@@ -431,6 +434,14 @@ async function load(offset = 0, append = false) {
     if (countrySelect.value || regionSelect.value || languageSelect.value || q.value) return load();
   }
   const rooms = data.rooms || [];
+  const tagSection = document.querySelector("#popular-tags");
+  const tagList = document.querySelector("#popular-tags-list");
+  const clearTag = document.querySelector("#clear-tag");
+  if(tagSection && tagList){
+    tagSection.hidden = !(data.popularTags || []).length;
+    tagList.replaceChildren(...(data.popularTags || []).map(item=>{const button=document.createElement("button");button.type="button";button.className="popular-tag"+(selectedTag===String(item.tag).toLowerCase()?" active":"");button.textContent="#"+item.tag+" · "+item.count;button.setAttribute("aria-pressed",selectedTag===String(item.tag).toLowerCase()?"true":"false");button.addEventListener("click",()=>{selectedTag=String(item.tag).toLowerCase();load();});return button;}));
+    if(clearTag){clearTag.hidden=!selectedTag;clearTag.onclick=()=>{selectedTag="";load();};}
+  }
   window.__ncfTopChaturbateByCategory = data.topChaturbateByCategory || {};
   window.__ncfTopBongaByCategory = data.topBongaByCategory || {};
   if (append) {
