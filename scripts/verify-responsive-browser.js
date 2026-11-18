@@ -102,6 +102,8 @@ const roomFeed = {
         const categoryRows = document.querySelector("#category-rows");
         const featuredPanel = document.querySelector(".featured-panel");
         const nav = document.querySelector(".category-nav");
+        const shortcuts = document.querySelector("#quick");
+        const directoryHeading = document.querySelector(".directory-section .section-heading");
         const categoryCards = [...document.querySelectorAll("#category-rows .card")];
         const featuredCards = [...document.querySelectorAll(".featured-panel .card")];
         const watchActions = [...document.querySelectorAll("#category-rows .card .btn")]
@@ -128,6 +130,12 @@ const roomFeed = {
           featuredCardRect: rect(featuredCards[0]),
           firstCategoryCardRect: rect(categoryCards[0]),
           navRect: rect(nav),
+          navScrollWidth: nav?.scrollWidth || 0,
+          navClientWidth: nav?.clientWidth || 0,
+          shortcutsRect: rect(shortcuts),
+          shortcutsScrollWidth: shortcuts?.scrollWidth || 0,
+          shortcutsClientWidth: shortcuts?.clientWidth || 0,
+          directoryHeadingRect: rect(directoryHeading),
           topbarRect: rect(header),
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
@@ -153,6 +161,8 @@ const roomFeed = {
       if (!result.categoryRowsRect || result.categoryRowsRect.width <= 0 || result.categoryRowsRect.height <= 0) failures.push(viewport.name + ": category room rows are not visibly laid out");
       if (viewport.width > 980 && result.sidebarRect && result.directoryMainRect && result.sidebarRect.left < result.directoryMainRect.right - 2) failures.push(viewport.name + ": desktop sidebar overlaps the main directory");
       if (result.navRect && result.topbarRect && viewport.width <= 640 && result.navRect.top < result.topbarRect.bottom - 2) failures.push(viewport.name + ": category navigation overlaps the topbar");
+      if (viewport.width <= 640 && result.navScrollWidth > result.navClientWidth && result.navRect.height < 24) failures.push(viewport.name + ": scrollable category navigation has no usable touch height");
+      if (viewport.width <= 640 && result.shortcutsScrollWidth > result.shortcutsClientWidth && result.shortcutsRect?.height <= 0) failures.push(viewport.name + ": country shortcuts are horizontally clipped without a visible row");
       if (result.categoryCardCount < 2 || result.watchActionCount < 2 || !result.categoryCardsVisible) {
         failures.push(viewport.name + ": mock room cards or Watch actions did not render visibly");
       }
