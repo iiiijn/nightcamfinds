@@ -171,3 +171,11 @@ test("A1.26.1 viewer-count badges and room names cannot exceed mobile card width
   assert.match(css, /\.directory-main \.card \.subject[\s\S]*max-width: 100%/);
   assert.match(css, /\.directory-main \.card \.meta > strong[\s\S]*word-break: break-word/);
 });
+
+test("A1.26.1 mobile room names override single-line ellipsis and wrap", () => {
+  assert.match(css, /\.directory-main \.card \.meta > strong[\s\S]*overflow: visible;[\s\S]*text-overflow: clip;[\s\S]*white-space: normal;/);
+});
+
+test("A1.26.1 mobile directory cards explicitly show the fifth viewer-count badge", () => {
+  assert.match(css, /\.directory-main \.card \.badges > \.badge:nth-child\(5\)\s*\{\s*display: inline-flex;/);
+});
