@@ -1227,6 +1227,9 @@ footer span { flex: 1 1 100%; }
 @media(min-width:641px) and (max-width:980px){.directory-main .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.bonga-promo-sidebar{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(min-width:641px) and (max-width:980px){.directory-layout{display:block!important}.bonga-promo-sidebar{margin-top:22px;grid-template-columns:repeat(2,minmax(0,1fr))}.broadcaster-sidebar{grid-column:1/-1}}
 @media(max-width:640px){
+.directory-layout{display:block!important}
+.directory-main{width:100%;min-width:0}
+.bonga-promo-sidebar{width:100%;min-width:0}
 .creator-recruitment{grid-template-columns:1fr;gap:12px;padding:18px}
 .creator-recruitment-art{min-height:150px;grid-row:1}
 .creator-recruitment h2{font-size:25px}
