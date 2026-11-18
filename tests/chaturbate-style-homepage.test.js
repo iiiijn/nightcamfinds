@@ -9,6 +9,7 @@ const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8")
 const css = read("public/styles.css");
 const app = read("public/app.js");
 const html = read("public/index.html");
+const modelPage = read("public/broadcast.html");
 
 test("homepage puts live discovery ahead of secondary promotional content", () => {
   assert.ok(css.includes("#top > .directory-section { order: 3"));
