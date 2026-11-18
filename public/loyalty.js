@@ -44,7 +44,7 @@
     const wrapper=el("div","loyalty-card-wrap");card.parentNode.insertBefore(wrapper,card);wrapper.append(card);
   }
   document.addEventListener("click",event=>{
-    const card=event.target.closest?.("a.card");if(!card||event.target.closest(".favorite-toggle"))return;
+    const card=event.target.closest?.("a.card");if(!card)return;
     const room=roomFromCard(card);if(!room)return;
     write(KEYS.recent,[room,...read(KEYS.recent).filter(x=>x.id!==room.id||x.platform!==room.platform)].slice(0,MAX_RECENT));
   },true);
