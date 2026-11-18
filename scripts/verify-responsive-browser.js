@@ -137,6 +137,7 @@ const roomFeed = {
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
           homepageHeadlineRemoved: !document.querySelector("#page-title, #top > .hero h1"),
+          recruitmentBannerVisible: (() => { const el=document.querySelector(".creator-recruitment"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0 && !!el.querySelector('a[href="/broadcast/"]'); })(),
           countryHintRemoved: !document.querySelector("#country-hint, #quick"),
           modelFlagsVisible: [...document.querySelectorAll("#grid .model-country-flag, #category-rows .model-country-flag")].length > 0,
           saveButtonsRemoved: [...document.querySelectorAll(".favorite-toggle")].every(button => getComputedStyle(button).display === "none"),
@@ -155,6 +156,7 @@ const roomFeed = {
       });
       if (result.documentWidth > viewport.width) failures.push(viewport.name + ": horizontal overflow (" + result.documentWidth + "px > " + viewport.width + "px)");
       if (!result.homepageHeadlineRemoved) failures.push(viewport.name + ": removed homepage headline is still present");
+      if (!result.recruitmentBannerVisible) failures.push(viewport.name + ": model recruitment banner or CTA is missing");
       if (!result.roomSizeFilter || !result.regionFilter) failures.push(viewport.name + ": directory filters missing");
       if (!result.featuredPanelRemoved || !result.independentDiscoveryRemoved) failures.push(viewport.name + ": removed homepage elements are still present");
       if (!result.heroLeadVisible || !result.heroActionsVisible) failures.push(viewport.name + ": simplified hero content or actions are not visible");
