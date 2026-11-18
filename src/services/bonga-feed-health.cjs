@@ -1,63 +1,32 @@
 "use strict";
 
-function classifyBongaV2Failure(error) {
-  const message = String(error && error.message || error || "").toLowerCase();
-  if (message.includes("cloudflare origin authentication failed")) return "origin_authentication_failed";
-  if (message.includes("trusted proxy header") || message.includes("visitor ipv4")) return "trusted_client_ip_unavailable";
-  if (message.includes("response did not contain") || message.includes("models must contain") || message.includes("online_models must")) return "invalid_provider_response";
-  if (/feed\s+(401|403)|http\s+(401|403)/.test(message)) return "provider_authorization_failed";
-  if (/feed\s+[45]\d\d|http\s+[45]\d\d/.test(message)) return "provider_http_error";
-  if (message.includes("timeout")) return "provider_timeout";
-  return "request_failed";
+const { isIso3166Alpha2 } = require("./iso-country-codes.cjs");
+
+function resolveBongaV1Limit(value) {
+  const parsed = Number.parseInt(String(value == null ? "" : value), 10);
+  if (!Number.isFinite(parsed)) return 10;
+  return Math.min(100, Math.max(10, parsed));
 }
 
-function summarizeBongaFeedHealth({
-  enabled = true,
-  requestedApiVersion = "1",
-  activeApiVersion = "",
-  fallbackReason = "",
-  pagination = null,
-  checkedAt = null
-} = {}) {
-  if (!enabled) {
-    return { provider: "bongacams", status: "disabled", requestedApiVersion, activeApiVersion: "", fallbackReason: "", checkedAt };
+function summarizeBongaV1Feed({ rows = [], normalized = [], rooms = [], requestedLimit = 10, checkedAt = null, error = false } = {}) {
+  const rawRows = Array.isArray(rows) ? rows : [];
+  const normalizedRows = Array.isArray(normalized) ? normalized : [];
+  const acceptedRows = Array.isArray(rooms) ? rooms : [];
+  let missingCountryCount = 0;
+  let unrecognizedCountryCount = 0;
+  for (const row of rawRows) {
+    const raw = String(row && (row.homecountry || row.country || row.country_code) || "").trim();
+    if (!raw) missingCountryCount += 1;
+    else if (!isIso3166Alpha2(raw.toUpperCase())) unrecognizedCountryCount += 1;
   }
-
-  const requested = requestedApiVersion === "2" ? "2" : "1";
-  const active = activeApiVersion === "2" ? "2" : activeApiVersion === "1" ? "1" : "";
-  const page = pagination && typeof pagination === "object" ? pagination : null;
-  const truncated = Boolean(page && page.truncated === true);
-  let status;
-  if (!active) status = "unavailable";
-  else if (requested === "2" && active === "1") status = "v2_fallback_to_v1";
-  else if (active === "2" && truncated) status = "v2_truncated";
-  else status = active === "2" ? "active_v2" : "active_v1";
-
-  const coverageStatus = active === "1"
-    ? "single_response_limit_unverified"
-    : active === "2" && truncated
-      ? "truncated"
-      : active === "2"
-        ? "pagination_completed"
-        : "unavailable";
-
   return {
-    provider: "bongacams",
-    status,
-    requestedApiVersion: requested,
-    activeApiVersion: active,
-    fallbackReason: requested === "2" && active === "1" ? String(fallbackReason || "unknown") : "",
-    coverageStatus,
-    checkedAt,
-    pagination: page ? {
-      pagesFetched: Number.isInteger(page.pagesFetched) && page.pagesFetched >= 0 ? page.pagesFetched : null,
-      receivedCount: Number.isInteger(page.receivedCount) && page.receivedCount >= 0 ? page.receivedCount : null,
-      uniqueCount: Number.isInteger(page.uniqueCount) && page.uniqueCount >= 0 ? page.uniqueCount : null,
-      duplicateCount: Number.isInteger(page.duplicateCount) && page.duplicateCount >= 0 ? page.duplicateCount : null,
-      truncated,
-      stopReason: ["short_page", "max_pages", "empty_page", "repeated_page", "unknown"].includes(page.stopReason) ? page.stopReason : "unknown"
-    } : null
+    provider: "bongacams", status: error ? "unavailable" : "active_v1", apiVersion: "1",
+    pagination: "not_verified_single_response", requestedLimit: resolveBongaV1Limit(requestedLimit),
+    rawRoomCount: rawRows.length, normalizedRoomCount: normalizedRows.length,
+    acceptedRoomCount: acceptedRows.length,
+    rejectedOrDuplicateCount: Math.max(0, normalizedRows.length - acceptedRows.length),
+    missingCountryCount, unrecognizedCountryCount, checkedAt
   };
 }
 
-module.exports = { classifyBongaV2Failure, summarizeBongaFeedHealth };
+module.exports = { resolveBongaV1Limit, summarizeBongaV1Feed };
