@@ -157,3 +157,25 @@ test("A1.26 mobile room rails remain horizontally scrollable without forcing pag
   assert.match(css, /overscroll-behavior-x: contain/);
   assert.match(css, /flex: 0 0 min\(72vw, 230px\)/);
 });
+
+
+test("A1.26.1 mobile room-card badge rows wrap within the card content width", () => {
+  assert.match(css, /\.directory-main \.card \.badges[\s\S]*flex-flow: row wrap/);
+  assert.match(css, /\.directory-main \.card \.badges[\s\S]*width: 100%/);
+  assert.match(css, /\.directory-main \.card \.badge[\s\S]*flex: 0 1 auto/);
+  assert.match(css, /\.directory-main \.card \.badge[\s\S]*max-width: 100%/);
+});
+
+test("A1.26.1 viewer-count badges and room names cannot exceed mobile card width", () => {
+  assert.match(css, /\.directory-main \.card \.meta[\s\S]*overflow: hidden/);
+  assert.match(css, /\.directory-main \.card \.subject[\s\S]*max-width: 100%/);
+  assert.match(css, /\.directory-main \.card \.meta > strong[\s\S]*word-break: break-word/);
+});
+
+test("A1.26.1 mobile room names override single-line ellipsis and wrap", () => {
+  assert.match(css, /\.directory-main \.card \.meta > strong[\s\S]*overflow: visible;[\s\S]*text-overflow: clip;[\s\S]*white-space: normal;/);
+});
+
+test("A1.26.1 mobile directory cards explicitly show the fifth viewer-count badge", () => {
+  assert.match(css, /\.directory-main \.card \.badges > \.badge:nth-child\(5\)\s*\{\s*display: inline-flex;/);
+});
