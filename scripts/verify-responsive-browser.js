@@ -35,6 +35,35 @@ function startStaticServer() {
   return new Promise(resolve => server.listen(0, "127.0.0.1", () => resolve(server)));
 }
 
+const mockRoom = (id, platform, gender, displayName, viewerCount) => ({
+  id, platform, gender, displayName, viewerCount, roomSubject: "Responsive test room",
+  country: "US", countryName: "United States", isHd: true, isNew: false, image: ""
+});
+
+const roomFeed = {
+  rooms: [
+    mockRoom("mock-cb-female", "chaturbate", "female", "Mock Chaturbate Room", 245),
+    mockRoom("mock-bonga-male", "bongacams", "male", "Mock BongaCams Room", 128)
+  ],
+  countries: ["US", "GB", "CA"],
+  regions: ["North America"],
+  languages: ["English"],
+  popularTags: [{ tag: "test", count: 2 }],
+  liveCount: 2,
+  hasMore: false,
+  notice: "",
+  topChaturbateByCategory: {
+    female: [mockRoom("mock-top-female", "chaturbate", "female", "Popular Female Test Room", 245)]
+  },
+  topBongaByCategory: {},
+  regionalRooms: {
+    "North America": [
+      mockRoom("mock-regional-cb", "chaturbate", "female", "Regional Chaturbate Test", 245),
+      mockRoom("mock-regional-bonga", "bongacams", "male", "Regional BongaCams Test", 128)
+    ]
+  }
+};
+
 (async () => {
   const server = await startStaticServer();
   let browser;
@@ -43,8 +72,15 @@ function startStaticServer() {
     const page = await browser.newPage();
     const failures = [];
     page.on("pageerror", error => failures.push("Page error: " + error.message));
+    await page.addInitScript(() => localStorage.setItem("ncf18", "1"));
+    await page.route("**/api/rooms**", route => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(roomFeed)
+    }));
     const address = server.address();
     await page.goto("http://127.0.0.1:" + address.port + "/", { waitUntil: "networkidle" });
+    await page.waitForSelector("#category-rows .card");
 
     for (const viewport of [
       { name: "mobile-small", width: 320, height: 740 },
@@ -61,6 +97,10 @@ function startStaticServer() {
         const header = document.querySelector(".topbar");
         const grid = document.querySelector("#grid");
         const sidebar = document.querySelector(".bonga-promo-sidebar");
+        const categoryCards = [...document.querySelectorAll("#category-rows .card")];
+        const featuredCards = [...document.querySelectorAll(".featured-panel .card")];
+        const watchActions = [...document.querySelectorAll("#category-rows .card .btn")]
+          .filter(element => /Watch on (Chaturbate|BongaCams)/.test(element.textContent));
         const rect = element => {
           if (!element) return null;
           const r = element.getBoundingClientRect();
@@ -76,23 +116,32 @@ function startStaticServer() {
           sidebarRect: rect(sidebar),
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
-          featuredRoom: !!document.querySelector("#featured-room"),
-          countryShortcuts: !!document.querySelector("#quick")
+          featuredRoom: featuredCards.length > 0,
+          countryShortcuts: !!document.querySelector("#quick"),
+          categoryCardCount: categoryCards.length,
+          watchActionCount: watchActions.length,
+          categoryCardsVisible: categoryCards.every(card => {
+            const r = card.getBoundingClientRect();
+            return r.width > 0 && r.height > 0;
+          })
         };
       });
       if (result.documentWidth > viewport.width) failures.push(viewport.name + ": horizontal overflow (" + result.documentWidth + "px > " + viewport.width + "px)");
       if (!result.title.includes("Who's live in your country")) failures.push(viewport.name + ": homepage heading missing");
       if (!result.roomSizeFilter || !result.regionFilter) failures.push(viewport.name + ": directory filters missing");
       if (!result.featuredRoom || !result.countryShortcuts) failures.push(viewport.name + ": featured room or country shortcuts missing");
+      if (result.categoryCardCount < 2 || result.watchActionCount < 2 || !result.categoryCardsVisible) {
+        failures.push(viewport.name + ": mock room cards or Watch actions did not render visibly");
+      }
       console.log(JSON.stringify({ viewport: viewport.name, ...result }));
       await page.screenshot({ path: "responsive-" + viewport.name + ".png", fullPage: true });
     }
 
     if (failures.length) {
-      console.error("Responsive browser verification failed:\n- " + failures.join("\n- "));
+      console.error("Responsive browser verification failed:\\n- " + failures.join("\\n- "));
       process.exitCode = 1;
     } else {
-      console.log("Responsive browser verification passed at 320, 390, 768 and 1366 pixels.");
+      console.log("Responsive browser verification passed with mock room cards at 320, 390, 768 and 1366 pixels.");
     }
   } finally {
     if (browser) await browser.close();
