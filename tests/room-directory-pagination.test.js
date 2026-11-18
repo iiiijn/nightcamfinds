@@ -130,3 +130,10 @@ test("A1.25 desktop room cards use five columns on wide screens and four on medi
   assert.match(css, /@media \(min-width: 901px\) and \(max-width: 1199px\)[\s\S]*repeat\(4, minmax\(0, 1fr\)\)/);
   assert.match(css, /@media \(max-width: 640px\)[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);
 });
+
+test("A1.25 language selector is inside the responsive topbar grid", () => {
+  const topbar = html.indexOf('<div class="topbar">');
+  const language = html.indexOf('id="language"');
+  const topbarEnd = html.indexOf('</div>', html.indexOf('id="quick-exit"'));
+  assert.ok(topbar >= 0 && language > topbar && language < topbarEnd, "language selector must be a topbar grid item");
+});
