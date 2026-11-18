@@ -137,14 +137,14 @@ const roomFeed = {
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
           homepageHeadlineRemoved: !document.querySelector("#page-title, #top > .hero h1"),
-          recruitmentBannerVisible: (() => { const el=document.querySelector(".creator-recruitment"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0 && !!el.querySelector('a[href="/broadcast/"]'); })(),
+          recruitmentBannerVisible: (() => { const el=document.querySelector(".broadcaster-sidebar"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0 && !!el.querySelector('a[href="/broadcast/#platform-chaturbate"]') && !!el.querySelector('a[href="/broadcast/#platform-bongacams"]'); })(),
           countryHintRemoved: !document.querySelector("#country-hint, #quick"),
           modelFlagsVisible: [...document.querySelectorAll("#grid .model-country-flag, #category-rows .model-country-flag")].length > 0,
           saveButtonsRemoved: [...document.querySelectorAll(".favorite-toggle")].every(button => getComputedStyle(button).display === "none"),
           featuredPanelRemoved: !document.querySelector(".featured-panel"),
           independentDiscoveryRemoved: !document.querySelector("#kicker"),
-          heroLeadVisible: (() => { const el = document.querySelector("#page-intro"); const r = el?.getBoundingClientRect(); return !!r && r.width > 0 && r.height > 0; })(),
-          heroActionsVisible: [...document.querySelectorAll("#top > .hero .actions a")].length === 2 && [...document.querySelectorAll("#top > .hero .actions a")].every(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }),
+          heroLeadVisible: (() => { const el = document.querySelector("#top > .hero"); return !el || getComputedStyle(el).display === "none"; })(),
+          heroActionsVisible: (() => { const cards=[...document.querySelectorAll(".sidebar-filter-group")]; const titles=cards.map(el=>el.querySelector("h3")?.textContent.trim()); return titles.indexOf("Browse by region") < titles.indexOf("Room size") && titles.indexOf("Room size") < titles.indexOf("Popular tags"); })(),
           countryShortcuts: !!document.querySelector("#quick"),
           categoryCardCount: categoryCards.length,
           watchActionCount: watchActions.length,
@@ -159,7 +159,7 @@ const roomFeed = {
       if (!result.recruitmentBannerVisible) failures.push(viewport.name + ": model recruitment banner or CTA is missing");
       if (!result.roomSizeFilter || !result.regionFilter) failures.push(viewport.name + ": directory filters missing");
       if (!result.featuredPanelRemoved || !result.independentDiscoveryRemoved) failures.push(viewport.name + ": removed homepage elements are still present");
-      if (!result.heroLeadVisible || !result.heroActionsVisible) failures.push(viewport.name + ": simplified hero content or actions are not visible");
+      if (!result.heroLeadVisible || !result.heroActionsVisible) failures.push(viewport.name + ": compact directory-first layout or ordered sidebar flow is incorrect");
       if (!result.countryHintRemoved) failures.push(viewport.name + ": country hint or shortcut row remains");
       if (!result.modelFlagsVisible) failures.push(viewport.name + ": partner country flags are missing from model cards");
       if (!result.saveButtonsRemoved) failures.push(viewport.name + ": model Save controls are still present");
