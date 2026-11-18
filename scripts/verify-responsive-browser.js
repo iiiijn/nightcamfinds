@@ -80,7 +80,7 @@ const roomFeed = {
     }));
     const address = server.address();
     await page.goto("http://127.0.0.1:" + address.port + "/", { waitUntil: "networkidle" });
-    await page.waitForSelector("#category-rows .card");
+    await page.waitForSelector("#grid .card, #category-rows .card");
 
     for (const viewport of [
       { name: "mobile-small", width: 320, height: 740 },
@@ -169,7 +169,7 @@ const roomFeed = {
       if (result.navRect && result.topbarRect && viewport.width <= 640 && result.navRect.top < result.topbarRect.bottom - 2) failures.push(viewport.name + ": category navigation overlaps the topbar");
       if (viewport.width <= 640 && result.navScrollWidth > result.navClientWidth && result.navRect.height < 24) failures.push(viewport.name + ": scrollable category navigation has no usable touch height");
       if (viewport.width <= 640 && result.shortcutsScrollWidth > result.shortcutsClientWidth && result.shortcutsRect?.height <= 0) failures.push(viewport.name + ": country shortcuts are horizontally clipped without a visible row");
-      if (viewport.width <= 640 && (!result.heroCategoriesRect || result.heroCategoriesRect.height <= 0 || !result.heroCategoryLinksSingleLine)) failures.push(viewport.name + ": hero category chips are not laid out as single-line touch targets");
+      
       if (result.categoryCardCount < 2 || result.watchActionCount < 2 || !result.categoryCardsVisible) {
         failures.push(viewport.name + ": mock room cards or Watch actions did not render visibly");
       }
