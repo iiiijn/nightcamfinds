@@ -50,10 +50,10 @@ function summarizeBongaFeedHealth({
     coverageStatus,
     checkedAt,
     pagination: page ? {
-      pagesFetched: Number.isInteger(page.pagesFetched) ? page.pagesFetched : null,
-      receivedCount: Number.isInteger(page.receivedCount) ? page.receivedCount : null,
-      uniqueCount: Number.isInteger(page.uniqueCount) ? page.uniqueCount : null,
-      duplicateCount: Number.isInteger(page.duplicateCount) ? page.duplicateCount : null,
+      pagesFetched: Number.isInteger(page.pagesFetched) && page.pagesFetched >= 0 ? page.pagesFetched : null,
+      receivedCount: Number.isInteger(page.receivedCount) && page.receivedCount >= 0 ? page.receivedCount : null,
+      uniqueCount: Number.isInteger(page.uniqueCount) && page.uniqueCount >= 0 ? page.uniqueCount : null,
+      duplicateCount: Number.isInteger(page.duplicateCount) && page.duplicateCount >= 0 ? page.duplicateCount : null,
       truncated,
       stopReason: ["short_page", "max_pages", "empty_page", "repeated_page", "unknown"].includes(page.stopReason) ? page.stopReason : "unknown"
     } : null
