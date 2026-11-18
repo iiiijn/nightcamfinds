@@ -139,7 +139,7 @@ const roomFeed = {
           homepageHeadlineRemoved: !document.querySelector("#page-title, #top > .hero h1"),
           countryHintRemoved: !document.querySelector("#country-hint, #quick"),
           modelFlagsVisible: [...document.querySelectorAll("#grid .model-country-flag, #category-rows .model-country-flag")].length > 0,
-          saveButtonsRemoved: !document.querySelector(".favorite-toggle"),
+          saveButtonsRemoved: [...document.querySelectorAll(".favorite-toggle")].every(button => getComputedStyle(button).display === "none"),
           featuredPanelRemoved: !document.querySelector(".featured-panel"),
           independentDiscoveryRemoved: !document.querySelector("#kicker"),
           heroLeadVisible: (() => { const el = document.querySelector("#page-intro"); const r = el?.getBoundingClientRect(); return !!r && r.width > 0 && r.height > 0; })(),
