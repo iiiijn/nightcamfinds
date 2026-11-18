@@ -9,6 +9,7 @@ const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8")
 const css = read("public/styles.css");
 const app = read("public/app.js");
 const html = read("public/index.html");
+const modelPage = read("public/broadcast.html");
 
 test("homepage puts live discovery ahead of secondary promotional content", () => {
   assert.ok(css.includes("#top > .directory-section { order: 3"));
@@ -61,4 +62,20 @@ test("laptop-width layouts keep search in the top row and use five room columns"
   assert.ok(css.includes(".topbar {\n    flex-wrap: nowrap;"));
   assert.ok(css.includes(".topbar #q {\n    flex: 1 1 180px;"));
   assert.ok(css.includes("grid-template-columns: repeat(5, minmax(0, 1fr));"));
+});
+
+
+test("homepage provides a separate model recruitment path without changing viewer room routes", () => {
+  assert.ok(html.includes('id="become-a-model"'));
+  assert.ok(html.includes('href="/broadcast/">Become a model</a>'));
+  assert.ok(modelPage.includes("Become a live broadcaster"));
+  assert.ok(modelPage.includes("https://chaturbate.com/in/?tour=LQps&amp;campaign=C6yxN&amp;track=broadcast"));
+  assert.ok(modelPage.includes("https://bongacash.com/model-ref?c=840974"));
+  assert.ok(!html.includes('href="/go/" target="_blank"'));
+  assert.ok(!html.includes('href="/bgo/" target="_blank"'));
+});
+
+test("model recruitment cards stack on mobile and remain two columns on wider screens", () => {
+  assert.ok(css.includes(".model-platforms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));"));
+  assert.ok(css.includes(".model-platforms { grid-template-columns: 1fr;"));
 });
