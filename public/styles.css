@@ -1184,3 +1184,50 @@ footer span { flex: 1 1 100%; }
     text-align: center;
   }
 }
+
+
+/* A1.25.3.8: compact Chaturbate-inspired live discovery layout. */
+.discovery-tabs{align-items:center;gap:8px;padding:8px 0 12px}
+.discovery-tabs a{padding:8px 18px;border:1px solid var(--line);border-radius:999px;background:var(--panel);color:var(--muted)}
+.discovery-tabs a[href="/"]{background:#2879bd;border-color:#2879bd;color:#fff}
+.discovery-tabs a:hover,.discovery-tabs a[aria-current="page"]{background:#2879bd;border-color:#2879bd;color:#fff}
+#top>.hero{padding:14px 0 10px}
+#top>.hero .lead{max-width:760px;margin-bottom:10px;font-size:14px}
+#top>.hero .hero-categories{display:none!important}
+.directory-section{padding-top:10px}
+.directory-layout{display:block!important}
+.bonga-promo-sidebar{margin-top:22px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.broadcaster-sidebar{grid-column:1/-1}
+.directory-main .grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;align-items:start}
+.directory-main .card{display:flex;min-width:0;border-radius:10px;background:var(--panel)}
+.directory-main .card .thumb{aspect-ratio:4/3;width:100%;object-fit:cover}
+.directory-main .card .meta{gap:5px;padding:8px 9px 10px}
+.directory-main .card .badges{order:3;gap:4px}
+.directory-main .card .badge{padding:2px 6px;font-size:9px}
+.directory-main .card .model-identity{display:flex;align-items:center;gap:6px;min-width:0;order:1}
+.directory-main .card .model-identity strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;color:var(--lilac)}
+.directory-main .card .model-country-flag{flex:0 0 auto;font-family:system-ui,sans-serif;font-size:17px;line-height:1}
+.directory-main .card .subject{order:2;min-height:2.7em;font-size:11px;line-height:1.35}
+.directory-main .card .model-stats{order:4;color:var(--muted);font-size:10px}
+.directory-main .card .meta>.btn{order:5;min-height:34px;margin-top:3px;padding:7px 8px;font-size:11px}
+.directory-main .card:hover{border-color:var(--lilac);transform:translateY(-1px)}
+.promo-strip:empty,.cb-category-promo:empty,.promo-banner:empty{display:none!important}
+@media(min-width:981px){.directory-main .grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(min-width:641px) and (max-width:980px){.directory-main .grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.bonga-promo-sidebar{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){
+.discovery-tabs{gap:6px;padding:7px 0 10px;overflow-x:auto;flex-wrap:nowrap}
+.discovery-tabs a{flex:0 0 auto;padding:7px 13px;font-size:12px}
+#top>.hero{padding:10px 0 5px}
+#top>.hero .lead{font-size:12px}
+.directory-section{padding-top:6px}
+.directory-section>.section-heading{flex-direction:row;align-items:center}
+.directory-section .section-heading h2{font-size:23px}
+.directory-main .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.directory-main .card{border-radius:8px}
+.directory-main .card .meta{padding:6px;gap:4px}
+.directory-main .card .model-identity strong{font-size:11px}
+.directory-main .card .model-country-flag{font-size:14px}
+.directory-main .card .subject{font-size:10px;min-height:2.7em}
+.directory-main .card .meta>.btn{font-size:10px;padding:6px 4px;min-height:31px}
+.bonga-promo-sidebar{grid-template-columns:1fr}
+}
