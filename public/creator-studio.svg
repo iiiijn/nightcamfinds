@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" role="img" aria-labelledby="title desc">
+<title id="title">Creator studio illustration</title><desc id="desc">A confident adult creator in a pink studio beside a ring light and camera.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#f7a8c7"/><stop offset=".52" stop-color="#a66bd0"/><stop offset="1" stop-color="#34204e"/></linearGradient><linearGradient id="top" x2="1" y2="1"><stop stop-color="#f6bfd3"/><stop offset="1" stop-color="#b74d91"/></linearGradient><radialGradient id="glow"><stop stop-color="#fff2f7" stop-opacity=".9"/><stop offset="1" stop-color="#fff2f7" stop-opacity="0"/></radialGradient></defs>
+<rect width="720" height="420" rx="28" fill="url(#bg)"/><circle cx="590" cy="95" r="170" fill="url(#glow)"/>
+<path d="M0 340Q180 270 360 340T720 325V420H0Z" fill="#281737" opacity=".42"/>
+<circle cx="566" cy="153" r="91" fill="none" stroke="#ffe7f0" stroke-width="15"/><circle cx="566" cy="153" r="72" fill="none" stroke="#f8c8dc" stroke-width="4" opacity=".7"/>
+<path d="M566 244v95m-42 0h84" stroke="#33213f" stroke-width="11" stroke-linecap="round"/>
+<rect x="38" y="250" width="145" height="94" rx="12" fill="#281c3b" stroke="#f6c4dc" stroke-width="5"/><rect x="50" y="262" width="121" height="66" rx="5" fill="#f7c2d9"/><path d="M22 350h178l-18 16H40Z" fill="#342047"/>
+<path d="M254 420q8-112 87-138 55-18 109 4 73 30 84 134" fill="url(#top)"/>
+<path d="M321 178q-9-80 66-94 79-10 91 69l-7 71q-17 65-74 69-65-7-76-78Z" fill="#4b2a37"/>
+<ellipse cx="391" cy="184" rx="68" ry="82" fill="#d99679"/>
+<path d="M324 171q-5-97 80-94 75 6 79 83-29-35-61-47-41 40-98 58Z" fill="#422533"/>
+<path d="M349 191q12 8 24 0m39 0q12 8 24 0" fill="none" stroke="#59323a" stroke-width="5" stroke-linecap="round"/>
+<path d="M379 222q17 12 34-1" fill="none" stroke="#9c4e62" stroke-width="5" stroke-linecap="round"/>
+<path d="M360 265l31 41 31-41" fill="#f6d6e2"/><path d="M335 300q56 28 112 0l31 120H300Z" fill="url(#top)"/>
+<circle cx="318" cy="209" r="8" fill="#f5c76e"/><circle cx="464" cy="209" r="8" fill="#f5c76e"/>
+<path d="M614 280h63v50h-63z" fill="#241b35" stroke="#f6c4dc" stroke-width="4"/><circle cx="645" cy="305" r="13" fill="#a7b6d6"/><path d="M645 330v43m-24 0h48" stroke="#241b35" stroke-width="8" stroke-linecap="round"/>
+<circle cx="92" cy="84" r="5" fill="#fff" opacity=".8"/><circle cx="228" cy="55" r="4" fill="#fff" opacity=".7"/><circle cx="675" cy="70" r="6" fill="#fff" opacity=".8"/>
+</svg>
