@@ -67,7 +67,7 @@ test("homepage is global by default while explicit country landing pages retain 
 });
 
 test("global Chaturbate category links use supported platform filtering and preserve viewer sorting", () => {
-  assert.match(app, /more\.href = "\/" \+ gender \+ "\/\?ncf_platform=chaturbate&sort=viewers"/);
+  assert.match(app, /more\.href = "\/" \+ gender \+ "\/\?ncf_platform=" \+ platformKey \+ "&sort=viewers"/);
   assert.match(app, /const campaignPlatform = \["chaturbate", "bongacams"\]/);
   assert.match(app, /if \(category === "popular" \|\| queryParams\.get\("sort"\) === "viewers"\) sort\.value = "viewers"/);
 });
