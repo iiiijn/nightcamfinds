@@ -23,7 +23,6 @@ const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-di
 const { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage } = require("./src/services/bonga-feed-diagnostics.cjs");
 const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");
 const { hasAuthenticatedOrigin, resolveTrustedClientIpv4, buildModelsOnlineUrl, parseModelsOnlineResponse, normalizeTags, resolveBongaRoomImage, isBongaHd } = require("./src/services/bongacash-api-v2.cjs");
-const { classifyBongaV2Failure, summarizeBongaFeedHealth } = require("./src/services/bonga-feed-health.cjs");
 let latestBongaRawDiagnostics = null;
 
 let pgPool = null;
@@ -273,11 +272,9 @@ async function fetchBongaV1Rooms() {
   const tagsText=typeof room.tags==="string"?room.tags:Array.isArray(room.tags)?room.tags.join(" "):"";
   return {normalized:normalizeBongaRoom(room),rawText:[room.username,room.user_name,room.nickname,room.display_name,room.name,room.chat_topic,room.room_subject,room.topic,tagsText].filter(Boolean).map(value=>plainText(value)).join(" ")};
  });
- const pagination={pagesFetched:1,receivedCount:rawRows.length,uniqueCount:null,duplicateCount:null,truncated:false,stopReason:"unknown"};
- const diagnostics=summarizeFeedIngestion({provider:"bongacams",rawRows,entries,pagination});
- const feedHealth=summarizeBongaFeedHealth({enabled:BONGA_ENABLED,requestedApiVersion:BONGA_API_VERSION,activeApiVersion:"1",fallbackReason:latestBongaV2FallbackReason,pagination,checkedAt:new Date().toISOString()});
- latestProviderFeedDiagnostics.bongacams={...diagnostics,feedHealth};
- console.info("[provider-feed-diagnostics]",JSON.stringify(latestProviderFeedDiagnostics.bongacams));
+ const diagnostics=summarizeFeedIngestion({provider:"bongacams",rawRows,entries,pagination:{pagesFetched:1,receivedCount:rawRows.length,uniqueCount:null,duplicateCount:null,truncated:false,stopReason:"unknown"}});
+ latestProviderFeedDiagnostics.bongacams=diagnostics;
+ console.info("[provider-feed-diagnostics]",JSON.stringify(diagnostics));
  return filterDisplayableRooms(entries);
 }
 async function fetchBongaV2Rooms(req) {
@@ -301,34 +298,20 @@ async function fetchBongaV2Rooms(req) {
   return {normalized:normalizeBongaRoom(room),rawText:[room.username,room.display_name,room.chat_topic,room.room_subject,tagsText].filter(Boolean).map(value=>plainText(value)).join(" ")};
  });
  const diagnostics=summarizeFeedIngestion({provider:"bongacams",rawRows,entries,pagination:pages});
- const feedHealth=summarizeBongaFeedHealth({enabled:BONGA_ENABLED,requestedApiVersion:BONGA_API_VERSION,activeApiVersion:"2",pagination:pages,checkedAt:new Date().toISOString()});
- latestBongaV2FallbackReason="";
- latestProviderFeedDiagnostics.bongacams={...diagnostics,feedHealth};
- console.info("[provider-feed-diagnostics]",JSON.stringify(latestProviderFeedDiagnostics.bongacams));
+ latestProviderFeedDiagnostics.bongacams=diagnostics;
+ console.info("[provider-feed-diagnostics]",JSON.stringify(diagnostics));
  return filterDisplayableRooms(entries);
 }
-let latestBongaV2FallbackReason="";
 async function fetchBongaRooms(req) {
- if(!BONGA_ENABLED) {
-  latestProviderFeedDiagnostics.bongacams={feedHealth:summarizeBongaFeedHealth({enabled:false,requestedApiVersion:BONGA_API_VERSION,checkedAt:new Date().toISOString()})};
-  return[];
- }
+ if(!BONGA_ENABLED)return[];
  if(BONGA_API_VERSION==="2") {
   try {
    return await fetchBongaV2Rooms(req);
   } catch(error) {
-   latestBongaV2FallbackReason=classifyBongaV2Failure(error);
-   console.warn("BongaCash V2 feed failed; falling back to V1.",JSON.stringify({reason:latestBongaV2FallbackReason}));
+   console.warn("BongaCash V2 feed failed; falling back to V1:",error.message);
   }
  }
- try {
-  return await fetchBongaV1Rooms();
- } catch(error) {
-  const feedHealth=summarizeBongaFeedHealth({enabled:true,requestedApiVersion:BONGA_API_VERSION,activeApiVersion:"",fallbackReason:latestBongaV2FallbackReason,checkedAt:new Date().toISOString()});
-  latestProviderFeedDiagnostics.bongacams={feedHealth};
-  console.error("BongaCams provider feed unavailable.",JSON.stringify({status:feedHealth.status,fallbackReason:feedHealth.fallbackReason}));
-  throw error;
- }
+ return fetchBongaV1Rooms();
 }
 async function rooms(req) {
  const visitor=visitorCountry(req);
