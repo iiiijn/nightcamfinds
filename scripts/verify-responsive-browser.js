@@ -104,6 +104,8 @@ const roomFeed = {
         const nav = document.querySelector(".category-nav");
         const shortcuts = document.querySelector("#quick");
         const directoryHeading = document.querySelector(".directory-section .section-heading");
+        const heroCategories = document.querySelector(".hero-categories");
+        const heroCategoryLinks = [...document.querySelectorAll(".hero-categories a")];
         const categoryCards = [...document.querySelectorAll("#category-rows .card")];
         const featuredCards = [...document.querySelectorAll(".featured-panel .card")];
         const watchActions = [...document.querySelectorAll("#category-rows .card .btn")]
@@ -136,6 +138,10 @@ const roomFeed = {
           shortcutsScrollWidth: shortcuts?.scrollWidth || 0,
           shortcutsClientWidth: shortcuts?.clientWidth || 0,
           directoryHeadingRect: rect(directoryHeading),
+          heroCategoriesRect: rect(heroCategories),
+          heroCategoriesScrollWidth: heroCategories?.scrollWidth || 0,
+          heroCategoriesClientWidth: heroCategories?.clientWidth || 0,
+          heroCategoryLinksSingleLine: heroCategoryLinks.every(link => getComputedStyle(link).whiteSpace === "nowrap"),
           topbarRect: rect(header),
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
@@ -163,6 +169,7 @@ const roomFeed = {
       if (result.navRect && result.topbarRect && viewport.width <= 640 && result.navRect.top < result.topbarRect.bottom - 2) failures.push(viewport.name + ": category navigation overlaps the topbar");
       if (viewport.width <= 640 && result.navScrollWidth > result.navClientWidth && result.navRect.height < 24) failures.push(viewport.name + ": scrollable category navigation has no usable touch height");
       if (viewport.width <= 640 && result.shortcutsScrollWidth > result.shortcutsClientWidth && result.shortcutsRect?.height <= 0) failures.push(viewport.name + ": country shortcuts are horizontally clipped without a visible row");
+      if (viewport.width <= 640 && (!result.heroCategoriesRect || result.heroCategoriesRect.height <= 0 || !result.heroCategoryLinksSingleLine)) failures.push(viewport.name + ": hero category chips are not laid out as single-line touch targets");
       if (result.categoryCardCount < 2 || result.watchActionCount < 2 || !result.categoryCardsVisible) {
         failures.push(viewport.name + ": mock room cards or Watch actions did not render visibly");
       }
