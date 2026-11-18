@@ -8,6 +8,7 @@ const path = require("node:path");
 const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
 const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
 const html = fs.readFileSync(path.join(__dirname, "../public/index.html"), "utf8");
+const loyalty = fs.readFileSync(path.join(__dirname, "../public/loyalty.js"), "utf8");
 
 test("Chaturbate feed requests bounded regional pages and deduplicates partner results", () => {
   assert.match(server, /fetchPagedResults/);
@@ -111,5 +112,5 @@ test("homepage uses one sidebar for broadcaster signup, regions, room size and t
   assert.doesNotMatch(html, /href="\/countries\/">Countries/);
 });
 test("room cards do not render save or favorite star controls", () => {
-  assert.doesNotMatch(app, /favorite-toggle/);
+  assert.doesNotMatch(loyalty, /favorite-toggle|☆ Save|★ Saved/);
 });
