@@ -33,12 +33,21 @@ function summarizeBongaFeedHealth({
   else if (active === "2" && truncated) status = "v2_truncated";
   else status = active === "2" ? "active_v2" : "active_v1";
 
+  const coverageStatus = active === "1"
+    ? "single_response_limit_unverified"
+    : active === "2" && truncated
+      ? "truncated"
+      : active === "2"
+        ? "pagination_completed"
+        : "unavailable";
+
   return {
     provider: "bongacams",
     status,
     requestedApiVersion: requested,
     activeApiVersion: active,
     fallbackReason: requested === "2" && active === "1" ? String(fallbackReason || "unknown") : "",
+    coverageStatus,
     checkedAt,
     pagination: page ? {
       pagesFetched: Number.isInteger(page.pagesFetched) ? page.pagesFetched : null,
