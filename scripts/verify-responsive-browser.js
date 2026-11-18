@@ -124,6 +124,9 @@ const roomFeed = {
           categoryRowsRect: rect(categoryRows),
           featuredPanelRect: rect(featuredPanel),
           featuredPanelParent: featuredPanel?.parentElement?.className || "",
+          featuredPanelText: featuredPanel?.innerText?.trim() || "",
+          featuredCardRect: rect(featuredCards[0]),
+          firstCategoryCardRect: rect(categoryCards[0]),
           navRect: rect(nav),
           topbarRect: rect(header),
           roomSizeFilter: !!document.querySelector("#room-size"),
@@ -143,6 +146,8 @@ const roomFeed = {
       if (!result.roomSizeFilter || !result.regionFilter) failures.push(viewport.name + ": directory filters missing");
       if (!result.featuredRoom || !result.countryShortcuts) failures.push(viewport.name + ": featured room or country shortcuts missing");
       if (!result.featuredPanelRect || result.featuredPanelRect.width <= 0 || result.featuredPanelRect.height <= 0) failures.push(viewport.name + ": featured panel is not visibly laid out");
+      if (!result.featuredPanelText || !result.featuredCardRect || result.featuredCardRect.height <= 0) failures.push(viewport.name + ": featured room content is empty or collapsed");
+      if (!result.firstCategoryCardRect || result.firstCategoryCardRect.width <= 0 || result.firstCategoryCardRect.height <= 0) failures.push(viewport.name + ": first category room card has no visible footprint");
       if (!result.directoryLayoutRect || result.directoryLayoutRect.width < viewport.width * 0.8) failures.push(viewport.name + ": directory layout does not use the available page width");
       if (!result.directoryMainRect || result.directoryMainRect.width < viewport.width * 0.45) failures.push(viewport.name + ": main room directory is too narrow");
       if (!result.categoryRowsRect || result.categoryRowsRect.width <= 0 || result.categoryRowsRect.height <= 0) failures.push(viewport.name + ": category room rows are not visibly laid out");
