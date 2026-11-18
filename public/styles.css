@@ -1121,3 +1121,27 @@ footer span { flex: 1 1 100%; }
     font-size: 12px;
   }
 }
+
+/* Prevent category shortcut labels from wrapping into overlapping chip rows on narrow phones. */
+@media (max-width: 640px) {
+  #top > .hero .hero-categories {
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    padding: 2px 18px 8px 0;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--lilac) transparent;
+    mask-image: linear-gradient(to right, #000 0%, #000 88%, transparent 100%);
+  }
+  #top > .hero .hero-categories::-webkit-scrollbar { display: block; height: 3px; }
+  #top > .hero .hero-categories::-webkit-scrollbar-thumb { background: var(--lilac); border-radius: 99px; }
+  #top > .hero .hero-categories a {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
+}
