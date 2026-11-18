@@ -9,6 +9,7 @@ const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
 const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
 const html = fs.readFileSync(path.join(__dirname, "../public/index.html"), "utf8");
 const loyalty = fs.readFileSync(path.join(__dirname, "../public/loyalty.js"), "utf8");
+const css = fs.readFileSync(path.join(__dirname, "../public/styles.css"), "utf8");
 
 test("Chaturbate feed requests bounded regional pages and deduplicates partner results", () => {
   assert.match(server, /fetchPagedResults/);
@@ -113,4 +114,27 @@ test("homepage uses one sidebar for broadcaster signup, regions, room size and t
 });
 test("room cards do not render save or favorite star controls", () => {
   assert.doesNotMatch(loyalty, /favorite-toggle|☆ Save|★ Saved/);
+});
+
+
+test("A1.25 mobile header keeps search, country, language and quick exit in a compact grid", () => {
+  assert.match(css, /grid-template-areas:[\s\S]*"brand age age"[\s\S]*"search search search"[\s\S]*"country language exit"/);
+  assert.match(css, /\.header-tools \{ display: contents; \}/);
+  assert.match(css, /\.category-nav[\s\S]*overscroll-behavior-x: contain/);
+  assert.match(html, /id="q"/);
+  assert.match(html, /id="country"/);
+  assert.match(html, /id="language"/);
+  assert.match(html, /id="quick-exit"/);
+});
+test("A1.25 desktop room cards use five columns on wide screens and four on medium screens", () => {
+  assert.match(css, /@media \(min-width: 1200px\)[\s\S]*repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(min-width: 901px\) and \(max-width: 1199px\)[\s\S]*repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(max-width: 640px\)[\s\S]*repeat\(2, minmax\(0, 1fr\)\)/);
+});
+
+test("A1.25 language selector is inside the responsive topbar grid", () => {
+  const topbar = html.indexOf('<div class="topbar">');
+  const language = html.indexOf('id="language"');
+  const topbarEnd = html.indexOf('</div>', html.indexOf('id="quick-exit"'));
+  assert.ok(topbar >= 0 && language > topbar && language < topbarEnd, "language selector must be a topbar grid item");
 });
