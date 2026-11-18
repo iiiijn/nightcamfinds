@@ -20,11 +20,14 @@ const providerHealth = require("./src/services/provider-attribution-health.cjs")
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
 const { cleanRoomTitle, filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const { isIso3166Alpha2 } = require("./src/services/iso-country-codes.cjs");
+const { resolveBongaV1Limit, summarizeBongaV1Feed } = require("./src/services/bonga-feed-health.cjs");
 const allowEngagement = createEngagementRateLimiter();
 let lastTrafficSpikeAlertAt = 0;
 
 const originalCreateServer = http.createServer;
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || "840970";
+const BONGA_V1_LIMIT = resolveBongaV1Limit(process.env.BONGACAMS_V1_LIMIT);
+let latestBongaFeedDiagnostics = null;
 const databaseUrl = process.env.DATABASE_URL;
 const pool = databaseUrl ? new Pool({
   connectionString: databaseUrl,
@@ -75,8 +78,8 @@ function getJson(url) {
       res.setEncoding("utf8");
       res.on("data", chunk => { body += chunk; });
       res.on("end", () => {
-        if (res.statusCode < 200 || res.statusCode >= 300) return reject(new Error(`Bonga API HTTP ${res.statusCode}: ${body.slice(0, 300)}`));
-        try { resolve(JSON.parse(body)); } catch { reject(new Error(`Bonga API returned non-JSON: ${body.slice(0, 300)}`)); }
+        if (res.statusCode < 200 || res.statusCode >= 300) return reject(new Error(`Bonga API HTTP ${res.statusCode}`));
+        try { resolve(JSON.parse(body)); } catch { reject(new Error("Bonga API returned non-JSON")); }
       });
     });
     req.setTimeout(10000, () => req.destroy(new Error("Bonga API timeout")));
@@ -112,11 +115,13 @@ function normalizeBonga(room) {
 
 async function bongaRooms() {
   const api = process.env.BONGACAMS_API_BASE || "https://bngprm.com/promo.php";
-  const query = new URLSearchParams({ c: BONGA_CAMPAIGN, type: "api", api_v: "1", limit: "10", api_type: "json" });
+  const query = new URLSearchParams({ c: BONGA_CAMPAIGN, type: "api", api_v: "1", limit: String(BONGA_V1_LIMIT), api_type: "json" });
   const data = await getJson(`${api}?${query.toString()}`);
   const rows = Array.isArray(data) ? data : (data.results || data.rooms || data.data || data.models || []);
   const normalized = rows.map(normalizeBonga).filter(Boolean);
   const rooms = filterDisplayableRooms(normalized);
+  latestBongaFeedDiagnostics = summarizeBongaV1Feed({ rows, normalized, rooms, requestedLimit: BONGA_V1_LIMIT, checkedAt: new Date().toISOString() });
+  console.log("[bongacams-feed-health]", JSON.stringify(latestBongaFeedDiagnostics));
   console.log(`BongaCams API returned ${rooms.length} validated rooms`);
   return rooms;
 }
@@ -822,8 +827,20 @@ http.createServer = function routeDashboard(handler) {
       return res.end(html);
     }
     if (incoming.pathname === "/api/bonga-rooms") {
-      try { return sendJson(res, 200, { rooms: await bongaRooms(), platform: "bongacams" }); }
-      catch (err) { console.error("BongaCams feed error:", err.message); return sendJson(res, 502, { rooms: [], platform: "bongacams", error: err.message }); }
+      const diagnosticsRequested = incoming.searchParams.get("diagnostics") === "1";
+      if (diagnosticsRequested && !validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      try {
+        const rooms = await bongaRooms();
+        return sendJson(res, 200, diagnosticsRequested
+          ? { rooms, platform: "bongacams", diagnostics: latestBongaFeedDiagnostics }
+          : { rooms, platform: "bongacams" });
+      } catch (err) {
+        latestBongaFeedDiagnostics = summarizeBongaV1Feed({ error: true, requestedLimit: BONGA_V1_LIMIT, checkedAt: new Date().toISOString() });
+        console.error("[bongacams-feed-health]", JSON.stringify(latestBongaFeedDiagnostics));
+        return sendJson(res, 502, diagnosticsRequested
+          ? { rooms: [], platform: "bongacams", diagnostics: latestBongaFeedDiagnostics, error: "BongaCams feed temporarily unavailable." }
+          : { rooms: [], platform: "bongacams", error: "BongaCams feed temporarily unavailable." });
+      }
     }
     if (incoming.pathname === "/api/bongacash/postback") {
       return sendJson(res, 410, { error: "BongaCash postbacks are not supported. Use manual affiliate-report reconciliation." });
