@@ -95,7 +95,7 @@ test("server records each Chaturbate region and exposes provider diagnostics onl
   assert.ok(server.includes("latestProviderFeedDiagnostics.chaturbateRegions.push"));
   assert.ok(server.includes('summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:{...pages,pageSize:CHATURBATE_PAGE_SIZE,maxPages}})'));
   assert.ok(server.includes("pageSize:CHATURBATE_PAGE_SIZE,maxPages"));
-  assert.ok(server.includes("latestProviderFeedDiagnostics.bongacams={...diagnostics,feedHealth}"));
+  assert.ok(server.includes("latestProviderFeedDiagnostics.bongacams=diagnostics"));
   assert.ok(server.includes("providerIngestion: latestProviderFeedDiagnostics"));
   assert.ok(server.includes('console.info("[provider-feed-diagnostics]"'));
 });
