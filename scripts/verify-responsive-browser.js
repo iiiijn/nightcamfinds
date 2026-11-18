@@ -93,7 +93,6 @@ const roomFeed = {
       const result = await page.evaluate(() => {
         const doc = document.documentElement;
         const body = document.body;
-        const title = document.querySelector("h1");
         const header = document.querySelector(".topbar");
         const grid = document.querySelector("#grid");
         const sidebar = document.querySelector(".bonga-promo-sidebar");
@@ -116,8 +115,6 @@ const roomFeed = {
         return {
           viewportWidth: window.innerWidth,
           documentWidth: Math.max(doc.scrollWidth, body.scrollWidth),
-          title: title?.textContent?.trim() || "",
-          titleRect: rect(title),
           headerRect: rect(header),
           gridRect: rect(grid),
           sidebarRect: rect(sidebar),
@@ -139,6 +136,7 @@ const roomFeed = {
           topbarRect: rect(header),
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
+          homepageHeadlineRemoved: !document.querySelector("#page-title, #top > .hero h1"),
           featuredPanelRemoved: !document.querySelector(".featured-panel"),
           independentDiscoveryRemoved: !document.querySelector("#kicker"),
           heroLeadVisible: (() => { const el = document.querySelector("#page-intro"); const r = el?.getBoundingClientRect(); return !!r && r.width > 0 && r.height > 0; })(),
@@ -153,7 +151,7 @@ const roomFeed = {
         };
       });
       if (result.documentWidth > viewport.width) failures.push(viewport.name + ": horizontal overflow (" + result.documentWidth + "px > " + viewport.width + "px)");
-      if (!result.title.includes("Who's live in your country")) failures.push(viewport.name + ": homepage heading missing");
+      if (!result.homepageHeadlineRemoved) failures.push(viewport.name + ": removed homepage headline is still present");
       if (!result.roomSizeFilter || !result.regionFilter) failures.push(viewport.name + ": directory filters missing");
       if (!result.featuredPanelRemoved || !result.independentDiscoveryRemoved) failures.push(viewport.name + ": removed homepage elements are still present");
       if (!result.heroLeadVisible || !result.heroActionsVisible) failures.push(viewport.name + ": simplified hero content or actions are not visible");
