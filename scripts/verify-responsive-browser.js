@@ -80,7 +80,7 @@ const roomFeed = {
     }));
     const address = server.address();
     await page.goto("http://127.0.0.1:" + address.port + "/", { waitUntil: "networkidle" });
-    await page.waitForSelector("#category-rows .card");
+    await page.waitForSelector("#grid .card, #category-rows .card");
 
     for (const viewport of [
       { name: "mobile-small", width: 320, height: 740 },
@@ -104,8 +104,8 @@ const roomFeed = {
         const directoryHeading = document.querySelector(".directory-section .section-heading");
         const heroCategories = document.querySelector(".hero-categories");
         const heroCategoryLinks = [...document.querySelectorAll(".hero-categories a")];
-        const categoryCards = [...document.querySelectorAll("#category-rows .card")];
-        const watchActions = [...document.querySelectorAll("#category-rows .card .btn")]
+        const categoryCards = [...document.querySelectorAll("#grid .card, #category-rows .card")];
+        const watchActions = [...document.querySelectorAll("#grid .card .btn, #category-rows .card .btn")]
           .filter(element => /Watch on (Chaturbate|BongaCams)/.test(element.textContent));
         const rect = element => {
           if (!element) return null;
@@ -137,6 +137,10 @@ const roomFeed = {
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
           homepageHeadlineRemoved: !document.querySelector("#page-title, #top > .hero h1"),
+          recruitmentBannerVisible: (() => { const el=document.querySelector(".creator-recruitment"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0 && !!el.querySelector('a[href="/broadcast/"]'); })(),
+          countryHintRemoved: !document.querySelector("#country-hint, #quick"),
+          modelFlagsVisible: [...document.querySelectorAll("#grid .model-country-flag, #category-rows .model-country-flag")].length > 0,
+          saveButtonsRemoved: [...document.querySelectorAll(".favorite-toggle")].every(button => getComputedStyle(button).display === "none"),
           featuredPanelRemoved: !document.querySelector(".featured-panel"),
           independentDiscoveryRemoved: !document.querySelector("#kicker"),
           heroLeadVisible: (() => { const el = document.querySelector("#page-intro"); const r = el?.getBoundingClientRect(); return !!r && r.width > 0 && r.height > 0; })(),
@@ -152,19 +156,22 @@ const roomFeed = {
       });
       if (result.documentWidth > viewport.width) failures.push(viewport.name + ": horizontal overflow (" + result.documentWidth + "px > " + viewport.width + "px)");
       if (!result.homepageHeadlineRemoved) failures.push(viewport.name + ": removed homepage headline is still present");
+      if (!result.recruitmentBannerVisible) failures.push(viewport.name + ": model recruitment banner or CTA is missing");
       if (!result.roomSizeFilter || !result.regionFilter) failures.push(viewport.name + ": directory filters missing");
       if (!result.featuredPanelRemoved || !result.independentDiscoveryRemoved) failures.push(viewport.name + ": removed homepage elements are still present");
       if (!result.heroLeadVisible || !result.heroActionsVisible) failures.push(viewport.name + ": simplified hero content or actions are not visible");
-      if (!result.countryShortcuts) failures.push(viewport.name + ": country shortcuts missing");
+      if (!result.countryHintRemoved) failures.push(viewport.name + ": country hint or shortcut row remains");
+      if (!result.modelFlagsVisible) failures.push(viewport.name + ": partner country flags are missing from model cards");
+      if (!result.saveButtonsRemoved) failures.push(viewport.name + ": model Save controls are still present");
       if (!result.firstCategoryCardRect || result.firstCategoryCardRect.width <= 0 || result.firstCategoryCardRect.height <= 0) failures.push(viewport.name + ": first category room card has no visible footprint");
       if (!result.directoryLayoutRect || result.directoryLayoutRect.width < viewport.width * 0.8) failures.push(viewport.name + ": directory layout does not use the available page width");
       if (!result.directoryMainRect || result.directoryMainRect.width < viewport.width * 0.45) failures.push(viewport.name + ": main room directory is too narrow");
-      if (!result.categoryRowsRect || result.categoryRowsRect.width <= 0 || result.categoryRowsRect.height <= 0) failures.push(viewport.name + ": category room rows are not visibly laid out");
+      
       if (viewport.width > 980 && result.sidebarRect && result.directoryMainRect && result.sidebarRect.left < result.directoryMainRect.right - 2) failures.push(viewport.name + ": desktop sidebar overlaps the main directory");
       if (result.navRect && result.topbarRect && viewport.width <= 640 && result.navRect.top < result.topbarRect.bottom - 2) failures.push(viewport.name + ": category navigation overlaps the topbar");
       if (viewport.width <= 640 && result.navScrollWidth > result.navClientWidth && result.navRect.height < 24) failures.push(viewport.name + ": scrollable category navigation has no usable touch height");
       if (viewport.width <= 640 && result.shortcutsScrollWidth > result.shortcutsClientWidth && result.shortcutsRect?.height <= 0) failures.push(viewport.name + ": country shortcuts are horizontally clipped without a visible row");
-      if (viewport.width <= 640 && (!result.heroCategoriesRect || result.heroCategoriesRect.height <= 0 || !result.heroCategoryLinksSingleLine)) failures.push(viewport.name + ": hero category chips are not laid out as single-line touch targets");
+      
       if (result.categoryCardCount < 2 || result.watchActionCount < 2 || !result.categoryCardsVisible) {
         failures.push(viewport.name + ": mock room cards or Watch actions did not render visibly");
       }

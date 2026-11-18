@@ -48,7 +48,7 @@ test("all room categories receive regional top-room groups from the filtered fee
   assert.match(server, /buildRegionalRoomGroups\(list,sort,8\)/);
   assert.match(server, /regionalRooms,topChaturbateByCategory,topBongaByCategory,liveCount:list.length/);
   assert.match(app, /renderRegionalSections\(data\.regionalRooms/);
-  assert.match(app, /\["all","live","female","male","trans","couples","hd","new","popular"\]\.includes\(category\)/);
+  assert.match(app, /category !== "all" && \["live","female","male","trans","couples","hd","new","popular"\]\.includes\(category\)/);
 });
 
 test("region and language selectors are backed by server-side filtering and options", () => {
@@ -96,7 +96,7 @@ test("URL query parameters are initialized before their first use during directo
 });
 
 
-test("homepage removes the headline and keeps the simplified hero and country shortcuts",()=>{assert.ok(!html.includes("Who's live in your country, tonight."));assert.ok(!app.includes("Who's live in your country, tonight."));assert.ok(!html.includes('id="featured-room"'));assert.ok(!html.includes('class="featured-panel"'));assert.ok(!html.includes("Independent discovery"));assert.ok(html.includes('id="quick"'));assert.ok(html.includes("Browse live rooms"));assert.ok(html.includes("Become a model"));});
+test("homepage uses compact discovery tabs, removes country shortcuts and renders partner country flags",()=>{assert.ok(!html.includes('id="country-hint"'));assert.ok(!html.includes('id="quick"'));assert.ok(html.includes('loyalty.js'));assert.match(css,/\.favorite-toggle,\.loyalty-section\{display:none!important\}/);assert.match(html,/discovery-tabs/);assert.match(html,/Featured/);assert.match(app,/function countryFlag/);assert.match(app,/model-country-flag/);assert.match(app,/category !== "all"/);assert.match(css,/repeat\(5,minmax\(0,1fr\)\)/);});
 test("room-size filters are applied by API and initialized from URL",()=>{assert.ok(server.includes('const roomSize=(url.searchParams.get("roomSize")||"").trim().toLowerCase()'));assert.ok(server.includes('if(roomSize==="intimate")'));assert.ok(server.includes('if(roomSize==="mid-sized")'));assert.ok(server.includes('if(roomSize==="high-traffic")'));assert.ok(app.includes('params.set("roomSize", roomSizeSelect.value)'));assert.ok(app.includes("initialFilters.roomSize"));});
 test("sidebar groups creator signup, region, room size and popular tags",()=>{assert.ok(html.includes('class="broadcaster-sidebar"'));assert.ok(html.includes('id="region"'));assert.ok(html.includes('id="room-size"'));assert.ok(html.includes('id="popular-tags"'));});
 test("room card Watch buttons and subjects are explicitly visible",()=>{assert.ok(css.includes(".card .subject,.card .meta>.btn{display:block!important}"));});
