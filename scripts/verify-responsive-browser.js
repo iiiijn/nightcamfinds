@@ -100,14 +100,12 @@ const roomFeed = {
         const directoryLayout = document.querySelector(".directory-layout");
         const directoryMain = document.querySelector(".directory-main");
         const categoryRows = document.querySelector("#category-rows");
-        const featuredPanel = document.querySelector(".featured-panel");
         const nav = document.querySelector(".category-nav");
         const shortcuts = document.querySelector("#quick");
         const directoryHeading = document.querySelector(".directory-section .section-heading");
         const heroCategories = document.querySelector(".hero-categories");
         const heroCategoryLinks = [...document.querySelectorAll(".hero-categories a")];
         const categoryCards = [...document.querySelectorAll("#category-rows .card")];
-        const featuredCards = [...document.querySelectorAll(".featured-panel .card")];
         const watchActions = [...document.querySelectorAll("#category-rows .card .btn")]
           .filter(element => /Watch on (Chaturbate|BongaCams)/.test(element.textContent));
         const rect = element => {
@@ -126,10 +124,6 @@ const roomFeed = {
           directoryLayoutRect: rect(directoryLayout),
           directoryMainRect: rect(directoryMain),
           categoryRowsRect: rect(categoryRows),
-          featuredPanelRect: rect(featuredPanel),
-          featuredPanelParent: featuredPanel?.parentElement?.className || "",
-          featuredPanelText: featuredPanel?.innerText?.trim() || "",
-          featuredCardRect: rect(featuredCards[0]),
           firstCategoryCardRect: rect(categoryCards[0]),
           navRect: rect(nav),
           navScrollWidth: nav?.scrollWidth || 0,
@@ -145,7 +139,10 @@ const roomFeed = {
           topbarRect: rect(header),
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
-          featuredRoom: featuredCards.length > 0,
+          featuredPanelRemoved: !document.querySelector(".featured-panel"),
+          independentDiscoveryRemoved: !document.querySelector("#kicker"),
+          heroLeadVisible: (() => { const el = document.querySelector("#page-intro"); const r = el?.getBoundingClientRect(); return !!r && r.width > 0 && r.height > 0; })(),
+          heroActionsVisible: [...document.querySelectorAll("#top > .hero .actions a")].length === 2 && [...document.querySelectorAll("#top > .hero .actions a")].every(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; }),
           countryShortcuts: !!document.querySelector("#quick"),
           categoryCardCount: categoryCards.length,
           watchActionCount: watchActions.length,
@@ -158,9 +155,9 @@ const roomFeed = {
       if (result.documentWidth > viewport.width) failures.push(viewport.name + ": horizontal overflow (" + result.documentWidth + "px > " + viewport.width + "px)");
       if (!result.title.includes("Who's live in your country")) failures.push(viewport.name + ": homepage heading missing");
       if (!result.roomSizeFilter || !result.regionFilter) failures.push(viewport.name + ": directory filters missing");
-      if (!result.featuredRoom || !result.countryShortcuts) failures.push(viewport.name + ": featured room or country shortcuts missing");
-      if (!result.featuredPanelRect || result.featuredPanelRect.width <= 0 || result.featuredPanelRect.height <= 0) failures.push(viewport.name + ": featured panel is not visibly laid out");
-      if (!result.featuredPanelText || !result.featuredCardRect || result.featuredCardRect.height <= 0) failures.push(viewport.name + ": featured room content is empty or collapsed");
+      if (!result.featuredPanelRemoved || !result.independentDiscoveryRemoved) failures.push(viewport.name + ": removed homepage elements are still present");
+      if (!result.heroLeadVisible || !result.heroActionsVisible) failures.push(viewport.name + ": simplified hero content or actions are not visible");
+      if (!result.countryShortcuts) failures.push(viewport.name + ": country shortcuts missing");
       if (!result.firstCategoryCardRect || result.firstCategoryCardRect.width <= 0 || result.firstCategoryCardRect.height <= 0) failures.push(viewport.name + ": first category room card has no visible footprint");
       if (!result.directoryLayoutRect || result.directoryLayoutRect.width < viewport.width * 0.8) failures.push(viewport.name + ": directory layout does not use the available page width");
       if (!result.directoryMainRect || result.directoryMainRect.width < viewport.width * 0.45) failures.push(viewport.name + ": main room directory is too narrow");

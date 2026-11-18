@@ -38,7 +38,8 @@ const path = location.pathname.replaceAll("/", "") || "all";
 const category = PAGES[path] ? path : "all";
 const page = PAGES[category];
 const queryParams = new URLSearchParams(location.search);
-document.querySelector("#kicker").textContent = page[0];
+const kicker = document.querySelector("#kicker");
+if (kicker) kicker.textContent = page[0];
 document.querySelector("#page-title").textContent = page[1];
 document.querySelector("#page-intro").textContent = page[2];
 document.title = page[3];
@@ -303,31 +304,13 @@ function balanceCategoryRooms(rooms) {
 }
 
 function renderRegionalSections(regionalRooms) {
-  const featuredPanel = document.querySelector("#featured-room");
-  const featuredWrap = document.querySelector(".featured-panel");
   const categoryRows = document.querySelector("#category-rows");
-  if (!featuredPanel || !categoryRows) return;
+  if (!categoryRows) return;
   const groups = regionalRooms && typeof regionalRooms === "object" ? regionalRooms : {};
   const regions = Object.keys(groups);
   const homeLike = category === "all" || category === "live";
-  const allRooms = regions.flatMap((region) => Array.isArray(groups[region]) ? groups[region] : []);
-  const featuredRoom = [...allRooms].sort((a,b)=>Number(b.viewerCount||0)-Number(a.viewerCount||0))[0];
-  featuredPanel.replaceChildren();
   categoryRows.replaceChildren();
   grid.hidden = true;
-  if (featuredWrap) featuredWrap.hidden = !homeLike;
-  if (homeLike) {
-    if (featuredRoom) {
-      const featured = card(featuredRoom);
-      featured.classList.add("featured-card");
-      featuredPanel.append(featured);
-    } else {
-      const empty = document.createElement("p");
-      empty.className = "muted";
-      empty.textContent = "No live rooms are available for this selection right now.";
-      featuredPanel.append(empty);
-    }
-  }
   if (homeLike) {
     const providerRows = [
       ["Chaturbate", "chaturbate", window.__ncfTopChaturbateByCategory || {}],
@@ -482,9 +465,7 @@ async function load(offset = 0, append = false) {
   if (isUnfilteredRegionalView) {
     renderRegionalSections(data.regionalRooms || {});
   } else {
-    const featuredWrap = document.querySelector(".featured-panel");
     const categoryRows = document.querySelector("#category-rows");
-    if (featuredWrap) featuredWrap.hidden = true;
     if (categoryRows) categoryRows.replaceChildren();
     grid.hidden = false;
     const displayed = balanceCategoryRooms(rooms);

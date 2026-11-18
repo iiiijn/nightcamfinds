@@ -7,9 +7,10 @@ const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8")
 
 test("redesigned directory shell keeps the live-feed and filter mount points", () => {
   const html = read("public/index.html");
-  for (const id of ["gate", "enter", "country", "q", "language", "region", "sort", "featured-room", "category-rows", "grid", "partner-actions"]) {
+  for (const id of ["gate", "enter", "country", "q", "language", "region", "sort", "category-rows", "grid", "partner-actions"]) {
     assert.match(html, new RegExp(`id=["']${id}["']`), `missing #${id}`);
   }
+  assert.doesNotMatch(html, /featured-room|featured-panel|Independent discovery|Featured room/i);
   assert.match(html, /id="notice"/);
   assert.match(html, /id="result-count"/);
   assert.match(html, /id="quick-exit"/);
@@ -41,7 +42,8 @@ test("homepage presentation is rendered from live API rooms, not generated sampl
   const app = read("public/app.js");
   assert.match(app, /fetch\("\/api\/rooms\?/);
   assert.match(app, /renderRegionalSections\(data\.regionalRooms/);
-  assert.match(app, /featuredPanel\.append\(featured\)/);
+  assert.match(app, /categoryRows\.replaceChildren\(\)/);
+  assert.doesNotMatch(app, /featuredPanel|featured-room|featuredWrap/);
   assert.match(app, /rooms\.map\(card\)/);
   assert.doesNotMatch(app, /var NAMES=\[|function rnd\(\)|Math\.floor\(300\s*\+/);
 });
