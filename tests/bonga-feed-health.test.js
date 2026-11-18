@@ -25,6 +25,7 @@ test("Bonga health distinguishes configured V2 fallback from healthy V2", () => 
   assert.equal(fallback.status, "v2_fallback_to_v1");
   assert.equal(fallback.fallbackReason, "origin_authentication_failed");
   assert.equal(fallback.activeApiVersion, "1");
+  assert.equal(fallback.coverageStatus, "single_response_limit_unverified");
   assert.equal(JSON.stringify(fallback).includes("secret"), false);
 
   const healthy = summarizeBongaFeedHealth({
@@ -34,6 +35,7 @@ test("Bonga health distinguishes configured V2 fallback from healthy V2", () => 
   });
   assert.equal(healthy.status, "active_v2");
   assert.equal(healthy.fallbackReason, "");
+  assert.equal(healthy.coverageStatus, "pagination_completed");
 });
 
 test("Bonga health reports truncation and disabled feed without claiming complete coverage", () => {
@@ -43,6 +45,7 @@ test("Bonga health reports truncation and disabled feed without claiming complet
     pagination: { pagesFetched: 5, receivedCount: 500, uniqueCount: 490, duplicateCount: 10, truncated: true, stopReason: "max_pages" }
   });
   assert.equal(truncated.status, "v2_truncated");
+  assert.equal(truncated.coverageStatus, "truncated");
   assert.equal(truncated.pagination.stopReason, "max_pages");
 
   const disabled = summarizeBongaFeedHealth({ enabled: false, requestedApiVersion: "2", activeApiVersion: "1" });
@@ -60,4 +63,15 @@ test("Bonga health accepts only bounded pagination metadata", () => {
   assert.equal(result.pagination.receivedCount, null);
   assert.equal(result.pagination.uniqueCount, 10);
   assert.equal(result.pagination.stopReason, "unknown");
+});
+
+test("server records V2 fallback reasons as safe codes and exposes feed health through protected diagnostics", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
+  assert.match(server, /classifyBongaV2Failure\(error\)/);
+  assert.match(server, /feedHealth\}\s*;/);
+  assert.match(server, /reason:latestBongaV2FallbackReason/);
+  assert.doesNotMatch(server, /falling back to V1:\",error\.message/);
+  assert.match(server, /providerIngestion: latestProviderFeedDiagnostics/);
 });
