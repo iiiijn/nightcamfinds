@@ -138,3 +138,22 @@ test("A1.25 language selector is inside the responsive topbar grid", () => {
   const topbarEnd = html.indexOf('</div>', html.indexOf('id="quick-exit"'));
   assert.ok(topbar >= 0 && language > topbar && language < topbarEnd, "language selector must be a topbar grid item");
 });
+
+
+test("A1.26 desktop discovery cards retain readable four-column sizing until wide displays", () => {
+  assert.match(css, /@media \(min-width: 901px\) and \(max-width: 1439px\)[\s\S]*repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(min-width: 1440px\)[\s\S]*repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.directory-main \.category-row \.card[\s\S]*flex: 0 0 clamp\(170px, 19vw, 205px\)/);
+});
+
+test("A1.26 room-card metadata wraps instead of clipping on narrow screens", () => {
+  assert.match(css, /\.directory-main \.card \.badges[\s\S]*flex-wrap: wrap/);
+  assert.match(css, /\.directory-main \.card \.badge[\s\S]*overflow-wrap: anywhere/);
+  assert.match(css, /\.directory-main \.card \.meta > strong[\s\S]*word-break: break-word/);
+});
+
+test("A1.26 mobile room rails remain horizontally scrollable without forcing page overflow", () => {
+  assert.match(css, /\.directory-main \.category-row[\s\S]*overflow-x: auto/);
+  assert.match(css, /overscroll-behavior-x: contain/);
+  assert.match(css, /flex: 0 0 min\(72vw, 230px\)/);
+});
