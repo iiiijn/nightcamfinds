@@ -1106,3 +1106,18 @@ footer span { flex: 1 1 100%; }
   #top > .hero { padding-top: 15px; }
   .directory-section .section-heading h2 { font-size: 26px; }
 }
+
+/* Keep the language filter above category navigation on compact screens. */
+@media (max-width: 640px) {
+  .site-header .header-tools { order: 2; }
+  .site-header .category-nav { order: 3; }
+  #top > .hero .hero-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  #top > .hero .hero-categories a {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+}
