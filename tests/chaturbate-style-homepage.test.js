@@ -55,3 +55,10 @@ test("responsive redesign preserves real room rendering and affiliate redirect d
   assert.ok(html.includes("Some links are affiliate links"));
   assert.ok(html.includes("18+ only"));
 });
+
+test("laptop-width layouts keep search in the top row and use five room columns", () => {
+  assert.ok(css.includes("@media (min-width: 761px) and (max-width: 980px)"));
+  assert.ok(css.includes(".topbar {\n    flex-wrap: nowrap;"));
+  assert.ok(css.includes(".topbar #q {\n    flex: 1 1 180px;"));
+  assert.ok(css.includes("grid-template-columns: repeat(5, minmax(0, 1fr));"));
+});
