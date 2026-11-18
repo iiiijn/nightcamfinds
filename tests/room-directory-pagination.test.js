@@ -25,12 +25,12 @@ test("Bonga feed retains its known API limit until account-specific settings are
 });
 
 test("provider-supplied tags are normalized, safety-screened, counted and filterable", () => {
-  assert.match(server, /tags:normalizeTags\(room\.tags\)/);
+  assert.match(server, /tags:normalizeTags\(room\.tags\)\.map/);
   assert.match(server, /tags:tags\.map\(tag=>tag\.slice\(0,40\)\)/);
   assert.match(server, /normalizeTags\(room\.tags\)/);
   assert.match(server, /const popularTags=\[\.\.\.tagCounts\.entries\(\)\]/);
   assert.match(server, /if\(tag\)list=list\.filter/);
-  assert.match(server, /popularTags,liveCount:list\.length/);
+  assert.match(server, /notice:feed\.notice,popularTags/);
   assert.match(server, /rawText:\[room\.username,room\.display_name,room\.room_subject,\.\.\.normalizeTags\(room\.tags\)\]/);
   assert.match(app, /params\.set\("tag", selectedTag\)/);
   assert.match(html, /id="popular-tags"/);
