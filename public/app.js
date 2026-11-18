@@ -22,7 +22,7 @@ document.querySelector("#enter")?.addEventListener("click", () => {
 });
 
 const PAGES = {
-  all: ["Independent discovery", "Who's live in your country, tonight.", "Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.", "NightCamFinds — Live cam directory"],
+  all: ["", "", "Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.", "NightCamFinds — Live cam directory"],
   live: ["Live now", "Rooms that are live now", "Currently online rooms from partner platforms. Counts and subjects come from the feed and can change every minute.", "Live cams now — NightCamFinds"],
   female: ["Female", "Find live female cams", "Browse public female rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.", "Female live cams — NightCamFinds"],
   male: ["Male", "Find live male cams", "Browse public male rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.", "Male live cams — NightCamFinds"],
@@ -40,7 +40,8 @@ const page = PAGES[category];
 const queryParams = new URLSearchParams(location.search);
 const kicker = document.querySelector("#kicker");
 if (kicker) kicker.textContent = page[0];
-document.querySelector("#page-title").textContent = page[1];
+const pageTitle = document.querySelector("#page-title");
+if (pageTitle && page[1]) pageTitle.textContent = page[1];
 document.querySelector("#page-intro").textContent = page[2];
 document.title = page[3];
 document.querySelector('meta[name="description"]').setAttribute("content", page[2]);
