@@ -463,7 +463,7 @@ const server=http.createServer(async(req,res)=>{
       .sort(byPopularity)
       .slice(0, 8);
   }
-  return send(res,200,JSON.stringify({rooms:page,regionalRooms,topChaturbateByCategory,topBongaByCategory,popularTags,liveCount:list.length,offset,limit,hasMore:offset+page.length<list.length,countries,platforms,regions,languages,notice:feed.notice,tier1:isPriorityMarket(visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null,...(coverage?{coverage}:{})}),"application/json");
+  return send(res,200,JSON.stringify({rooms:page,regionalRooms,topChaturbateByCategory,topBongaByCategory,liveCount:list.length,offset,limit,hasMore:offset+page.length<list.length,countries,platforms,regions,languages,notice:feed.notice,popularTags,tier1:isPriorityMarket(visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null,...(coverage?{coverage}:{})}),"application/json");
 }
 if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms[Math.floor(Math.random()*Math.min(feed.rooms.length,40))]||null;return send(res,room?200:503,JSON.stringify({room}),"application/json");}
   if (pathname.startsWith("/bgo/") || pathname.startsWith("/go/")) {
