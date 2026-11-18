@@ -32,7 +32,7 @@ test("rooms API supports bounded pagination and reports remaining results", () =
 
 test("all room categories receive regional top-room groups from the filtered feed", () => {
   assert.match(server, /buildRegionalRoomGroups\(list,sort,8\)/);
-  assert.match(server, /regionalRooms,topChaturbateByCategory,liveCount:list.length/);
+  assert.match(server, /regionalRooms,topChaturbateByCategory,topBongaByCategory,liveCount:list.length/);
   assert.match(app, /renderRegionalSections\(data\.regionalRooms/);
   assert.match(app, /\["all","live","female","male","trans","couples","hd","new","popular"\]\.includes\(category\)/);
 });
@@ -52,13 +52,13 @@ test("directory UI exposes a working load-more control for additional room pages
   assert.match(app, /grid\.append/);
 });
 
-test("homepage global Chaturbate category picks are sourced from all partner-feed rooms and ranked by viewers", () => {
-  assert.match(server, /topChaturbateByCategory\[gender\] = feed\.rooms/);
-  assert.match(server, /room\.platform === "chaturbate" && room\.gender === gender/);
-  assert.match(server, /Number\(b\.viewerCount \|\| 0\) - Number\(a\.viewerCount \|\| 0\)/);
-  assert.match(server, /topChaturbateByCategory,liveCount:list\.length/);
-  assert.match(app, /Popular Chaturbate /);
-  assert.match(app, /Top " \+ rooms\.length \+ " worldwide by current viewers/);
+test("homepage global category picks are sourced from each partner feed and ranked by viewers", () => {
+  assert.match(server, /topChaturbateByCategory\[gender\] = feed\.rooms[\s\S]*?room\.platform === "chaturbate" && room\.gender === gender/);
+  assert.match(server, /topBongaByCategory\[gender\] = feed\.rooms[\s\S]*?room\.platform === "bongacams" && room\.gender === gender/);
+  assert.match(server, /Number\(roomB\.viewerCount \|\| 0\) - Number\(roomA\.viewerCount \|\| 0\)/);
+  assert.match(server, /topChaturbateByCategory,topBongaByCategory,liveCount:list\.length/);
+  assert.match(app, /Popular " \+ platformLabel \+ " " \+ label \+ " Rooms/);
+  assert.match(app, /window\.__ncfTopBongaByCategory = data\.topBongaByCategory \|\| \{\}/);
 });
 
 test("homepage is global by default while explicit country landing pages retain their country filter", () => {
@@ -67,7 +67,7 @@ test("homepage is global by default while explicit country landing pages retain 
 });
 
 test("global Chaturbate category links use supported platform filtering and preserve viewer sorting", () => {
-  assert.match(app, /more\.href = "\/" \+ gender \+ "\/\?ncf_platform=chaturbate&sort=viewers"/);
+  assert.match(app, /more\.href = "\/" \+ gender \+ "\/\?ncf_platform=" \+ platformKey \+ "&sort=viewers"/);
   assert.match(app, /const campaignPlatform = \["chaturbate", "bongacams"\]/);
   assert.match(app, /if \(category === "popular" \|\| queryParams\.get\("sort"\) === "viewers"\) sort\.value = "viewers"/);
 });

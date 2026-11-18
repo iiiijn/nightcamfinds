@@ -784,3 +784,15 @@ footer span { flex: 1 1 100%; }
   .model-platform { padding: 13px; }
   .model-platform .btn { width: 100%; }
 }
+
+/* Phase A1.23: persistent broadcaster signup beside live room discovery. */
+.broadcaster-sidebar { display: grid; gap: 10px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(145deg, rgba(255,92,138,.14), rgba(187,168,255,.08)), var(--panel); }
+.broadcaster-sidebar h2 { margin: 0; font-size: 23px; line-height: 1.12; }
+.broadcaster-sidebar > p:not(.eyebrow) { margin: 0; color: var(--muted); font-size: 13px; }
+.broadcaster-sidebar .broadcaster-choice { display: flex; width: 100%; justify-content: center; text-align: center; font-size: 13px; padding: 10px 9px; }
+.broadcaster-sidebar .model-recruitment-note { margin-top: 2px !important; font-size: 11px !important; }
+.global-platform-group { margin-top: 18px; }
+.global-platform-group .row-heading { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.global-platform-group .row-heading small { color: var(--muted); font-size: 12px; font-weight: 500; }
+.global-platform-group .row-heading a { margin-left: auto; color: var(--lilac); font-size: 12px; }
+@media (max-width: 720px) { .broadcaster-sidebar { margin: 16px 0; } .broadcaster-sidebar .broadcaster-choice { width: 100%; } }
