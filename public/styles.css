@@ -890,3 +890,157 @@ footer span { flex: 1 1 100%; }
   .category-nav { gap: 15px; }
   .grid, .home-group .grid { gap: 6px; }
 }
+
+
+/* Phase A1.26: final card readability and responsive spacing polish. */
+@media (min-width: 901px) and (max-width: 1439px) {
+  .directory-main .grid,
+  .directory-main .home-group .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .directory-main .category-row .card {
+    flex: 0 0 clamp(170px, 19vw, 205px);
+  }
+}
+@media (min-width: 1440px) {
+  .directory-main .grid,
+  .directory-main .home-group .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .directory-main .category-row .card {
+    flex: 0 0 205px;
+  }
+}
+.directory-main .card,
+.directory-main .card .meta,
+.directory-main .card .badges {
+  min-width: 0;
+}
+.directory-main .card .badges {
+  align-items: center;
+  row-gap: 4px;
+}
+.directory-main .card .badge {
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.directory-main .card .meta > strong,
+.directory-main .card .subject {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .directory-main .home-group { margin: 17px 0 20px; }
+  .directory-main .home-group h2 { line-height: 1.2; }
+  .directory-main .row-heading { min-width: 0; flex-wrap: wrap; }
+  .directory-main .row-heading h2 { min-width: 0; }
+  .directory-main .row-heading a { flex: 0 0 auto; }
+  .directory-main .category-row {
+    display: flex;
+    gap: 9px;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 8px 2px 13px;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .directory-main .category-row .card {
+    flex: 0 0 min(72vw, 230px);
+    min-width: 0;
+  }
+  .directory-main .card .meta {
+    padding: 7px 6px;
+    gap: 5px;
+  }
+  .directory-main .card .badges {
+    display: flex;
+    flex-wrap: wrap;
+    max-width: 100%;
+    gap: 3px;
+  }
+  .directory-main .card .badge {
+    font-size: 9px;
+    line-height: 1.35;
+    padding: 2px 5px;
+    white-space: normal;
+  }
+  .directory-main .card .meta > strong {
+    display: block;
+    max-width: 100%;
+    font-size: 11px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .directory-main .card .subject {
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .directory-section { padding-bottom: 5px; }
+  .directory-section + .home-group { margin-top: 14px; }
+}
+@media (max-width: 380px) {
+  .directory-main .card .badge { font-size: 8px; padding-inline: 4px; }
+  .directory-main .card .meta > strong { font-size: 10px; }
+}
+
+
+/* Phase A1.26.1: prevent badge rows and viewer counts from overflowing room cards. */
+.directory-main .card,
+.directory-main .card .meta,
+.directory-main .card .badges {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .directory-main .card .meta {
+    width: 100%;
+    overflow: hidden;
+  }
+  .directory-main .card .badges {
+    display: flex;
+    flex-flow: row wrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    min-width: 0;
+    gap: 4px;
+    overflow: visible;
+  }
+  .directory-main .card .badge {
+    display: inline-flex;
+    flex: 0 1 auto;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .directory-main .card .meta > strong,
+  .directory-main .card .subject {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .directory-main .card .meta > strong {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+  .directory-main .card .badges > .badge:nth-child(5) {
+    display: inline-flex;
+  }
+}

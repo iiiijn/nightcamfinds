@@ -138,3 +138,44 @@ test("A1.25 language selector is inside the responsive topbar grid", () => {
   const topbarEnd = html.indexOf('</div>', html.indexOf('id="quick-exit"'));
   assert.ok(topbar >= 0 && language > topbar && language < topbarEnd, "language selector must be a topbar grid item");
 });
+
+
+test("A1.26 desktop discovery cards retain readable four-column sizing until wide displays", () => {
+  assert.match(css, /@media \(min-width: 901px\) and \(max-width: 1439px\)[\s\S]*repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(min-width: 1440px\)[\s\S]*repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.directory-main \.category-row \.card[\s\S]*flex: 0 0 clamp\(170px, 19vw, 205px\)/);
+});
+
+test("A1.26 room-card metadata wraps instead of clipping on narrow screens", () => {
+  assert.match(css, /\.directory-main \.card \.badges[\s\S]*flex-wrap: wrap/);
+  assert.match(css, /\.directory-main \.card \.badge[\s\S]*overflow-wrap: anywhere/);
+  assert.match(css, /\.directory-main \.card \.meta > strong[\s\S]*word-break: break-word/);
+});
+
+test("A1.26 mobile room rails remain horizontally scrollable without forcing page overflow", () => {
+  assert.match(css, /\.directory-main \.category-row[\s\S]*overflow-x: auto/);
+  assert.match(css, /overscroll-behavior-x: contain/);
+  assert.match(css, /flex: 0 0 min\(72vw, 230px\)/);
+});
+
+
+test("A1.26.1 mobile room-card badge rows wrap within the card content width", () => {
+  assert.match(css, /\.directory-main \.card \.badges[\s\S]*flex-flow: row wrap/);
+  assert.match(css, /\.directory-main \.card \.badges[\s\S]*width: 100%/);
+  assert.match(css, /\.directory-main \.card \.badge[\s\S]*flex: 0 1 auto/);
+  assert.match(css, /\.directory-main \.card \.badge[\s\S]*max-width: 100%/);
+});
+
+test("A1.26.1 viewer-count badges and room names cannot exceed mobile card width", () => {
+  assert.match(css, /\.directory-main \.card \.meta[\s\S]*overflow: hidden/);
+  assert.match(css, /\.directory-main \.card \.subject[\s\S]*max-width: 100%/);
+  assert.match(css, /\.directory-main \.card \.meta > strong[\s\S]*word-break: break-word/);
+});
+
+test("A1.26.1 mobile room names override single-line ellipsis and wrap", () => {
+  assert.match(css, /\.directory-main \.card \.meta > strong[\s\S]*overflow: visible;[\s\S]*text-overflow: clip;[\s\S]*white-space: normal;/);
+});
+
+test("A1.26.1 mobile directory cards explicitly show the fifth viewer-count badge", () => {
+  assert.match(css, /\.directory-main \.card \.badges > \.badge:nth-child\(5\)\s*\{\s*display: inline-flex;/);
+});
