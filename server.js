@@ -419,6 +419,7 @@ const server=http.createServer(async(req,res)=>{
   const category=url.searchParams.get("category")||"all";
   const country=(url.searchParams.get("country")||"").toUpperCase();
   const region=(url.searchParams.get("region")||"").trim();
+  const roomSize=(url.searchParams.get("roomSize")||"").trim().toLowerCase();
   const language=(url.searchParams.get("language")||"").trim().toLowerCase();
   const tag=(url.searchParams.get("tag")||"").trim().toLowerCase();
   const platform=(url.searchParams.get("platform")||"").toLowerCase();
@@ -435,6 +436,9 @@ const server=http.createServer(async(req,res)=>{
   if(category==="new")list=list.filter(r=>r.isNew);
   if(country)list=list.filter(r=>r.country===country);
   if(region)list=list.filter(r=>(r.region||regionFor(r))===region);
+  if(roomSize==="intimate")list=list.filter(r=>Number(r.viewerCount||0)<=50);
+  if(roomSize==="mid-sized")list=list.filter(r=>Number(r.viewerCount||0)>50&&Number(r.viewerCount||0)<=500);
+  if(roomSize==="high-traffic")list=list.filter(r=>Number(r.viewerCount||0)>500);
   if(language)list=list.filter(r=>languagesFor(r).some(value=>value.toLowerCase()===language));
   if(tag)list=list.filter(r=>(Array.isArray(r.tags)?r.tags:[]).some(value=>String(value).toLowerCase()===tag));
   if(["chaturbate","bongacams"].includes(platform))list=list.filter(r=>r.platform===platform);
@@ -619,7 +623,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   const feed = await rooms(req);
   const routeKey = pathname.replace(/^\/+|\/+$/g, "") || "all";
   const pageCopy = {
-    all:["Independent discovery","Discover live cams right now","Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.","NightCamFinds — Live cam directory"],
+    all:["Independent discovery","Who's live in your country, tonight.","Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.","NightCamFinds — Live cam directory"],
     live:["Live now","Rooms that are live now","Currently online rooms from partner platforms. Counts and subjects come from the feed and can change every minute.","Live cams now — NightCamFinds"],
     female:["Female","Find live female cams","Browse public female rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Female live cams — NightCamFinds"],
     male:["Male","Find live male cams","Browse public male rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Male live cams — NightCamFinds"],
