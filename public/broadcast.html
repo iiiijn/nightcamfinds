@@ -3,11 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Become a Model — NightCamFinds</title>
-  <meta name="description" content="Choose official broadcaster registration options for Chaturbate and BongaCams.">
+  <title>Become a Live Broadcaster on Chaturbate or BongaCams | NightCamFinds</title>
+  <meta name="description" content="Compare official Chaturbate and BongaCams broadcaster registration options. Review eligibility and apply directly through the platform you choose.">
   <link rel="canonical" href="https://nightcamfinds.com/broadcast/">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
+  <style>
+    .model-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;margin:22px 0;list-style:none;counter-reset:step}
+    .model-steps li{display:grid;gap:5px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel);counter-increment:step}
+    .model-steps li:before{content:"0" counter(step);color:var(--accent);font-size:11px;font-weight:800;letter-spacing:.1em}
+    .model-steps strong{font-size:15px}.model-steps span{color:var(--muted);font-size:12px;line-height:1.5}
+    .model-platform-cta{display:flex;justify-content:center;align-items:center;width:100%;min-height:48px;font-weight:800}
+    .model-platform:first-child .model-platform-cta{background:linear-gradient(100deg,#ff78aa,#f6a6c8);color:#301426}
+    @media(max-width:620px){.model-steps{grid-template-columns:1fr;gap:8px}.model-steps li{grid-template-columns:42px 1fr;align-items:center}.model-steps li:before{grid-row:1 / span 2}.model-steps span{grid-column:2}}
+  </style>
 </head>
 <body>
   <main class="wrap legal model-page">
@@ -16,27 +25,32 @@
       <a class="btn ghost" href="/">Back to live rooms</a>
     </header>
     <section class="model-recruitment" aria-labelledby="model-page-title">
-      <p class="eyebrow">For adult creators</p>
-      <h1 id="model-page-title">Become a live broadcaster</h1>
-      <p class="lead">Choose a platform, review its rules and registration requirements, and build your audience on your own terms.</p>
+      <p class="eyebrow">Your creator journey starts here</p>
+      <h1 id="model-page-title">Choose your platform. Build your creator business.</h1>
+      <p class="lead">Compare the official broadcaster options for Chaturbate and BongaCams. You register directly with the platform, complete its checks and decide whether it suits your goals.</p>
+      <ol class="model-steps" aria-label="How broadcaster registration works">
+        <li><strong>Choose</strong><span>Compare the two platforms.</span></li>
+        <li><strong>Apply</strong><span>Complete the official registration and verification.</span></li>
+        <li><strong>Build</strong><span>Follow the platform rules and develop your audience.</span></li>
+      </ol>
       <p class="model-recruitment-note">18+ only. You must meet each platform's age, identity, location and other eligibility requirements. NightCamFinds is an independent directory, not an employer or an agent for either platform. Earnings are not guaranteed.</p>
       <div class="model-platforms">
         <article class="model-platform" id="platform-chaturbate">
           <p class="eyebrow">Platform one</p>
           <h2>Chaturbate</h2>
           <p>Register for a broadcaster account through the NightCamFinds Chaturbate broadcaster referral link. Chaturbate handles identity and account verification.</p>
-          <a class="btn" href="https://chaturbate.com/in/?tour=LQps&amp;campaign=C6yxN&amp;track=broadcast" target="_blank" rel="noopener noreferrer sponsored">Become a Chaturbate broadcaster</a>
+          <a class="btn model-platform-cta" data-ncf-referral-type="model" data-ncf-platform="chaturbate" data-ncf-placement="broadcast-page" href="https://chaturbate.com/in/?tour=LQps&amp;campaign=C6yxN&amp;track=broadcast" target="_blank" rel="noopener noreferrer sponsored">Apply on Chaturbate</a>
           <p class="model-recruitment-note">This is the current broadcaster referral URL configured for NightCamFinds.</p>
         </article>
         <article class="model-platform" id="platform-bongacams">
           <p class="eyebrow">Platform two</p>
           <h2>BongaCams</h2>
           <p>Register through the BongaCash model referral link. BongaCams handles model onboarding, identity checks and account approval.</p>
-          <a class="btn" href="https://bongacash.com/model-ref?c=840974" target="_blank" rel="noopener noreferrer sponsored">Become a BongaCams model</a>
+          <a class="btn model-platform-cta" data-ncf-referral-type="model" data-ncf-platform="bongacams" data-ncf-placement="broadcast-page" href="https://bongacash.com/model-ref?c=840974" target="_blank" rel="noopener noreferrer sponsored">Apply on BongaCams</a>
           <p class="model-recruitment-note">This is the BongaCash model-recruitment referral link supplied for NightCamFinds.</p>
         </article>
       </div>
-      <p class="model-attribution-note">Viewer room links and viewer affiliate codes do not automatically credit model signups. Chaturbate uses its separate broadcaster referral link above. BongaCams model recruitment uses the supplied BongaCash model-ref URL. Keep this separate from viewer room referrals.</p>
+      <p class="model-attribution-note"><strong>Separate referral paths:</strong> These are model-recruitment links, not viewer room links. A model registration is credited only under the selected platform own referral rules. NightCamFinds cannot verify an application or guarantee approval, registrations or earnings.</p>
     </section>
     <footer>
       <span><strong>18+ only.</strong> Read each platform's terms, privacy policy and payout rules before registering.</span>
