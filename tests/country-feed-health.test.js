@@ -74,3 +74,10 @@ test("startup patch exposes country feed health only through requested summary d
   assert.ok(patched.includes('bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"'));
   assert.equal(patchServerSource(patched), patched);
 });
+
+test('country feed health dashboard renders textual feed status without numeric coercion', () => {
+  const dashboard = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
+  assert.match(dashboard, /const statusLabel=\['healthy','partial','unavailable','unknown'\]\.includes\(feedStatus\)\?feedStatus:'unknown'/);
+  assert.match(dashboard, /statusStat\('Overall feed health',statusLabel\)/);
+  assert.doesNotMatch(dashboard, /stat\('Overall feed health',health\.feedHealth\)/);
+});
