@@ -46,7 +46,9 @@ function startServer() {
     await page.goto("http://127.0.0.1:" + address.port + "/dashboard.html", { waitUntil: "networkidle" });
     await page.waitForFunction(() => !document.querySelector("#dashboard").classList.contains("hidden"));
 
-    const expectedTabs = ["clicks", "traffic", "investigation", "revenue", "health", "advanced"];
+    const expectedTabs = ["clicks", "advanced"];
+    const visibleTabs = await page.locator("[data-dashboard-tab]").evaluateAll(nodes => nodes.map(node => node.dataset.dashboardTab));
+    if (JSON.stringify(visibleTabs) !== JSON.stringify(expectedTabs)) failures.push("Expected only the two supported dashboard tabs; found " + visibleTabs.join(", "));
     for (const tab of expectedTabs) {
       const button = page.locator('[data-dashboard-tab="' + tab + '"]');
       if (await button.count() !== 1) {
