@@ -78,14 +78,17 @@ function startServer() {
       if (!layout.nav || layout.nav.width <= 0) failures.push(viewport.name + ": dashboard navigation is not visible");
     }
 
-    await page.locator("#range").selectOption("today");
-    await page.waitForTimeout(100);
-    await page.locator("#range").selectOption("7");
-    await page.waitForTimeout(100);
-    await page.locator("#range").selectOption("30");
-    await page.waitForTimeout(100);
-    await page.locator("#range").selectOption("all");
-    await page.waitForTimeout(100);
+    await page.locator('[data-dashboard-tab="clicks"]').click();
+    for (const range of ["today", "7", "30", "all"]) {
+      await page.locator("#from").fill("");
+      await page.locator("#to").fill("");
+      await page.locator("#range").selectOption(range);
+      await page.waitForTimeout(120);
+      const request = requests.findLast(item => item.path === "/api/dashboard-stats");
+      if (!request) failures.push("No dashboard-stats request for range " + range);
+      else if (range === "all" && (request.from !== null || request.to !== null)) failures.push("All-time range unexpectedly sent date bounds.");
+      else if (range !== "all" && (!request.from || !request.to)) failures.push("Range " + range + " did not send both date bounds.");
+    }
     await page.locator("#from").fill("2026-11-01");
     await page.locator("#to").fill("2026-11-12");
     await page.locator("#apply").click();
@@ -93,9 +96,6 @@ function startServer() {
     const customRequest = requests.findLast(request =>
       request.path === "/api/dashboard-stats" && request.from === "2026-11-01" && request.to === "2026-11-12");
     if (!customRequest) failures.push("Custom date range was not sent to dashboard-stats as the selected from/to period.");
-    for (const range of ["today", "7", "30", "all"]) {
-      if (await page.locator("#range").inputValue() !== "all") break;
-    }
 
     if (failures.length) {
       console.error("Dashboard browser verification failed:\n- " + failures.join("\n- "));
