@@ -391,3 +391,22 @@ test('server establishes first-party visit cookies before directory affiliate li
   assert.match(server, /const cookieLandingPath = cookieValue\(req, "ncf_landing_path"\)/);
   assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
 });
+
+test('traffic-quality analytics verifies every required table and column before querying metrics', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('if (incoming.pathname === "/api/traffic-quality-analytics")');
+  const end = route.indexOf('if (incoming.pathname === "/api/provider-attribution-health")', start);
+  const endpoint = route.slice(start, end);
+  assert.match(endpoint, /AS missing_tables/);
+  assert.match(endpoint, /AS missing_columns/);
+  assert.match(endpoint, /traffic_visits/);
+  assert.match(endpoint, /traffic_engagement_events/);
+  assert.match(endpoint, /affiliate_clicks/);
+  assert.match(endpoint, /'006_traffic_quality_engagement'/);
+  assert.match(endpoint, /'011_owner_traffic'/);
+  assert.match(endpoint, /'affiliate click-tracking startup schema'/);
+  assert.match(endpoint, /Traffic quality reporting schema is incomplete/);
+  assert.doesNotMatch(endpoint, /Traffic quality database migration 006 is not installed/);
+});
