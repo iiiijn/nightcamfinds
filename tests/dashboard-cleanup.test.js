@@ -28,7 +28,13 @@ test('dashboard platform comparison no longer repeats overall totals in a footer
 test('dashboard labels registrations and purchases as events rather than unique-user conversion rate', () => {
   assert.match(dashboard, /Reported events \/ click/);
   assert.match(dashboard, /not unique people/);
-  assert.match(script, /\$\('conversion'\)\.textContent=pct\(regs\+pur,total\)/);
+  assert.match(script, /const conversionCount=regs===null\|\|pur===null\?null:regs\+pur;\$\('conversion'\)\.textContent=pct\(conversionCount,total\)/);
+});
+
+test('dashboard preserves unavailable percentage, conversion and BongaCash funnel values', () => {
+  assert.match(script, /const pct=\(part,total\)=>part===null\|\|part===undefined\|\|total===null\|\|total===undefined\?'Unavailable'/);
+  assert.match(script, /const conversionCount=regs===null\|\|pur===null\?null:regs\+pur/);
+  assert.doesNotMatch(script, /n\(m\.registrations\|\|0\)|n\(m\.purchases\|\|0\)/);
 });
 
 test('dashboard keeps provider diagnostics separate from traffic-channel tag signals', () => {

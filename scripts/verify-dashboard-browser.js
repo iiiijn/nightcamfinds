@@ -22,11 +22,11 @@ function startServer() {
         const body = url.pathname === "/api/auth/me"
           ? { authenticated: true, username: "browser-test" }
           : url.pathname === "/api/bongacash-reconciliation"
-            ? { totals: { registrations: 0, purchases: 0, earnings: 0, days_reported: 0 }, entries: [] }
+            ? { error: "Reconciliation unavailable in this test" }
             : url.pathname === "/api/dashboard-stats"
-              ? { chaturbateClicks: null, bongacamsClicks: 0, totalClicks: 0, tier1Clicks: 0, bongaTier1Clicks: 0, registrations: null, purchases: null, earnings: null, bongacamsRegistrations: 0, bongacamsPurchases: 0, bongacamsEarnings: 0 }
+              ? { chaturbateClicks: null, bongacamsClicks: 0, totalClicks: 0, tier1Clicks: 0, bongaTier1Clicks: 0, registrations: null, purchases: null, earnings: null, bongacamsRegistrations: null, bongacamsPurchases: null, bongacamsEarnings: null }
               : {};
-        res.writeHead(200, { "content-type": "application/json" });
+        res.writeHead(url.pathname === "/api/bongacash-reconciliation" ? 503 : 200, { "content-type": "application/json" });
         res.end(JSON.stringify(body));
         return;
       }
@@ -45,16 +45,25 @@ function startServer() {
     const page = await browser.newPage();
     page.on("pageerror", error => failures.push("Page error: " + error.message));
     const address = server.address();
+    // Exercise the real dashboard authentication bootstrap against the local mock API.
+    const initialStatsResponse = page.waitForResponse(response =>
+      response.url().includes("/api/dashboard-stats") && response.request().method() === "GET");
     await page.goto("http://127.0.0.1:" + address.port + "/dashboard.html", { waitUntil: "domcontentloaded" });
-    // Keep this browser check independent of the production authentication service.
-    await page.evaluate(() => {
-      document.querySelector("#login").classList.add("hidden");
-      document.querySelector("#dashboard").classList.remove("hidden");
-    });
+    await page.waitForFunction(() => !document.querySelector("#dashboard")?.classList.contains("hidden"));
+    await initialStatsResponse;
+    // A response arriving is not the same as the dashboard finishing its async render.
+    // Wait for load() to finish its reconciliation request and publish its final status.
+    await page.waitForFunction(() =>
+      document.querySelector("#status")?.textContent.startsWith("Updated ") &&
+      document.querySelector("#cbRegs")?.textContent === "Unavailable"
+    );
     const dashboardSource = fs.readFileSync(dashboardPath, "utf8");
     if (!dashboardSource.includes("v===null||v===undefined?'Unavailable':Number(v).toLocaleString()")) failures.push("Missing numeric values are not guarded as Unavailable.");
     if (!dashboardSource.includes("v===null||v===undefined?'Unavailable':'$'+Number(v).toFixed(2)")) failures.push("Missing currency values are not guarded as Unavailable.");
     if (!dashboardSource.includes("const metric=v=>v===null||v===undefined?null:Number(v)")) failures.push("Dashboard API metrics are still coerced to zero when absent.");
+    if (!dashboardSource.includes("const pct=(part,total)=>part===null||part===undefined||total===null||total===undefined?\'Unavailable\'")) failures.push("Missing percentage formatter or null guard.");
+    if (!dashboardSource.includes("const conversionCount=regs===null||pur===null?null:regs+pur")) failures.push("Conversion count does not preserve unavailable inputs.");
+    if (dashboardSource.includes("n(m.registrations||0)") || dashboardSource.includes("n(m.purchases||0)")) failures.push("BongaCash funnel still converts unavailable values to zero.");
 
     const expectedTabs = ["clicks", "advanced"];
     const visibleTabs = await page.locator("[data-dashboard-tab]").evaluateAll(nodes => nodes.map(node => node.dataset.dashboardTab));
@@ -90,7 +99,16 @@ function startServer() {
       if (!layout.nav || layout.nav.width <= 0) failures.push(viewport.name + ": dashboard navigation is not visible");
     }
 
-    await page.locator('[data-dashboard-tab="clicks"]').click();
+    const displayedMetrics = await page.evaluate(() => ({
+      cbRegistrations: document.querySelector("#cbRegs")?.textContent,
+      cbTierOnePercent: document.querySelector("#cbTier1Pct")?.textContent,
+      totalEarnings: document.querySelector("#totalEarnings")?.textContent,
+      conversion: document.querySelector("#conversion")?.textContent,
+      bongaRegistrations: document.querySelector("#bongaRegs")?.textContent
+    }));
+    for (const [name, value] of Object.entries(displayedMetrics)) {
+      if (value !== "Unavailable") failures.push(name + " should display Unavailable, received " + value);
+    }
     for (const range of ["today", "7", "30", "all"]) {
       await page.locator("#from").fill("");
       await page.locator("#to").fill("");
