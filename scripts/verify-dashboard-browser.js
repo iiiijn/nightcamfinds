@@ -23,7 +23,9 @@ function startServer() {
           ? { authenticated: true, username: "browser-test" }
           : url.pathname === "/api/bongacash-reconciliation"
             ? { totals: { registrations: 0, purchases: 0, earnings: 0, days_reported: 0 }, entries: [] }
-            : {};
+            : url.pathname === "/api/dashboard-stats"
+              ? { chaturbateClicks: null, bongacamsClicks: 0, totalClicks: 0, tier1Clicks: 0, bongaTier1Clicks: 0, registrations: null, purchases: null, earnings: null, bongacamsRegistrations: 0, bongacamsPurchases: 0, bongacamsEarnings: 0 }
+              : {};
         res.writeHead(200, { "content-type": "application/json" });
         res.end(JSON.stringify(body));
         return;
@@ -49,6 +51,11 @@ function startServer() {
       document.querySelector("#login").classList.add("hidden");
       document.querySelector("#dashboard").classList.remove("hidden");
     });
+    await page.evaluate(() => load());
+    const missingClickValue = await page.locator("#cbClicks").textContent();
+    const realZeroClickValue = await page.locator("#bongaClicks").textContent();
+    if (missingClickValue.trim() !== "Unavailable") failures.push("Missing metric was not shown as Unavailable: " + missingClickValue);
+    if (realZeroClickValue.trim() !== "0") failures.push("A genuine zero metric was not preserved as zero: " + realZeroClickValue);
 
     const expectedTabs = ["clicks", "advanced"];
     const visibleTabs = await page.locator("[data-dashboard-tab]").evaluateAll(nodes => nodes.map(node => node.dataset.dashboardTab));
