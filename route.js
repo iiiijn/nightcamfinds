@@ -653,6 +653,10 @@ http.createServer = function routeDashboard(handler) {
             clicks: Number(row.clicks || 0),
             clicksWithVisitId: Number(row.clicks_with_visit_id || 0),
             clicksWithoutVisitId: Number(row.clicks_without_visit_id || 0),
+            knownBotClicks: Number(row.known_bot_clicks || 0),
+            suspectedBotClicks: Number(row.suspected_bot_clicks || 0),
+            unverifiedNotFlaggedClicks: Number(row.unverified_not_flagged_clicks || 0),
+            unclassifiedClicks: Number(row.unclassified_clicks || 0),
             visits: Number(row.visits || 0),
             engagedVisits: Number(row.engaged_visits || 0),
             visitsWithAffiliateClick: Number(row.visits_with_affiliate_click || 0),
@@ -663,7 +667,7 @@ http.createServer = function routeDashboard(handler) {
           filters: query.filters,
           truncated: clicks.rows.length === 2000,
           timezone: "UTC",
-          note: "Visits are grouped by first-seen date, affiliate redirects by click date and Chaturbate callbacks by received date. Engaged visits are distinct unverified visit IDs with active_10s or scroll_50 signals. Visits with affiliate redirects are distinct visit IDs with at least one linked redirect. Redirects are not verified human clicks. Only non-test Chaturbate postback events with a stored matched click ID are attributed to campaign groups. BongaCams earnings remain manually reconciled and are not assigned to campaigns. Payouts remain separated by currency and are provider-reported, not verified cash received."
+          note: "Visits are grouped by first-seen date, affiliate redirects by click date and Chaturbate callbacks by received date. Raw recorded redirects are preserved. Known and suspected bot clicks are separate; unverifiedNotFlaggedClicks means clicks with a linked unverified visit and no stored bot flag, not verified humans. Unclassified clicks lack a linked visit record and are not included in that unverified count. Engaged visits are distinct unverified visit IDs with active_10s or scroll_50 signals. Visits with affiliate redirects are distinct visit IDs with at least one linked redirect. Redirects are not verified human clicks. Only non-test Chaturbate postback events with a stored matched click ID are attributed to campaign groups. BongaCams earnings remain manually reconciled and are not assigned to campaigns. Payouts remain separated by currency and are provider-reported, not verified cash received."
         });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic-to-revenue report requires the existing affiliate click and Chaturbate conversion attribution tables." });

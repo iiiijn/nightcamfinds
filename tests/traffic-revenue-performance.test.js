@@ -73,3 +73,25 @@ test('route exposes visit funnel and tracking quality fields without a second qu
   assert.match(endpoint, /const clicks = await pool\.query\(query\.text, query\.params\.clicks\)/);
   assert.doesNotMatch(endpoint, /visits\.rows/);
 });
+
+
+test('separates bot classifications while preserving raw redirect counts', () => {
+  const built = performance.buildQuery({});
+  assert.match(built.text, /known_bot_clicks/);
+  assert.match(built.text, /suspected_bot_clicks/);
+  assert.match(built.text, /unverified_not_flagged_clicks/);
+  assert.match(built.text, /unclassified_clicks/);
+  assert.match(built.text, /COUNT\(\*\)::int AS clicks/);
+  assert.match(built.text, /LEFT JOIN traffic_visits tv ON tv.visit_id = ac.visit_id/);
+});
+
+test('API does not describe unverified clicks as verified humans', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('if (incoming.pathname === "/api/traffic-revenue-performance")');
+  const end = route.indexOf('if (incoming.pathname === "/api/conversion-revenue")', start);
+  const endpoint = route.slice(start, end);
+  assert.match(endpoint, /unverifiedNotFlaggedClicks/);
+  assert.match(endpoint, /not verified humans/);
+});

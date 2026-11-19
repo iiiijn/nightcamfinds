@@ -15,7 +15,7 @@ test("server room cards use tracked redirects and escape feed content", () => {
   assert.match(html, /href="\/bgo\/bongacams%3Abob\?/);
   assert.match(html, /source=unknown/);
   assert.match(html, /evidence=unknown/);
-  assert.match(html, /campaign=organic/);
+  assert.match(html, /campaign=unknown/);
   assert.match(html, /loading="lazy"/);
   assert.doesNotMatch(html, /javascript:alert/);
   assert.match(html, /rel="sponsored nofollow noopener"/);
