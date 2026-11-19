@@ -251,7 +251,6 @@ $('roomCoverageRefresh').addEventListener('click',()=>refreshDashboardReport(loa
       else advancedTarget.append(card);
     }
     summaryCards.remove();
-    clickSummary.append(advancedMetrics.querySelector('#advancedSummaryCards').parentElement);
     const firstPanel = main.querySelector('.panel');
     if (firstPanel) main.insertBefore(clickSummary, firstPanel);
     main.insertBefore(advancedMetrics, clickSummary.nextSibling);
