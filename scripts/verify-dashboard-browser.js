@@ -134,6 +134,12 @@ function startServer() {
     for (const [name, value] of Object.entries(displayedMetrics)) {
       if (value !== "Unavailable") failures.push(name + " should display Unavailable, received " + value);
     }
+    // Date-range checks target the Click Overview loader. The Advanced Reports
+    // tab intentionally loads its own report set and does not call dashboard-stats.
+    await page.locator('[data-dashboard-tab="clicks"]').click();
+    await page.waitForFunction(() =>
+      document.querySelector('[data-dashboard-tab="clicks"]')?.getAttribute("aria-selected") === "true");
+
     for (const range of ["today", "7", "30", "all"]) {
       await page.locator("#from").fill("");
       await page.locator("#to").fill("");
