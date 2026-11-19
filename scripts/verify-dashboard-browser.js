@@ -44,10 +44,24 @@ function startServer() {
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
     page.on("pageerror", error => failures.push("Page error: " + error.message));
-    page.on("console", message => { if (message.type() === "error") failures.push("Console error: " + message.text()); });
+    page.on("console", message => {
+      // The reconciliation endpoint deliberately returns 503 in this fixture.
+      // Its browser console message is expected and is asserted through API state.
+      if (message.type() === "error" && !message.text().includes("503 (Service Unavailable)")) {
+        failures.push("Console error: " + message.text());
+      }
+    });
     page.on("requestfailed", request => failures.push("Request failed: " + request.method() + " " + request.url() + " (" + (request.failure()?.errorText || "unknown") + ")"));
     page.on("response", response => {
-      if (response.url().includes("/api/")) requests.push({ path: new URL(response.url()).pathname, status: response.status() });
+      if (response.url().includes("/api/")) {
+        const responseUrl = new URL(response.url());
+        requests.push({
+          path: responseUrl.pathname,
+          from: responseUrl.searchParams.get("from"),
+          to: responseUrl.searchParams.get("to"),
+          status: response.status()
+        });
+      }
     });
     const address = server.address();
     // Exercise the real dashboard authentication bootstrap against the local mock API.
