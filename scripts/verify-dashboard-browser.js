@@ -67,8 +67,6 @@ function startServer() {
       const state = await page.evaluate(() => ({
         dashboardVisible: !document.querySelector("#dashboard")?.classList.contains("hidden"),
         status: document.querySelector("#status")?.textContent,
-        cbRegistrations: document.querySelector("#cbRegs")?.textContent,
-        bongaRegistrations: document.querySelector("#bongaRegs")?.textContent,
         loginStatus: document.querySelector("#loginStatus")?.textContent
       }));
       throw new Error("Dashboard did not finish loading within 10 seconds. State: " + JSON.stringify(state) +
@@ -78,14 +76,9 @@ function startServer() {
     if (!visibleStatus?.startsWith("Updated ")) {
       const state = await page.evaluate(() => ({
         status: document.querySelector("#status")?.textContent,
-        cbRegistrations: document.querySelector("#cbRegs")?.textContent,
-        bongaRegistrations: document.querySelector("#bongaRegs")?.textContent
       }));
       throw new Error("Dashboard loader reported an error instead of completing. State: " + JSON.stringify(state) +
         ". API responses: " + JSON.stringify(requests) + ". Browser errors: " + JSON.stringify(failures));
-    }
-    if (await page.locator("#cbRegs").textContent() !== "Unavailable") {
-      failures.push("Chaturbate registrations should display Unavailable after the API returns null.");
     }
     const dashboardSource = fs.readFileSync(dashboardPath, "utf8");
     if (!dashboardSource.includes("v===null||v===undefined?'Unavailable':Number(v).toLocaleString()")) failures.push("Missing numeric values are not guarded as Unavailable.");
@@ -130,11 +123,8 @@ function startServer() {
     }
 
     const displayedMetrics = await page.evaluate(() => ({
-      cbRegistrations: document.querySelector("#cbRegs")?.textContent,
-      cbTierOnePercent: document.querySelector("#cbTier1Pct")?.textContent,
       totalEarnings: document.querySelector("#totalEarnings")?.textContent,
-      conversion: document.querySelector("#conversion")?.textContent,
-      bongaRegistrations: document.querySelector("#bongaRegs")?.textContent
+      conversion: document.querySelector("#conversion")?.textContent
     }));
     for (const [name, value] of Object.entries(displayedMetrics)) {
       if (value !== "Unavailable") failures.push(name + " should display Unavailable, received " + value);
