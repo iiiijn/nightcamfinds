@@ -53,7 +53,8 @@ function startServer() {
     });
     const dashboardSource = fs.readFileSync(dashboardPath, "utf8");
     if (!dashboardSource.includes("v===null||v===undefined?'Unavailable':Number(v).toLocaleString()")) failures.push("Missing numeric values are not guarded as Unavailable.");
-    if (!dashboardSource.includes("v===null||v===undefined?'Unavailable':'
+    if (!dashboardSource.includes("v===null||v===undefined?'Unavailable':'$'+Number(v).toFixed(2)")) failures.push("Missing currency values are not guarded as Unavailable.");
+    if (!dashboardSource.includes("const metric=v=>v===null||v===undefined?null:Number(v)")) failures.push("Dashboard API metrics are still coerced to zero when absent.");
 
     const expectedTabs = ["clicks", "advanced"];
     const visibleTabs = await page.locator("[data-dashboard-tab]").evaluateAll(nodes => nodes.map(node => node.dataset.dashboardTab));
