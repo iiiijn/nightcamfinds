@@ -422,6 +422,57 @@ http.createServer = function routeDashboard(handler) {
       if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
       const bounds = nairobiWeekBounds();
       try {
+        const schema = await pool.query(`
+          SELECT
+            ARRAY(
+              SELECT required.table_name
+              FROM (VALUES ('traffic_visits'), ('traffic_engagement_events'), ('affiliate_clicks')) AS required(table_name)
+              WHERE to_regclass('public.' || required.table_name) IS NULL
+            ) AS missing_tables,
+            ARRAY(
+              SELECT required.table_name || '.' || required.column_name
+              FROM (VALUES
+                ('traffic_visits','visit_id'),
+                ('traffic_visits','traffic_class'),
+                ('traffic_visits','first_seen_at'),
+                ('traffic_visits','is_owner_traffic'),
+                ('traffic_engagement_events','visit_id'),
+                ('traffic_engagement_events','event_type'),
+                ('traffic_engagement_events','occurred_at'),
+                ('affiliate_clicks','visit_id'),
+                ('affiliate_clicks','clicked_at'),
+                ('affiliate_clicks','is_bot'),
+                ('affiliate_clicks','bot_reason'),
+                ('affiliate_clicks','is_owner_traffic')
+              ) AS required(table_name,column_name)
+              WHERE to_regclass('public.' || required.table_name) IS NOT NULL
+                AND NOT EXISTS (
+                  SELECT 1 FROM information_schema.columns actual
+                  WHERE actual.table_schema='public'
+                    AND actual.table_name=required.table_name
+                    AND actual.column_name=required.column_name
+                )
+            ) AS missing_columns
+        `);
+        const missingTables = schema.rows[0]?.missing_tables || [];
+        const missingColumns = schema.rows[0]?.missing_columns || [];
+        if (missingTables.length || missingColumns.length) {
+          const migrationHints = [];
+          if (missingTables.includes('traffic_visits') || missingTables.includes('traffic_engagement_events') ||
+              missingColumns.some((column) => column.startsWith('traffic_visits.') || column.startsWith('traffic_engagement_events.'))) {
+            migrationHints.push('006_traffic_quality_engagement');
+          }
+          if (missingColumns.includes('traffic_visits.is_owner_traffic') || missingColumns.includes('affiliate_clicks.is_owner_traffic')) {
+            migrationHints.push('011_owner_traffic');
+          }
+          if (missingColumns.includes('affiliate_clicks.is_bot') || missingColumns.includes('affiliate_clicks.bot_reason')) {
+            migrationHints.push('affiliate click-tracking startup schema');
+          }
+          return sendJson(res, 503, {
+            error: 'Traffic quality reporting schema is incomplete.',
+            diagnostics: { missingTables, missingColumns, migrationHints }
+          });
+        }
         const visits = await pool.query(
           `SELECT traffic_class, COUNT(*)::int AS visits
            FROM traffic_visits WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE AND first_seen_at >= $1 AND first_seen_at < $2
@@ -499,7 +550,7 @@ http.createServer = function routeDashboard(handler) {
           note: "Engaged visits count distinct unverified visit IDs with active_10s or scroll_50 signals only. BongaCash banner load/viewability telemetry is reported separately and is not counted as engagement. Engaged visits with affiliate clicks are distinct visit IDs with at least one tracked redirect in this reporting week. These signals are client-reported and do not prove a human visitor or a conversion. Affiliate redirects are not verified human clicks. Known and suspected automation are separated. New affiliate redirects store user-agent classification directly on the click record, including redirects without a visit ID. Older redirects without stored classification remain unclassified unless a linked visit record provides classification. Unclassified redirects are clicks without usable classification evidence. Most missing-visit-ID clicks may be legacy records from before visit tracking was introduced; they cannot be retrospectively classified. A missing visit record with an ID indicates a linkage issue that should be investigated."
         });
       } catch (err) {
-        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality reporting schema could not be verified. The database reported a missing table or column; inspect the schema diagnostics before considering a migration." });
         console.error("Traffic quality analytics failed:", err.message);
         return sendJson(res, 500, { error: "Could not load traffic quality analytics." });
       }
