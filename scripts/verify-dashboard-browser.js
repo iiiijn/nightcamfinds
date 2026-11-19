@@ -1,0 +1,113 @@
+"use strict";
+
+const http = require("node:http");
+const fs = require("node:fs");
+const path = require("node:path");
+const { chromium } = require("playwright");
+
+const dashboardPath = path.resolve(__dirname, "../public/dashboard.html");
+const requests = [];
+
+function startServer() {
+  return new Promise(resolve => {
+    const server = http.createServer((req, res) => {
+      const url = new URL(req.url, "http://127.0.0.1");
+      if (url.pathname === "/dashboard.html") {
+        res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+        res.end(fs.readFileSync(dashboardPath));
+        return;
+      }
+      if (url.pathname.startsWith("/api/")) {
+        requests.push({ path: url.pathname, from: url.searchParams.get("from"), to: url.searchParams.get("to") });
+        const body = url.pathname === "/api/auth/me"
+          ? { authenticated: true, username: "browser-test" }
+          : url.pathname === "/api/bongacash-reconciliation"
+            ? { totals: { registrations: 0, purchases: 0, earnings: 0, days_reported: 0 }, entries: [] }
+            : {};
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(body));
+        return;
+      }
+      res.writeHead(404).end("Not found");
+    });
+    server.listen(0, "127.0.0.1", () => resolve(server));
+  });
+}
+
+(async () => {
+  const server = await startServer();
+  let browser;
+  const failures = [];
+  try {
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    page.on("pageerror", error => failures.push("Page error: " + error.message));
+    const address = server.address();
+    await page.goto("http://127.0.0.1:" + address.port + "/dashboard.html", { waitUntil: "networkidle" });
+    await page.waitForFunction(() => !document.querySelector("#dashboard").classList.contains("hidden"));
+
+    const expectedTabs = ["clicks", "traffic", "investigation", "revenue", "health", "advanced"];
+    for (const tab of expectedTabs) {
+      const button = page.locator('[data-dashboard-tab="' + tab + '"]');
+      if (await button.count() !== 1) {
+        failures.push("Missing dashboard tab: " + tab);
+        continue;
+      }
+      await button.click();
+      await page.waitForFunction(value => {
+        const selected = document.querySelector('[data-dashboard-tab="' + value + '"]');
+        return selected?.getAttribute("aria-selected") === "true" &&
+          [...document.querySelectorAll("[data-nav-group]")].every(panel =>
+            panel.classList.contains("nav-hidden") === (panel.dataset.navGroup !== value));
+      }, tab);
+    }
+
+    const viewports = [
+      { name: "mobile", width: 320, height: 740 },
+      { name: "mobile-large", width: 390, height: 844 },
+      { name: "desktop", width: 1366, height: 900 }
+    ];
+    for (const viewport of viewports) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      const layout = await page.evaluate(() => ({
+        viewport: innerWidth,
+        document: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+        nav: document.querySelector("#dashboardNav")?.getBoundingClientRect().toJSON()
+      }));
+      if (layout.document > viewport.width) failures.push(viewport.name + ": horizontal overflow (" + layout.document + "px)");
+      if (!layout.nav || layout.nav.width <= 0) failures.push(viewport.name + ": dashboard navigation is not visible");
+    }
+
+    await page.locator("#range").selectOption("today");
+    await page.waitForTimeout(100);
+    await page.locator("#range").selectOption("7");
+    await page.waitForTimeout(100);
+    await page.locator("#range").selectOption("30");
+    await page.waitForTimeout(100);
+    await page.locator("#range").selectOption("all");
+    await page.waitForTimeout(100);
+    await page.locator("#from").fill("2026-11-01");
+    await page.locator("#to").fill("2026-11-12");
+    await page.locator("#apply").click();
+    await page.waitForTimeout(150);
+    const customRequest = requests.findLast(request =>
+      request.path === "/api/dashboard-stats" && request.from === "2026-11-01" && request.to === "2026-11-12");
+    if (!customRequest) failures.push("Custom date range was not sent to dashboard-stats as the selected from/to period.");
+    for (const range of ["today", "7", "30", "all"]) {
+      if (await page.locator("#range").inputValue() !== "all") break;
+    }
+
+    if (failures.length) {
+      console.error("Dashboard browser verification failed:\n- " + failures.join("\n- "));
+      process.exitCode = 1;
+    } else {
+      console.log("Dashboard browser verification passed: all tabs, mobile/desktop layouts and custom date range.");
+    }
+  } finally {
+    if (browser) await browser.close();
+    await new Promise(resolve => server.close(resolve));
+  }
+})().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});
