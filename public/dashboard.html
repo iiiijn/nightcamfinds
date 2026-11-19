@@ -225,6 +225,9 @@ $('roomCoverageRefresh').addEventListener('click',()=>refreshDashboardReport(loa
   advancedButton.dataset.dashboardTab = 'advanced';
   advancedButton.textContent = 'Advanced Reports';
   nav.append(advancedButton);
+  // This button is created after the original navigation listeners are registered.
+  // Bind it explicitly so Advanced Reports is reachable like every existing tab.
+  advancedButton.addEventListener('click',()=>{clearDashboardApiCache();setDashboardTab('advanced')});
 
   dashboardTabDescriptions.clicks = 'Click Overview: total redirects, platform split, daily clicks and recorded click origins.';
   dashboardTabDescriptions.advanced = 'Advanced Reports: traffic quality, country analysis, room coverage, investigations, conversions and tracking diagnostics.';
