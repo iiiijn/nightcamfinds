@@ -206,4 +206,95 @@ function showLogin(msg){$('dashboard').classList.add('hidden');$('login').classL
 async function login(e){e.preventDefault();const username=$('username').value.trim(),password=$('password').value;if(!username||!password){$('loginStatus').textContent='Enter your username and password.';return}const b=$('loginBtn');b.disabled=true;b.textContent='Signing in...';try{const r=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});const j=await r.json();if(!r.ok||!j.authenticated)throw Error(j.error||'Sign in failed.');showDashboard(j.username);await loadDashboardData()}catch(e){$('loginStatus').textContent=e.message}finally{b.disabled=false;b.textContent='Sign in'}}
 async function logout(){await fetch('/api/auth/logout',{credentials:'same-origin'});showLogin('Signed out.')}
 $('roomCoverageRefresh').addEventListener('click',()=>refreshDashboardReport(loadRoomCoverage));$('trafficQualityRefresh').addEventListener('click',()=>refreshDashboardReport(loadTrafficQualityAnalytics));$('sinceCutoffRefresh').addEventListener('click',()=>refreshDashboardReport(loadTrafficSinceCutoff));$('providerHealthRefresh').addEventListener('click',()=>refreshDashboardReport(loadProviderAttributionHealth));$('campaignRefresh').addEventListener('click',()=>refreshDashboardReport(loadCampaignPerformance));$('trafficRevenueRefresh').addEventListener('click',()=>refreshDashboardReport(loadTrafficRevenuePerformance));$('conversionRevenueRefresh').addEventListener('click',()=>refreshDashboardReport(loadConversionRevenue));$('funnelRefresh').addEventListener('click',()=>refreshDashboardReport(loadConversionFunnel));$('originsRefresh').addEventListener('click',()=>refreshDashboardReport(loadClickOrigins));$('recentRoomRefresh').addEventListener('click',()=>refreshDashboardReport(loadRecentRoomClicks));$('recentRoomPlatform').addEventListener('change',loadRecentRoomClicks);$('traceRefresh').addEventListener('click',()=>refreshDashboardReport(loadIndividualClickTrace));$('tracePlatform').addEventListener('change',loadIndividualClickTrace);$('traceOwnerMode').addEventListener('change',loadIndividualClickTrace);$('ownerTrafficToggle').addEventListener('click',toggleOwnerTrafficMode);$('originsCountry').addEventListener('change',loadClickOrigins);$('originsPlatform').addEventListener('change',loadClickOrigins);$('originsCategory').addEventListener('change',loadClickOrigins);$('originsSource').addEventListener('change',loadClickOrigins);$('originsEvidence').addEventListener('change',loadClickOrigins);$('dailyRefresh').addEventListener('click',loadDailyCountryAnalytics);$('categoryRefresh').addEventListener('click',loadCountryCategoryAnalytics);$('categoryCountry').addEventListener('change',loadCountryCategoryAnalytics);$('categoryPlatform').addEventListener('change',loadCountryCategoryAnalytics);$('dailyCountry').addEventListener('change',loadDailyCountryAnalytics);$('dailyTier1').addEventListener('change',loadDailyCountryAnalytics);$('routeCountry').addEventListener('change',renderRouteSettings);$('routeSave').addEventListener('click',()=>saveRouteSetting('hypothesis'));$('routeApprove').addEventListener('click',()=>saveRouteSetting('approve'));$('routeReload').addEventListener('click',()=>refreshDashboardReport(loadRouteSettings));$('loginForm').addEventListener('submit',login);$('logout').addEventListener('click',logout);$('apply').addEventListener('click',()=>{dashboardLoadedTabs.clear();clearDashboardApiCache();loadDashboardTab(activeDashboardTab,true)});$('range').addEventListener('change',()=>{dashboardLoadedTabs.clear();clearDashboardApiCache();loadDashboardTab(activeDashboardTab,true)});$('saveBonga').addEventListener('click',saveManual);check();
+
+/* PHASE_A1_24_3_SIMPLIFIED_CLICK_DASHBOARD */
+(function simplifyClickDashboard(){
+  const nav = document.querySelector('#dashboardNav');
+  if (!nav || typeof dashboardPanelGroups === 'undefined') return;
+
+  const overviewButton = nav.querySelector('[data-dashboard-tab="overview"]');
+  if (overviewButton) {
+    overviewButton.dataset.dashboardTab = 'clicks';
+    overviewButton.textContent = 'Click Overview';
+  }
+  const advancedButton = document.createElement('button');
+  advancedButton.className = 'button';
+  advancedButton.type = 'button';
+  advancedButton.setAttribute('role','tab');
+  advancedButton.setAttribute('aria-selected','false');
+  advancedButton.dataset.dashboardTab = 'advanced';
+  advancedButton.textContent = 'Advanced Reports';
+  nav.append(advancedButton);
+
+  dashboardTabDescriptions.clicks = 'Click Overview: total redirects, platform split, daily clicks and recorded click origins.';
+  dashboardTabDescriptions.advanced = 'Advanced Reports: traffic quality, country analysis, room coverage, investigations, conversions and tracking diagnostics.';
+  delete dashboardTabDescriptions.overview;
+
+  const main = document.querySelector('#dashboard');
+  const summaryCards = [...main.querySelectorAll('.cards')].find(node => node.querySelector('#totalClicks'));
+  const clickSummary = document.createElement('section');
+  clickSummary.className = 'panel';
+  clickSummary.dataset.navGroup = 'clicks';
+  clickSummary.innerHTML = '<h2>Click summary</h2><p class="note">Recorded affiliate redirects for the selected date range. These are redirect events, not unique visitors or verified human visits.</p><div class="cards" id="clickSummaryCards"></div><h3>Platform split</h3><p class="note">Chaturbate and BongaCams totals are NightCamFinds redirect records. Reported earnings and conversions are shown in Advanced Reports.</p>';
+
+  if (summaryCards) {
+    const keep = new Set(['totalClicks','today','week','month']);
+    const target = clickSummary.querySelector('#clickSummaryCards');
+    const advancedMetrics = document.createElement('section');
+    advancedMetrics.className = 'panel';
+    advancedMetrics.dataset.navGroup = 'advanced';
+    advancedMetrics.innerHTML = '<h2>Additional overview metrics</h2><p class="note">Supporting metrics retained here so the main click dashboard stays focused.</p><div class="cards" id="advancedSummaryCards"></div>';
+    const advancedTarget = advancedMetrics.querySelector('#advancedSummaryCards');
+    for (const card of [...summaryCards.children]) {
+      const metric = card.querySelector('strong[id]');
+      if (metric && keep.has(metric.id)) target.append(card);
+      else advancedTarget.append(card);
+    }
+    summaryCards.remove();
+    clickSummary.append(advancedMetrics.querySelector('#advancedSummaryCards').parentElement);
+    const firstPanel = main.querySelector('.panel');
+    if (firstPanel) main.insertBefore(clickSummary, firstPanel);
+    main.insertBefore(advancedMetrics, clickSummary.nextSibling);
+  }
+
+  const clickPanels = new Set(['Platform performance','Daily clicks by country','Click origins report']);
+  document.querySelectorAll('#dashboard .panel').forEach(panel => {
+    if (panel === clickSummary || panel.querySelector('#advancedSummaryCards')) return;
+    const heading = panel.querySelector('h2');
+    if (!heading) return;
+    panel.dataset.navGroup = clickPanels.has(heading.textContent.trim()) ? 'clicks' : 'advanced';
+  });
+
+  // The platform table is useful at a glance, while conversion detail remains in Advanced Reports.
+  const platformPanel = [...document.querySelectorAll('#dashboard .panel')].find(panel => panel.querySelector('#cbClicks') && panel.querySelector('#bongaClicks'));
+  if (platformPanel) {
+    const table = platformPanel.querySelector('table');
+    if (table) {
+      const headers = table.querySelectorAll('thead th');
+      const rows = table.querySelectorAll('tbody tr');
+      if (headers.length >= 8) {
+        [headers[2],headers[3],headers[4],headers[5],headers[6],headers[7]].forEach(cell => cell.remove());
+        rows.forEach(row => [...row.children].slice(2).forEach(cell => cell.remove()));
+      }
+    }
+  }
+
+  // Daily report and source evidence remain the existing reports, not duplicated calculations.
+  setDashboardTab('clicks');
+  const nativeLoadDashboardTab = loadDashboardTab;
+  loadDashboardTab = async function(tab, force=false) {
+    const key = tab + '|' + dashboardPeriodKey();
+    if (!force && dashboardLoadedTabs.has(key)) return;
+    if (dashboardTabPromises.has(key)) return dashboardTabPromises.get(key);
+    const loaders = tab === 'clicks'
+      ? [load, loadDailyCountryAnalytics, loadClickOrigins]
+      : tab === 'advanced'
+        ? [loadRoomCoverage, loadRouteSettings, loadCountryCategoryAnalytics, loadTrafficQualityAnalytics, loadTrafficSinceCutoff, loadOwnerTrafficMode, loadRecentRoomClicks, loadIndividualClickTrace, loadCampaignPerformance, loadTrafficRevenuePerformance, loadConversionRevenue, loadConversionFunnel, loadProviderAttributionHealth]
+        : [];
+    const pending = Promise.all(loaders.map(loader => loader())).then(() => dashboardLoadedTabs.add(key)).finally(() => dashboardTabPromises.delete(key));
+    dashboardTabPromises.set(key,pending);
+    return pending;
+  };
+})();
+
 </script></body></html>
