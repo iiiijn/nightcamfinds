@@ -42,7 +42,7 @@
 </section></main>
 <script>
 'use strict';
-const $=id=>document.getElementById(id);const n=v=>v===null||v===undefined?'Unavailable':Number(v).toLocaleString();const money=v=>v===null||v===undefined?'Unavailable':'$'+Number(v).toFixed(2);const pct=(part,total)=>part===null||part===undefined||total===null||total===undefined?'Unavailable':(Number(total)===0?'0.0%':(Number(part)/Number(total)*100).toFixed(1)+'%');
+const $=id=>{const element=document.getElementById(id);if(!element)throw new Error('Dashboard element missing: #'+id);return element};const n=v=>v===null||v===undefined?'Unavailable':Number(v).toLocaleString();const money=v=>v===null||v===undefined?'Unavailable':'$'+Number(v).toFixed(2);const pct=(part,total)=>part===null||part===undefined||total===null||total===undefined?'Unavailable':(Number(total)===0?'0.0%':(Number(part)/Number(total)*100).toFixed(1)+'%');
 function dates(){const r=$('range').value,t=new Date(),today=new Date(Date.UTC(t.getUTCFullYear(),t.getUTCMonth(),t.getUTCDate())),iso=d=>d.toISOString().slice(0,10);if(r==='today')return{from:iso(today),to:iso(today)};if(r==='all')return{from:'',to:''};const d=new Date(today);d.setUTCDate(d.getUTCDate()-(Number(r)-1));return{from:iso(d),to:iso(today)}}function selected(){const d=dates();return{from:$('from').value||d.from,to:$('to').value||d.to}}
 function currencyBreakdown(rows){const entries=Object.entries(rows||{}).sort((a,b)=>a[0].localeCompare(b[0]));if(!entries.length)return'No matched Chaturbate payouts.';return entries.map(([currency,row])=>esc(currency)+' '+Number(row.earnings||0).toFixed(2)).join(' · ')}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c))}
