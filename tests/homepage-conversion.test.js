@@ -6,6 +6,7 @@ const fs = require('node:fs');
 
 const homepage = fs.readFileSync('public/index.html', 'utf8');
 const homepageCss = fs.readFileSync('public/homepage-refinement.css', 'utf8');
+const app = fs.readFileSync('public/app.js', 'utf8');
 const broadcast = fs.readFileSync('public/broadcast.html', 'utf8');
 
 test('homepage presents separate viewer and adult-creator journeys', () => {
@@ -14,6 +15,10 @@ test('homepage presents separate viewer and adult-creator journeys', () => {
   assert.match(homepage, /href="\\/broadcast\\/" data-ncf-path="model"/);
   assert.match(homepage, /Browse live rooms/);
   assert.match(homepage, /Become a broadcaster/);
+});
+
+test('client-side homepage copy does not blank the restored hero', () => {
+  assert.match(app, /all: \\[\"Independent discovery\", \"Who's live in your country, tonight\\.\"/);
 });
 
 test('homepage hero is visible and responsive rather than hidden by refinement CSS', () => {
