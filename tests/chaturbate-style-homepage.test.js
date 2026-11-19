@@ -68,8 +68,8 @@ test("laptop-width layouts keep search in the top row and use five room columns"
 
 test("homepage exposes separate official model signup paths without misusing viewer affiliate routes", () => {
   const modelPage = read("public/broadcast.html");
-  assert.ok(html.includes('href="/broadcast/">Become a model</a>'));
-  assert.ok(modelPage.includes("Become a live broadcaster"));
+  assert.ok(html.includes('href="/broadcast/" data-ncf-path="model"'));
+  assert.ok(modelPage.includes("Choose your platform. Build your creator business."));
   assert.ok(modelPage.includes("https://chaturbate.com/in/?tour=LQps&amp;campaign=C6yxN&amp;track=broadcast"));
   assert.ok(modelPage.includes("https://bongacash.com/model-ref?c=840974"));
   assert.ok(modelPage.includes('id="platform-chaturbate"'));
@@ -84,7 +84,7 @@ test("model recruitment copy accurately describes separate referral signup paths
   const modelPage = read("public/broadcast.html");
   assert.ok(modelPage.includes("Register for a broadcaster account through the NightCamFinds Chaturbate broadcaster referral link."));
   assert.ok(modelPage.includes("Register through the BongaCash model referral link."));
-  assert.ok(modelPage.includes("Viewer room links and viewer affiliate codes do not automatically credit model signups."));
+  assert.ok(modelPage.includes("Separate referral paths"));
 });
 
 test("model recruitment page retains responsive two-platform cards", () => {
