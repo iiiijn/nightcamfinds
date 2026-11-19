@@ -45,7 +45,7 @@ function card(room, category = "all", pagePath = "/") {
     source: "unknown",
     evidence: "unknown",
     medium: "unknown",
-    campaign: "organic",
+    campaign: "unknown",
     content: "",
     placement,
     lp: pagePath
