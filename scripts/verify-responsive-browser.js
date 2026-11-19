@@ -136,7 +136,7 @@ const roomFeed = {
           topbarRect: rect(header),
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
-          homepageHeadlineRemoved: !document.querySelector("#page-title, #top > .hero h1"),
+          homepageHeadlineVisible: (() => { const el=document.querySelector("#page-title"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0; })(),
           recruitmentBannerVisible: (() => { const el=document.querySelector(".broadcaster-sidebar"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0 && !!el.querySelector(".creator-banner-art img") && !!el.querySelector(".creator-primary-cta") && !!el.querySelector('a[href="/broadcast/#platform-chaturbate"]') && !!el.querySelector('a[href="/broadcast/#platform-bongacams"]'); })(),
           directoryColumnCount: grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").length : 0,
           headerControlsInsideViewport: [...document.querySelectorAll(".topbar .logo, .topbar #q, .topbar #country, .topbar .quick-exit")].every(el => { const r=el.getBoundingClientRect(); return r.width>0 && r.left>=-1 && r.right<=window.innerWidth+1; }),
@@ -144,8 +144,9 @@ const roomFeed = {
           modelFlagsVisible: [...document.querySelectorAll("#grid .model-country-flag, #category-rows .model-country-flag")].length > 0,
           saveButtonsRemoved: [...document.querySelectorAll(".favorite-toggle")].every(button => getComputedStyle(button).display === "none"),
           featuredPanelRemoved: !document.querySelector(".featured-panel"),
-          independentDiscoveryRemoved: !document.querySelector("#kicker"),
-          heroLeadVisible: (() => { const el = document.querySelector("#top > .hero"); return !el || getComputedStyle(el).display === "none"; })(),
+          independentDiscoveryVisible: !!document.querySelector("#kicker") && document.querySelector("#kicker").textContent.trim() === "Independent discovery",
+          heroLeadVisible: (() => { const el = document.querySelector("#top > .hero"); const r=el?.getBoundingClientRect(); return !!r && getComputedStyle(el).display !== "none" && r.width>0 && r.height>0; })(),
+          heroPathsVisible: ["viewer","model"].every(path => { const el=document.querySelector(".hero-choice[data-ncf-path=\"" + path + "\"]"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0; }),
           heroActionsVisible: (() => { const cards=[...document.querySelectorAll(".sidebar-filter-group")]; const titles=cards.map(el=>el.querySelector("h3")?.textContent.trim()); return titles.indexOf("Browse by region") < titles.indexOf("Room size") && titles.indexOf("Room size") < titles.indexOf("Popular tags"); })(),
           countryShortcuts: !!document.querySelector("#quick"),
           categoryCardCount: categoryCards.length,
@@ -157,14 +158,14 @@ const roomFeed = {
         };
       });
       if (result.documentWidth > viewport.width) failures.push(viewport.name + ": horizontal overflow (" + result.documentWidth + "px > " + viewport.width + "px)");
-      if (!result.homepageHeadlineRemoved) failures.push(viewport.name + ": removed homepage headline is still present");
+      if (!result.homepageHeadlineVisible) failures.push(viewport.name + ": homepage headline is missing or hidden");
       if (!result.recruitmentBannerVisible) failures.push(viewport.name + ": creator artwork, primary CTA or platform signup links are missing");
       if (!result.headerControlsInsideViewport) failures.push(viewport.name + ": header controls are clipped outside the viewport");
       const expectedColumns = viewport.width > 980 ? 4 : viewport.width > 640 ? 3 : 2;
       if (result.directoryColumnCount !== expectedColumns) failures.push(viewport.name + ": expected " + expectedColumns + " directory columns but found " + result.directoryColumnCount);
       if (!result.roomSizeFilter || !result.regionFilter) failures.push(viewport.name + ": directory filters missing");
-      if (!result.featuredPanelRemoved || !result.independentDiscoveryRemoved) failures.push(viewport.name + ": removed homepage elements are still present");
-      if (!result.heroLeadVisible || !result.heroActionsVisible) failures.push(viewport.name + ": compact directory-first layout or ordered sidebar flow is incorrect");
+      if (!result.featuredPanelRemoved || !result.independentDiscoveryVisible) failures.push(viewport.name + ": expected homepage discovery label is missing or a removed featured panel returned");
+      if (!result.heroLeadVisible || !result.heroPathsVisible || !result.heroActionsVisible) failures.push(viewport.name + ": homepage hero paths or ordered sidebar flow are not visible");
       if (!result.countryHintRemoved) failures.push(viewport.name + ": country hint or shortcut row remains");
       if (!result.modelFlagsVisible) failures.push(viewport.name + ": partner country flags are missing from model cards");
       if (!result.saveButtonsRemoved) failures.push(viewport.name + ": model Save controls are still present");
