@@ -51,6 +51,12 @@ function startServer() {
     await page.goto("http://127.0.0.1:" + address.port + "/dashboard.html", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => !document.querySelector("#dashboard")?.classList.contains("hidden"));
     await initialStatsResponse;
+    // A response arriving is not the same as the dashboard finishing its async render.
+    // Wait for load() to finish its reconciliation request and publish its final status.
+    await page.waitForFunction(() =>
+      document.querySelector("#status")?.textContent.startsWith("Updated ") &&
+      document.querySelector("#cbRegs")?.textContent === "Unavailable"
+    );
     const dashboardSource = fs.readFileSync(dashboardPath, "utf8");
     if (!dashboardSource.includes("v===null||v===undefined?'Unavailable':Number(v).toLocaleString()")) failures.push("Missing numeric values are not guarded as Unavailable.");
     if (!dashboardSource.includes("v===null||v===undefined?'Unavailable':'$'+Number(v).toFixed(2)")) failures.push("Missing currency values are not guarded as Unavailable.");
@@ -93,9 +99,6 @@ function startServer() {
       if (!layout.nav || layout.nav.width <= 0) failures.push(viewport.name + ": dashboard navigation is not visible");
     }
 
-    await page.locator('[data-dashboard-tab="clicks"]').click();
-    // The authenticated bootstrap already loads the active Click Overview tab.
-    await page.waitForFunction(() => document.querySelector("#cbRegs")?.textContent === "Unavailable");
     const displayedMetrics = await page.evaluate(() => ({
       cbRegistrations: document.querySelector("#cbRegs")?.textContent,
       cbTierOnePercent: document.querySelector("#cbTier1Pct")?.textContent,
