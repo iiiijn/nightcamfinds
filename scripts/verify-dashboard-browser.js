@@ -52,17 +52,8 @@ function startServer() {
       }
     });
     page.on("requestfailed", request => failures.push("Request failed: " + request.method() + " " + request.url() + " (" + (request.failure()?.errorText || "unknown") + ")"));
-    page.on("response", response => {
-      if (response.url().includes("/api/")) {
-        const responseUrl = new URL(response.url());
-        requests.push({
-          path: responseUrl.pathname,
-          from: responseUrl.searchParams.get("from"),
-          to: responseUrl.searchParams.get("to"),
-          status: response.status()
-        });
-      }
-    });
+    // The local server records inbound requests. Do not mix response events into
+    // that list: a response is not a second request and can obscure ordering.
     const address = server.address();
     // Exercise the real dashboard authentication bootstrap against the local mock API.
     const initialStatsResponse = page.waitForResponse(response =>
@@ -146,20 +137,32 @@ function startServer() {
     for (const range of ["today", "7", "30", "all"]) {
       await page.locator("#from").fill("");
       await page.locator("#to").fill("");
+      // Wait for the response caused by this exact UI action. A fixed sleep can
+      // accidentally inspect the preceding request when the browser is busy.
+      const responsePromise = page.waitForResponse(response => {
+        const url = new URL(response.url());
+        return url.pathname === "/api/dashboard-stats" && response.request().method() === "GET";
+      });
       await page.locator("#range").selectOption(range);
-      await page.waitForTimeout(120);
-      const request = requests.findLast(item => item.path === "/api/dashboard-stats");
-      if (!request) failures.push("No dashboard-stats request for range " + range);
-      else if (range === "all" && (request.from !== null || request.to !== null)) failures.push("All-time range unexpectedly sent date bounds.");
-      else if (range !== "all" && (!request.from || !request.to)) failures.push("Range " + range + " did not send both date bounds.");
+      const response = await responsePromise;
+      const requestUrl = new URL(response.url());
+      const from = requestUrl.searchParams.get("from");
+      const to = requestUrl.searchParams.get("to");
+      if (range === "all" && (from !== null || to !== null)) failures.push("All-time range unexpectedly sent date bounds: " + requestUrl.search);
+      else if (range !== "all" && (!from || !to)) failures.push("Range " + range + " did not send both date bounds: " + requestUrl.search);
     }
     await page.locator("#from").fill("2026-11-01");
     await page.locator("#to").fill("2026-11-12");
+    const customResponsePromise = page.waitForResponse(response => {
+      const url = new URL(response.url());
+      return url.pathname === "/api/dashboard-stats" && response.request().method() === "GET";
+    });
     await page.locator("#apply").click();
-    await page.waitForTimeout(150);
-    const customRequest = requests.findLast(request =>
-      request.path === "/api/dashboard-stats" && request.from === "2026-11-01" && request.to === "2026-11-12");
-    if (!customRequest) failures.push("Custom date range was not sent to dashboard-stats as the selected from/to period.");
+    const customResponse = await customResponsePromise;
+    const customUrl = new URL(customResponse.url());
+    if (customUrl.searchParams.get("from") !== "2026-11-01" || customUrl.searchParams.get("to") !== "2026-11-12") {
+      failures.push("Custom date range was not sent to dashboard-stats as the selected from/to period: " + customUrl.search);
+    }
 
     if (failures.length) {
       console.error("Dashboard browser verification failed:\n- " + failures.join("\n- "));
