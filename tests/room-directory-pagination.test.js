@@ -71,7 +71,8 @@ test("homepage global category picks are sourced from each partner feed and rank
   assert.match(server, /topBongaByCategory\[gender\] = feed\.rooms[\s\S]*?room\.platform === "bongacams" && room\.gender === gender/);
   assert.match(server, /Number\(roomB\.viewerCount \|\| 0\) - Number\(roomA\.viewerCount \|\| 0\)/);
   assert.match(server, /topChaturbateByCategory,topBongaByCategory,liveCount:list\.length/);
-  assert.match(app, /Popular " \+ platformLabel \+ " " \+ label \+ " Rooms/);
+  assert.match(app, /Popular Live " \+ label \+ " Rooms/);
+  assert.match(app, /balanceCategoryRooms\(\[\.\.\.bonga, \.\.\.chaturbate\]\)\.slice\(0, 8\)/);
   assert.match(app, /window\.__ncfTopBongaByCategory = data\.topBongaByCategory \|\| \{\}/);
 });
 
@@ -80,10 +81,11 @@ test("homepage is global by default while explicit country landing pages retain 
   assert.doesNotMatch(app, /if \(!countrySelect\.value && \(forced \|\| hinted\)/);
 });
 
-test("global Chaturbate category links use supported platform filtering and preserve viewer sorting", () => {
-  assert.match(app, /more\.href = "\/" \+ gender \+ "\/\?ncf_platform=" \+ platformKey \+ "&sort=viewers"/);
+test("mixed provider category links retain platform filtering and viewer sorting options", () => {
+  assert.match(app, /more\.href = "\/" \+ gender \+ "\/"/);
   assert.match(app, /const campaignPlatform = \["chaturbate", "bongacams"\]/);
   assert.match(app, /if \(category === "popular" \|\| queryParams\.get\("sort"\) === "viewers"\) sort\.value = "viewers"/);
+  assert.match(app, /balanceCategoryRooms\(rooms\)\.slice\(0, 8\)/);
 });
 
 test("URL query parameters are initialized before their first use during directory startup", () => {

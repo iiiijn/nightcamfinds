@@ -103,10 +103,11 @@ test("homepage places both broadcaster signup choices beside the room directory"
   assert.ok(read("public/broadcast.html").includes('id="platform-bongacams"'));
 });
 
-test("homepage exposes independent live category rows for both providers", () => {
-  assert.ok(app.includes('["BongaCams", "bongacams", window.__ncfTopBongaByCategory || {}]'));
-  assert.ok(app.includes('["Chaturbate", "chaturbate", window.__ncfTopChaturbateByCategory || {}]'));
-  assert.ok(app.includes('window.__ncfTopBongaByCategory = data.topBongaByCategory || {};'));
+test("homepage mixes live category rows from both providers with balanced visibility", () => {
+  assert.ok(app.includes('const chaturbateByCategory = window.__ncfTopChaturbateByCategory || {};'));
+  assert.ok(app.includes('const bongaByCategory = window.__ncfTopBongaByCategory || {};'));
+  assert.ok(app.includes('balanceCategoryRooms([...bonga, ...chaturbate]).slice(0, 8)'));
+  assert.ok(app.includes('count.textContent = bongaCount + " BongaCams · " + chaturbateCount + " Chaturbate"'));
   assert.ok(css.includes(".global-platform-group"));
   const server = read("server.js");
   assert.ok(server.includes("const topBongaByCategory = {};"));

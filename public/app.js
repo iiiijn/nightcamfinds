@@ -310,32 +310,32 @@ function renderRegionalSections(regionalRooms) {
   categoryRows.replaceChildren();
   grid.hidden = true;
   if (homeLike) {
-    const providerRows = [
-      ["Chaturbate", "chaturbate", window.__ncfTopChaturbateByCategory || {}],
-      ["BongaCams", "bongacams", window.__ncfTopBongaByCategory || {}]
-    ];
-    for (const [platformLabel, platformKey, byCategory] of providerRows) {
-      for (const [gender, label] of [["female", "Female"], ["male", "Male"], ["trans", "Trans"], ["couples", "Couples"]]) {
-        const rooms = Array.isArray(byCategory[gender]) ? byCategory[gender] : [];
-        if (!rooms.length) continue;
-        const section = document.createElement("section");
-        section.className = "home-group global-platform-group " + platformKey + "-group";
-        const heading = document.createElement("h2");
-        heading.className = "row-heading";
-        const title = document.createElement("span");
-        title.textContent = "Popular " + platformLabel + " " + label + " Rooms";
-        const count = document.createElement("small");
-        count.textContent = rooms.length + " live rooms worldwide";
-        const more = document.createElement("a");
-        more.href = "/" + gender + "/?ncf_platform=" + platformKey + "&sort=viewers";
-        more.textContent = "See all";
-        heading.append(title, count, more);
-        const row = document.createElement("div");
-        row.className = "category-row";
-        row.append(...rooms.map(card));
-        section.append(heading, row);
-        categoryRows.append(section);
-      }
+    const chaturbateByCategory = window.__ncfTopChaturbateByCategory || {};
+    const bongaByCategory = window.__ncfTopBongaByCategory || {};
+    for (const [gender, label] of [["female", "Female"], ["male", "Male"], ["trans", "Trans"], ["couples", "Couples"]]) {
+      const chaturbate = Array.isArray(chaturbateByCategory[gender]) ? chaturbateByCategory[gender] : [];
+      const bonga = Array.isArray(bongaByCategory[gender]) ? bongaByCategory[gender] : [];
+      const rooms = balanceCategoryRooms([...bonga, ...chaturbate]).slice(0, 8);
+      if (!rooms.length) continue;
+      const section = document.createElement("section");
+      section.className = "home-group global-platform-group";
+      const heading = document.createElement("h2");
+      heading.className = "row-heading";
+      const title = document.createElement("span");
+      title.textContent = "Popular Live " + label + " Rooms";
+      const count = document.createElement("small");
+      const bongaCount = rooms.filter(room => room.platform === "bongacams").length;
+      const chaturbateCount = rooms.filter(room => room.platform === "chaturbate").length;
+      count.textContent = bongaCount + " BongaCams · " + chaturbateCount + " Chaturbate";
+      const more = document.createElement("a");
+      more.href = "/" + gender + "/";
+      more.textContent = "See all";
+      heading.append(title, count, more);
+      const row = document.createElement("div");
+      row.className = "category-row";
+      row.append(...balanceCategoryRooms(rooms).slice(0, 8).map(card));
+      section.append(heading, row);
+      categoryRows.append(section);
     }
   }
   for (const region of regions) {
