@@ -5,6 +5,7 @@ on:
     paths:
       - "public/**"
       - "scripts/verify-responsive-browser.js"
+      - "scripts/verify-dashboard-browser.js"
       - ".github/workflows/responsive-browser.yml"
   workflow_dispatch:
 
@@ -26,6 +27,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verify responsive layouts in Chromium
         run: node scripts/verify-responsive-browser.js
+      - name: Verify private dashboard navigation and date filters
+        run: node scripts/verify-dashboard-browser.js
       - name: Upload viewport screenshots
         if: always()
         uses: actions/upload-artifact@v4

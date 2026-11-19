@@ -42,7 +42,7 @@
 </section></main>
 <script>
 'use strict';
-const $=id=>document.getElementById(id);const n=v=>Number(v||0).toLocaleString();const money=v=>'$'+Number(v||0).toFixed(2);const pct=(a,b)=>b?((Number(a||0)/Number(b))*100).toFixed(1)+'%':'0%';
+const $=id=>{const element=document.getElementById(id);if(!element)throw new Error('Dashboard element missing: #'+id);return element};const n=v=>v===null||v===undefined?'Unavailable':Number(v).toLocaleString();const money=v=>v===null||v===undefined?'Unavailable':'$'+Number(v).toFixed(2);const pct=(part,total)=>part===null||part===undefined||total===null||total===undefined?'Unavailable':(Number(total)===0?'0.0%':(Number(part)/Number(total)*100).toFixed(1)+'%');
 function dates(){const r=$('range').value,t=new Date(),today=new Date(Date.UTC(t.getUTCFullYear(),t.getUTCMonth(),t.getUTCDate())),iso=d=>d.toISOString().slice(0,10);if(r==='today')return{from:iso(today),to:iso(today)};if(r==='all')return{from:'',to:''};const d=new Date(today);d.setUTCDate(d.getUTCDate()-(Number(r)-1));return{from:iso(d),to:iso(today)}}function selected(){const d=dates();return{from:$('from').value||d.from,to:$('to').value||d.to}}
 function currencyBreakdown(rows){const entries=Object.entries(rows||{}).sort((a,b)=>a[0].localeCompare(b[0]));if(!entries.length)return'No matched Chaturbate payouts.';return entries.map(([currency,row])=>esc(currency)+' '+Number(row.earnings||0).toFixed(2)).join(' · ')}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]||c))}
@@ -56,10 +56,10 @@ function loadManual(){if(!$('bDate').value){const d=$('to').value||dates().to||n
 function renderBongaEntries(entries,totals){if(!bongaReconciliationReady){$('saveBonga').disabled=true;$('bongaManualStatus').textContent='Daily reconciliation is not enabled yet. Production migration 005 needs separate approval and installation before daily figures can be saved.';$('bongaDailyEntries').innerHTML='';return}$('saveBonga').disabled=false;$('bongaManualStatus').textContent=n(totals.days_reported)+' reporting day(s) saved for this dashboard period · '+n(totals.registrations)+' registrations · '+n(totals.purchases)+' purchases · '+money(totals.earnings)+' earnings';if(!entries.length){$('bongaDailyEntries').innerHTML='<p class="hint">No BongaCash daily figures saved for this period yet.</p>';return}$('bongaDailyEntries').innerHTML='<table class="table"><thead><tr><th>Report date</th><th>Registrations</th><th>Purchases</th><th>Earnings</th><th>Notes</th><th>Last updated</th></tr></thead><tbody>'+entries.map(x=>'<tr><td>'+esc(String(x.report_date).slice(0,10))+'</td><td>'+n(x.registrations)+'</td><td>'+n(x.purchases)+'</td><td>'+money(x.earnings)+'</td><td>'+esc(x.notes||'')+'</td><td>'+esc(new Date(x.updated_at).toLocaleString())+'</td></tr>').join('')+'</tbody></table>'}
 async function saveManual(){if(!bongaReconciliationReady)return;const payload={date:$('bDate').value,registrations:Number($('bRegs').value),purchases:Number($('bPurchases').value),earnings:Number($('bEarnings').value),notes:$('bNotes').value.trim()};if(!payload.date){$('bongaManualStatus').textContent='Choose the date shown in your BongaCash report.';return}const button=$('saveBonga');button.disabled=true;$('bongaManualStatus').textContent='Saving daily figures…';try{const r=await fetch('/api/bongacash-reconciliation',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const j=await r.json();if(r.status===401){showLogin('Your session expired. Sign in again.');return}if(!r.ok)throw Error(j.error||'Could not save daily figures.');$('bongaManualStatus').textContent='Saved figures for '+String(j.saved.report_date).slice(0,10)+'.';await load()}catch(e){$('bongaManualStatus').textContent=e.message}finally{button.disabled=false}}
 async function load(){const d=selected();$('status').textContent='Loading...';try{const q=new URLSearchParams();if(d.from)q.set('from',d.from);if(d.to)q.set('to',d.to);const r=await fetch('/api/dashboard-stats?'+q,{credentials:'same-origin',cache:'no-store'});const j=await r.json();if(r.status===401){showLogin('Your session expired. Sign in again.');return}if(!r.ok||j.error)throw Error(j.error||'Dashboard analytics failed.');
-const cb=Number(j.chaturbateClicks||0),bc=Number(j.bongacamsClicks||0),total=Number(j.totalClicks||0),tier=Number(j.tier1Clicks||0),bcTier=Number(j.bongaTier1Clicks||0),cbTier=Math.max(0,tier-bcTier),cbRegs=Number(j.registrations||0),cbPur=Number(j.purchases||0),cbEarn=Number(j.earnings||0),bRegs=Number(j.bongacamsRegistrations||0),bPur=Number(j.bongacamsPurchases||0),bEarn=Number(j.bongacamsEarnings||0);const reconciliationResponse=await fetch('/api/bongacash-reconciliation?'+q.toString(),{credentials:'same-origin',cache:'no-store'});let reconciliation={totals:{registrations:0,purchases:0,earnings:0,days_reported:0},entries:[]};if(reconciliationResponse.status===401){showLogin('Your session expired. Sign in again.');return}if(reconciliationResponse.status===503){bongaReconciliationReady=false}else{reconciliation=await reconciliationResponse.json();if(!reconciliationResponse.ok)throw Error(reconciliation.error||'Could not load BongaCash daily figures.');bongaReconciliationReady=true}const manualTotals=reconciliation.totals||{registrations:0,purchases:0,earnings:0,days_reported:0};const hasManual=Number(manualTotals.days_reported||0)>0;const shownBEarn=hasManual?Number(manualTotals.earnings||0):bEarn;const shownBRegs=hasManual?Number(manualTotals.registrations||0):bRegs;const shownBPur=hasManual?Number(manualTotals.purchases||0):bPur;const regs=cbRegs+shownBRegs,pur=cbPur+shownBPur,earn=cbEarn+shownBEarn;
-$('cbClicks').textContent=n(cb);$('cbTier1').textContent=n(cbTier);$('cbTier1Pct').textContent=pct(cbTier,cb);$('cbRegs').textContent=n(cbRegs);$('cbPurchases').textContent=n(cbPur);$('cbEarnings').textContent=money(cbEarn);$('cbEpc').textContent=money(cb?cbEarn/cb:0);
-$('bongaClicks').textContent=n(bc);$('bongaTier1').textContent=n(bcTier);$('bongaTier1Pct').textContent=pct(bcTier,bc);$('bongaRegs').textContent=n(shownBRegs);$('bongaPurchases').textContent=n(shownBPur);$('bongaEarnings').textContent=money(shownBEarn);$('bongaEpc').textContent=money(bc?shownBEarn/bc:0);
-$('totalClicks').textContent=n(total);const quality=j.clickQuality||{};$('summaryKnownBotRedirects').textContent=quality.available?n(quality.knownBots):'Unavailable';$('summarySuspectedBotRedirects').textContent=quality.available?n(quality.suspectedBots):'Unavailable';$('summaryUnverifiedRedirects').textContent=quality.available?n(quality.unverified):'Unavailable';$('tier1Clicks').textContent=n(tier);$('tier1Share').textContent=pct(tier,total);$('totalEarnings').textContent=money(earn);$('totalEpc').textContent=money(total?earn/total:0);$('conversion').textContent=pct(regs+pur,total);$('today').textContent=n(j.today);$('week').textContent=n(j.week);$('month').textContent=n(j.month);
+const metric=v=>v===null||v===undefined?null:Number(v);const cb=metric(j.chaturbateClicks),bc=metric(j.bongacamsClicks),total=metric(j.totalClicks),tier=metric(j.tier1Clicks),bcTier=metric(j.bongaTier1Clicks),cbTier=tier===null||bcTier===null?null:Math.max(0,tier-bcTier),cbRegs=metric(j.registrations),cbPur=metric(j.purchases),cbEarn=metric(j.earnings),bRegs=metric(j.bongacamsRegistrations),bPur=metric(j.bongacamsPurchases),bEarn=metric(j.bongacamsEarnings);const reconciliationResponse=await fetch('/api/bongacash-reconciliation?'+q.toString(),{credentials:'same-origin',cache:'no-store'});let reconciliation={totals:{registrations:0,purchases:0,earnings:0,days_reported:0},entries:[]};if(reconciliationResponse.status===401){showLogin('Your session expired. Sign in again.');return}if(reconciliationResponse.status===503){bongaReconciliationReady=false}else{reconciliation=await reconciliationResponse.json();if(!reconciliationResponse.ok)throw Error(reconciliation.error||'Could not load BongaCash daily figures.');bongaReconciliationReady=true}const manualTotals=reconciliation.totals||{registrations:0,purchases:0,earnings:0,days_reported:0};const hasManual=Number(manualTotals.days_reported||0)>0;const shownBEarn=!bongaReconciliationReady?null:hasManual?metric(manualTotals.earnings):bEarn;const shownBRegs=!bongaReconciliationReady?null:hasManual?metric(manualTotals.registrations):bRegs;const shownBPur=!bongaReconciliationReady?null:hasManual?metric(manualTotals.purchases):bPur;const regs=cbRegs===null||shownBRegs===null?null:cbRegs+shownBRegs,pur=cbPur===null||shownBPur===null?null:cbPur+shownBPur,earn=cbEarn===null||shownBEarn===null?null:cbEarn+shownBEarn;
+$('cbClicks').textContent=n(cb);
+$('bongaClicks').textContent=n(bc);
+$('totalClicks').textContent=n(total);const quality=j.clickQuality||{};$('summaryKnownBotRedirects').textContent=quality.available?n(quality.knownBots):'Unavailable';$('summarySuspectedBotRedirects').textContent=quality.available?n(quality.suspectedBots):'Unavailable';$('summaryUnverifiedRedirects').textContent=quality.available?n(quality.unverified):'Unavailable';$('tier1Clicks').textContent=n(tier);$('tier1Share').textContent=pct(tier,total);$('totalEarnings').textContent=money(earn);$('totalEpc').textContent=money(total===null||earn===null?null:total?earn/total:0);const conversionCount=regs===null||pur===null?null:regs+pur;$('conversion').textContent=pct(conversionCount,total);$('today').textContent=n(j.today);$('week').textContent=n(j.week);$('month').textContent=n(j.month);
 const countryPlatformRows=Array.isArray(j.countryPlatformMetrics)?j.countryPlatformMetrics:[];const countryPlatformAvailable=Boolean(j.countryPlatformMetricsAvailable);if(!countryPlatformRows.length){$('countryPlatformMetrics').innerHTML='<p class="hint">No country/platform click rows are available for this period.</p>';$('countryPlatformStatus').textContent=countryPlatformAvailable?'No country/platform clicks found.':'Country/platform conversion detail unavailable; the backend is using its safe click-only fallback.';}else{$('countryPlatformMetrics').innerHTML='<div class="table-wrap"><table class="table"><thead><tr><th>Country</th><th>Platform</th><th>Clicks</th><th>Engaged clicks</th><th>Verified signups</th><th>Verified payers</th><th>Revenue</th><th>EPC</th><th>Evidence</th></tr></thead><tbody>'+countryPlatformRows.map(x=>{const cb=String(x.platform||'').toLowerCase()==='chaturbate';const available=x.engagedClicks!==null&&x.engagedClicks!==undefined;const revenueLabel=cb?'See currency report':'Manual reconciliation only';return '<tr><td>'+esc(x.country||'UNKNOWN')+'</td><td>'+esc(x.platform||'unknown')+'</td><td>'+n(x.clicks)+'</td><td>'+(available?n(x.engagedClicks):'Not available')+'</td><td>'+(cb&&x.verifiedSignups!=null?n(x.verifiedSignups):'Not available')+'</td><td>'+(cb&&x.verifiedPayers!=null?n(x.verifiedPayers):'Not available')+'</td><td>'+revenueLabel+'</td><td>'+revenueLabel+'</td><td>'+(x.evidenceEligible?'<span class="pill active">Threshold met</span>':'<span class="pill waiting">Insufficient evidence</span>')+'</td></tr>'}).join('')+'</tbody></table></div>';$('countryPlatformStatus').textContent=n(countryPlatformRows.length)+' country/platform groups · '+(countryPlatformAvailable?'verified metric query available':'click-only fallback active')+'.';}
 const placementEntries=Object.entries(j.placements||{}).sort((a,b)=>Number(b[1])-Number(a[1]));
 $('placements').innerHTML=placementEntries.length?'<table class="table"><thead><tr><th>Platform : placement</th><th>Clicks</th><th>Share</th></tr></thead><tbody>'+placementEntries.slice(0,50).map(([k,v])=>'<tr><td>'+esc(k)+'</td><td>'+n(v)+'</td><td>'+pct(v,total)+'</td></tr>').join('')+'</tbody></table>':'<p class="hint">No click data yet.</p>';
@@ -116,9 +116,9 @@ async function loadConversionFunnel(){
   const responses=await Promise.all(urls.map(url=>fetch(url,{credentials:'same-origin',cache:'no-store'}))),data=await Promise.all(responses.map(r=>r.json()));
   if(responses.some(r=>r.status===401)){showLogin('Your session expired. Sign in again.');return}
   for(let i=0;i<responses.length;i++){if(!responses[i].ok&&!(i===2&&responses[i].status===503))throw Error(data[i].error||'Could not load funnel data.')}
-  const h=data[0],revenue=data[1],manual=responses[2].status===503?{totals:{registrations:0,purchases:0,earnings:0,days_reported:0}}:data[2],summary=summarizeDashboardConversions(revenue.rows||[]),clicks=h.clicks||{},c=h.callbacks||{},m=manual.totals||{};
+  const h=data[0],revenue=data[1],manual=responses[2].status===503?{totals:{registrations:null,purchases:null,earnings:null,days_reported:null}}:data[2],summary=summarizeDashboardConversions(revenue.rows||[]),clicks=h.clicks||{},c=h.callbacks||{},m=manual.totals||{};
   const table=map=>{const entries=Object.entries(map||{}).sort((a,b)=>a[0].localeCompare(b[0]));return entries.length?'<table class="table"><thead><tr><th>Currency</th><th>Amount</th></tr></thead><tbody>'+entries.map(([currency,amount])=>'<tr><td>'+esc(currency)+'</td><td>'+Number(amount||0).toFixed(2)+'</td></tr>').join('')+'</tbody></table>':'<p class="hint">None recorded.</p>'};
-  $('funnelSummary').innerHTML='<div class="grid"><div class="stat"><small>Chaturbate recorded clicks</small><strong>'+n(clicks.chaturbate)+'</strong><p class="note">Redirect records</p></div><div class="stat"><small>BongaCams recorded clicks</small><strong>'+n(clicks.bongacams)+'</strong><p class="note">Redirect records</p></div><div class="stat"><small>Eligible Chaturbate events</small><strong>'+n(summary.rows.reduce((a,x)=>a+Number(x.conversions||0),0))+'</strong><p class="note">'+n(summary.matched)+' matched · '+n(summary.unmatched)+' unmatched</p></div><div class="stat"><small>Excluded test / unsupported events</small><strong>'+n(summary.tests.reduce((a,x)=>a+Number(x.conversions||0),0)+summary.excluded.reduce((a,x)=>a+Number(x.conversions||0),0))+'</strong><p class="note">Not included in eligible revenue totals</p></div></div><h3>Matched partner-reported payouts by currency</h3>'+table(summary.matchedPayouts)+'<h3>Pending unmatched partner-reported payouts by currency</h3>'+table(summary.pendingPayouts)+'<h3>Matched member purchase spend by currency</h3>'+table(summary.matchedMemberSpend)+'<h3>Illustrative 20% Member RevShare estimate</h3>'+table(summary.estimate20)+'<p class="note">The 20% figure is an estimate for matched revshare_purchase events only, and only applies if the Chaturbate account is enrolled in the 20% Member RevShare programme. It is not actual earnings.</p><h3>BongaCash manual reconciliation</h3><p class="note">'+n(m.registrations||0)+' registrations · '+n(m.purchases||0)+' purchases · reported earnings '+Number(m.earnings||0).toFixed(2)+' USD across '+n(m.days_reported||0)+' reported days. These manually entered figures are kept separate from Chaturbate payouts and are not automatically verified or click-attributed.</p><p class="note">Chaturbate callback diagnostic: '+n(c.total)+' total callbacks received · '+n(c.invalidCallbacks)+' invalid macro callbacks excluded · '+n(c.missingClickId)+' missing click IDs · '+n(c.clickIdNotFound)+' click IDs not found. Only matched non-test eligible events are treated as click-attributed.</p>';
+  $('funnelSummary').innerHTML='<div class="grid"><div class="stat"><small>Chaturbate recorded clicks</small><strong>'+n(clicks.chaturbate)+'</strong><p class="note">Redirect records</p></div><div class="stat"><small>BongaCams recorded clicks</small><strong>'+n(clicks.bongacams)+'</strong><p class="note">Redirect records</p></div><div class="stat"><small>Eligible Chaturbate events</small><strong>'+n(summary.rows.reduce((a,x)=>a+Number(x.conversions||0),0))+'</strong><p class="note">'+n(summary.matched)+' matched · '+n(summary.unmatched)+' unmatched</p></div><div class="stat"><small>Excluded test / unsupported events</small><strong>'+n(summary.tests.reduce((a,x)=>a+Number(x.conversions||0),0)+summary.excluded.reduce((a,x)=>a+Number(x.conversions||0),0))+'</strong><p class="note">Not included in eligible revenue totals</p></div></div><h3>Matched partner-reported payouts by currency</h3>'+table(summary.matchedPayouts)+'<h3>Pending unmatched partner-reported payouts by currency</h3>'+table(summary.pendingPayouts)+'<h3>Matched member purchase spend by currency</h3>'+table(summary.matchedMemberSpend)+'<h3>Illustrative 20% Member RevShare estimate</h3>'+table(summary.estimate20)+'<p class="note">The 20% figure is an estimate for matched revshare_purchase events only, and only applies if the Chaturbate account is enrolled in the 20% Member RevShare programme. It is not actual earnings.</p><h3>BongaCash manual reconciliation</h3><p class="note">'+n(m.registrations)+' registrations · '+n(m.purchases)+' purchases · reported earnings '+money(m.earnings)+' USD across '+n(m.days_reported)+' reported days. These manually entered figures are kept separate from Chaturbate payouts and are not automatically verified or click-attributed.</p><p class="note">Chaturbate callback diagnostic: '+n(c.total)+' total callbacks received · '+n(c.invalidCallbacks)+' invalid macro callbacks excluded · '+n(c.missingClickId)+' missing click IDs · '+n(c.clickIdNotFound)+' click IDs not found. Only matched non-test eligible events are treated as click-attributed.</p>';
   $('funnelStatus').textContent='Updated '+new Date().toLocaleTimeString()+' · callback received time in UTC; BongaCash manual report date';
  }catch(e){$('funnelStatus').textContent=e.message;$('funnelSummary').innerHTML=''}
 }
@@ -206,4 +206,99 @@ function showLogin(msg){$('dashboard').classList.add('hidden');$('login').classL
 async function login(e){e.preventDefault();const username=$('username').value.trim(),password=$('password').value;if(!username||!password){$('loginStatus').textContent='Enter your username and password.';return}const b=$('loginBtn');b.disabled=true;b.textContent='Signing in...';try{const r=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});const j=await r.json();if(!r.ok||!j.authenticated)throw Error(j.error||'Sign in failed.');showDashboard(j.username);await loadDashboardData()}catch(e){$('loginStatus').textContent=e.message}finally{b.disabled=false;b.textContent='Sign in'}}
 async function logout(){await fetch('/api/auth/logout',{credentials:'same-origin'});showLogin('Signed out.')}
 $('roomCoverageRefresh').addEventListener('click',()=>refreshDashboardReport(loadRoomCoverage));$('trafficQualityRefresh').addEventListener('click',()=>refreshDashboardReport(loadTrafficQualityAnalytics));$('sinceCutoffRefresh').addEventListener('click',()=>refreshDashboardReport(loadTrafficSinceCutoff));$('providerHealthRefresh').addEventListener('click',()=>refreshDashboardReport(loadProviderAttributionHealth));$('campaignRefresh').addEventListener('click',()=>refreshDashboardReport(loadCampaignPerformance));$('trafficRevenueRefresh').addEventListener('click',()=>refreshDashboardReport(loadTrafficRevenuePerformance));$('conversionRevenueRefresh').addEventListener('click',()=>refreshDashboardReport(loadConversionRevenue));$('funnelRefresh').addEventListener('click',()=>refreshDashboardReport(loadConversionFunnel));$('originsRefresh').addEventListener('click',()=>refreshDashboardReport(loadClickOrigins));$('recentRoomRefresh').addEventListener('click',()=>refreshDashboardReport(loadRecentRoomClicks));$('recentRoomPlatform').addEventListener('change',loadRecentRoomClicks);$('traceRefresh').addEventListener('click',()=>refreshDashboardReport(loadIndividualClickTrace));$('tracePlatform').addEventListener('change',loadIndividualClickTrace);$('traceOwnerMode').addEventListener('change',loadIndividualClickTrace);$('ownerTrafficToggle').addEventListener('click',toggleOwnerTrafficMode);$('originsCountry').addEventListener('change',loadClickOrigins);$('originsPlatform').addEventListener('change',loadClickOrigins);$('originsCategory').addEventListener('change',loadClickOrigins);$('originsSource').addEventListener('change',loadClickOrigins);$('originsEvidence').addEventListener('change',loadClickOrigins);$('dailyRefresh').addEventListener('click',loadDailyCountryAnalytics);$('categoryRefresh').addEventListener('click',loadCountryCategoryAnalytics);$('categoryCountry').addEventListener('change',loadCountryCategoryAnalytics);$('categoryPlatform').addEventListener('change',loadCountryCategoryAnalytics);$('dailyCountry').addEventListener('change',loadDailyCountryAnalytics);$('dailyTier1').addEventListener('change',loadDailyCountryAnalytics);$('routeCountry').addEventListener('change',renderRouteSettings);$('routeSave').addEventListener('click',()=>saveRouteSetting('hypothesis'));$('routeApprove').addEventListener('click',()=>saveRouteSetting('approve'));$('routeReload').addEventListener('click',()=>refreshDashboardReport(loadRouteSettings));$('loginForm').addEventListener('submit',login);$('logout').addEventListener('click',logout);$('apply').addEventListener('click',()=>{dashboardLoadedTabs.clear();clearDashboardApiCache();loadDashboardTab(activeDashboardTab,true)});$('range').addEventListener('change',()=>{dashboardLoadedTabs.clear();clearDashboardApiCache();loadDashboardTab(activeDashboardTab,true)});$('saveBonga').addEventListener('click',saveManual);check();
+
+/* PHASE_A1_24_3_SIMPLIFIED_CLICK_DASHBOARD */
+(function simplifyClickDashboard(){
+  const nav = document.querySelector('#dashboardNav');
+  if (!nav || typeof dashboardPanelGroups === 'undefined') return;
+
+  const overviewButton = nav.querySelector('[data-dashboard-tab="overview"]');
+  if (overviewButton) {
+    overviewButton.dataset.dashboardTab = 'clicks';
+    overviewButton.textContent = 'Click Overview';
+  }
+  ['traffic','investigation','revenue','health'].forEach(tab=>nav.querySelector('[data-dashboard-tab="'+tab+'"]')?.remove());
+  const advancedButton = document.createElement('button');
+  advancedButton.className = 'button';
+  advancedButton.type = 'button';
+  advancedButton.setAttribute('role','tab');
+  advancedButton.setAttribute('aria-selected','false');
+  advancedButton.dataset.dashboardTab = 'advanced';
+  advancedButton.textContent = 'Advanced Reports';
+  nav.append(advancedButton);
+  // This button is created after the original navigation listeners are registered.
+  // Bind it explicitly so Advanced Reports is reachable like every existing tab.
+  advancedButton.addEventListener('click',()=>{clearDashboardApiCache();setDashboardTab('advanced')});
+
+  dashboardTabDescriptions.clicks = 'Click Overview: total redirects, platform split, daily clicks and recorded click origins.';
+  dashboardTabDescriptions.advanced = 'Advanced Reports: traffic quality, country analysis, room coverage, investigations, conversions and tracking diagnostics.';
+  delete dashboardTabDescriptions.overview;
+
+  const main = document.querySelector('#dashboard');
+  const summaryCards = [...main.querySelectorAll('.cards')].find(node => node.querySelector('#totalClicks'));
+  const clickSummary = document.createElement('section');
+  clickSummary.className = 'panel';
+  clickSummary.dataset.navGroup = 'clicks';
+  clickSummary.innerHTML = '<h2>Click summary</h2><p class="note">Recorded affiliate redirects for the selected date range. These are redirect events, not unique visitors or verified human visits.</p><div class="cards" id="clickSummaryCards"></div><h3>Platform split</h3><p class="note">Chaturbate and BongaCams totals are NightCamFinds redirect records. Reported earnings and conversions are shown in Advanced Reports.</p>';
+
+  if (summaryCards) {
+    const keep = new Set(['totalClicks','today','week','month']);
+    const target = clickSummary.querySelector('#clickSummaryCards');
+    const advancedMetrics = document.createElement('section');
+    advancedMetrics.className = 'panel';
+    advancedMetrics.dataset.navGroup = 'advanced';
+    advancedMetrics.innerHTML = '<h2>Additional overview metrics</h2><p class="note">Supporting metrics retained here so the main click dashboard stays focused.</p><div class="cards" id="advancedSummaryCards"></div>';
+    const advancedTarget = advancedMetrics.querySelector('#advancedSummaryCards');
+    for (const card of [...summaryCards.children]) {
+      const metric = card.querySelector('strong[id]');
+      if (metric && keep.has(metric.id)) target.append(card);
+      else advancedTarget.append(card);
+    }
+    summaryCards.remove();
+    const firstPanel = main.querySelector('.panel');
+    if (firstPanel) main.insertBefore(clickSummary, firstPanel);
+    main.insertBefore(advancedMetrics, clickSummary.nextSibling);
+  }
+
+  const clickPanels = new Set(['Platform performance','Daily clicks by country','Click origins report']);
+  document.querySelectorAll('#dashboard .panel').forEach(panel => {
+    if (panel === clickSummary || panel.querySelector('#advancedSummaryCards')) return;
+    const heading = panel.querySelector('h2');
+    if (!heading) return;
+    panel.dataset.navGroup = clickPanels.has(heading.textContent.trim()) ? 'clicks' : 'advanced';
+  });
+
+  // The platform table is useful at a glance, while conversion detail remains in Advanced Reports.
+  const platformPanel = [...document.querySelectorAll('#dashboard .panel')].find(panel => panel.querySelector('#cbClicks') && panel.querySelector('#bongaClicks'));
+  if (platformPanel) {
+    const table = platformPanel.querySelector('table');
+    if (table) {
+      const headers = table.querySelectorAll('thead th');
+      const rows = table.querySelectorAll('tbody tr');
+      if (headers.length >= 8) {
+        [headers[2],headers[3],headers[4],headers[5],headers[6],headers[7]].forEach(cell => cell.remove());
+        rows.forEach(row => [...row.children].slice(2).forEach(cell => cell.remove()));
+      }
+    }
+  }
+
+  // Daily report and source evidence remain the existing reports, not duplicated calculations.
+  setDashboardTab('clicks');
+  const nativeLoadDashboardTab = loadDashboardTab;
+  loadDashboardTab = async function(tab, force=false) {
+    const key = tab + '|' + dashboardPeriodKey();
+    if (!force && dashboardLoadedTabs.has(key)) return;
+    if (dashboardTabPromises.has(key)) return dashboardTabPromises.get(key);
+    const loaders = tab === 'clicks'
+      ? [load, loadDailyCountryAnalytics, loadClickOrigins]
+      : tab === 'advanced'
+        ? [loadRoomCoverage, loadRouteSettings, loadCountryCategoryAnalytics, loadTrafficQualityAnalytics, loadTrafficSinceCutoff, loadOwnerTrafficMode, loadRecentRoomClicks, loadIndividualClickTrace, loadCampaignPerformance, loadTrafficRevenuePerformance, loadConversionRevenue, loadConversionFunnel, loadProviderAttributionHealth]
+        : [];
+    const pending = Promise.all(loaders.map(loader => loader())).then(() => dashboardLoadedTabs.add(key)).finally(() => dashboardTabPromises.delete(key));
+    dashboardTabPromises.set(key,pending);
+    return pending;
+  };
+})();
+
+
 </script></body></html>

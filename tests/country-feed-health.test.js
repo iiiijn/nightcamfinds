@@ -74,3 +74,17 @@ test("startup patch exposes country feed health only through requested summary d
   assert.ok(patched.includes('bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"'));
   assert.equal(patchServerSource(patched), patched);
 });
+
+
+test('simplified dashboard wires Advanced Reports and preserves tab/date refresh behavior', () => {
+  const dashboard = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
+  assert.match(dashboard, /advancedButton\.addEventListener\('click',\(\)=>\{clearDashboardApiCache\(\);setDashboardTab\('advanced'\)\}\)/);
+  assert.match(dashboard, /loadDashboardTab\s*=\s*async function\(tab,\s*force=false\)/);
+  assert.match(dashboard, /tab === 'clicks'\s*\?/);
+  assert.match(dashboard, /tab === 'advanced'\s*\?/);
+  assert.match(dashboard, /\$\('range'\)\.addEventListener\('change',[\s\S]*?loadDashboardTab\(activeDashboardTab,true\)/);
+  assert.match(dashboard, /\$\('apply'\)\.addEventListener\('click',[\s\S]*?loadDashboardTab\(activeDashboardTab,true\)/);
+  for (const tab of ['clicks', 'advanced']) {
+    assert.match(dashboard, new RegExp("dashboardTabDescriptions\\." + tab + "\\s*="));
+  }
+});
