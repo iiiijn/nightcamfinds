@@ -114,3 +114,42 @@
   .site-header .topbar .quick-exit { padding:7px 8px; font-size:11px; }
   .directory-section > .section-heading { grid-template-columns:minmax(0,1fr) minmax(112px,.85fr); }
 }
+
+
+/* A1.25.3.11: creator conversion hierarchy and clearer platform choices */
+.broadcaster-sidebar h2 {
+  max-width: 16ch;
+  font-size: clamp(24px, 2.1vw, 30px);
+  line-height: 1.04;
+  text-wrap: balance;
+}
+.broadcaster-sidebar > p:not(.eyebrow) {
+  max-width: 38ch;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.broadcaster-sidebar .broadcaster-choice {
+  min-height: 46px;
+  margin-top: 10px;
+  font-size: 13px;
+  letter-spacing: .01em;
+}
+.broadcaster-sidebar .creator-primary-cta {
+  background: linear-gradient(105deg, #ff78aa, #f6a6c8);
+  border: 1px solid #ff9ac0;
+  color: #301426;
+  box-shadow: 0 8px 22px rgba(255, 92, 151, .2);
+}
+.broadcaster-sidebar .broadcaster-choice.ghost {
+  border-color: rgba(224, 183, 239, .38);
+  background: rgba(255,255,255,.035);
+}
+.broadcaster-sidebar .model-recruitment-note {
+  font-size: 11px;
+  line-height: 1.5;
+}
+@media (max-width: 640px) {
+  .broadcaster-sidebar { padding: 16px; }
+  .broadcaster-sidebar h2 { max-width: 19ch; font-size: 26px; }
+  .broadcaster-sidebar .broadcaster-choice { min-height: 44px; }
+}
