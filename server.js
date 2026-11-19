@@ -313,6 +313,19 @@ async function fetchBongaRooms(req) {
  }
  return fetchBongaV1Rooms();
 }
+function balancePlatformRooms(rooms) {
+ const source=Array.isArray(rooms)?rooms:[];
+ const bonga=source.filter(room=>room.platform==="bongacams");
+ const chaturbate=source.filter(room=>room.platform==="chaturbate");
+ const other=source.filter(room=>!["bongacams","chaturbate"].includes(room.platform));
+ const mixed=[];
+ const pairs=Math.max(bonga.length,chaturbate.length);
+ for(let i=0;i<pairs;i++){
+  if(bonga[i])mixed.push(bonga[i]);
+  if(chaturbate[i])mixed.push(chaturbate[i]);
+ }
+ return mixed.concat(other);
+}
 async function rooms(req) {
  const visitor=visitorCountry(req);
  const cacheKey=visitor!=="UNKNOWN"?visitor:clientIp(req);
@@ -444,6 +457,9 @@ const server=http.createServer(async(req,res)=>{
   if(["chaturbate","bongacams"].includes(platform))list=list.filter(r=>r.platform===platform);
   if(q)list=list.filter(r=>`${r.displayName} ${r.roomSubject} ${r.country} ${r.location} ${r.platformName} ${r.languages}`.toLowerCase().includes(q));
   list=rankRoomsByPreferredPlatform(list,preferredPlatform,sort);
+  // Interleave providers before pagination so a larger Chaturbate feed cannot fill the first page.
+  // Explicit single-platform filters remain untouched.
+  if(!["chaturbate","bongacams"].includes(platform))list=balancePlatformRooms(list);
   const countries=[...new Set(feed.rooms.map(r=>r.country).filter(Boolean))].sort();
   const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();
   const regions=[...new Set(feed.rooms.map(r=>r.region||regionFor(r)))].sort((a,b)=>{const ai=REGION_ORDER.indexOf(a),bi=REGION_ORDER.indexOf(b);return (ai<0?REGION_ORDER.length:ai)-(bi<0?REGION_ORDER.length:bi)||a.localeCompare(b);});
