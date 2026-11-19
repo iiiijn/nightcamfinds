@@ -93,10 +93,8 @@ function startServer() {
       if (!layout.nav || layout.nav.width <= 0) failures.push(viewport.name + ": dashboard navigation is not visible");
     }
 
-    const clicksStatsResponse = page.waitForResponse(response =>
-      response.url().includes("/api/dashboard-stats") && response.request().method() === "GET");
     await page.locator('[data-dashboard-tab="clicks"]').click();
-    await clicksStatsResponse;
+    // The authenticated bootstrap already loads the active Click Overview tab.
     await page.waitForFunction(() => document.querySelector("#cbRegs")?.textContent === "Unavailable");
     const displayedMetrics = await page.evaluate(() => ({
       cbRegistrations: document.querySelector("#cbRegs")?.textContent,
