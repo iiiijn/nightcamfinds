@@ -58,13 +58,28 @@
   </header>
 
   <main id="top" class="w">
-    <section class="hero">
+    <section class="hero" aria-label="Choose how to use NightCamFinds">
       <div class="hero-copy">
+        <p class="eyebrow" id="kicker">Independent discovery</p>
+        <h1 id="page-title">Discover live cams right now</h1>
         <p class="lead" id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.</p>
-        <div class="actions"><a class="btn" href="#category-rows">Browse live rooms</a><a class="btn ghost" href="/broadcast/">Become a model</a></div>
         <div class="hero-categories" aria-label="Browse categories">
           <a href="/female/">Female rooms</a><a href="/male/">Male rooms</a><a href="/trans/">Trans rooms</a><a href="/couples/">Couples rooms</a>
         </div>
+      </div>
+      <div class="hero-choices" aria-label="Choose your path">
+        <a class="hero-choice hero-choice-viewer" href="#category-rows" data-ncf-path="viewer">
+          <span class="hero-choice-kicker">For viewers</span>
+          <strong>Find a live room</strong>
+          <span>Browse models, compare room activity and choose where to watch.</span>
+          <span class="hero-choice-action">Browse live rooms <span aria-hidden="true">→</span></span>
+        </a>
+        <a class="hero-choice hero-choice-creator" href="/broadcast/" data-ncf-path="model">
+          <span class="hero-choice-kicker">For adult creators</span>
+          <strong>Become a broadcaster</strong>
+          <span>Compare Chaturbate and BongaCams registration options.</span>
+          <span class="hero-choice-action">Explore model platforms <span aria-hidden="true">→</span></span>
+        </a>
       </div>
     </section>
 
