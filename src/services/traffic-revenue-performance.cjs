@@ -37,7 +37,7 @@ function buildQuery(filters = {}) {
     "         COUNT(*) FILTER (WHERE NULLIF(BTRIM(ac.visit_id), '') IS NOT NULL)::int AS clicks_with_visit_id,",
     "         COUNT(*) FILTER (WHERE NULLIF(BTRIM(ac.visit_id), '') IS NULL)::int AS clicks_without_visit_id,",
     "         COUNT(*) FILTER (WHERE ac.is_bot IS TRUE OR ac.bot_reason = 'known_bot_user_agent' OR tv.traffic_class = 'known_bot')::int AS known_bot_clicks,",
-    "         COUNT(*) FILTER (WHERE ac.bot_reason = 'suspected_automation_user_agent' OR (ac.is_bot IS NOT TRUE AND tv.traffic_class = 'suspected_bot'))::int AS suspected_bot_clicks,",
+    "         COUNT(*) FILTER (WHERE (ac.bot_reason = 'suspected_automation_user_agent' OR (ac.is_bot IS NOT TRUE AND tv.traffic_class = 'suspected_bot')) AND NOT (ac.is_bot IS TRUE OR ac.bot_reason = 'known_bot_user_agent' OR tv.traffic_class = 'known_bot'))::int AS suspected_bot_clicks,",
     "         COUNT(*) FILTER (WHERE tv.visit_id IS NOT NULL AND ac.is_bot IS NOT TRUE AND COALESCE(ac.bot_reason, '') <> 'suspected_automation_user_agent' AND tv.traffic_class = 'unverified')::int AS unverified_not_flagged_clicks,",
     "         COUNT(*) FILTER (WHERE ac.is_bot IS NOT TRUE AND COALESCE(ac.bot_reason, '') <> 'suspected_automation_user_agent' AND tv.visit_id IS NULL)::int AS unclassified_clicks",
     '  FROM affiliate_clicks ac',
