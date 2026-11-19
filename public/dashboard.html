@@ -217,6 +217,7 @@ $('roomCoverageRefresh').addEventListener('click',()=>refreshDashboardReport(loa
     overviewButton.dataset.dashboardTab = 'clicks';
     overviewButton.textContent = 'Click Overview';
   }
+  ['traffic','investigation','revenue','health'].forEach(tab=>nav.querySelector('[data-dashboard-tab="'+tab+'"]')?.remove());
   const advancedButton = document.createElement('button');
   advancedButton.className = 'button';
   advancedButton.type = 'button';
