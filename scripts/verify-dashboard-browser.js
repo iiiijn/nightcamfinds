@@ -44,6 +44,11 @@ function startServer() {
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
     page.on("pageerror", error => failures.push("Page error: " + error.message));
+    page.on("console", message => { if (message.type() === "error") failures.push("Console error: " + message.text()); });
+    page.on("requestfailed", request => failures.push("Request failed: " + request.method() + " " + request.url() + " (" + (request.failure()?.errorText || "unknown") + ")"));
+    page.on("response", response => {
+      if (response.url().includes("/api/")) requests.push({ path: new URL(response.url()).pathname, status: response.status() });
+    });
     const address = server.address();
     // Exercise the real dashboard authentication bootstrap against the local mock API.
     const initialStatsResponse = page.waitForResponse(response =>
@@ -51,12 +56,37 @@ function startServer() {
     await page.goto("http://127.0.0.1:" + address.port + "/dashboard.html", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => !document.querySelector("#dashboard")?.classList.contains("hidden"));
     await initialStatsResponse;
-    // A response arriving is not the same as the dashboard finishing its async render.
-    // Wait for load() to finish its reconciliation request and publish its final status.
-    await page.waitForFunction(() =>
-      document.querySelector("#status")?.textContent.startsWith("Updated ") &&
-      document.querySelector("#cbRegs")?.textContent === "Unavailable"
-    );
+    // Wait for the dashboard loader to leave its initial state. If it reports an
+    // error, fail immediately with the visible state and the API traffic that led to it.
+    try {
+      await page.waitForFunction(() => {
+        const status = document.querySelector("#status")?.textContent?.trim();
+        return Boolean(status) && status !== "Loading...";
+      }, { timeout: 10000 });
+    } catch {
+      const state = await page.evaluate(() => ({
+        dashboardVisible: !document.querySelector("#dashboard")?.classList.contains("hidden"),
+        status: document.querySelector("#status")?.textContent,
+        cbRegistrations: document.querySelector("#cbRegs")?.textContent,
+        bongaRegistrations: document.querySelector("#bongaRegs")?.textContent,
+        loginStatus: document.querySelector("#loginStatus")?.textContent
+      }));
+      throw new Error("Dashboard did not finish loading within 10 seconds. State: " + JSON.stringify(state) +
+        ". API responses: " + JSON.stringify(requests) + ". Browser errors: " + JSON.stringify(failures));
+    }
+    const visibleStatus = await page.locator("#status").textContent();
+    if (!visibleStatus?.startsWith("Updated ")) {
+      const state = await page.evaluate(() => ({
+        status: document.querySelector("#status")?.textContent,
+        cbRegistrations: document.querySelector("#cbRegs")?.textContent,
+        bongaRegistrations: document.querySelector("#bongaRegs")?.textContent
+      }));
+      throw new Error("Dashboard loader reported an error instead of completing. State: " + JSON.stringify(state) +
+        ". API responses: " + JSON.stringify(requests) + ". Browser errors: " + JSON.stringify(failures));
+    }
+    if (await page.locator("#cbRegs").textContent() !== "Unavailable") {
+      failures.push("Chaturbate registrations should display Unavailable after the API returns null.");
+    }
     const dashboardSource = fs.readFileSync(dashboardPath, "utf8");
     if (!dashboardSource.includes("v===null||v===undefined?'Unavailable':Number(v).toLocaleString()")) failures.push("Missing numeric values are not guarded as Unavailable.");
     if (!dashboardSource.includes("v===null||v===undefined?'Unavailable':'$'+Number(v).toFixed(2)")) failures.push("Missing currency values are not guarded as Unavailable.");
