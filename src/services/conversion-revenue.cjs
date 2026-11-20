@@ -12,8 +12,8 @@ function buildQuery(filters = {}) {
   const eventClass="CASE WHEN LOWER(cc.conversion_type)='revshare_purchase' THEN 'member_purchase_revshare' WHEN LOWER(cc.conversion_type) IN ('tokens_signup-referral','ppr_signup-referral','revshare_signup-referral') THEN 'signup_referral' WHEN LOWER(cc.conversion_type) IN ('tokens_broadcaster-referral','ppr_broadcaster-referral','revshare_broadcaster-referral') THEN 'broadcaster_referral' WHEN LOWER(cc.conversion_type)='revshare_webmaster-commission' THEN 'webmaster_commission' WHEN LOWER(cc.conversion_type)='revshare_payout-adjustment' THEN 'payout_adjustment' ELSE 'other' END";
   const text=[
     'SELECT',
-    "COALESCE(NULLIF(UPPER(cc.country), ''), NULLIF(UPPER(ac.country), ''), NULLIF(UPPER(bc.country), ''), 'UNKNOWN') AS country,
-COALESCE(NULLIF(UPPER(ac.country), ''), NULLIF(UPPER(bc.country), ''), 'UNKNOWN') AS click_country,",
+    "COALESCE(NULLIF(UPPER(cc.country), ''), NULLIF(UPPER(ac.country), ''), NULLIF(UPPER(bc.country), ''), 'UNKNOWN') AS country,",
+    "COALESCE(NULLIF(UPPER(ac.country), ''), NULLIF(UPPER(bc.country), ''), 'UNKNOWN') AS click_country,",
     "'chaturbate'::text AS platform,",
     "COALESCE(NULLIF(LOWER(ac.source), ''), NULLIF(LOWER(bc.source), ''), NULLIF(LOWER(cc.source), ''), 'unknown') AS source,",
     "COALESCE(NULLIF(LOWER(ac.campaign), ''), NULLIF(LOWER(bc.campaign), ''), NULLIF(LOWER(cc.campaign_id), ''), 'unknown') AS campaign,",
@@ -31,7 +31,7 @@ COALESCE(NULLIF(UPPER(ac.country), ''), NULLIF(UPPER(bc.country), ''), 'UNKNOWN'
     'LEFT JOIN cb_clicks bc ON bc.click_id = cc.click_id',
     "LEFT JOIN LATERAL (SELECT country, source, campaign FROM affiliate_clicks WHERE click_id = cc.click_id AND LOWER(platform) = 'chaturbate' AND COALESCE(is_owner_traffic,FALSE) IS FALSE ORDER BY clicked_at ASC, id ASC LIMIT 1) ac ON TRUE",
     (where.length?'WHERE '+where.join(' AND ')+' AND ':'WHERE ') + "NOT EXISTS (SELECT 1 FROM affiliate_clicks owner_click WHERE owner_click.click_id=cc.click_id AND owner_click.is_owner_traffic IS TRUE)",
-    'GROUP BY 1,2,3,4,5,6,7,8,9',
+    'GROUP BY 1,2,3,4,5,6,7,8,9,10',
     'ORDER BY is_test ASC, conversions DESC, currency ASC, country ASC, source ASC, campaign ASC',
     'LIMIT 2000'
   ].filter(Boolean).join('\n');
