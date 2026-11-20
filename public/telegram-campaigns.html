@@ -25,7 +25,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;
 <body>
 <div class="top"><a href="/dashboard">← Back to dashboard</a><span class="muted">Private reporting page</span></div>
 <h1>Telegram campaign intelligence</h1>
-<p class="muted">Compare Telegram channel and group links by country, platform, visits, engagement, tracked affiliate redirects and matched Chaturbate events. This report uses the same authenticated dashboard session.</p>
+<p class="muted">Compare Telegram channel and group links by country, platform, visits, engagement, Chaturbate and BongaCams redirects, and matched Chaturbate events. This report uses the same authenticated dashboard session.</p>
 
 <section class="panel">
 <h2>Create a unique Telegram tracking link</h2>
@@ -62,8 +62,8 @@ table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;
 </section>
 
 <section class="panel">
-<h2>Results by Telegram group, country and platform</h2>
-<div class="table-wrap"><table><thead><tr><th>Telegram group</th><th>Country</th><th>Platform</th><th>Campaign</th><th>Redirects</th><th>Visits</th><th>Engaged</th><th>Matched events</th><th>Bot / unclassified</th><th>Reported payout by currency</th></tr></thead><tbody id="rows"><tr><td colspan="10">No report loaded yet.</td></tr></tbody></table></div>
+<h2>Results by Telegram group and country</h2>
+<div class="table-wrap"><table><thead><tr><th>Telegram group</th><th>Country</th><th>Campaign</th><th>Total redirects</th><th>Chaturbate redirects</th><th>BongaCams redirects</th><th>Visits</th><th>Engaged</th><th>Matched events</th><th>Bot / unclassified</th><th>Reported payout by currency</th></tr></thead><tbody id="rows"><tr><td colspan="11">No report loaded yet.</td></tr></tbody></table></div>
 </section>
 
 <script>
@@ -97,7 +97,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;
    $('status').textContent='Loading Telegram campaign performance…';
    const q=new URLSearchParams();if($('from').value)q.set('from',$('from').value);if($('to').value)q.set('to',$('to').value);
    try{
-     const response=await fetch('/api/traffic-revenue-performance?'+q.toString(),{credentials:'same-origin',cache:'no-store'});
+     const response=await fetch('/api/telegram-campaign-performance?'+q.toString(),{credentials:'same-origin',cache:'no-store'});
      if(response.status===401){$('status').textContent='Your dashboard session is not active. Sign in at /dashboard, then return here.';return}
      const data=await response.json();if(!response.ok)throw new Error(data.error||'Could not load report');
      const rows=(data.rows||[]).filter(row=>row.sourceChannel==='social_telegram');
@@ -111,7 +111,7 @@ table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;
      rows.sort((a,b)=>Number(b.matchedConversions||0)-Number(a.matchedConversions||0)||Number(b.engagedVisits||0)-Number(a.engagedVisits||0)||Number(b.clicks||0)-Number(a.clicks||0));
      $('rows').innerHTML=rows.length?rows.map(row=>{
        const bot=Number(row.knownBotClicks||0)+Number(row.suspectedBotClicks||0)+Number(row.unclassifiedClicks||0);
-       return '<tr><td>'+groupName(row.content)+'</td><td>'+String(row.country||'UNKNOWN')+'</td><td>'+String(row.platform||'unknown')+'</td><td>'+String(row.campaign||'unknown')+'</td><td>'+fmt(row.clicks)+'</td><td>'+fmt(row.visits)+'</td><td>'+fmt(row.engagedVisits)+'</td><td>'+fmt(row.matchedConversions)+'</td><td>'+fmt(bot)+'</td><td>'+payoutText(row.reportedPayoutsByCurrency)+'</td></tr>';
+       return '<tr><td>'+groupName(row.content)+'</td><td>'+String(row.country||'UNKNOWN')+'</td><td>'+String(row.campaign||'unknown')+'</td><td>'+fmt(row.clicks)+'</td><td>'+fmt(row.chaturbateClicks)+'</td><td>'+fmt(row.bongacamsClicks)+'</td><td>'+fmt(row.visits)+'</td><td>'+fmt(row.engagedVisits)+'</td><td>'+fmt(row.matchedConversions)+'</td><td>'+fmt(bot)+'</td><td>'+payoutText(row.reportedPayoutsByCurrency)+'</td></tr>';
      }).join(''):'<tr><td colspan="10">No Telegram-attributed activity in this date range. Check that every group uses its own tagged link.</td></tr>';
      $('status').textContent='Updated. '+rows.length+' Telegram attribution groups returned. '+(data.note||'');
    }catch(error){$('status').textContent=error.message}
