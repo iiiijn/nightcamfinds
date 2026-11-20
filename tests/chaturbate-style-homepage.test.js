@@ -93,12 +93,15 @@ test("model recruitment page retains responsive two-platform cards", () => {
   assert.ok(css.includes(".model-platforms { grid-template-columns: 1fr;"));
 });
 
-test("homepage places both broadcaster signup choices beside the room directory", () => {
+test("homepage places one clear model-recruitment CTA beside the room directory", () => {
   const directory = html.slice(html.indexOf('<section class="directory-section"'), html.indexOf('<div class="two">'));
   assert.ok(directory.includes('class="broadcaster-sidebar"'));
-  assert.ok(directory.includes('href="/broadcast/#platform-chaturbate"'));
-  assert.ok(directory.includes('href="/broadcast/#platform-bongacams"'));
-  assert.ok(!html.includes('id="become-a-model"'));
+  assert.ok(directory.includes('Ready to become a model?'));
+  assert.ok(directory.includes('href="/broadcast/" data-ncf-path="model" data-ncf-placement="home-broadcaster-banner"'));
+  assert.ok(directory.includes('Become a Model'));
+  assert.ok(directory.includes('creator-benefits'));
+  assert.ok(!directory.includes('href="/broadcast/#platform-chaturbate"'));
+  assert.ok(!directory.includes('href="/broadcast/#platform-bongacams"'));
   assert.ok(read("public/broadcast.html").includes('id="platform-chaturbate"'));
   assert.ok(read("public/broadcast.html").includes('id="platform-bongacams"'));
 });
