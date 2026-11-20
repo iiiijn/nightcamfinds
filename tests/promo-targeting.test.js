@@ -31,7 +31,8 @@ test('promotion loader respects selected platform and audience country', () => {
 });
 
 test('outbound promo cards retain tracked redirects and campaign placement labels', () => {
-  assert.match(promo, /content: campaignPlacement \? `\$\{campaignPlacement\}:\$\{placement\}` : placement/);
+  assert.match(promo, /content: attr\.content \|\| \(campaignPlacement \|\| placement\)/);
+  assert.match(promo, /const campaignPlacement = String\(targetingParams\.get\('ncf_placement'\)/);
   assert.match(promo, /\/bgo\/\$\{encodeURIComponent\(room\.id\)\}/);
   assert.match(promo, /\/go\/\$\{encodeURIComponent\(room\.id\)\}/);
 });
