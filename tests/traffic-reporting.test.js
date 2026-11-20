@@ -2,18 +2,35 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { SOURCE_CHANNELS, classifySourceChannel, normalizeSpikeThreshold, classifyClickEvidence } = require('../src/services/traffic-reporting.cjs');
+const { SOURCE_CHANNELS, classifySourceChannel, normalizeSourceLabel, normalizeSpikeThreshold, classifyClickEvidence } = require('../src/services/traffic-reporting.cjs');
 
-test('normalizes only recognized source labels into fixed reporting channels', () => {
-  assert.deepEqual(SOURCE_CHANNELS, ['organic_search', 'direct', 'email', 'partner', 'test', 'other']);
+test('normalizes recognized source labels into distinct reporting channels', () => {
+  assert.deepEqual(SOURCE_CHANNELS, [
+    'organic_search', 'social_x', 'social_telegram', 'social_reddit',
+    'social_facebook', 'social_instagram', 'social_other',
+    'direct', 'email', 'partner', 'other', 'test'
+  ]);
   assert.equal(classifySourceChannel('google'), 'organic_search');
   assert.equal(classifySourceChannel('organic_search'), 'organic_search');
   assert.equal(classifySourceChannel('newsletter'), 'email');
   assert.equal(classifySourceChannel('partner'), 'partner');
   assert.equal(classifySourceChannel('test_campaign'), 'test');
-  assert.equal(classifySourceChannel('reddit'), 'other');
+  assert.equal(classifySourceChannel('reddit'), 'social_reddit');
+  assert.equal(classifySourceChannel('reddit.com'), 'social_reddit');
+  assert.equal(classifySourceChannel('x'), 'social_x');
+  assert.equal(classifySourceChannel('twitter.com'), 'social_x');
+  assert.equal(classifySourceChannel('telegram'), 'social_telegram');
+  assert.equal(classifySourceChannel('t.me'), 'social_telegram');
+  assert.equal(classifySourceChannel('telegram.me'), 'social_telegram');
+  assert.equal(classifySourceChannel('facebook.com'), 'social_facebook');
+  assert.equal(classifySourceChannel('instagram'), 'social_instagram');
   assert.equal(classifySourceChannel('unknown'), 'direct');
   assert.equal(classifySourceChannel('direct', 'legacy'), 'other');
+});
+
+test('normalizes host-shaped source labels without retaining URL paths', () => {
+  assert.equal(normalizeSourceLabel('https://www.t.me/channel-name/'), 't.me');
+  assert.equal(normalizeSourceLabel('X'), 'x');
 });
 
 test('validates click spike thresholds and uses a safe default', () => {
