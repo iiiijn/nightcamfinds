@@ -14,7 +14,7 @@
     const heading=businessPanel.querySelector('h2');
     if(heading)heading.textContent='Business performance';
     const intro=businessPanel.querySelector('.note');
-    if(intro)intro.textContent='Your business at a glance for the selected period. Redirects are not unique visitors. Chaturbate payouts are partner-reported and shown by currency. BongaCash figures are manual entries.';
+    if(intro)intro.textContent='Your business at a glance for the selected period. Redirects are not unique visitors. Signup counts are matched postback events, not unique people. Chaturbate payouts are partner-reported and shown by currency. BongaCash figures are manual entries.';
   }
 
   // Keep one simple business view and one consolidated home for detailed reports.
