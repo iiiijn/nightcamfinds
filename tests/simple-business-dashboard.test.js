@@ -32,7 +32,7 @@ test('business dashboard keeps detailed analytics reachable in a single Advanced
 test('Tier 1 signup KPI only counts matched non-test member signup events by postback country',()=>{
   assert.match(dashboard,/real=events\.filter\(x=>!x\.isTest/);
   assert.match(dashboard,/matchedRows=real\.filter\(x=>x\.matchStatus==='matched'\)/);
-  assert.match(dashboard,/tier1SignupEvents=signupRows\.filter\(x=>tier1\.has\(String\(x\.country\|\|'\'\)\.toUpperCase\(\)\)\)/);
+  assert.ok(dashboard.includes("tier1SignupEvents=signupRows.filter(x=>tier1.has(String(x.country||'').toUpperCase())"));
   assert.match(dashboard,/member signup events/);
   assert.match(dashboard,/Redirects are not unique visitors/);
 });
