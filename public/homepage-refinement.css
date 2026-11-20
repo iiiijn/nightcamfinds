@@ -258,3 +258,95 @@
 
 .favorite-toggle,.loyalty-section{display:none!important}
 #top>.loyalty-section{display:none!important}
+
+
+/* Recruitment banner v2: clearer offer, stronger visual hierarchy and one primary action. */
+.broadcaster-sidebar {
+  background:
+    radial-gradient(ellipse at 88% 8%, rgba(255, 139, 190, .28), transparent 42%),
+    radial-gradient(ellipse at 4% 100%, rgba(171, 104, 214, .2), transparent 48%),
+    linear-gradient(145deg, #3b1b46 0%, #25132f 62%, #1b1228 100%);
+  border: 1px solid rgba(255, 160, 203, .58);
+}
+.creator-banner-art {
+  position: relative;
+  aspect-ratio: 16 / 7;
+  border: 1px solid rgba(255, 224, 239, .34);
+  box-shadow: 0 10px 26px rgba(12, 5, 20, .24);
+}
+.creator-banner-art::after {
+  content: "";
+  position: absolute;
+  inset: 45% 0 0;
+  background: linear-gradient(180deg, transparent, rgba(34, 15, 43, .28));
+  pointer-events: none;
+}
+.broadcaster-sidebar .eyebrow {
+  margin-bottom: 8px;
+  color: #ffb2d1;
+  letter-spacing: .1em;
+}
+.broadcaster-sidebar h2 {
+  max-width: 15ch;
+  margin: 0 0 10px;
+  color: #fff4fa;
+  font-size: clamp(25px, 2.2vw, 31px);
+  line-height: 1.03;
+  text-wrap: balance;
+}
+.broadcaster-sidebar > p:not(.eyebrow) {
+  color: #ead9e9;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.creator-benefits {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0 15px;
+  padding: 0;
+  list-style: none;
+}
+.creator-benefits li {
+  position: relative;
+  padding-left: 22px;
+  color: #f4e7f1;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.creator-benefits li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #ff9fc7;
+  font-weight: 900;
+}
+.broadcaster-sidebar .creator-primary-cta {
+  min-height: 49px;
+  margin-top: 5px;
+  border: 1px solid #ffb0ce;
+  border-radius: 12px;
+  background: linear-gradient(105deg, #ff6fa5 0%, #ff9bc4 55%, #ffc0d9 100%);
+  color: #321326;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: .015em;
+  box-shadow: 0 9px 24px rgba(255, 91, 155, .28);
+  text-transform: none;
+}
+.broadcaster-sidebar .creator-primary-cta:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.broadcaster-sidebar .model-recruitment-note {
+  margin-top: 11px;
+  color: #d8c6dc;
+  font-size: 10px;
+  line-height: 1.45;
+}
+@media (max-width: 640px) {
+  .creator-banner-art { aspect-ratio: 16 / 6.5; }
+  .broadcaster-sidebar h2 { max-width: 18ch; font-size: 27px; }
+  .creator-benefits { gap: 8px; }
+  .creator-benefits li { font-size: 12px; }
+}

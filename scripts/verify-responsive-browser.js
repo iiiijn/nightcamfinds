@@ -138,7 +138,7 @@ const roomFeed = {
           roomSizeFilter: !!document.querySelector("#room-size"),
           regionFilter: !!document.querySelector("#region"),
           homepageHeadlineVisible: (() => { const el=document.querySelector(".directory-section .section-heading h2"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0; })(),
-          recruitmentBannerVisible: (() => { const el=document.querySelector(".broadcaster-sidebar"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0 && !!el.querySelector(".creator-banner-art img") && !!el.querySelector(".creator-primary-cta") && !!el.querySelector('a[href="/broadcast/#platform-chaturbate"]') && !!el.querySelector('a[href="/broadcast/#platform-bongacams"]'); })(),
+          recruitmentBannerVisible: (() => { const el=document.querySelector(".broadcaster-sidebar"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0 && !!el.querySelector(".creator-banner-art img") && !!el.querySelector(".creator-primary-cta[href=\"/broadcast/\"][data-ncf-path=\"model\"]") && !!el.querySelector(".creator-benefits li") && !el.querySelector('a[href="/broadcast/#platform-chaturbate"], a[href="/broadcast/#platform-bongacams"]'); })(),
           directoryColumnCount: grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").length : 0,
           headerControlsInsideViewport: [...document.querySelectorAll(".topbar .logo, .topbar #q, .topbar #country, .topbar .quick-exit")].every(el => { const r=el.getBoundingClientRect(); return r.width>0 && r.left>=-1 && r.right<=window.innerWidth+1; }),
           countryHintRemoved: !document.querySelector("#country-hint, #quick"),
@@ -160,7 +160,7 @@ const roomFeed = {
       });
       if (result.documentWidth > viewport.width) failures.push(viewport.name + ": horizontal overflow (" + result.documentWidth + "px > " + viewport.width + "px)");
       if (!result.homepageHeadlineVisible) failures.push(viewport.name + ": homepage headline is missing or hidden");
-      if (!result.recruitmentBannerVisible) failures.push(viewport.name + ": creator artwork, primary CTA or platform signup links are missing");
+      if (!result.recruitmentBannerVisible) failures.push(viewport.name + ": creator artwork, primary model CTA or benefit list is missing");
       if (!result.headerControlsInsideViewport) failures.push(viewport.name + ": header controls are clipped outside the viewport");
       const expectedColumns = viewport.width > 980 ? 4 : viewport.width > 640 ? 3 : 2;
       if (result.directoryColumnCount !== expectedColumns) failures.push(viewport.name + ": expected " + expectedColumns + " directory columns but found " + result.directoryColumnCount);
