@@ -604,6 +604,12 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     res.writeHead(302, redirectHeaders);
     return res.end();
   }
+  // Serve standalone earning content before the generic trailing-slash SPA route.
+  // Otherwise /earn/ is treated as an unknown category and rendered from index.html.
+  if (pathname === "/earn" || pathname === "/earn/") {
+    const earnHtml = fs.readFileSync(path.join(PUBLIC, "earn.html"), "utf8");
+    return send(res, 200, earnHtml, "text/html; charset=utf-8");
+  }
   const countryRoute = pathname.match(/^\/country\/([a-z]{2})\/$/i);
   if (countryRoute) {
     const feed = await rooms(req);
