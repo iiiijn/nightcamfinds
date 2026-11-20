@@ -6,8 +6,8 @@ const {summarizeConversions}=require('../public/revenue-summary.js');
 test('groups provider payouts and member spend by event type and currency',()=>{
 const built=conversionRevenue.buildQuery({from:'2026-11-01',to:'2026-11-07'});
 assert.deepEqual(built.params,['2026-11-01','2026-11-07']);
-assert.match(built.text,/AS event_class/);assert.match(built.text,/AS reported_payout/);assert.match(built.text,/AS reported_spend/);
-assert.match(built.text,/SUM\(cc\.payout\)/);assert.match(built.text,/SUM\(cc\.amount\).*revshare_purchase/);assert.match(built.text,/GROUP BY 1,2,3,4,5,6,7,8,9/);
+assert.match(built.text,/AS event_class/);assert.match(built.text,/cc\.country/);assert.match(built.text,/AS click_country/);assert.match(built.text,/AS reported_payout/);assert.match(built.text,/AS reported_spend/);
+assert.match(built.text,/SUM\(cc\.payout\)/);assert.match(built.text,/SUM\(cc\.amount\).*revshare_purchase/);assert.match(built.text,/GROUP BY 1,2,3,4,5,6,7,8,9,10/);
 assert.match(built.text,/jsonb_each_text/);assert.match(built.text,/cc\.matched_click IS TRUE/);assert.match(built.text,/missing_click_id/);assert.match(built.text,/click_id_not_found/);assert.equal(built.dateBasis,'callback_received_at_utc');
 });
 test('rejects invalid dates and reversed date ranges',()=>{assert.match(conversionRevenue.buildQuery({from:'2026-02-31'}).error,/calendar dates/);assert.match(conversionRevenue.buildQuery({from:'2026-11-08',to:'2026-11-07'}).error,/on or before/);});
@@ -37,14 +37,14 @@ assert.deepEqual(result.attributedPayoutsByCurrency,{USD:-2.25,EUR:3.2});assert.
 
 test('maps grouped conversion query rows to the dashboard contract without raw payloads',()=>{
 const rows=conversionRevenue.toDashboardRows([{
-country:'US',platform:'chaturbate',source:'x',campaign:'campaign-a',
+country:'DE',click_country:'US',platform:'chaturbate',source:'x',campaign:'campaign-a',
 conversion_type:'revshare_purchase',currency:'USD',is_test:false,match_status:'matched',
 event_class:'member_purchase_revshare',conversions:'2',matched_conversions:'2',
 unmatched_conversions:'0',reported_payout:'3.50',reported_spend:'17.50',
 raw_payload:{secret:'must-not-leak'},click_id:'private-click-id'
 }]);
 assert.deepEqual(rows,[{
-country:'US',platform:'chaturbate',source:'x',campaign:'campaign-a',
+country:'DE',clickCountry:'US',platform:'chaturbate',source:'x',campaign:'campaign-a',
 conversionType:'revshare_purchase',currency:'USD',isTest:false,matchStatus:'matched',
 eventClass:'member_purchase_revshare',conversions:2,matchedConversions:2,
 unmatchedConversions:0,reportedPayout:3.5,reportedSpend:17.5
