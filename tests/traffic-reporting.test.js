@@ -56,8 +56,8 @@ test('since-cutoff traffic endpoint is session protected, bounded by 10 November
   const end = route.indexOf('if (incoming.pathname === "/api/provider-attribution-health")', start);
   assert.ok(start >= 0 && end > start);
   const endpoint = route.slice(start, end);
-  assert.match(endpoint, /validDashboardSession\\(req\\)/);
-  assert.match(endpoint, /2026-11-10T00:00:00\\.000Z/);
+  assert.match(endpoint, /validDashboardSession\(req\)/);
+  assert.match(endpoint, /2026-11-10T00:00:00\.000Z/);
   assert.match(endpoint, /NCF_CLICK_SPIKE_THRESHOLD/);
   assert.match(endpoint, /affiliate_click_spike/);
   assert.match(endpoint, /revshare_audit_01/);
@@ -75,5 +75,5 @@ test('dashboard exposes and loads the since-cutoff report in the traffic tab', (
   assert.match(html, /loadTrafficSinceCutoff/);
   assert.ok(html.includes('ownerTrafficToggle'));
   assert.ok(html.includes('traceOwnerMode'));
-  assert.match(html, /traffic:\\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins\\]/);
+  assert.match(html, /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins\]/);
 });
