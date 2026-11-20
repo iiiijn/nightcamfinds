@@ -9,6 +9,19 @@ test('accepts supported date, country and platform filters', () => {
   });
 });
 
+test('accepts the default and explicit ALL platform filter', () => {
+  assert.deepEqual(analytics.parseFilters(new URLSearchParams('from=2026-11-01&to=2026-11-20')), {
+    value: { from: '2026-11-01', to: '2026-11-20', country: 'ALL', platform: 'ALL' }
+  });
+  assert.equal(analytics.parseFilters(new URLSearchParams('platform=ALL')).value.platform, 'ALL');
+  assert.equal(analytics.parseFilters(new URLSearchParams('platform=all')).value.platform, 'ALL');
+});
+
+test('accepts supported platform filters case-insensitively', () => {
+  assert.equal(analytics.parseFilters(new URLSearchParams('platform=chaturbate')).value.platform, 'chaturbate');
+  assert.equal(analytics.parseFilters(new URLSearchParams('platform=BONGACAMS')).value.platform, 'bongacams');
+});
+
 test('rejects invalid dates, country codes and platforms', () => {
   assert.match(analytics.parseFilters(new URLSearchParams('from=2026-02-31')).error, /calendar dates/);
   assert.match(analytics.parseFilters(new URLSearchParams('country=USA')).error, /two-letter/);
