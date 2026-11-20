@@ -12,7 +12,7 @@ function buildQuery(filters = {}) {
   const eventClass="CASE WHEN LOWER(cc.conversion_type)='revshare_purchase' THEN 'member_purchase_revshare' WHEN LOWER(cc.conversion_type) IN ('tokens_signup-referral','ppr_signup-referral','revshare_signup-referral') THEN 'signup_referral' WHEN LOWER(cc.conversion_type) IN ('tokens_broadcaster-referral','ppr_broadcaster-referral','revshare_broadcaster-referral') THEN 'broadcaster_referral' WHEN LOWER(cc.conversion_type)='revshare_webmaster-commission' THEN 'webmaster_commission' WHEN LOWER(cc.conversion_type)='revshare_payout-adjustment' THEN 'payout_adjustment' ELSE 'other' END";
   const text=[
     'SELECT',
-    "COALESCE(NULLIF(UPPER(cc.country), ''), NULLIF(UPPER(ac.country), ''), NULLIF(UPPER(bc.country), ''), 'UNKNOWN') AS country,",
+    "COALESCE(NULLIF(UPPER(cc.country), 'UNKNOWN'), NULLIF(UPPER(ac.country), ''), NULLIF(UPPER(bc.country), ''), 'UNKNOWN') AS country,",
     "COALESCE(NULLIF(UPPER(ac.country), ''), NULLIF(UPPER(bc.country), ''), 'UNKNOWN') AS click_country,",
     "'chaturbate'::text AS platform,",
     "COALESCE(NULLIF(LOWER(ac.source), ''), NULLIF(LOWER(bc.source), ''), NULLIF(LOWER(cc.source), ''), 'unknown') AS source,",
