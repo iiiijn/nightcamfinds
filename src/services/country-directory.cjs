@@ -33,7 +33,11 @@ function resolveChaturbateCountry(country, location) {
  if (!text) return "";
  const exact = normalizeCountryCode(text);
  if (exact) return exact;
- const parts = text.split(",").map((part) => part.trim());
+ // Accept a recognised country only as the final component of a consistently-delimited location.
+ // Mixed separators remain ambiguous and are deliberately rejected.
+ const separators = [",", ";", "|"].filter((separator) => text.includes(separator));
+ if (separators.length !== 1) return "";
+ const parts = text.split(separators[0]).map((part) => part.trim());
  if (parts.length < 2 || parts.some((part) => !part)) return "";
  return normalizeCountryCode(parts[parts.length - 1]);
 }
