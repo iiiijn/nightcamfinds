@@ -19,9 +19,9 @@ const SOURCE_ALIASES = Object.freeze({
 
 function normalizeSourceLabel(value) {
   return String(value || '').trim().toLowerCase()
-    .replace(/^https?:\\/\\//, '')
-    .replace(/^www\\./, '')
-    .replace(/\\/$/, '')
+    .replace(/^https?:[/][/]/, '')
+    .replace(/^www[.]/, '')
+    .replace(/[/]$/, '')
     .replace(/[^a-z0-9._-]/g, '');
 }
 
