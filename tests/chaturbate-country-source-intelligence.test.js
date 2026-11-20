@@ -8,7 +8,8 @@ const reporting = require('../src/services/conversion-revenue.cjs');
 test('Chaturbate postback country is primary conversion country while click country stays separate', () => {
   const built = reporting.buildQuery({});
   assert.match(built.text, /COALESCE\(NULLIF\(UPPER\(cc\.country\), 'UNKNOWN'\), NULLIF\(UPPER\(ac\.country\), ''\)/);
-  assert.match(built.text, /NULLIF\(UPPER\(cc\.country\), 'UNKNOWN'\)/);\n  assert.match(built.text, /AS click_country/);
+  assert.match(built.text, /NULLIF\(UPPER\(cc\.country\), 'UNKNOWN'\)/);
+  assert.match(built.text, /AS click_country/);
   const rows = reporting.toDashboardRows([{
     country: 'DE', click_country: 'US', source: 'reddit', campaign: 'tier1',
     conversion_type: 'revshare_signup-referral', currency: 'USD', is_test: false,
