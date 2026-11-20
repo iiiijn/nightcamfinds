@@ -115,6 +115,7 @@ const roomFeed = {
         return {
           viewportWidth: window.innerWidth,
           documentWidth: Math.max(doc.scrollWidth, body.scrollWidth),
+          overflowElements: [...document.querySelectorAll("body *")].map(el => ({tag:el.tagName,id:el.id,cls:typeof el.className==="string"?el.className:"",left:Math.round(el.getBoundingClientRect().left),right:Math.round(el.getBoundingClientRect().right),width:Math.round(el.getBoundingClientRect().width),scrollWidth:el.scrollWidth,clientWidth:el.clientWidth})).filter(el => el.right > window.innerWidth + 1 && el.width > 0).slice(0,12),
           headerRect: rect(header),
           gridRect: rect(grid),
           sidebarRect: rect(sidebar),
