@@ -39,7 +39,9 @@ test('model recruitment page explains the process and preserves both official re
 });
 
 test('homepage broadcaster banner has one clear model CTA and preserves truthful eligibility disclosure', () => {
-  const banner = homepage.match(/<section class="broadcaster-sidebar"[\\s\\S]*?<\\/section>/)?.[0] || '';
+  const bannerStart = homepage.indexOf('<section class="broadcaster-sidebar"');
+  const bannerEnd = homepage.indexOf('</section>', bannerStart);
+  const banner = bannerStart >= 0 && bannerEnd >= 0 ? homepage.slice(bannerStart, bannerEnd) : '';
   assert.ok(banner.includes('Ready to become a model?'));
   assert.ok(banner.includes('href="/broadcast/" data-ncf-path="model" data-ncf-placement="home-broadcaster-banner"'));
   assert.ok(banner.includes('Become a Model'));
