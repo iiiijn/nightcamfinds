@@ -13,7 +13,8 @@ function parseFilters(params) {
   const from = String(params.get('from') || '').trim();
   const to = String(params.get('to') || '').trim();
   const country = String(params.get('country') || 'ALL').trim().toUpperCase();
-  const platform = String(params.get('platform') || 'ALL').trim().toLowerCase();
+  const requestedPlatform = String(params.get('platform') || 'ALL').trim().toLowerCase();
+  const platform = requestedPlatform === 'all' ? 'ALL' : requestedPlatform;
   if ((from && !validDate(from)) || (to && !validDate(to))) return { error: 'Dates must be valid calendar dates in YYYY-MM-DD format.' };
   if (from && to && from > to) return { error: 'Start date must be on or before end date.' };
   if (country !== 'ALL' && !/^[A-Z]{2}$/.test(country)) return { error: 'Country must be ALL or a two-letter country code.' };
