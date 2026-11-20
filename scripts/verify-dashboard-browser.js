@@ -17,6 +17,12 @@ function startServer() {
         res.end(fs.readFileSync(dashboardPath));
         return;
       }
+      if (url.pathname === "/dashboard-business.js") {
+        const businessScriptPath = path.resolve(__dirname, "../public/dashboard-business.js");
+        res.writeHead(200, { "content-type": "text/javascript; charset=utf-8" });
+        res.end(fs.readFileSync(businessScriptPath));
+        return;
+      }
       if (url.pathname.startsWith("/api/")) {
         requests.push({ path: url.pathname, from: url.searchParams.get("from"), to: url.searchParams.get("to") });
         const body = url.pathname === "/api/auth/me"
