@@ -728,6 +728,7 @@ http.createServer = function routeDashboard(handler) {
             platform: row.platform,
             category: row.category,
             source: row.source,
+            sourceChannel: classifySourceChannel(row.source, row.source_evidence),
             sourceEvidence: row.source_evidence,
             medium: row.medium,
             campaign: row.campaign,
