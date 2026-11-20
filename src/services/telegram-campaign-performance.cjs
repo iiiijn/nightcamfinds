@@ -54,7 +54,7 @@ function buildQuery(filters = {}) {
     "         LOWER(COALESCE(NULLIF(tv.source, ''), 'unknown')) AS source,",
     "         COALESCE(NULLIF(LOWER(tv.medium), ''), 'unknown') AS medium,",
     "         COALESCE(NULLIF(LOWER(tv.campaign), ''), 'unknown') AS campaign,",
-    "         COALESCE(NULLIF(LOWER(tv.content), ''), '') AS content,",
+    "         CASE WHEN LOWER(COALESCE(tv.content, '')) ~ '^room-[^:]+:' THEN REGEXP_REPLACE(LOWER(tv.content), '^room-[^:]+:', '') ELSE COALESCE(NULLIF(LOWER(tv.content), ''), '') END AS content,",
     '         COUNT(*)::int AS visits,',
     "         COUNT(*) FILTER (WHERE tv.traffic_class = 'unverified' AND EXISTS (SELECT 1 FROM traffic_engagement_events e WHERE e.visit_id = tv.visit_id AND e.event_type IN ('active_10s','scroll_50')))::int AS engaged_visits,",
     '         COUNT(*) FILTER (WHERE EXISTS (',
