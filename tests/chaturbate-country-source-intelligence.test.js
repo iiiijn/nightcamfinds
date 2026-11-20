@@ -22,9 +22,9 @@ test('Chaturbate postback country is primary conversion country while click coun
 
 test('monthly overview shows matched conversion performance by postback country and source campaign', () => {
   const html = fs.readFileSync(path.join(__dirname, '../public/dashboard.html'), 'utf8');
-  assert.match(html, /Chaturbate conversion countries/);
+  assert.match(html, /Countries bringing member signups/);
   assert.match(html, /monthlyConversionCountryTable/);
-  assert.match(html, /Chaturbate signup and payout by recorded source/);
+  assert.match(html, /Which marketing sources bring signups\?/);
   assert.match(html, /monthlyConversionSourceTable/);
   assert.match(html, /Only matched, non-test events are included/);
   assert.match(html, /broadcaster-referral/);
