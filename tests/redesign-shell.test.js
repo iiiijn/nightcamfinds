@@ -11,8 +11,8 @@ test("redesigned directory shell keeps the live-feed and filter mount points", (
     assert.match(html, new RegExp(`id=["']${id}["']`), `missing #${id}`);
   }
   assert.doesNotMatch(html, /featured-room|featured-panel|Featured room/i);
-  assert.match(html, /id="kicker">Independent discovery/);
-  assert.match(html, /id="page-title">Discover live cams right now/);
+  assert.match(html, /id="kicker"[^>]*>Independent discovery/);
+  assert.match(html, /id="page-title"[^>]*>Discover live cams right now/);
   assert.match(html, /id="notice"/);
   assert.match(html, /id="result-count"/);
   assert.match(html, /id="quick-exit"/);
