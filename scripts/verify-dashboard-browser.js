@@ -99,7 +99,7 @@ function startServer() {
     if (!dashboardSource.includes("const conversionCount=regs===null||pur===null?null:regs+pur")) failures.push("Conversion count does not preserve unavailable inputs.");
     if (dashboardSource.includes("n(m.registrations||0)") || dashboardSource.includes("n(m.purchases||0)")) failures.push("BongaCash funnel still converts unavailable values to zero.");
 
-    const expectedTabs = ["monthly", "clicks", "advanced"];
+    const expectedTabs = ["monthly", "advanced"];
     const visibleTabs = await page.locator("[data-dashboard-tab]").evaluateAll(nodes => nodes.map(node => node.dataset.dashboardTab));
     if (JSON.stringify(visibleTabs) !== JSON.stringify(expectedTabs)) failures.push("Expected only the two supported dashboard tabs; found " + visibleTabs.join(", "));
     for (const tab of expectedTabs) {
@@ -144,11 +144,10 @@ function startServer() {
     for (const [name, value] of Object.entries(displayedMetrics)) {
       if (value !== "Unavailable") failures.push(name + " should display Unavailable, received " + value);
     }
-    // Date-range checks target the Click Overview loader. The Advanced Reports
-    // tab intentionally loads its own report set and does not call dashboard-stats.
-    await page.locator('[data-dashboard-tab="clicks"]').click();
+    // Date-range controls remain available inside the consolidated Advanced Reports view.
+    await page.locator('[data-dashboard-tab="advanced"]').click();
     await page.waitForFunction(() =>
-      document.querySelector('[data-dashboard-tab="clicks"]')?.getAttribute("aria-selected") === "true");
+      document.querySelector('[data-dashboard-tab="advanced"]')?.getAttribute("aria-selected") === "true");
 
     for (const range of ["today", "7", "30", "all"]) {
       await page.locator("#from").fill("");
