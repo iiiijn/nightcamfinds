@@ -24,6 +24,8 @@ test('groups the visit and revenue funnel by source, medium, campaign and conten
   assert.match(built.text, /GROUP BY 1,2,3,4,5,6/);
   assert.match(built.text, /GROUP BY 1,2,3,4,5,6,7/);
   assert.match(built.text, /ac\.content/);
+  assert.match(built.text, /REGEXP_REPLACE\\(LOWER\\(ac\\.content\\)/);
+  assert.match(built.text, /REGEXP_REPLACE\\(LOWER\\(content\\)/);
   assert.match(built.text, /tv\.content/);
   assert.match(built.text, /ac\.medium/);
   assert.match(built.text, /tv\.medium/);
