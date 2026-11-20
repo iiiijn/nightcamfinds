@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   countryTier,
   normalizeChaturbatePostback,
@@ -169,4 +170,45 @@ test("identifies unresolved Chaturbate macro parameter names without returning v
   assert.equal(hasUnresolvedChaturbateMacros(raw), true);
   assert.deepEqual(unresolvedChaturbateMacroFields({ type: "revshare_purchase", payout: "1.00" }), []);
   assert.equal(hasUnresolvedChaturbateMacros({ type: "revshare_purchase", payout: "1.00" }), false);
+});
+
+
+// A1.26.3 regression guard: viewer clicks must keep their placement track and
+// unique click identity, while broadcaster recruitment keeps its own track.
+test("viewer Chaturbate redirect uses placement-specific tracking, not the model track", () => {
+  const server = readFileSync(new URL("../server.js", import.meta.url), "utf8");
+
+  assert.match(server, /const src = cleanLabel\(url\.searchParams\.get\("src"\), "cb-card", 80\)/);
+  assert.match(server, /const clickId = "ncf_" \+ Date\.now\(\)\.toString\(36\) \+ "_"/);
+  assert.match(server, /track: src,/);
+  assert.match(server, /clickId,/);
+
+  const viewer = buildChaturbateUrl({
+    campaign: "C6yxN",
+    tour: "LQps",
+    track: "female-room-card",
+    clickId: "ncf_viewer_regression_001"
+  });
+  assert.equal(viewer.ok, true);
+  const viewerUrl = new URL(viewer.url);
+  assert.equal(viewerUrl.searchParams.get("track"), "female-room-card");
+  assert.equal(viewerUrl.searchParams.get("click_id"), "ncf_viewer_regression_001");
+  assert.equal(viewerUrl.searchParams.get("sid"), "ncf_viewer_regression_001");
+  assert.notEqual(viewerUrl.searchParams.get("track"), "broadcast");
+});
+
+test("Chaturbate broadcaster recruitment keeps the dedicated broadcast referral track", () => {
+  const recruitment = readFileSync(new URL("../public/broadcast.html", import.meta.url), "utf8");
+  const match = recruitment.match(/<a\b[^>]*data-ncf-referral-type="model"[^>]*data-ncf-platform="chaturbate"[^>]*href="([^"]+)"/i);
+
+  assert.ok(match, "broadcast page must expose a tagged Chaturbate model referral link");
+  const recruitmentUrl = new URL(match[1].replace(/&amp;/g, "&"));
+  assert.equal(recruitmentUrl.origin, "https://chaturbate.com");
+  assert.equal(recruitmentUrl.pathname, "/in/");
+  assert.equal(recruitmentUrl.searchParams.get("campaign"), "C6yxN");
+  assert.equal(recruitmentUrl.searchParams.get("tour"), "LQps");
+  assert.equal(recruitmentUrl.searchParams.get("track"), "broadcast");
+  assert.equal(recruitmentUrl.searchParams.has("click_id"), false);
+  assert.equal(recruitmentUrl.searchParams.has("sid"), false);
+  assert.match(recruitment, /data-ncf-placement="broadcast-page"/);
 });
