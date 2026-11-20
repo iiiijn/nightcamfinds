@@ -65,19 +65,19 @@ function startServer() {
     // error, fail immediately with the visible state and the API traffic that led to it.
     try {
       await page.waitForFunction(() => {
-        const status = document.querySelector("#status")?.textContent?.trim();
+        const status = document.querySelector("#monthlyOverviewStatus")?.textContent?.trim();
         return Boolean(status) && status !== "Loading...";
       }, { timeout: 10000 });
     } catch {
       const state = await page.evaluate(() => ({
         dashboardVisible: !document.querySelector("#dashboard")?.classList.contains("hidden"),
-        status: document.querySelector("#status")?.textContent,
+        status: document.querySelector("#monthlyOverviewStatus")?.textContent,
         loginStatus: document.querySelector("#loginStatus")?.textContent
       }));
       throw new Error("Dashboard did not finish loading within 10 seconds. State: " + JSON.stringify(state) +
         ". API responses: " + JSON.stringify(requests) + ". Browser errors: " + JSON.stringify(failures));
     }
-    const visibleStatus = await page.locator("#status").textContent();
+    const visibleStatus = await page.locator("#monthlyOverviewStatus").textContent();
     if (!visibleStatus?.startsWith("Updated ")) {
       const state = await page.evaluate(() => ({
         status: document.querySelector("#status")?.textContent,
@@ -93,7 +93,7 @@ function startServer() {
     if (!dashboardSource.includes("const conversionCount=regs===null||pur===null?null:regs+pur")) failures.push("Conversion count does not preserve unavailable inputs.");
     if (dashboardSource.includes("n(m.registrations||0)") || dashboardSource.includes("n(m.purchases||0)")) failures.push("BongaCash funnel still converts unavailable values to zero.");
 
-    const expectedTabs = ["clicks", "advanced"];
+    const expectedTabs = ["monthly", "clicks", "advanced"];
     const visibleTabs = await page.locator("[data-dashboard-tab]").evaluateAll(nodes => nodes.map(node => node.dataset.dashboardTab));
     if (JSON.stringify(visibleTabs) !== JSON.stringify(expectedTabs)) failures.push("Expected only the two supported dashboard tabs; found " + visibleTabs.join(", "));
     for (const tab of expectedTabs) {
