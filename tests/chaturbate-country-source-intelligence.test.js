@@ -26,5 +26,5 @@ test('monthly overview shows matched conversion performance by postback country 
   assert.match(html, /Chaturbate signup and payout by recorded source/);
   assert.match(html, /monthlyConversionSourceTable/);
   assert.match(html, /Only matched, non-test events are included/);
-  assert.match(html, /broadcaster_referral/);
+  assert.match(html, /broadcaster-referral/);
 });
