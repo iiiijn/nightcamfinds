@@ -249,3 +249,12 @@
   .hero-choice { transition: none; }
   .hero-choice:hover { transform: none; }
 }
+
+
+/* Directory-first homepage: keep live discovery close to the category navigation. */
+.directory-section{padding-top:clamp(12px,2vw,22px)}
+.directory-section>.section-heading{margin-top:0}
+@media(max-width:640px){.directory-section{padding-top:8px}}
+
+.favorite-toggle,.loyalty-section{display:none!important}
+#top>.loyalty-section{display:none!important}

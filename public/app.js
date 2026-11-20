@@ -42,7 +42,8 @@ const kicker = document.querySelector("#kicker");
 if (kicker) kicker.textContent = page[0];
 const pageTitle = document.querySelector("#page-title");
 if (pageTitle && page[1]) pageTitle.textContent = page[1];
-document.querySelector("#page-intro").textContent = page[2];
+const pageIntro = document.querySelector("#page-intro");
+if (pageIntro) pageIntro.textContent = page[2];
 document.title = page[3];
 document.querySelector('meta[name="description"]').setAttribute("content", page[2]);
 document.querySelector('link[rel="canonical"]').href = location.origin + location.pathname;
@@ -119,7 +120,8 @@ if (paidCampaign && category !== "all") {
   if (campaignTitle) {
     const campaignPageTitle = document.querySelector("#page-title");
     if (campaignPageTitle) campaignPageTitle.textContent = campaignTitle;
-    document.querySelector("#page-intro").textContent = `See who is live now, compare viewer counts, and choose a public room. Click a room to continue on its partner platform.`;
+    const campaignIntro = document.querySelector("#page-intro");
+    if (campaignIntro) campaignIntro.textContent = `See who is live now, compare viewer counts, and choose a public room. Click a room to continue on its partner platform.`;
   }
 }
 

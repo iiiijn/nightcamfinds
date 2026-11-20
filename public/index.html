@@ -58,46 +58,12 @@
   </header>
 
   <main id="top" class="w">
-    <section class="hero" aria-label="Choose how to use NightCamFinds">
-      <div class="hero-copy">
-        <p class="eyebrow" id="kicker">Independent discovery</p>
-        <h1 id="page-title">Discover live cams right now</h1>
-        <p class="lead" id="page-intro">Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.</p>
-        <div class="hero-categories" aria-label="Browse categories">
-          <a href="/female/">Female rooms</a><a href="/male/">Male rooms</a><a href="/trans/">Trans rooms</a><a href="/couples/">Couples rooms</a>
-        </div>
-      </div>
-      <div class="hero-choices" aria-label="Choose your path">
-        <a class="hero-choice hero-choice-viewer" href="#category-rows" data-ncf-path="viewer">
-          <span class="hero-choice-kicker">For viewers</span>
-          <strong>Find a live room</strong>
-          <span>Browse models, compare room activity and choose where to watch.</span>
-          <span class="hero-choice-action">Browse live rooms <span aria-hidden="true">→</span></span>
-        </a>
-        <a class="hero-choice hero-choice-creator" href="/broadcast/" data-ncf-path="model">
-          <span class="hero-choice-kicker">For adult creators</span>
-          <strong>Become a broadcaster</strong>
-          <span>Compare Chaturbate and BongaCams registration options.</span>
-          <span class="hero-choice-action">Explore model platforms <span aria-hidden="true">→</span></span>
-        </a>
-      </div>
-    </section>
-
-    <div id="cb-banner-promo" class="promo-banner" hidden aria-label="Partner banner promotion"></div>
-    <section class="promo-strip" id="chaturbate-live-promo" aria-label="Chaturbate live promotion"></section>
-    <section class="cb-category-promo" id="chaturbate-category-promo" aria-label="Browse Chaturbate categories" hidden></section>
-    <section class="promo-strip" id="bonga-live-promo" aria-label="BongaCams live promotion"></section>
-
-    <section class="loyalty-section" aria-labelledby="loyalty-title">
-      <div class="loyalty-heading"><div><p class="eyebrow">Your NightCamFinds</p><h2 id="loyalty-title">Pick up where you left off</h2><p class="muted">Your favourites and recent rooms stay on this device. No account or email address is required.</p></div><button id="share-site" class="btn ghost" type="button">Share NightCamFinds</button></div>
-      <div class="loyalty-columns">
-        <section class="loyalty-panel" aria-labelledby="favorites-title"><div class="loyalty-subheading"><h3 id="favorites-title">Saved rooms</h3><span id="favorites-count" class="loyalty-count">0</span></div><div id="favorite-rooms" class="loyalty-list" aria-live="polite"></div></section>
-        <section class="loyalty-panel" aria-labelledby="recent-title"><div class="loyalty-subheading"><h3 id="recent-title">Recently viewed</h3><span id="recent-count" class="loyalty-count">0</span></div><div id="recent-rooms" class="loyalty-list" aria-live="polite"></div><button id="clear-recent" class="btn ghost loyalty-clear" type="button">Clear history</button></section>
-      </div>
-    </section>
+    <!-- Directory-first homepage: hero and pre-directory promotions intentionally removed. -->
     <section class="directory-section" aria-label="Live room directory">
+      <p id="kicker" class="sr-only">Independent discovery</p>
+      <h1 id="page-title" class="sr-only">Discover live cams right now</h1>
       <div class="section-heading">
-        <div><p class="eyebrow">Live directory</p><h2>Discover live models</h2></div>
+        <div><p class="eyebrow">Live directory</p><h2>Discover live models</h2><a class="directory-browse-link" href="#category-rows" data-ncf-path="viewer">Browse live rooms</a><a class="directory-browse-link" href="/broadcast/" data-ncf-path="model">Become a broadcaster</a></div>
         <div class="secondary-filters">
           <select id="sort" aria-label="Sort rooms"><option value="recommended">Recommended</option><option value="viewers">Most viewers</option><option value="newest">Newest</option></select>
         </div>
@@ -124,6 +90,10 @@
           <section class="sidebar-filter-group" aria-labelledby="regions-title"><h3 id="regions-title">Browse by region</h3><select id="region" aria-label="Region"><option value="">All regions</option></select></section>
           <section class="sidebar-filter-group" aria-labelledby="room-size-title"><h3 id="room-size-title">Room size</h3><select id="room-size" aria-label="Room size"><option value="">All room sizes</option><option value="intimate">Intimate · 0–50 viewers</option><option value="mid-sized">Mid-sized · 51–500 viewers</option><option value="high-traffic">High-traffic · 501+ viewers</option></select></section>
           <section id="popular-tags" class="popular-tags sidebar-filter-group" aria-label="Popular room tags" hidden><div class="popular-tags-heading"><h3>Popular tags</h3><button id="clear-tag" class="btn ghost" type="button" hidden>Clear tag</button></div><div id="popular-tags-list" class="popular-tags-list"></div></section>
+          <section id="chaturbate-live-promo" class="cb-live-promo" hidden aria-label="Chaturbate live rooms"></section>
+          <section id="chaturbate-category-promo" class="cb-category-promo" hidden aria-label="Chaturbate categories"></section>
+          <section id="bonga-live-promo" class="promo-strip" hidden aria-label="BongaCams live rooms"></section>
+          <div id="cb-banner-promo" class="cb-banner-promo" hidden aria-label="Chaturbate banner promotion"></div>
           <div id="bonga-dynamic-banner" class="bonga-dynamic-banner" hidden aria-label="BongaCams live model promotion"></div>
           <section id="bonga-static-banners" class="bonga-static-banners" hidden aria-label="BongaCams banner promotions"></section>
           <section id="bonga-category-widget" class="bonga-category-widget" hidden aria-label="BongaCams category widget"></section>

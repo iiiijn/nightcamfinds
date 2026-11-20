@@ -11,8 +11,8 @@ test("redesigned directory shell keeps the live-feed and filter mount points", (
     assert.match(html, new RegExp(`id=["']${id}["']`), `missing #${id}`);
   }
   assert.doesNotMatch(html, /featured-room|featured-panel|Featured room/i);
-  assert.match(html, /id="kicker">Independent discovery/);
-  assert.match(html, /id="page-title">Discover live cams right now/);
+  assert.match(html, /id="kicker"[^>]*>Independent discovery/);
+  assert.match(html, /id="page-title"[^>]*>Discover live cams right now/);
   assert.match(html, /id="notice"/);
   assert.match(html, /id="result-count"/);
   assert.match(html, /id="quick-exit"/);
@@ -89,7 +89,7 @@ test("BongaCash static and dynamic promotions share a dedicated responsive sideb
   const css = read("public/styles.css");
   assert.match(html, /<div class="directory-layout">[\s\S]*?<div class="directory-main">[\s\S]*?<\/div>\s*<aside class="bonga-promo-sidebar"[\s\S]*?id="bonga-dynamic-banner"[\s\S]*?id="bonga-static-banners"[\s\S]*?<\/aside>/);
   assert.doesNotMatch(html, /<section id="bonga-static-banners"[^>]*><\/section>\s*<section class="loyalty-section"/);
-  assert.match(css, /\.directory-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(300px,\s*320px\)/s);
+  assert.match(css, /\.directory-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(260px,\s*280px\)/s);
   assert.match(css, /\.bonga-promo-sidebar\s*\{[^}]*display:\s*grid/s);
   assert.match(css, /@media\s*\(max-width:\s*720px\)[\s\S]*?\.bonga-promo-sidebar\s*\{\s*margin-top:\s*18px/s);
   assert.match(css, /\.bonga-static-banner iframe\s*\{[^}]*width:\s*300px[^}]*height:\s*250px/s);
