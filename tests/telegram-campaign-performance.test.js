@@ -11,7 +11,7 @@ test('aggregates Telegram campaign clicks, visits and matched revenue by content
   assert.match(built.text, /affiliate_clicks ac/);
   assert.match(built.text, /traffic_visits tv/);
   assert.match(built.text, /cb_conversions cc/);
-  assert.match(built.text, /utm/i.test('utm') ? /content/ : /content/);
+  assert.match(built.text, /AS content/);
   assert.match(built.text, /LOWER\(COALESCE\(ac\.source, ''\)\) IN \('telegram','tg','t\.me','telegram\.me','telegram\.org'\)/);
   assert.match(built.text, /LOWER\(COALESCE\(tv\.source, ''\)\) IN/);
   assert.match(built.text, /REGEXP_REPLACE\(LOWER\(ac\.content\), '\^room-/);
