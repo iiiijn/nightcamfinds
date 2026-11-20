@@ -14,7 +14,7 @@ function patchServerSource(input){
   source=source.replace(before,after);
  };
  replaceOnce('const { getCountryPage } = require("./country-pages.js");',
-  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap, buildHtmlSitemap } = require("./src/services/country-directory.cjs");\nconst { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
+  'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap, buildHtmlSitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
   "country page import");
  replaceOnce('const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");',
   'const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");\nconst { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");\nlet latestProviderFeedDiagnostics = { chaturbateRegions: [] };',
