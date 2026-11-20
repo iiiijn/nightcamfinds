@@ -69,7 +69,7 @@ test("feed ingestion diagnostics expose safe country format aggregates for both 
   });
   assert.deepEqual(bonga.metadata.safeValueShapes.fieldValueShapeCounts.hometown, {
     comma_delimited: 1,
-    single_word_text: 1
+    multiword_text: 1
   });
   const serialized = JSON.stringify({ chaturbate, bonga });
   for (const privateValue of ["private-model-a", "private-model-b", "private-model-c", "private-model-d", "New York", "Berlin"]) {
