@@ -9,23 +9,23 @@ const homepageCss = fs.readFileSync('public/homepage-refinement.css', 'utf8');
 const app = fs.readFileSync('public/app.js', 'utf8');
 const broadcast = fs.readFileSync('public/broadcast.html', 'utf8');
 
-test('homepage presents separate viewer and adult-creator journeys', () => {
-  assert.ok(homepage.includes('<section class="hero" aria-label="Choose how to use NightCamFinds">'));
+test('homepage presents live discovery first with separate viewer and adult-creator actions', () => {
+  assert.ok(homepage.includes('<section class="directory-section" aria-label="Live room directory">'));
   assert.ok(homepage.includes('href="#category-rows" data-ncf-path="viewer"'));
   assert.ok(homepage.includes('href="/broadcast/" data-ncf-path="model"'));
   assert.ok(homepage.includes('Browse live rooms'));
   assert.ok(homepage.includes('Become a broadcaster'));
+  assert.ok(!homepage.includes('<section class="hero" aria-label="Choose how to use NightCamFinds">'));
 });
 
-test('client-side homepage copy does not blank the restored hero', () => {
-  assert.ok(app.includes('all: ["Independent discovery", "Who\'s live in your country, tonight."'));
+test('client-side homepage copy does not require a removed hero section', () => {
+  assert.ok(app.includes('const pageIntro = document.querySelector("#page-intro");'));
+  assert.ok(app.includes('if (pageIntro) pageIntro.textContent = page[2];'));
 });
 
-test('homepage hero is visible and responsive rather than hidden by refinement CSS', () => {
-  assert.ok(!homepageCss.includes('#top>.hero{display:none!important}'));
-  assert.ok(homepageCss.includes('#top > .hero {\n  display: grid'));
-  assert.ok(homepageCss.includes('@media (max-width: 760px)'));
-  assert.ok(homepageCss.includes('@media (max-width: 460px)'));
+test('homepage refinement keeps the directory-first layout responsive', () => {
+  assert.ok(homepageCss.includes('Directory-first homepage:'));
+  assert.ok(homepageCss.includes('.directory-section'));
 });
 
 test('model recruitment page explains the process and preserves both official referral URLs', () => {
