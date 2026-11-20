@@ -18,11 +18,11 @@ const SOURCE_ALIASES = Object.freeze({
 });
 
 function normalizeSourceLabel(value) {
-  return String(value || '').trim().toLowerCase()
-    .replace(/^https?:[/][/]/, '')
-    .replace(/^www[.]/, '')
-    .replace(/[/]$/, '')
-    .replace(/[^a-z0-9._-]/g, '');
+  const raw = String(value || '').trim().toLowerCase();
+  if (!raw) return '';
+  const withoutScheme = raw.replace(/^https?:[/][/]/, '');
+  const host = withoutScheme.split(/[/?#]/, 1)[0].replace(/^www[.]/, '');
+  return host.replace(/[^a-z0-9._-]/g, '');
 }
 
 function classifySourceChannel(value, evidence = 'unknown') {
