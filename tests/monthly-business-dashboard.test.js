@@ -19,7 +19,9 @@ test('monthly overview keeps Chaturbate payouts and BongaCash manual figures sep
   assert.ok(html.includes('BongaCash manual reconciliation'));
   assert.ok(html.includes('No combined currency total is calculated'));
   assert.ok(html.includes("matchStatus==='matched'"));
-  assert.ok(html.includes('Matched events per 100 clicks'));
+  assert.ok(html.includes('Tier 1 member signup events'));
+  assert.ok(html.includes('All matched member signup events'));
+  assert.ok(html.includes('Matched broadcaster referral events'));
   assert.ok(!html.includes('Chaturbate match rate'));
 });
 
