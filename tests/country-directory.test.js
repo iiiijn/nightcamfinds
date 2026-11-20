@@ -221,6 +221,10 @@ test("Chaturbate country fallback accepts only an explicit recognized country at
  assert.equal(resolveChaturbateCountry("GB","Paris, France"),"GB","a valid country field takes precedence");
  assert.equal(resolveChaturbateCountry("","London, United Kingdom"),"GB");
  assert.equal(resolveChaturbateCountry("","Paris, France"),"FR");
+ assert.equal(resolveChaturbateCountry("","Paris; France"),"FR");
+ assert.equal(resolveChaturbateCountry("","Paris | France"),"FR");
+ assert.equal(resolveChaturbateCountry("","Paris; Ile-de-France; France"),"FR");
+ assert.equal(resolveChaturbateCountry("","Paris, France | Europe"),"");
  assert.equal(resolveChaturbateCountry("","New York, NY, United States"),"US");
  assert.equal(resolveChaturbateCountry("","Berlin, DE"),"DE");
  assert.equal(resolveChaturbateCountry("","Kenya"),"KE");
@@ -237,6 +241,8 @@ test("country startup patch uses strict Chaturbate country fallback and remains 
  const patched=patchServerSource(source);
  assert.ok(patched.includes('resolveChaturbateCountry(room.country,room.location)'));
  assert.ok(patched.includes('const { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion'));
+ assert.ok(patched.includes('const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");'));
+ assert.ok(patched.includes('const country=normalizeBongaCountry(room);'));
  assert.equal(patchServerSource(patched),patched);
 });
 
