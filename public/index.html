@@ -60,6 +60,8 @@
   <main id="top" class="w">
     <!-- Directory-first homepage: hero and pre-directory promotions intentionally removed. -->
     <section class="directory-section" aria-label="Live room directory">
+      <p id="kicker" class="sr-only">Independent discovery</p>
+      <h1 id="page-title" class="sr-only">Discover live cams right now</h1>
       <div class="section-heading">
         <div><p class="eyebrow">Live directory</p><h2>Discover live models</h2></div>
         <div class="secondary-filters">
@@ -88,6 +90,10 @@
           <section class="sidebar-filter-group" aria-labelledby="regions-title"><h3 id="regions-title">Browse by region</h3><select id="region" aria-label="Region"><option value="">All regions</option></select></section>
           <section class="sidebar-filter-group" aria-labelledby="room-size-title"><h3 id="room-size-title">Room size</h3><select id="room-size" aria-label="Room size"><option value="">All room sizes</option><option value="intimate">Intimate · 0–50 viewers</option><option value="mid-sized">Mid-sized · 51–500 viewers</option><option value="high-traffic">High-traffic · 501+ viewers</option></select></section>
           <section id="popular-tags" class="popular-tags sidebar-filter-group" aria-label="Popular room tags" hidden><div class="popular-tags-heading"><h3>Popular tags</h3><button id="clear-tag" class="btn ghost" type="button" hidden>Clear tag</button></div><div id="popular-tags-list" class="popular-tags-list"></div></section>
+          <section id="chaturbate-live-promo" class="cb-live-promo" hidden aria-label="Chaturbate live rooms"></section>
+          <section id="chaturbate-category-promo" class="cb-category-promo" hidden aria-label="Chaturbate categories"></section>
+          <section id="bonga-live-promo" class="promo-strip" hidden aria-label="BongaCams live rooms"></section>
+          <div id="cb-banner-promo" class="cb-banner-promo" hidden aria-label="Chaturbate banner promotion"></div>
           <div id="bonga-dynamic-banner" class="bonga-dynamic-banner" hidden aria-label="BongaCams live model promotion"></div>
           <section id="bonga-static-banners" class="bonga-static-banners" hidden aria-label="BongaCams banner promotions"></section>
           <section id="bonga-category-widget" class="bonga-category-widget" hidden aria-label="BongaCams category widget"></section>
@@ -138,6 +144,7 @@
   <aside id="stickyPromo" class="sticky-promo" aria-label="Live promotion" hidden></aside>
   <script src="/visit-tracking.js" defer></script>
   <script src="/app.js" defer></script>
+  <script src="/loyalty.js" defer></script>
   <script src="/promo.js" defer></script>
 </body>
 </html>
