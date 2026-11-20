@@ -112,8 +112,12 @@ function startServer() {
       await page.waitForFunction(value => {
         const selected = document.querySelector('[data-dashboard-tab="' + value + '"]');
         return selected?.getAttribute("aria-selected") === "true" &&
-          [...document.querySelectorAll("[data-nav-group]")].every(panel =>
-            panel.classList.contains("nav-hidden") === (panel.dataset.navGroup !== value));
+          [...document.querySelectorAll("[data-nav-group]")].every(panel => {
+            const shouldBeHidden = value === "advanced"
+              ? panel.dataset.navGroup === "monthly"
+              : panel.dataset.navGroup !== value;
+            return panel.classList.contains("nav-hidden") === shouldBeHidden;
+          });
       }, tab);
     }
 
