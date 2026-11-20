@@ -21,7 +21,7 @@ test('business dashboard presents simple decision-focused metrics and readable c
 });
 
 test('dashboard restores five sections and retains monthly business reporting in Overview',()=>{
-  assert.match(dashboard,/dashboard-business\\.js/);
+  assert.match(dashboard,/dashboard-business\.js/);
   for(const [tab,label] of [['overview','Overview'],['traffic','Traffic Intelligence'],['investigation','Click Investigation'],['revenue','Revenue & Conversions'],['health','Tracking & System Health']]){
     assert.ok(business.includes("['"+tab+"','"+label+"']"), 'missing '+label+' navigation');
   }
