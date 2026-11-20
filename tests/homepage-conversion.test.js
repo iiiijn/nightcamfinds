@@ -37,3 +37,13 @@ test('model recruitment page explains the process and preserves both official re
   assert.ok(broadcast.includes('https://bongacash.com/model-ref?c=840974'));
   assert.ok(broadcast.includes('Separate referral paths'));
 });
+
+test('homepage broadcaster banner has one clear model CTA and preserves truthful eligibility disclosure', () => {
+  const banner = homepage.match(/<section class="broadcaster-sidebar"[\\s\\S]*?<\\/section>/)?.[0] || '';
+  assert.ok(banner.includes('Ready to become a model?'));
+  assert.ok(banner.includes('href="/broadcast/" data-ncf-path="model" data-ncf-placement="home-broadcaster-banner"'));
+  assert.ok(banner.includes('Become a Model'));
+  assert.ok(banner.includes('Compare Chaturbate and BongaCams'));
+  assert.ok(banner.includes('Earnings vary and are not guaranteed.'));
+  assert.equal((banner.match(/class="[^"]*creator-primary-cta/g) || []).length, 1);
+});
