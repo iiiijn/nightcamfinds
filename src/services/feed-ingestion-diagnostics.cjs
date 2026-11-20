@@ -108,6 +108,47 @@ function safePagination(value) {
   };
 }
 
+
+function classifySafeValueShape(value) {
+  if (value === null || value === undefined || value === "") return "missing";
+  if (Array.isArray(value)) return "array";
+  if (typeof value === "object") return "object";
+  if (typeof value === "number") return Number.isFinite(value) ? "number" : "other";
+  if (typeof value === "boolean") return "boolean";
+  if (typeof value !== "string") return "other";
+  const text = value.trim();
+  if (!text) return "missing";
+  if (/^[A-Za-z]{2}$/.test(text)) return "two_letter_code";
+  if (/[;|]/.test(text)) return text.includes(";") && text.includes("|") ? "mixed_delimiters"
+    : text.includes(";") ? "semicolon_delimited" : "pipe_delimited";
+  if (text.includes(",")) return "comma_delimited";
+  if (text.includes("/")) return "slash_delimited";
+  if (/[()\[\]{}]/.test(text)) return "bracketed_text";
+  if (/\d/.test(text)) return "contains_digits";
+  if (/[^\u0000-\u024F]/.test(text)) return "non_latin_text";
+  if (/^[\p{L}\s.'’-]+$/u.test(text)) {
+    return /\s/.test(text) ? "multiword_text" : "single_word_text";
+  }
+  return "other_text";
+}
+
+function summarizeSafeFieldValueShapes(rows, fields) {
+  const source = Array.isArray(rows) ? rows : [];
+  const allowed = Array.isArray(fields) ? fields : [];
+  const summaries = {};
+  for (const field of allowed) {
+    const counts = {};
+    for (const row of source) {
+      if (!row || typeof row !== "object" || Array.isArray(row)) continue;
+      if (!Object.prototype.hasOwnProperty.call(row, field)) continue;
+      const shape = classifySafeValueShape(row[field]);
+      counts[shape] = (counts[shape] || 0) + 1;
+    }
+    summaries[field] = counts;
+  }
+  return { inspectedRoomCount: source.length, fieldValueShapeCounts: summaries };
+}
+
 function summarizeFeedIngestion({ provider, rawRows = [], entries = [], pagination = null } = {}) {
   const name = String(provider || "").toLowerCase();
   if (!["chaturbate", "bongacams"].includes(name)) throw new TypeError("Unsupported feed provider");
@@ -167,9 +208,9 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     unrecognizedCountryCount: unrecognizedCountry,
     countryCounts: [...countryCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([country, roomCount]) => ({ country, roomCount })),
     rejectionReasons,
-    ...(name === "chaturbate" ? { metadata: { ...summarizeMetadataFieldPresence(raw), locationShapes: summarizeChaturbateLocationShapes(raw) } } : {}),
+    ...(name === "chaturbate" ? { metadata: { ...summarizeMetadataFieldPresence(raw), locationShapes: summarizeChaturbateLocationShapes(raw), safeValueShapes: summarizeSafeFieldValueShapes(raw, ["country", "location"]) } } : { metadata: { safeValueShapes: summarizeSafeFieldValueShapes(raw, ["homecountry", "country", "country_code", "hometown"]) } }),
     pagination: safePagination(pagination)
   };
 }
 
-module.exports = { summarizeFeedIngestion, rawCountryValue, safePagination, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation, CHATURBATE_METADATA_FIELDS };
+module.exports = { summarizeFeedIngestion, rawCountryValue, safePagination, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation, CHATURBATE_METADATA_FIELDS, classifySafeValueShape, summarizeSafeFieldValueShapes };
