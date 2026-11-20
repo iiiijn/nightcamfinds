@@ -64,13 +64,14 @@ table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;
 
 <section class="panel">
 <h2>Results by Telegram group and country</h2>
-<div class="table-wrap"><table><thead><tr><th>Telegram group</th><th>Country</th><th>Campaign</th><th>Total redirects</th><th>Chaturbate redirects</th><th>BongaCams redirects</th><th>Visits</th><th>Engaged</th><th>Matched events</th><th>Bot / unclassified</th><th>Reported payout by currency</th></tr></thead><tbody id="rows"><tr><td colspan="11">No report loaded yet.</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>Telegram group</th><th>Country</th><th>Campaign</th><th>Total redirects</th><th>Chaturbate redirects</th><th>BongaCams redirects</th><th>Visits</th><th>Engaged</th><th>Matched events</th><th>Known bots</th><th>Suspected bots</th><th>Unclassified</th><th>Reported payout by currency</th></tr></thead><tbody id="rows"><tr><td colspan="11">No report loaded yet.</td></tr></tbody></table></div>
 </section>
 
 <script>
 (function(){
  const $=id=>document.getElementById(id);
  const fmt=n=>Number(n||0).toLocaleString();
+ const esc=v=>String(v??'').replace(/[&<>\"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[ch]));
  const safeSlug=v=>String(v||'').trim().toLowerCase().replace(/[^a-z0-9._-]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,60);
  $('generate').addEventListener('click',()=>{
    const group=safeSlug($('group').value),campaign=safeSlug($('campaign').value)||'telegram-growth';
@@ -89,10 +90,10 @@ table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;
  function groupName(content){
    const raw=String(content||'');
    const withoutRoom=raw.replace(/^room-[^:]+:/,'');
-   return withoutRoom||'untagged Telegram traffic';
+   return esc(withoutRoom||'untagged Telegram traffic');
  }
  function payoutText(payouts){
-   return Object.entries(payouts||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([currency,value])=>currency+' '+Number(value||0).toFixed(2)).join(', ')||'—';
+   return Object.entries(payouts||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([currency,value])=>esc(currency)+' '+Number(value||0).toFixed(2)).join(', ')||'—';
  }
  async function load(){
    $('status').textContent='Loading Telegram campaign performance…';
@@ -111,9 +112,8 @@ table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{text-align:left;
      ].map(([label,value])=>'<div class="stat"><small>'+label+'</small><strong>'+fmt(value)+'</strong></div>').join('');
      rows.sort((a,b)=>Number(b.matchedConversions||0)-Number(a.matchedConversions||0)||Number(b.engagedVisits||0)-Number(a.engagedVisits||0)||Number(b.clicks||0)-Number(a.clicks||0));
      $('rows').innerHTML=rows.length?rows.map(row=>{
-       const bot=Number(row.knownBotClicks||0)+Number(row.suspectedBotClicks||0)+Number(row.unclassifiedClicks||0);
-       return '<tr><td>'+groupName(row.content)+'</td><td>'+String(row.country||'UNKNOWN')+'</td><td>'+String(row.campaign||'unknown')+'</td><td>'+fmt(row.clicks)+'</td><td>'+fmt(row.chaturbateClicks)+'</td><td>'+fmt(row.bongacamsClicks)+'</td><td>'+fmt(row.visits)+'</td><td>'+fmt(row.engagedVisits)+'</td><td>'+fmt(row.matchedConversions)+'</td><td>'+fmt(bot)+'</td><td>'+payoutText(row.reportedPayoutsByCurrency)+'</td></tr>';
-     }).join(''):'<tr><td colspan="10">No Telegram-attributed activity in this date range. Check that every group uses its own tagged link.</td></tr>';
+       return '<tr><td>'+groupName(row.content)+'</td><td>'+esc(row.country||'UNKNOWN')+'</td><td>'+esc(row.campaign||'unknown')+'</td><td>'+fmt(row.clicks)+'</td><td>'+fmt(row.chaturbateClicks)+'</td><td>'+fmt(row.bongacamsClicks)+'</td><td>'+fmt(row.visits)+'</td><td>'+fmt(row.engagedVisits)+'</td><td>'+fmt(row.matchedConversions)+'</td><td>'+fmt(row.knownBotClicks)+'</td><td>'+fmt(row.suspectedBotClicks)+'</td><td>'+fmt(row.unclassifiedClicks)+'</td><td>'+payoutText(row.reportedPayoutsByCurrency)+'</td></tr>';
+     }).join(''):'<tr><td colspan="13">No Telegram-attributed activity in this date range. Check that every group uses its own tagged link.</td></tr>';
      $('status').textContent='Updated. '+rows.length+' Telegram attribution groups returned. '+(data.note||'');
    }catch(error){$('status').textContent=error.message}
  }
