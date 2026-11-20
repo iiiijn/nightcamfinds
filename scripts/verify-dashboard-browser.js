@@ -146,9 +146,9 @@ function startServer() {
     }
     // The global date-range controls refresh the Business Dashboard. Advanced Reports
     // intentionally has independent report loaders and does not use dashboard-stats.
-    await page.locator('[data-dashboard-tab="monthly"]').click();
+    await page.locator('[data-dashboard-tab="overview"]').click();
     await page.waitForFunction(() =>
-      document.querySelector('[data-dashboard-tab="monthly"]')?.getAttribute("aria-selected") === "true");
+      document.querySelector('[data-dashboard-tab="overview"]')?.getAttribute("aria-selected") === "true");
 
     for (const range of ["today", "7", "30", "all"]) {
       await page.locator("#from").fill("");
