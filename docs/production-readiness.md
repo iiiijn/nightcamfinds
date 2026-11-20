@@ -163,3 +163,21 @@ Launch stays BLOCKED until hosted PostgreSQL works, Owner MFA works with a confi
 You must do manually: choose the PostgreSQL host, create the database, set secrets in the host secret manager, enroll MFA, confirm Chaturbate and BongaCash account settings, register postbacks, choose CDN/WAF, enable backups, and run the restore test.
 
 Safe to keep in code, already present: migration runner, production guards, disabled BongaCash path, allowlisted redirects, postback validation, health fields that do not claim backups succeeded.
+
+
+## 8. NightCamFinds Chaturbate referral paths
+
+The common referral identity supplied by the owner is:
+
+`https://chaturbate.com/in/?tour=LQps&campaign=C6yxN&track=default&room=masterteja`
+
+The application may attach placement-specific `track` labels and unique NightCamFinds `click_id`/`sid` values to room redirects. Treat `track` as an attribution label, not as proof that Chaturbate recognises a separate programme or grants a particular commission. Keep viewer, broadcaster and webmaster journeys separately labelled in NightCamFinds reporting while retaining the same campaign/tour referral identity. Do not claim that all programme types are active until the Chaturbate account confirms the selected programme and actual credited events.
+
+Owner-supplied programme terms to display only with this qualification:
+- Member RevShare: 20% of eligible referred-member token purchases, or the alternative PPS option.
+- Member PPS: $1 Tier 1, $0.10 Tier 2, $0.01 Tier 3 per eligible free signup, subject to account-selected programme and current country tiers.
+- Broadcaster referral: $50 after a referred broadcaster registers and reaches $20 qualifying broadcasting earnings.
+- Webmaster referral: 5% of eligible affiliate earnings from referred webmasters.
+- Room promotion: use the member RevShare route only when that option is active.
+
+These are owner-supplied terms, not independently verified account settings. The account's selected payout programme, current rate schedule, referral eligibility and provider-side attribution remain REQUIRES VERIFICATION. NightCamFinds click IDs and local labels do not prove that Chaturbate accepted or credited a referral.
