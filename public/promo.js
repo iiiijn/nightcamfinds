@@ -134,7 +134,7 @@
       source: attr.source,
       medium: attr.medium,
       campaign: attr.campaign,
-      content: campaignPlacement ? `${campaignPlacement}:${placement}` : placement,
+      content: attr.content || (campaignPlacement || placement),
       vid: currentVisitId,
       lp: originalLandingPath.slice(0, 255)
     });
