@@ -1,61 +1,102 @@
 'use strict';
-/* SIMPLE_BUSINESS_DASHBOARD_V1 */
-(function simpleBusinessDashboard(){
+/* RESTORE_FIVE_SECTION_DASHBOARD_V1 */
+(function restoreFiveSectionDashboard(){
   const nav=document.getElementById('dashboardNav');
-  const businessButton=nav?.querySelector('[data-dashboard-tab="monthly"]');
-  if(!nav||!businessButton||window.__ncfSimpleBusinessDashboard)return;
-  window.__ncfSimpleBusinessDashboard=true;
+  if(!nav||window.__ncfFiveSectionDashboard)return;
+  window.__ncfFiveSectionDashboard=true;
 
-  businessButton.textContent='Business Dashboard';
-  if(typeof dashboardTabDescriptions!=='undefined')dashboardTabDescriptions.monthly='Business Dashboard: clicks, Tier 1 signup events, countries, marketing sources and earnings.';
-  businessButton.setAttribute('aria-label','Business Dashboard');
-  const businessPanel=document.querySelector('[data-nav-group="monthly"]');
-  if(businessPanel){
-    const heading=businessPanel.querySelector('h2');
-    if(heading)heading.textContent='Business performance';
-    const intro=businessPanel.querySelector('.note');
-    if(intro)intro.textContent='Your business at a glance for the selected period. Redirects are not unique visitors. Signup counts are matched postback events, not unique people. Chaturbate payouts are partner-reported and shown by currency. BongaCash figures are manual entries.';
+  const tabs=[
+    ['overview','Overview'],
+    ['traffic','Traffic Intelligence'],
+    ['investigation','Click Investigation'],
+    ['revenue','Revenue & Conversions'],
+    ['health','Tracking & System Health']
+  ];
+  nav.querySelectorAll('[data-dashboard-tab]').forEach(button=>button.remove());
+  for(const [key,label] of tabs){
+    const button=document.createElement('button');
+    button.className='button';button.type='button';button.setAttribute('role','tab');
+    button.setAttribute('aria-selected','false');button.dataset.dashboardTab=key;
+    button.textContent=label;nav.appendChild(button);
+    button.addEventListener('click',()=>{clearDashboardApiCache();setDashboardTab(key)});
   }
 
-  // Keep one simple business view and one consolidated home for detailed reports.
-  [...nav.querySelectorAll('[data-dashboard-tab]')].forEach(button=>{
-    if(button!==businessButton)button.remove();
+  const descriptions={
+    overview:'Overview: monthly business performance, room coverage, country preferences and category performance.',
+    traffic:'Traffic Intelligence: traffic quality, recorded sources, countries, devices and placements.',
+    investigation:'Click Investigation: inspect recent room-level redirects and their recorded attribution details.',
+    revenue:'Revenue & Conversions: compare campaigns, matched events, provider payouts and manual reconciliation.',
+    health:'Tracking & System Health: inspect provider attribution diagnostics and tracking status.'
+  };
+  const groups={
+    'Click summary':'overview','Additional overview metrics':'overview',
+    'Live room coverage':'overview','Country platform preferences':'overview',
+    'Best room categories by country':'overview','Platform performance':'overview',
+    'Weekly traffic quality':'traffic','Traffic quality since 10 November':'traffic',
+    'Click origins report':'traffic','Daily clicks by country':'traffic',
+    'Country × platform attribution':'traffic','Promo placement performance':'traffic',
+    'Recent room clicks':'investigation','Individual click trace':'investigation',
+    'Campaign performance':'revenue','Traffic-to-revenue performance':'revenue',
+    'Conversion & revenue performance':'revenue','Conversion funnel overview':'revenue',
+    'Chaturbate conversion events':'revenue','BongaCash daily reconciliation':'revenue',
+    'Provider attribution health':'health','Traffic channel signals':'health'
+  };
+  document.querySelectorAll('#dashboard .panel').forEach(panel=>{
+    const heading=panel.querySelector('h2');
+    if(!heading)return;
+    const group=groups[heading.textContent.trim()];
+    if(group)panel.dataset.navGroup=group;
   });
-  const advancedButton=document.createElement('button');
-  advancedButton.className='button';
-  advancedButton.type='button';
-  advancedButton.setAttribute('role','tab');
-  advancedButton.setAttribute('aria-selected','false');
-  advancedButton.dataset.dashboardTab='advanced';
-  advancedButton.textContent='Advanced Reports';
-  nav.appendChild(advancedButton);
+  // Keep the newer monthly business report, but place it inside Overview.
+  const monthlyPanel=document.querySelector('#dashboard [data-nav-group="monthly"]');
+  if(monthlyPanel)monthlyPanel.dataset.navGroup='overview';
+  if(typeof dashboardTabDescriptions!=='undefined'){
+    Object.assign(dashboardTabDescriptions,descriptions);
+    delete dashboardTabDescriptions.monthly;
+    delete dashboardTabDescriptions.clicks;
+    delete dashboardTabDescriptions.advanced;
+  }
 
-  const originalSetDashboardTab=setDashboardTab;
-  function showAdvanced(){
-    activeDashboardTab='advanced';
+  const nativeMonthlyLoader=loadDashboardTab;
+  const loaders={
+    overview:[loadRoomCoverage,load,loadRouteSettings,loadCountryCategoryAnalytics],
+    traffic:[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins],
+    investigation:[loadRecentRoomClicks,loadIndividualClickTrace],
+    revenue:[loadCampaignPerformance,loadTrafficRevenuePerformance,loadConversionRevenue,loadConversionFunnel],
+    health:[loadProviderAttributionHealth]
+  };
+  const loaded=new Set(),pending=new Map();
+  loadDashboardTab=async function(tab,force=false){
+    const key=tab+'|'+dashboardPeriodKey();
+    if(!force&&loaded.has(key))return;
+    if(pending.has(key))return pending.get(key);
+    const jobs=(loaders[tab]||[]).map(loader=>()=>loader());
+    if(tab==='overview'&&monthlyPanel)jobs.push(()=>nativeMonthlyLoader('monthly',force));
+    const task=Promise.allSettled(jobs.map(run=>run())).then(results=>{
+      loaded.add(key);
+      const failed=results.find(x=>x.status==='rejected');
+      if(failed)throw failed.reason;
+    }).finally(()=>pending.delete(key));
+    pending.set(key,task);return task;
+  };
+  setDashboardTab=function(tab){
+    if(!descriptions[tab])return;
+    activeDashboardTab=tab;
     document.querySelectorAll('#dashboard [data-nav-group]').forEach(panel=>{
-      const hidden=panel.dataset.navGroup==='monthly';
+      const hidden=panel.dataset.navGroup!==tab;
       panel.classList.toggle('nav-hidden',hidden);
       panel.setAttribute('aria-hidden',String(hidden));
     });
-    document.querySelectorAll('[data-dashboard-tab]').forEach(button=>{
-      const selected=button.dataset.dashboardTab==='advanced';
+    nav.querySelectorAll('[data-dashboard-tab]').forEach(button=>{
+      const selected=button.dataset.dashboardTab===tab;
       button.setAttribute('aria-selected',String(selected));
       button.classList.toggle('primary',selected);
     });
     const hint=document.getElementById('dashboardNavHint');
-    if(hint)hint.textContent='Advanced Reports: detailed traffic, country, campaign, conversion and tracking diagnostics.';
-    Promise.allSettled([loadDashboardTab('clicks',true),loadDashboardTab('advanced',true)]);
-  }
-  setDashboardTab=function(tab){
-    if(tab==='advanced'){showAdvanced();return;}
-    return originalSetDashboardTab(tab);
+    if(hint)hint.textContent=descriptions[tab];
+    if(!$('dashboard').classList.contains('hidden'))loadDashboardTab(tab);
   };
-  advancedButton.addEventListener('click',()=>{
-    if(typeof clearDashboardApiCache==='function')clearDashboardApiCache();
-    showAdvanced();
-  });
-
-  // The current-month business view remains the default landing tab after login.
-  setDashboardTab('monthly');
+  $('apply').addEventListener('click',()=>{loaded.clear();loadDashboardTab(activeDashboardTab,true)});
+  $('range').addEventListener('change',()=>{loaded.clear();loadDashboardTab(activeDashboardTab,true)});
+  setDashboardTab('overview');
 })();
