@@ -7,6 +7,7 @@
   window.__ncfSimpleBusinessDashboard=true;
 
   businessButton.textContent='Business Dashboard';
+  if(typeof dashboardTabDescriptions!=='undefined')dashboardTabDescriptions.monthly='Business Dashboard: clicks, Tier 1 signup events, countries, marketing sources and earnings.';
   businessButton.setAttribute('aria-label','Business Dashboard');
   const businessPanel=document.querySelector('[data-nav-group="monthly"]');
   if(businessPanel){
