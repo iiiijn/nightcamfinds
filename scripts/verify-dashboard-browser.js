@@ -144,10 +144,11 @@ function startServer() {
     for (const [name, value] of Object.entries(displayedMetrics)) {
       if (value !== "Unavailable") failures.push(name + " should display Unavailable, received " + value);
     }
-    // Date-range controls remain available inside the consolidated Advanced Reports view.
-    await page.locator('[data-dashboard-tab="advanced"]').click();
+    // The global date-range controls refresh the Business Dashboard. Advanced Reports
+    // intentionally has independent report loaders and does not use dashboard-stats.
+    await page.locator('[data-dashboard-tab="monthly"]').click();
     await page.waitForFunction(() =>
-      document.querySelector('[data-dashboard-tab="advanced"]')?.getAttribute("aria-selected") === "true");
+      document.querySelector('[data-dashboard-tab="monthly"]')?.getAttribute("aria-selected") === "true");
 
     for (const range of ["today", "7", "30", "all"]) {
       await page.locator("#from").fill("");
