@@ -199,7 +199,7 @@ test("viewer Chaturbate redirect uses placement-specific tracking, not the model
 
 test("Chaturbate broadcaster recruitment keeps the dedicated broadcast referral track", () => {
   const recruitment = readFileSync(new URL("../public/broadcast.html", import.meta.url), "utf8");
-  const match = recruitment.match(/<a\\b[^>]*data-ncf-referral-type="model"[^>]*data-ncf-platform="chaturbate"[^>]*href="([^"]+)"/i);
+  const match = recruitment.match(/<a\b[^>]*data-ncf-referral-type="model"[^>]*data-ncf-platform="chaturbate"[^>]*href="([^"]+)"/i);
 
   assert.ok(match, "broadcast page must expose a tagged Chaturbate model referral link");
   const recruitmentUrl = new URL(match[1].replace(/&amp;/g, "&"));
