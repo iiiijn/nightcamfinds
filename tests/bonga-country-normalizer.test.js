@@ -14,6 +14,7 @@ test("Bonga country normalization accepts only explicit country values in hometo
   assert.equal(normalizeBongaCountry({ hometown: "Nairobi, Kenya" }), "KE");
   assert.equal(normalizeBongaCountry({ hometown: "Moscow, Russia" }), "RU");
   assert.equal(normalizeBongaCountry({ hometown: "Germany" }), "DE");
+  assert.equal(normalizeBongaCountry({ hometown: "Nairobi, Kenya", country: "unknown" }), "KE");
 });
 
 test("Bonga country normalization does not guess from cities, languages, or arbitrary text", () => {

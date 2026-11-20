@@ -41,7 +41,7 @@ test("sitemap includes lastmod only when an explicit valid page modification dat
 test("server patch normalizes partner countries and regions for regional discovery",()=>{
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
  assert.match(patched,/getDiscoveryRegion\(\{country,partnerRegion:normalizeRegion/);
- assert.match(patched,/normalizeCountryCode\(room\.homecountry/);
+ assert.ok(patched.includes('const country=normalizeBongaCountry(room);'));
 });
 test("server patch preserves region and language discovery facets in the rooms API",()=>{
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
@@ -221,6 +221,10 @@ test("Chaturbate country fallback accepts only an explicit recognized country at
  assert.equal(resolveChaturbateCountry("GB","Paris, France"),"GB","a valid country field takes precedence");
  assert.equal(resolveChaturbateCountry("","London, United Kingdom"),"GB");
  assert.equal(resolveChaturbateCountry("","Paris, France"),"FR");
+ assert.equal(resolveChaturbateCountry("","Paris; France"),"FR");
+ assert.equal(resolveChaturbateCountry("","Paris | France"),"FR");
+ assert.equal(resolveChaturbateCountry("","Paris; Ile-de-France; France"),"FR");
+ assert.equal(resolveChaturbateCountry("","Paris, France | Europe"),"");
  assert.equal(resolveChaturbateCountry("","New York, NY, United States"),"US");
  assert.equal(resolveChaturbateCountry("","Berlin, DE"),"DE");
  assert.equal(resolveChaturbateCountry("","Kenya"),"KE");
@@ -237,6 +241,8 @@ test("country startup patch uses strict Chaturbate country fallback and remains 
  const patched=patchServerSource(source);
  assert.ok(patched.includes('resolveChaturbateCountry(room.country,room.location)'));
  assert.ok(patched.includes('const { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion'));
+ assert.ok(patched.includes('const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");'));
+ assert.ok(patched.includes('const country=normalizeBongaCountry(room);'));
  assert.equal(patchServerSource(patched),patched);
 });
 
