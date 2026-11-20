@@ -28,9 +28,9 @@ function buildQuery(filters = {}) {
     dateLinkedClick.push("acv.clicked_at < (($" + params.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
   }
 
-  const sourceFilter = "LOWER(COALESCE(source, '')) IN ('telegram','tg','t.me','telegram.me','telegram.org')";
+  const sourceFilter = "LOWER(COALESCE(ac_source.source, '')) IN ('telegram','tg','t.me','telegram.me','telegram.org')";
   const invalidCallback = invalidCallbackPredicate('cc');
-  const normalizedContent = "CASE WHEN LOWER(COALESCE(content, '')) ~ '^room-[^:]+:' THEN REGEXP_REPLACE(LOWER(content), '^room-[^:]+:', '') ELSE COALESCE(NULLIF(LOWER(content), ''), '') END";
+  const normalizedContent = "CASE WHEN LOWER(COALESCE(ac_source.content, '')) ~ '^room-[^:]+:' THEN REGEXP_REPLACE(LOWER(ac_source.content), '^room-[^:]+:', '') ELSE COALESCE(NULLIF(LOWER(ac_source.content), ''), '') END";
 
   const text = [
     'WITH click_groups AS (',
@@ -74,9 +74,9 @@ function buildQuery(filters = {}) {
     '         COALESCE(SUM(cc.payout), 0)::numeric AS reported_payout',
     '  FROM cb_conversions cc',
     '  JOIN LATERAL (',
-    "    SELECT country, source, medium, campaign, " + normalizedContent + " AS content FROM affiliate_clicks",
-    "    WHERE click_id = cc.click_id AND LOWER(platform) = 'chaturbate' AND COALESCE(is_owner_traffic, FALSE) IS FALSE AND " + sourceFilter + " AND LOWER(COALESCE(campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')",
-    '    ORDER BY clicked_at ASC, id ASC LIMIT 1',
+    "    SELECT ac_source.country, ac_source.source, ac_source.medium, ac_source.campaign, " + normalizedContent + " AS content FROM affiliate_clicks ac_source",
+    "    WHERE ac_source.click_id = cc.click_id AND LOWER(ac_source.platform) = 'chaturbate' AND COALESCE(ac_source.is_owner_traffic, FALSE) IS FALSE AND " + sourceFilter + " AND LOWER(COALESCE(ac_source.campaign, '')) NOT IN ('test_female_01', 'revshare_audit_01')",
+    '    ORDER BY ac_source.clicked_at ASC, ac_source.id ASC LIMIT 1',
     '  ) ac ON TRUE',
     '  WHERE cc.matched_click IS TRUE',
     "    AND LOWER(cc.conversion_type) IN ('tokens_signup-referral','tokens_broadcaster-referral','ppr_signup-referral','ppr_broadcaster-referral','revshare_signup-referral','revshare_broadcaster-referral','revshare_purchase','revshare_webmaster-commission','revshare_payout-adjustment')",
