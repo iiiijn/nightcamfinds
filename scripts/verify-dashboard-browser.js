@@ -99,7 +99,7 @@ function startServer() {
     if (!dashboardSource.includes("const conversionCount=regs===null||pur===null?null:regs+pur")) failures.push("Conversion count does not preserve unavailable inputs.");
     if (dashboardSource.includes("n(m.registrations||0)") || dashboardSource.includes("n(m.purchases||0)")) failures.push("BongaCash funnel still converts unavailable values to zero.");
 
-    const expectedTabs = ["monthly", "advanced"];
+    const expectedTabs = ["overview", "traffic", "investigation", "revenue", "health"];
     const visibleTabs = await page.locator("[data-dashboard-tab]").evaluateAll(nodes => nodes.map(node => node.dataset.dashboardTab));
     if (JSON.stringify(visibleTabs) !== JSON.stringify(expectedTabs)) failures.push("Expected only the two supported dashboard tabs; found " + visibleTabs.join(", "));
     for (const tab of expectedTabs) {
@@ -113,9 +113,7 @@ function startServer() {
         const selected = document.querySelector('[data-dashboard-tab="' + value + '"]');
         return selected?.getAttribute("aria-selected") === "true" &&
           [...document.querySelectorAll("[data-nav-group]")].every(panel => {
-            const shouldBeHidden = value === "advanced"
-              ? panel.dataset.navGroup === "monthly"
-              : panel.dataset.navGroup !== value;
+            const shouldBeHidden = panel.dataset.navGroup !== value;
             return panel.classList.contains("nav-hidden") === shouldBeHidden;
           });
       }, tab);
@@ -144,8 +142,7 @@ function startServer() {
     for (const [name, value] of Object.entries(displayedMetrics)) {
       if (value !== "Unavailable") failures.push(name + " should display Unavailable, received " + value);
     }
-    // The global date-range controls refresh the Business Dashboard. Advanced Reports
-    // intentionally has independent report loaders and does not use dashboard-stats.
+    // The global date-range controls refresh the active five-section dashboard panel.
     await page.locator('[data-dashboard-tab="overview"]').click();
     await page.waitForFunction(() =>
       document.querySelector('[data-dashboard-tab="overview"]')?.getAttribute("aria-selected") === "true");
