@@ -170,3 +170,13 @@ test("identifies unresolved Chaturbate macro parameter names without returning v
   assert.deepEqual(unresolvedChaturbateMacroFields({ type: "revshare_purchase", payout: "1.00" }), []);
   assert.equal(hasUnresolvedChaturbateMacros({ type: "revshare_purchase", payout: "1.00" }), false);
 });
+
+
+test("NightCamFinds earning page clearly separates Chaturbate referral paths and qualifies unverified rates", () => {
+  const page = require("node:fs").readFileSync(require("node:path").join(__dirname, "../public/earn.html"), "utf8");
+  for (const phrase of ["20% RevShare", "$1 Tier 1", "$0.10 Tier 2", "$0.01 Tier 3", "$50", "$20", "5% RevShare", "not been independently verified", "No earnings are guaranteed"]) {
+    assert.ok(page.includes(phrase), "earning page missing: " + phrase);
+  }
+  assert.ok(page.includes("tour=LQps&amp;campaign=C6yxN&amp;track=default&amp;room=masterteja"));
+  assert.ok(page.includes("/broadcast/"));
+});
