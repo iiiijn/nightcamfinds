@@ -87,13 +87,36 @@
     if (anchor) decorateAffiliateLink(anchor);
   }
 
+  function incomingCampaignKey() {
+    try {
+      const params = new URLSearchParams(root.location.search || '');
+      const values = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].map((key) =>
+        String(params.get(key) || '').trim().toLowerCase()
+      );
+      if (!values.some(Boolean)) return '';
+      return values.join('|').slice(0, 180);
+    } catch (_) {
+      return '';
+    }
+  }
+
   function getVisitId() {
-    if (validVisitId(cachedVisitId)) return cachedVisitId;
+    const campaignKey = incomingCampaignKey();
+    let previousCampaignKey = '';
+    try { previousCampaignKey = root.sessionStorage.getItem('ncf_visit_campaign_key') || ''; } catch (_) {}
+    const newCampaignEntry = Boolean(campaignKey && campaignKey !== previousCampaignKey);
+    if (newCampaignEntry) {
+      cachedVisitId = '';
+      cachedLandingPath = '';
+    }
+    if (validVisitId(cachedVisitId) && !newCampaignEntry) return cachedVisitId;
     let id = '';
-    try { id = root.sessionStorage.getItem('ncf_visit_id') || ''; } catch (_) {}
-    if (!validVisitId(id)) {
-      const cookieId = readCookie('ncf_visit_id');
-      if (validVisitId(cookieId)) id = cookieId;
+    if (!newCampaignEntry) {
+      try { id = root.sessionStorage.getItem('ncf_visit_id') || ''; } catch (_) {}
+      if (!validVisitId(id)) {
+        const cookieId = readCookie('ncf_visit_id');
+        if (validVisitId(cookieId)) id = cookieId;
+      }
     }
     if (!validVisitId(id)) {
       try {
@@ -105,9 +128,16 @@
       }
     }
     cachedVisitId = id;
-    try { root.sessionStorage.setItem('ncf_visit_id', id); } catch (_) {}
+    try {
+      root.sessionStorage.setItem('ncf_visit_id', id);
+      if (campaignKey) root.sessionStorage.setItem('ncf_visit_campaign_key', campaignKey);
+    } catch (_) {}
     // A session cookie bridges pages when sessionStorage is unavailable.
     writeCookie('ncf_visit_id', id);
+    if (newCampaignEntry) {
+      try { root.sessionStorage.setItem('ncf_landing_path', root.location.pathname || '/'); } catch (_) {}
+      writeCookie('ncf_landing_path', root.location.pathname || '/');
+    }
     return id;
   }
 
