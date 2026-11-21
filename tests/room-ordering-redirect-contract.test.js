@@ -33,3 +33,8 @@ test("affiliate destinations keep separate campaign and tracking parameters", ()
   assert.ok(serverSource.includes('destination.searchParams.set("c", BONGA_CAMPAIGN)'));
   assert.ok(serverSource.includes('destination.searchParams.set("models[]", username)'));
 });
+
+test("both provider normalizers mark fetched online rooms live and fresh for recommendation scoring", () => {
+  assert.match(serverSource, /function normalizeChaturbateRoom[\s\S]*?isLive:true,freshness:"FRESH"/);
+  assert.match(serverSource, /function normalizeBongaRoom[\s\S]*?isLive:true,freshness:"FRESH"/);
+});
