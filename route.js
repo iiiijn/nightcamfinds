@@ -8,7 +8,7 @@ const bongacash = require("./bongacash");
 const { isSameOriginRequest } = require("./src/services/country-settings-origin.cjs");
 const { validateCountryPlatformPayload } = require("./src/services/country-settings-validation.cjs");
 const { isValidIsoDate, validateDailyEntry } = require("./src/services/bongacash-reconciliation.cjs");
-const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRateLimiter } = require("./src/services/traffic-quality.cjs");
+const { classifyUserAgent, normalizeEvent, nairobiWeekBounds, createEngagementRateLimiter, VISIT_EVENTS } = require("./src/services/traffic-quality.cjs");
 const { classifySourceChannel, normalizeSpikeThreshold, classifyClickEvidence } = require("./src/services/traffic-reporting.cjs");
 const clickOrigins = require("./src/services/click-origins.cjs");
 const ownerTrafficCookie = require("./src/services/owner-traffic-cookie.cjs");
@@ -405,13 +405,15 @@ http.createServer = function routeDashboard(handler) {
           [event.visitId,country,cleanLabel(payload.platform,"unknown",30),cleanLabel(payload.source,"direct",40),cleanLabel(payload.medium,"unknown",80),cleanLabel(payload.campaign,"unknown",80),cleanLabel(payload.content,"",120),cleanLabel(payload.placement,"unknown",80),safeLandingPath,trafficClass]
         );
         const effectiveTrafficClass = visit.rows[0]?.traffic_class || trafficClass;
-        const saved = await pool.query(
+        // A page_view creates/refreshes the visit record but is not an engagement event.
+        // This avoids changing the database event constraint or inflating engagement metrics.
+        const saved = VISIT_EVENTS.has(event.eventType) ? { rowCount: 0 } : await pool.query(
           `INSERT INTO traffic_engagement_events (visit_id,event_type,page_path)
            SELECT $1,$2,$3 WHERE $4 = 'unverified'
            ON CONFLICT (visit_id,event_type,page_path) DO NOTHING RETURNING event_id`,
           [event.visitId,event.eventType,event.pagePath,effectiveTrafficClass]
         );
-        return sendJson(res, 202, { accepted: true, eligibleForEngagementMetrics: effectiveTrafficClass === "unverified", duplicate: saved.rowCount === 0, trafficClass: effectiveTrafficClass });
+        return sendJson(res, 202, { accepted: true, visitRecorded: true, visitEvent: VISIT_EVENTS.has(event.eventType), eligibleForEngagementMetrics: effectiveTrafficClass === "unverified" && !VISIT_EVENTS.has(event.eventType), duplicate: saved.rowCount === 0, trafficClass: effectiveTrafficClass });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic quality database migration 006 is not installed. No production migration has been applied." });
         console.error("Traffic engagement failed:", err.message);

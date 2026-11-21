@@ -149,6 +149,8 @@ function sendEngagement(eventType) {
     })
   }).catch(() => {});
 }
+// Record the landing visit immediately. Engagement remains a separate signal.
+sendEngagement("page_view");
 let activeTimer;
 function scheduleActiveEngagement() {
   clearTimeout(activeTimer);

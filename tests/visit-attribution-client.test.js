@@ -59,3 +59,12 @@ test('stored campaign attribution is bounded and cannot replace explicit affilia
   assert.match(helper, /campaign: String\(saved\.campaign \|\| ''\)\.slice\(0, 40\)/);
   assert.match(helper, /if \(attribution\[key\] && !target\.searchParams\.has\(key\) && !target\.searchParams\.has\('utm_' \+ key\)\)/);
 });
+
+
+test('country and promotional landing pages record page views immediately', () => {
+  const promo = fs.readFileSync(path.join(__dirname, '../public/promo.js'), 'utf8');
+  assert.match(country, /eventType: "page_view"/);
+  assert.match(country, /const sendEngagement = \(eventType\)/);
+  assert.match(promo, /recordEngagement\('page_view'\)/);
+  assert.match(promo, /function recordEngagement\(eventType/);
+});

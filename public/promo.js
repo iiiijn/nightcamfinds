@@ -108,6 +108,8 @@
       })
     }).catch(() => {});
   }
+  // Register the promotional landing visit immediately, without counting it as engagement.
+  recordEngagement('page_view');
   let engagementTimer;
   function scheduleEngagement() {
     clearTimeout(engagementTimer);
