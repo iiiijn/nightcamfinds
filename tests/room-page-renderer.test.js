@@ -19,8 +19,8 @@ test("server room cards use tracked redirects and escape feed content", () => {
   assert.match(html, /loading="lazy"/);
   assert.doesNotMatch(html, /javascript:alert/);
   assert.match(html, /rel="sponsored nofollow noopener"/);
-  assert.match(html, /Watch on Chaturbate/);
-  assert.match(html, /Watch on BongaCams/);
+  assert.match(html, /Open live room on Chaturbate/);
+  assert.match(html, /Open live room on BongaCams/);
 });
 
 test("server room cards escape untrusted text", () => {

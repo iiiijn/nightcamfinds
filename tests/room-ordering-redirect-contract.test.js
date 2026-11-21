@@ -33,3 +33,4 @@ test("affiliate destinations keep separate campaign and tracking parameters", ()
   assert.ok(serverSource.includes('destination.searchParams.set("c", BONGA_CAMPAIGN)'));
   assert.ok(serverSource.includes('destination.searchParams.set("models[]", username)'));
 });
+

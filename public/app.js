@@ -258,7 +258,7 @@ function card(room) {
   subject.textContent = room.roomSubject || "Live room";
   const cta = document.createElement("span");
   cta.className = "btn";
-  cta.textContent = isBonga ? "Watch on BongaCams" : "Watch on Chaturbate";
+  cta.textContent = isBonga ? "Open live room on BongaCams" : "Open live room on Chaturbate";
   meta.append(badges, identity, subject, stats, cta);
   a.append(img, meta);
   return a;

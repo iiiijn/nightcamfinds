@@ -106,7 +106,7 @@ const roomFeed = {
         const heroCategoryLinks = [...document.querySelectorAll(".hero-categories a")];
         const categoryCards = [...document.querySelectorAll("#grid .card, #category-rows .card")];
         const watchActions = [...document.querySelectorAll("#grid .card .btn, #category-rows .card .btn")]
-          .filter(element => /Watch on (Chaturbate|BongaCams)/.test(element.textContent));
+          .filter(element => /Open live room on (Chaturbate|BongaCams)/.test(element.textContent));
         const rect = element => {
           if (!element) return null;
           const r = element.getBoundingClientRect();
@@ -180,7 +180,7 @@ const roomFeed = {
       if (viewport.width <= 640 && result.shortcutsScrollWidth > result.shortcutsClientWidth && result.shortcutsRect?.height <= 0) failures.push(viewport.name + ": country shortcuts are horizontally clipped without a visible row");
       
       if (result.categoryCardCount < 2 || result.watchActionCount < 2 || !result.categoryCardsVisible) {
-        failures.push(viewport.name + ": mock room cards or Watch actions did not render visibly");
+        failures.push(viewport.name + ": mock room cards or room actions did not render visibly");
       }
       console.log(JSON.stringify({ viewport: viewport.name, ...result }));
       await page.screenshot({ path: "responsive-" + viewport.name + ".png", fullPage: true });

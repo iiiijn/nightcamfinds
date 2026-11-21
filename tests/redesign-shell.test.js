@@ -54,10 +54,10 @@ test("room cards retain platform-specific buttons and internal redirect paths", 
   const app = read("public/app.js");
   const renderer = read("src/services/room-page-renderer.cjs");
   assert.match(app, /const redirect = isBonga \? "\/bgo\/" : "\/go\/"/);
-  assert.match(app, /Watch on BongaCams/);
-  assert.match(app, /Watch on Chaturbate/);
+  assert.match(app, /Open live room on BongaCams/);
+  assert.match(app, /Open live room on Chaturbate/);
   assert.match(renderer, /platform bongacams/);
-  assert.match(renderer, /Watch on BongaCams/);
+  assert.match(renderer, /const action = `Open live room on \$\{platformLabel\}`/);
   assert.doesNotMatch(renderer, /href="\\\$\{escapeHtml\(href\)\}"/);
   assert.match(renderer, /platform chaturbate/);
 });
