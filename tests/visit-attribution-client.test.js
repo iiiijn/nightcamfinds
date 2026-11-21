@@ -42,3 +42,20 @@ test('redirect handler validates and persists the visit ID supplied by directory
 test('privacy notice discloses the temporary analytics session cookie', () => {
   assert.match(server, /temporary first-party session cookie containing a random visit identifier/);
 });
+
+
+test('shared affiliate-link decorator carries stored X campaign attribution with visit identity', () => {
+  assert.match(helper, /function readAttribution\(\)/);
+  assert.match(helper, /localStorage\.getItem\('ncf_attribution'\)/);
+  assert.match(helper, /savedAt.*30 \* 24 \* 60 \* 60 \* 1000/);
+  assert.match(helper, /target\.searchParams\.set\('vid', visitId\)/);
+  assert.match(helper, /target\.searchParams\.set\('lp', getLandingPath\(root\.location\.pathname\)\)/);
+  assert.match(helper, /target\.searchParams\.set\(key, attribution\[key\]\)/);
+  assert.match(helper, /!target\.searchParams\.has\(key\) && !target\.searchParams\.has\('utm_' \+ key\)/);
+});
+
+test('stored campaign attribution is bounded and cannot replace explicit affiliate-link tags', () => {
+  assert.match(helper, /source: String\(saved\.source \|\| ''\)\.slice\(0, 30\)/);
+  assert.match(helper, /campaign: String\(saved\.campaign \|\| ''\)\.slice\(0, 40\)/);
+  assert.match(helper, /if \(attribution\[key\] && !target\.searchParams\.has\(key\) && !target\.searchParams\.has\('utm_' \+ key\)\)/);
+});

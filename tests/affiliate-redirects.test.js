@@ -116,10 +116,13 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   await waitForServer(baseUrl, child);
 
   const chaturbateResponse = await fetch(
-    `${baseUrl}/go/testmodel?utm_source=redirect-test&utm_medium=unit-test&utm_campaign=cb-check&src=cb-test-card&cat=female`,
+    `${baseUrl}/go/testmodel?utm_source=redirect-test&utm_medium=unit-test&utm_campaign=cb-check&src=cb-test-card&cat=female&vid=0123456789abcdef0123456789abcdef&lp=%2Ffemale%2F`,
     { redirect: "manual", headers: { "cf-ipcountry": "US", "user-agent": "NightCamFinds redirect test" } }
   );
   assert.equal(chaturbateResponse.status, 302, `Chaturbate redirect returned ${chaturbateResponse.status}: ${await chaturbateResponse.text()}\\nstdout: ${child.testStdout}\\nstderr: ${child.testStderr}`);
+  const redirectCookies = chaturbateResponse.headers.getSetCookie ? chaturbateResponse.headers.getSetCookie() : [chaturbateResponse.headers.get("set-cookie") || ""];
+  assert.ok(redirectCookies.some(cookie => cookie.startsWith("ncf_visit_id=0123456789abcdef0123456789abcdef")), "redirect should persist the browser visit ID");
+  assert.ok(redirectCookies.some(cookie => cookie.startsWith("ncf_landing_path=%2Ffemale%2F")), "redirect should persist the original landing path");
   const chaturbateTarget = new URL(chaturbateResponse.headers.get("location"));
   assert.equal(chaturbateTarget.hostname, "chaturbate.com");
   assert.equal(chaturbateTarget.pathname, "/in/");
