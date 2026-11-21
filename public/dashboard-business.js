@@ -20,6 +20,10 @@
     button.textContent=label;nav.appendChild(button);
     button.addEventListener('click',()=>{clearDashboardApiCache();setDashboardTab(key)});
   }
+  const telegramLink=document.createElement('a');
+  telegramLink.className='button';telegramLink.href='/telegram-campaigns.html';
+  telegramLink.textContent='Telegram Campaigns';telegramLink.setAttribute('aria-label','Open Telegram campaign attribution report');
+  nav.appendChild(telegramLink);
 
   const descriptions={
     overview:'Overview: monthly business performance, room coverage, country preferences and category performance.',

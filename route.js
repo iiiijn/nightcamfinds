@@ -18,6 +18,7 @@ const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const { invalidCallbackPredicate } = require("./src/services/callback-integrity.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
+const telegramCampaignPerformance = require("./src/services/telegram-campaign-performance.cjs");
 const { cleanRoomTitle, filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const { isIso3166Alpha2 } = require("./src/services/iso-country-codes.cjs");
 const allowEngagement = createEngagementRateLimiter();
@@ -675,6 +676,46 @@ http.createServer = function routeDashboard(handler) {
         return sendJson(res, 500, { error: "Could not load traffic-to-revenue performance." });
       }
     }
+    if (incoming.pathname === "/api/telegram-campaign-performance") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const query = telegramCampaignPerformance.buildQuery(Object.fromEntries(incoming.searchParams.entries()));
+      if (query.error) return sendJson(res, 400, { error: query.error });
+      try {
+        const result = await pool.query(query.text, query.params);
+        const rows = result.rows.filter(row => classifySourceChannel(row.source, "url_parameter") === "social_telegram");
+        return sendJson(res, 200, {
+          rows: rows.map(row => ({
+            country: row.country,
+            source: row.source,
+            sourceChannel: "social_telegram",
+            medium: row.medium,
+            campaign: row.campaign,
+            content: row.content,
+            clicks: Number(row.clicks || 0),
+            chaturbateClicks: Number(row.chaturbate_clicks || 0),
+            bongacamsClicks: Number(row.bongacams_clicks || 0),
+            knownBotClicks: Number(row.known_bot_clicks || 0),
+            suspectedBotClicks: Number(row.suspected_bot_clicks || 0),
+            unclassifiedClicks: Number(row.unclassified_clicks || 0),
+            visits: Number(row.visits || 0),
+            engagedVisits: Number(row.engaged_visits || 0),
+            visitsWithAffiliateClick: Number(row.visits_with_affiliate_click || 0),
+            matchedConversions: Number(row.matched_conversions || 0),
+            reportedPayoutsByCurrency: row.reported_payouts_by_currency || {}
+          })),
+          filters: query.filters,
+          truncated: result.rows.length === 2000,
+          timezone: "UTC",
+          note: "Telegram rows are grouped by country, campaign and UTM content label. Redirects are separated by Chaturbate and BongaCams. Visit totals are grouped at the campaign-content level, not assigned to an individual platform. Known bots, suspected bots and unclassified clicks are separate. UTM labels are self-reported. Only matched Chaturbate postbacks produce conversion and payout attribution. BongaCash revenue remains manual and is not automatically attributable to a Telegram group."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Telegram campaign reporting requires the existing affiliate click, traffic visit and Chaturbate conversion tables." });
+        console.error("Telegram campaign performance failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load Telegram campaign performance." });
+      }
+    }
     if (incoming.pathname === "/api/conversion-revenue") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
       if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
@@ -820,6 +861,15 @@ http.createServer = function routeDashboard(handler) {
         databaseConfigured: Boolean(databaseUrl),
         timestamp: new Date().toISOString()
       });
+    }
+    if (incoming.pathname === "/telegram-campaigns.html") {
+      if (!validDashboardSession(req)) {
+        res.writeHead(302, { "Location": "/dashboard", "Cache-Control": "no-store" });
+        return res.end();
+      }
+      const html = fs.readFileSync(path.join(__dirname, "public", "telegram-campaigns.html"), "utf8");
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+      return res.end(html);
     }
     if (incoming.pathname === "/dashboard" || incoming.pathname === "/dashboard/") {
       const html = fs.readFileSync(path.join(__dirname, "public", "dashboard.html"), "utf8");
