@@ -65,3 +65,15 @@ test('organic landing-page dashboard script passes Node syntax validation', () =
   const script = path.join(__dirname, '../public/organic-landing-revenue.js');
   assert.doesNotThrow(() => execFileSync(process.execPath, ['--check', script], { stdio: 'pipe' }));
 });
+
+\ntest('organic landing-page dashboard exposes separate X campaign summaries and a scrollable detail table', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const script = fs.readFileSync(path.join(__dirname, '../public/organic-landing-revenue.js'), 'utf8');
+  assert.match(script, /x_female_models/);
+  assert.match(script, /x_male_models/);
+  assert.match(script, /X campaign performance/);
+  assert.match(script, /organic-table-scroll/);
+  assert.match(script, /Affiliate redirects/);
+  assert.match(script, /Countries:/);
+});
