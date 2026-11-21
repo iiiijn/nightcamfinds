@@ -11,7 +11,7 @@ const rooms = [
 
 test("recommended ranking combines activity with usable room information", () => {
   const result = rankRoomsByPreferredPlatform(rooms);
-  assert.equal(result[0].username, "cb-high");
+  assert.equal(result[0].username, "bonga-high");
   assert.equal(result.length, rooms.length);
   assert.deepEqual(new Set(result.map(room => room.platform)), new Set(["chaturbate", "bongacams"]));
 });
