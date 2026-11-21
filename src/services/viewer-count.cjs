@@ -5,9 +5,9 @@ function parseViewerCount(value) {
     return Number.isFinite(value) && value >= 0 ? Math.floor(value) : null;
   }
   if (typeof value !== "string") return null;
-  const normalized = value.trim().replace(/,/g, "");
-  if (!/^\d+(?:\.\d+)?$/.test(normalized)) return null;
-  const parsed = Number(normalized);
+  const normalized = value.trim();
+  if (!/^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(normalized)) return null;
+  const parsed = Number(normalized.replace(/,/g, ""));
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
 }
 
