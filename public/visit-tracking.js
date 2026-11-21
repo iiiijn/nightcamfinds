@@ -36,6 +36,21 @@
     }
   }
 
+  function readAttribution() {
+    try {
+      const saved = JSON.parse(root.localStorage.getItem('ncf_attribution') || '{}');
+      if (!saved || typeof saved !== 'object' || Number(saved.savedAt || 0) <= Date.now() - 30 * 24 * 60 * 60 * 1000) return {};
+      return {
+        source: String(saved.source || '').slice(0, 30),
+        medium: String(saved.medium || '').slice(0, 30),
+        campaign: String(saved.campaign || '').slice(0, 40),
+        content: String(saved.content || '').slice(0, 40)
+      };
+    } catch (_) {
+      return {};
+    }
+  }
+
   function decorateAffiliateLink(anchor) {
     if (!isAffiliateLink(anchor)) return false;
     const visitId = getVisitId();
@@ -45,6 +60,12 @@
       const target = new URL(rawHref || anchor.href, root.location.href);
       target.searchParams.set('vid', visitId);
       target.searchParams.set('lp', getLandingPath(root.location.pathname));
+      const attribution = readAttribution();
+      for (const key of ['source', 'medium', 'campaign', 'content']) {
+        if (attribution[key] && !target.searchParams.has(key) && !target.searchParams.has('utm_' + key)) {
+          target.searchParams.set(key, attribution[key]);
+        }
+      }
       anchor.href = target.pathname + target.search + target.hash;
       return true;
     } catch (_) {
