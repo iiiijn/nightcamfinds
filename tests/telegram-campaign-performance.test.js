@@ -21,6 +21,8 @@ test('aggregates Telegram campaign clicks, visits and matched revenue by content
   assert.match(built.text, /known_bot_clicks/);
   assert.match(built.text, /suspected_bot_clicks/);
   assert.match(built.text, /unclassified_clicks/);
+  assert.match(built.text, /suspected_bot_clicks[^\\n]*WHERE \\(ac\\.bot_reason = 'suspected_automation_user_agent' OR tv\\.traffic_class = 'suspected_bot'\\) AND NOT \\(ac\\.is_bot IS TRUE OR ac\\.bot_reason = 'known_bot_user_agent' OR tv\\.traffic_class = 'known_bot'\\)/);
+  assert.match(built.text, /unclassified_clicks[^\\n]*WHERE NOT \\(ac\\.is_bot IS TRUE OR ac\\.bot_reason = 'known_bot_user_agent' OR tv\\.traffic_class = 'known_bot'\\) AND NOT \\(ac\\.bot_reason = 'suspected_automation_user_agent' OR tv\\.traffic_class = 'suspected_bot'\\) AND tv\\.visit_id IS NULL/);
   assert.match(built.text, /matched_conversions/);
   assert.match(built.text, /reported_payouts_by_currency/);
   assert.match(built.text, /FULL OUTER JOIN visit_groups/);
