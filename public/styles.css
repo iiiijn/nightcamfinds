@@ -1258,21 +1258,3 @@ footer span { flex: 1 1 100%; }
 .cb-category-promo{width:100%;}
 .cb-category-links{grid-template-columns:repeat(4,minmax(0,1fr));}
 .cb-category-link{overflow-wrap:anywhere;}
-
-
-/* A1.3.1: final responsive room-grid column contract after legacy layout overrides. */
-@media (min-width: 981px) {
-  .directory-main .grid,
-  .directory-main .home-group .grid,
-  #category-rows .category-row {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-@media (max-width: 640px) {
-  .directory-main .grid,
-  .directory-main .home-group .grid,
-  #category-rows .category-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
