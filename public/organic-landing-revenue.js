@@ -24,6 +24,20 @@
     '<p class="note">Date basis: affiliate click date, visit first-seen date and Chaturbate callback received date, all in UTC. Older records without landing-path or visit linkage cannot be reconstructed. Known bots, suspected bots, unverified-not-flagged and unclassified clicks are displayed separately.</p>';
   nav.insertAdjacentElement('afterend', panel);
 
+  const responsiveStyle = document.createElement('style');
+  responsiveStyle.textContent = [
+    '[data-nav-group="organic"] .organic-campaign-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:12px 0 20px}',
+    '[data-nav-group="organic"] .organic-campaign-card{background:#100e14;border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}',
+    '[data-nav-group="organic"] .organic-campaign-card h3{font-size:14px;margin:0 0 8px;overflow-wrap:anywhere}',
+    '[data-nav-group="organic"] .organic-campaign-card strong{font-size:23px;display:block;margin:4px 0}',
+    '[data-nav-group="organic"] .organic-table-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;border:1px solid var(--line);border-radius:10px}',
+    '[data-nav-group="organic"] .organic-table-scroll .table{min-width:1180px;margin:0}',
+    '[data-nav-group="organic"] .organic-table-scroll th:first-child,[data-nav-group="organic"] .organic-table-scroll td:first-child{position:sticky;left:0;background:var(--panel);z-index:1}',
+    '[data-nav-group="organic"] .organic-scroll-hint{margin:8px 0;color:var(--muted);font-size:12px}',
+    '@media(max-width:760px){[data-nav-group="organic"] .organic-campaign-grid{grid-template-columns:1fr}[data-nav-group="organic"] .organic-table-scroll .table{min-width:1180px}}'
+  ].join('');
+  panel.append(responsiveStyle);
+
   const previousSetDashboardTab = setDashboardTab;
   const previousLoadDashboardTab = loadDashboardTab;
   dashboardTabDescriptions.organic = 'Organic Landing Pages: compare landing pages by tracked visits, affiliate redirects and matched Chaturbate payouts.';
@@ -60,15 +74,50 @@
       ['Matched Chaturbate conversions', totals.conversions]
     ].map(([label, value]) => '<div class="stat"><small>' + esc(label) + '</small><strong>' + formatNumber(value) + '</strong></div>').join('');
 
+    const campaignGroups = new Map();
+    for (const row of rows) {
+      const source = String(row.source || 'unknown').toLowerCase();
+      const campaign = String(row.campaign || 'unknown').toLowerCase();
+      const key = source + '/' + campaign;
+      if (!campaignGroups.has(key)) campaignGroups.set(key, {
+        source, campaign, clicks: 0, visits: 0, conversions: 0,
+        countries: new Set(), platforms: new Set()
+      });
+      const group = campaignGroups.get(key);
+      group.clicks += Number(row.clicks || 0);
+      group.visits += Number(row.visits || 0);
+      group.conversions += Number(row.matchedConversions || 0);
+      if (row.country && row.country !== 'UNKNOWN') group.countries.add(String(row.country));
+      if (row.platform && row.platform !== 'unknown') group.platforms.add(String(row.platform));
+    }
+    const xCampaigns = ['x_female_models', 'x_male_models'];
+    const xCards = xCampaigns.map(name => {
+      const group = campaignGroups.get('x/' + name);
+      return '<article class="organic-campaign-card"><h3>' + esc(name === 'x_female_models' ? 'Female X account' : 'Male X account') + '</h3>' +
+        '<strong>' + formatNumber(group ? group.clicks : 0) + '</strong><span class="hint">Affiliate redirects</span>' +
+        '<p class="note">Visits: ' + formatNumber(group ? group.visits : 0) +
+        ' · Conversions: ' + formatNumber(group ? group.conversions : 0) +
+        '<br>Countries: ' + esc(group ? [...group.countries].sort().join(', ') || 'Not recorded' : 'No campaign rows') +
+        '<br>Platforms: ' + esc(group ? [...group.platforms].sort().join(', ') || 'Not recorded' : 'No campaign rows') + '</p></article>';
+    }).join('');
+    const otherCampaigns = [...campaignGroups.values()]
+      .filter(group => group.source !== 'x' || !xCampaigns.includes(group.campaign))
+      .sort((a,b) => b.clicks - a.clicks)
+      .slice(0, 8)
+      .map(group => '<article class="organic-campaign-card"><h3>' + esc(group.source + ' / ' + group.campaign) + '</h3><strong>' +
+        formatNumber(group.clicks) + '</strong><span class="hint">Affiliate redirects</span><p class="note">Visits: ' +
+        formatNumber(group.visits) + ' · Conversions: ' + formatNumber(group.conversions) + '</p></article>').join('');
+    const campaignPanel = '<h3> X campaign performance</h3><p class="note">These totals are grouped by the recorded source and campaign tags. Redirects are not confirmed signups or revenue.</p><div class="organic-campaign-grid">' +
+      xCards + otherCampaigns + '</div>';
     const payoutText = Object.entries(payouts).sort((a,b) => a[0].localeCompare(b[0]))
       .map(([currency, amount]) => esc(currency) + ' ' + amount.toFixed(2)).join(' · ') || 'No matched payouts';
     const sorted = [...rows].sort((a,b) => Number(b.matchedConversions || 0) - Number(a.matchedConversions || 0) || Number(b.clicks || 0) - Number(a.clicks || 0));
     document.getElementById('organicLandingTable').innerHTML = sorted.length
-      ? '<p class="note">Matched payouts across the selected report window: ' + payoutText + '</p><table class="table"><thead><tr><th>Landing page</th><th>Country</th><th>Platform</th><th>Source / campaign</th><th>Visits</th><th>Engaged</th><th>Redirects</th><th>Known bots</th><th>Suspected</th><th>Unverified</th><th>Unclassified</th><th>Matched conversions</th><th>Reported payout</th></tr></thead><tbody>' +
+      ? campaignPanel + '<p class="note">Matched payouts across the selected report window: ' + payoutText + '</p><p class="organic-scroll-hint">The detailed table scrolls horizontally. On a phone, swipe left or right inside the table to see every column.</p><div class="organic-table-scroll" role="region" aria-label="Detailed organic landing-page report" tabindex="0"><table class="table"><thead><tr><th>Landing page</th><th>Country</th><th>Platform</th><th>Source / campaign</th><th>Visits</th><th>Engaged</th><th>Redirects</th><th>Known bots</th><th>Suspected</th><th>Unverified</th><th>Unclassified</th><th>Matched conversions</th><th>Reported payout</th></tr></thead><tbody>' +
         sorted.map(row => {
           const amounts = Object.entries(row.reportedPayoutsByCurrency || {}).sort((a,b) => a[0].localeCompare(b[0])).map(([currency, amount]) => esc(currency) + ' ' + Number(amount || 0).toFixed(2)).join('<br>') || '—';
           return '<tr><td>' + esc(row.landingPath || 'unknown') + '</td><td>' + esc(row.country || 'UNKNOWN') + '</td><td>' + esc(row.platform || 'unknown') + '</td><td>' + esc((row.source || 'unknown') + ' / ' + (row.campaign || 'unknown')) + '</td><td>' + formatNumber(row.visits) + '</td><td>' + formatNumber(row.engagedVisits) + '</td><td>' + formatNumber(row.clicks) + '</td><td>' + formatNumber(row.knownBotClicks) + '</td><td>' + formatNumber(row.suspectedBotClicks) + '</td><td>' + formatNumber(row.unverifiedNotFlaggedClicks) + '</td><td>' + formatNumber(row.unclassifiedClicks) + '</td><td>' + formatNumber(row.matchedConversions) + '</td><td>' + amounts + '</td></tr>';
-        }).join('') + '</tbody></table>'
+        }).join('') + '</tbody></table></div>'
       : '<p class="hint">No landing-page activity found for this date range. This can also mean older records do not have usable landing-path attribution.</p>';
   }
 
