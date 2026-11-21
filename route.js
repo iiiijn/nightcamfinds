@@ -863,6 +863,15 @@ http.createServer = function routeDashboard(handler) {
         timestamp: new Date().toISOString()
       });
     }
+    if (incoming.pathname === "/telegram-campaigns.html") {
+      if (!validDashboardSession(req)) {
+        res.writeHead(302, { "Location": "/dashboard", "Cache-Control": "no-store" });
+        return res.end();
+      }
+      const html = fs.readFileSync(path.join(__dirname, "public", "telegram-campaigns.html"), "utf8");
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+      return res.end(html);
+    }
     if (incoming.pathname === "/dashboard" || incoming.pathname === "/dashboard/") {
       const html = fs.readFileSync(path.join(__dirname, "public", "dashboard.html"), "utf8");
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
