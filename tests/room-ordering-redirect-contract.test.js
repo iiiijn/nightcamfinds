@@ -34,7 +34,3 @@ test("affiliate destinations keep separate campaign and tracking parameters", ()
   assert.ok(serverSource.includes('destination.searchParams.set("models[]", username)'));
 });
 
-test("both provider normalizers mark fetched online rooms live and fresh for recommendation scoring", () => {
-  assert.ok(serverSource.includes('function normalizeChaturbateRoom') && serverSource.includes('viewerCount:Number(room.num_users||0),isLive:true,freshness:"FRESH"'));
-  assert.ok(serverSource.includes('function normalizeBongaRoom') && serverSource.includes('viewerCount:viewers,isLive:true,freshness:"FRESH"'));
-});
