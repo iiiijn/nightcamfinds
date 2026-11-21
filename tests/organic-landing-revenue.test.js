@@ -58,3 +58,10 @@ test('route keeps organic landing report private and separates reported payout f
   assert.match(endpoint, /reportedPayoutsByCurrency/);
   assert.match(endpoint, /provider-reported, not verified cash received/);
 });
+
+test('organic landing-page dashboard script passes Node syntax validation', () => {
+  const { execFileSync } = require('node:child_process');
+  const path = require('node:path');
+  const script = path.join(__dirname, '../public/organic-landing-revenue.js');
+  assert.doesNotThrow(() => execFileSync(process.execPath, ['--check', script], { stdio: 'pipe' }));
+});
