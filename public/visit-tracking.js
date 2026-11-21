@@ -104,6 +104,7 @@
     const campaignKey = incomingCampaignKey();
     let previousCampaignKey = '';
     try { previousCampaignKey = root.sessionStorage.getItem('ncf_visit_campaign_key') || ''; } catch (_) {}
+    if (!previousCampaignKey) previousCampaignKey = readCookie('ncf_visit_campaign_key');
     const newCampaignEntry = Boolean(campaignKey && campaignKey !== previousCampaignKey);
     if (newCampaignEntry) {
       cachedVisitId = '';
@@ -132,8 +133,9 @@
       root.sessionStorage.setItem('ncf_visit_id', id);
       if (campaignKey) root.sessionStorage.setItem('ncf_visit_campaign_key', campaignKey);
     } catch (_) {}
-    // A session cookie bridges pages when sessionStorage is unavailable.
+    // First-party session cookies bridge browsers where sessionStorage is unavailable.
     writeCookie('ncf_visit_id', id);
+    if (campaignKey) writeCookie('ncf_visit_campaign_key', campaignKey);
     if (newCampaignEntry) {
       try { root.sessionStorage.setItem('ncf_landing_path', root.location.pathname || '/'); } catch (_) {}
       writeCookie('ncf_landing_path', root.location.pathname || '/');

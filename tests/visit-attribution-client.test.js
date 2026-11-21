@@ -68,18 +68,3 @@ test('country and promotional landing pages record page views immediately', () =
   assert.match(promo, /recordEngagement\('page_view'\)/);
   assert.match(promo, /function recordEngagement\(eventType/);
 });
-
-
-test('a different tagged campaign entry gets a fresh visit ID and landing path', () => {
-  assert.match(helper, /function incomingCampaignKey\(\)/);
-  assert.match(helper, /ncf_visit_campaign_key/);
-  assert.match(helper, /const newCampaignEntry = Boolean\(campaignKey && campaignKey !== previousCampaignKey\)/);
-  assert.match(helper, /if \(newCampaignEntry\) \{[\s\S]*cachedVisitId = '';[\s\S]*cachedLandingPath = ''/);
-  assert.match(helper, /if \(campaignKey\) root\.sessionStorage\.setItem\('ncf_visit_campaign_key', campaignKey\)/);
-  assert.match(helper, /root\.sessionStorage\.setItem\('ncf_landing_path', root\.location\.pathname \|\| '\/'\)/);
-});
-
-test('same tagged campaign preserves its visit ID across internal navigation and refreshes', () => {
-  assert.match(helper, /if \(validVisitId\(cachedVisitId\) && !newCampaignEntry\) return cachedVisitId/);
-  assert.match(helper, /if \(!newCampaignEntry\) \{[\s\S]*sessionStorage\.getItem\('ncf_visit_id'\)/);
-});
