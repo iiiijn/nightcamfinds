@@ -49,7 +49,7 @@ test("all room categories receive regional top-room groups from the filtered fee
   assert.match(server, /buildRegionalRoomGroups\(list,sort,8\)/);
   assert.match(server, /regionalRooms,topChaturbateByCategory,topBongaByCategory,liveCount:list\.length/);
   assert.match(app, /renderRegionalSections\(data\.regionalRooms/);
-  assert.match(app, /category !== "all" && \["live","female","male","trans","couples","hd","new","popular"\]\.includes\(category\)/);
+  assert.match(app, /\["all","live","female","male","trans","couples","hd","new","popular"\]\.includes\(category\)/);
 });
 
 test("region and language selectors are backed by server-side filtering and options", () => {
