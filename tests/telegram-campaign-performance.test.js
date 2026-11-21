@@ -73,6 +73,17 @@ test('authenticated route exposes Telegram-only content, platform split and payo
   assert.match(endpoint, /reportedPayoutsByCurrency/);
 });
 
+test('Telegram report HTML is protected by the dashboard session', () => {
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  const start = route.indexOf('if (incoming.pathname === "/telegram-campaigns.html")');
+  const end = route.indexOf('if (incoming.pathname === "/dashboard"', start);
+  const pageRoute = route.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.match(pageRoute, /validDashboardSession\(req\)/);
+  assert.match(pageRoute, /Location": "\/dashboard"/);
+  assert.match(pageRoute, /Cache-Control": "no-store"/);
+});
+
 test('promo affiliate redirects preserve the supplied UTM content group label', () => {
   const promo = fs.readFileSync(path.join(__dirname, '../public/promo.js'), 'utf8');
   const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
