@@ -139,7 +139,7 @@ const roomFeed = {
           regionFilter: !!document.querySelector("#region"),
           homepageHeadlineVisible: (() => { const el=document.querySelector(".directory-section .section-heading h2"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0; })(),
           recruitmentBannerVisible: (() => { const el=document.querySelector(".broadcaster-sidebar"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0 && !!el.querySelector(".creator-banner-art img") && !!el.querySelector(".creator-primary-cta[href=\"/broadcast/\"][data-ncf-path=\"model\"]") && !!el.querySelector(".creator-benefits li") && !el.querySelector('a[href="/broadcast/#platform-chaturbate"], a[href="/broadcast/#platform-bongacams"]'); })(),
-          directoryColumnCount: grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").length : 0,
+          directoryColumnCount: (() => { const visibleGrid = grid && grid.getBoundingClientRect().width > 0 ? grid : categoryCards[0]?.parentElement; return visibleGrid ? getComputedStyle(visibleGrid).gridTemplateColumns.split(" ").length : 0; })(),
           headerControlsInsideViewport: [...document.querySelectorAll(".topbar .logo, .topbar #q, .topbar #country, .topbar .quick-exit")].every(el => { const r=el.getBoundingClientRect(); return r.width>0 && r.left>=-1 && r.right<=window.innerWidth+1; }),
           countryHintRemoved: !document.querySelector("#country-hint, #quick"),
           modelFlagsVisible: [...document.querySelectorAll("#grid .model-country-flag, #category-rows .model-country-flag")].length > 0,
