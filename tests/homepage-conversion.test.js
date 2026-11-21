@@ -14,7 +14,8 @@ test('homepage presents live discovery first with separate viewer and adult-crea
   assert.ok(homepage.includes('href="#category-rows" data-ncf-path="viewer"'));
   assert.ok(homepage.includes('href="/broadcast/" data-ncf-path="model"'));
   assert.ok(homepage.includes('Browse live rooms'));
-  assert.ok(homepage.includes('Become a broadcaster'));
+  assert.ok(homepage.includes('Become a Model'));
+  assert.ok(homepage.includes('href="/broadcast/" data-ncf-path="model" data-ncf-placement="home-top-cta"'));
   assert.ok(!homepage.includes('<section class="hero" aria-label="Choose how to use NightCamFinds">'));
 });
 

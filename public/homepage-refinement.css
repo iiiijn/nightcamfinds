@@ -350,3 +350,44 @@
   .creator-benefits { gap: 8px; }
   .creator-benefits li { font-size: 12px; }
 }
+
+
+/* A1.4.2: put creator acquisition beside the directory heading on every screen. */
+.directory-section .creator-entry-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: fit-content;
+  min-height: 42px;
+  margin: 10px 10px 4px 0;
+  padding: 9px 17px;
+  border: 1px solid #ff9fc7;
+  border-radius: 999px;
+  background: linear-gradient(105deg, #ff78aa, #f6a6c8);
+  color: #301426;
+  box-shadow: 0 7px 20px rgba(255, 91, 155, .2);
+  font: 800 13px/1.2 Manrope, sans-serif;
+  text-decoration: none;
+}
+.directory-section .creator-entry-cta span {
+  font-size: 17px;
+  line-height: 1;
+  transition: transform .18s ease;
+}
+.directory-section .creator-entry-cta:hover span { transform: translateX(3px); }
+.directory-section .creator-entry-cta:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .directory-section .creator-entry-cta {
+    min-height: 44px;
+    width: 100%;
+    margin: 10px 0 4px;
+    font-size: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .directory-section .creator-entry-cta span { transition: none; }
+}
