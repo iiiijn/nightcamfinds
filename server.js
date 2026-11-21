@@ -714,7 +714,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
       ${categorySeo.paragraphs.map((paragraph) => `<p>${escapeSeoHtml(paragraph)}</p>`).join("")}
       <nav aria-label="Related room categories"><p>Explore more: ${relatedLinks}</p></nav>
     </section>`;
-    html = html.replace("</main>", `${seoSection}</main>`);
+    html = html.replace("<footer>", `${seoSection}<footer>`);
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
