@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS, CORE_ENGAGEMENT_EVENTS, BONGA_BANNER_EVENTS } = require('../src/services/traffic-quality.cjs');
+const { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS, CORE_ENGAGEMENT_EVENTS, BONGA_BANNER_EVENTS, VISIT_EVENTS } = require('../src/services/traffic-quality.cjs');
 
 test('classifies known crawlers separately from suspected automation', () => {
   assert.equal(classifyUserAgent('Googlebot/2.1'), 'known_bot');
@@ -113,7 +113,9 @@ test('accepts only supported engagement events and safe local paths', () => {
   assert.deepEqual(normalizeEvent({ visitId, eventType: 'active_10s', pagePath: '/female/' }), {
     value: { visitId, eventType: 'active_10s', pagePath: '/female/' }
   });
-  assert.equal(normalizeEvent({ visitId, eventType: 'page_view', pagePath: '/' }).error, 'Unsupported engagement event.');
+  assert.deepEqual(normalizeEvent({ visitId, eventType: 'page_view', pagePath: '/' }), { value: { visitId, eventType: 'page_view', pagePath: '/' } });
+  assert.equal(VISIT_EVENTS.has('page_view'), true);
+  assert.equal(CORE_ENGAGEMENT_EVENTS.has('page_view'), false);
   assert.equal(normalizeEvent({ visitId, eventType: 'scroll_50', pagePath: '//evil.test' }).error, 'Invalid page path.');
   assert.equal(normalizeEvent({ visitId: 'bad', eventType: 'scroll_50', pagePath: '/' }).error, 'Invalid visit identifier.');
 });
@@ -390,4 +392,18 @@ test('server establishes first-party visit cookies before directory affiliate li
   assert.match(server, /const queryLandingPath = url\.searchParams\.get\("lp"\)/);
   assert.match(server, /const cookieLandingPath = cookieValue\(req, "ncf_landing_path"\)/);
   assert.match(server, /countClick\(\{ src, country, category, source, sourceEvidence, campaign, medium, content, device, clickId, platform, visitId, landingPath/);
+});
+
+
+test('page_view records the visit immediately without inserting a page_view engagement event', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const app = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
+  const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
+  assert.match(app, /sendEngagement\("page_view"\);/);
+  assert.match(route, /VISIT_EVENTS\.has\(event\.eventType\) \? \{ rowCount: 0 \}/);
+  assert.match(route, /visitRecorded: true/);
+  assert.match(route, /traffic_visits/);
+  assert.match(route, /event_type IN \('active_10s','scroll_50'\)/);
+  assert.match(route, /eligibleForEngagementMetrics: effectiveTrafficClass === "unverified" && !VISIT_EVENTS\.has\(event\.eventType\)/);
 });

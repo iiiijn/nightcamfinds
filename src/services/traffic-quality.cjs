@@ -5,12 +5,13 @@ const crypto = require('node:crypto');
 const KNOWN_BOT = /bot|crawler|spider|slurp|preview|facebookexternalhit|twitterbot|linkedinbot|discordbot|telegrambot|whatsapp|google-inspectiontool|bingpreview|headlesschrome|phantomjs|selenium|playwright|puppeteer/i;
 const SUSPICIOUS = /curl|wget|python-requests|httpclient|axios|go-http-client|libwww-perl|scrapy/i;
 const CORE_ENGAGEMENT_EVENTS = new Set(['active_10s', 'scroll_50']);
+const VISIT_EVENTS = new Set(['page_view']);
 const BONGA_BANNER_EVENTS = new Set([
   'bonga_banner_loaded', 'bonga_banner_viewable',
   'bonga_static_banner_loaded', 'bonga_static_banner_viewable',
   'bonga_category_widget_loaded', 'bonga_category_widget_viewable'
 ]);
-const ALLOWED_EVENTS = new Set([...CORE_ENGAGEMENT_EVENTS, ...BONGA_BANNER_EVENTS]);
+const ALLOWED_EVENTS = new Set([...VISIT_EVENTS, ...CORE_ENGAGEMENT_EVENTS, ...BONGA_BANNER_EVENTS]);
 
 function classifyUserAgent(value) {
   const ua = String(value || '').trim();
@@ -81,4 +82,4 @@ function nairobiWeekBounds(date = new Date()) {
   };
 }
 
-module.exports = { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS, CORE_ENGAGEMENT_EVENTS, BONGA_BANNER_EVENTS };
+module.exports = { classifyUserAgent, mergeTrafficClass, normalizeVisitId, normalizeEvent, createEngagementRateLimiter, newVisitId, nairobiWeekBounds, ALLOWED_EVENTS, CORE_ENGAGEMENT_EVENTS, BONGA_BANNER_EVENTS, VISIT_EVENTS };
