@@ -456,19 +456,9 @@ const server=http.createServer(async(req,res)=>{
   if (url.searchParams.get("summary") === "1") { const diagnostics = url.searchParams.get("diagnostics") === "1" ? { basis: "normalized_partner_feed_snapshot", rawProviderPayloadsAvailable: false, bongaRawFieldSchemaAvailable: Boolean(latestBongaRawDiagnostics), providers: summarizeProviderFeedQuality(feed.rooms), ...(latestBongaRawDiagnostics ? { bongaRawFieldSchema: latestBongaRawDiagnostics } : {}), providerIngestion: latestProviderFeedDiagnostics } : null; return send(res,200,JSON.stringify({liveCount:list.length,platforms,regions,languages,notice:feed.notice,...(coverage?{coverage}:{}),...(diagnostics?{diagnostics}:{})}),"application/json"); }
   const page=list.slice(offset,offset+limit);
   const regionalRooms=buildRegionalRoomGroups(list,sort,8);
-  const topChaturbateByCategory = {};
-  const topBongaByCategory = {};
-  for (const gender of ["female", "male", "trans", "couples"]) {
-    const byPopularity = (roomA, roomB) => Number(roomB.viewerCount || 0) - Number(roomA.viewerCount || 0) || roomA.username.localeCompare(roomB.username);
-    topChaturbateByCategory[gender] = feed.rooms
-      .filter(room => room.platform === "chaturbate" && room.gender === gender)
-      .sort(byPopularity)
-      .slice(0, 8);
-    topBongaByCategory[gender] = feed.rooms
-      .filter(room => room.platform === "bongacams" && room.gender === gender)
-      .sort(byPopularity)
-      .slice(0, 8);
-  }
+  const homepageTopRooms = buildTopRoomsByProviderCategory(feed.rooms);
+  const topChaturbateByCategory = homepageTopRooms.chaturbate;
+  const topBongaByCategory = homepageTopRooms.bongacams;
   return send(res,200,JSON.stringify({rooms:page,regionalRooms,topChaturbateByCategory,topBongaByCategory,liveCount:list.length,offset,limit,hasMore:offset+page.length<list.length,countries,platforms,regions,languages,notice:feed.notice,popularTags,tier1:isPriorityMarket(visitorCountry(req)),preferredPlatform,alternativePlatform:preferredPlatform?(preferredPlatform==="chaturbate"?"bongacams":"chaturbate"):null,...(coverage?{coverage}:{})}),"application/json");
 }
 if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms[Math.floor(Math.random()*Math.min(feed.rooms.length,40))]||null;return send(res,room?200:503,JSON.stringify({room}),"application/json");}
