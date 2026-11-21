@@ -40,10 +40,10 @@ test("directory room cards keep referral and visit attribution on outbound redir
 test("room actions identify the destination affiliate platform", () => {
   const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
   const renderer = fs.readFileSync(path.join(__dirname, "../src/services/room-page-renderer.cjs"), "utf8");
-  assert.match(app, /Watch on BongaCams/);
-  assert.match(app, /Watch on Chaturbate/);
-  assert.match(renderer, /Watch on BongaCams/);
-  assert.match(renderer, /Watch on Chaturbate/);
+  assert.match(app, /Open live room on BongaCams/);
+  assert.match(app, /Open live room on Chaturbate/);
+  assert.match(renderer, /const action = `Open live room on \$\{platformLabel\}`/);
+  assert.match(renderer, /const action = `Open live room on \$\{platformLabel\}`/);
 });
 
 test("sticky live-count promo stays hidden until the full hero has scrolled out of view", () => {
