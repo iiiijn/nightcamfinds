@@ -6,25 +6,27 @@ const server = fs.readFileSync("server.js", "utf8");
 
 test("primary category SEO copy targets live-room discovery intent", () => {
   for (const category of ["female", "male", "trans", "couples"]) {
-    assert.match(server, new RegExp(category + ":\\["));
+    assert.ok(server.includes(category + ":[") || server.includes(category + ": ["), category + " category copy exists");
   }
-  assert.match(server, /Female Live Webcam Rooms \\| NightCamFinds/);
-  assert.match(server, /Male Live Webcam Rooms \\| NightCamFinds/);
-  assert.match(server, /Trans Live Webcam Rooms \\| NightCamFinds/);
-  assert.match(server, /Couples Live Webcam Rooms \\| NightCamFinds/);
-  assert.match(server, /Find live couples cam rooms/);
+  for (const title of [
+    "Female Live Webcam Rooms | NightCamFinds",
+    "Male Live Webcam Rooms | NightCamFinds",
+    "Trans Live Webcam Rooms | NightCamFinds",
+    "Couples Live Webcam Rooms | NightCamFinds"
+  ]) assert.ok(server.includes(title), title + " title exists");
+  assert.ok(server.includes("Find live couples cam rooms"));
 });
 
 test("category pages receive useful server-rendered copy and related category links", () => {
-  assert.match(server, /categorySeoContent/);
-  assert.match(server, /category-seo-content/);
-  assert.match(server, /Related room categories/);
-  assert.match(server, /categorySeo\\.paragraphs\\.map/);
+  assert.ok(server.includes("categorySeoContent"));
+  assert.ok(server.includes("category-seo-content"));
+  assert.ok(server.includes("Related room categories"));
+  assert.ok(server.includes("categorySeo.paragraphs.map"));
 });
 
 test("category pages publish CollectionPage structured data and category Open Graph metadata", () => {
-  assert.match(server, /"@type": "CollectionPage"/);
-  assert.match(server, /application\\/ld\\+json/);
-  assert.match(server, /og:title/);
-  assert.match(server, /og:description/);
+  assert.ok(server.includes('"@type": "CollectionPage"'));
+  assert.ok(server.includes("application/ld+json"));
+  assert.ok(server.includes("og:title"));
+  assert.ok(server.includes("og:description"));
 });
