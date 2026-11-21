@@ -18,6 +18,7 @@ const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const { invalidCallbackPredicate } = require("./src/services/callback-integrity.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
+const organicLandingRevenue = require("./src/services/organic-landing-revenue.cjs");
 const telegramCampaignPerformance = require("./src/services/telegram-campaign-performance.cjs");
 const { cleanRoomTitle, filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const { isIso3166Alpha2 } = require("./src/services/iso-country-codes.cjs");
@@ -674,6 +675,42 @@ http.createServer = function routeDashboard(handler) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Traffic-to-revenue report requires the existing affiliate click and Chaturbate conversion attribution tables." });
         console.error("Traffic-to-revenue performance failed:", err.message);
         return sendJson(res, 500, { error: "Could not load traffic-to-revenue performance." });
+      }
+    }
+    if (incoming.pathname === "/api/organic-landing-revenue") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const query = organicLandingRevenue.buildQuery(Object.fromEntries(incoming.searchParams.entries()));
+      if (query.error) return sendJson(res, 400, { error: query.error });
+      try {
+        const result = await pool.query(query.text, query.params);
+        return sendJson(res, 200, {
+          rows: result.rows.map(row => ({
+            landingPath: row.landing_path || "unknown",
+            country: row.country || "UNKNOWN",
+            platform: row.platform || "unknown",
+            source: row.source || "unknown",
+            campaign: row.campaign || "unknown",
+            clicks: Number(row.clicks || 0),
+            visits: Number(row.visits || 0),
+            engagedVisits: Number(row.engaged_visits || 0),
+            knownBotClicks: Number(row.known_bot_clicks || 0),
+            suspectedBotClicks: Number(row.suspected_bot_clicks || 0),
+            unverifiedNotFlaggedClicks: Number(row.unverified_not_flagged_clicks || 0),
+            unclassifiedClicks: Number(row.unclassified_clicks || 0),
+            matchedConversions: Number(row.matched_conversions || 0),
+            reportedPayoutsByCurrency: row.reported_payouts_by_currency || {}
+          })),
+          filters: query.filters,
+          truncated: result.rows.length === 2000,
+          timezone: "UTC",
+          note: "Landing pages are taken from the original stored landing_path on affiliate clicks and visits. Only matched, non-test Chaturbate postbacks with a stored click ID are attributed to a landing page. Payouts are provider-reported, not verified cash received, and currencies are kept separate. BongaCash earnings remain manual and are not automatically attributed to landing pages. Clicks are redirects, not verified human visits; known bots, suspected bots, unverified-not-flagged and unclassified clicks remain separate."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Organic landing-page reporting requires the existing affiliate click, traffic visit and Chaturbate conversion attribution columns." });
+        console.error("Organic landing-page revenue report failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load organic landing-page revenue." });
       }
     }
     if (incoming.pathname === "/api/telegram-campaign-performance") {
