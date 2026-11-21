@@ -28,7 +28,7 @@ test("BongaCams room cards use the tracked room redirect and account-generated D
   assert.match(app, /Open live room on BongaCams/);
   assert.match(promo, /renderStrip\(bcPromo, bc, 'Live on BongaCams'/);
   assert.match(renderer, /const redirect = isBonga \? "\/bgo\/" : "\/go\/"/);
-  assert.match(renderer, /Open live room on BongaCams/);
+  assert.match(renderer, /const action = `Open live room on \$\{platformLabel\}`/);
   assert.match(server, /destination\.searchParams\.set\("type", "direct_link"\)/);
   assert.match(server, /destination\.searchParams\.set\("models\[\]", username\)/);
   assert.match(server, /destination\.searchParams\.set\("c", BONGA_CAMPAIGN\)/);
