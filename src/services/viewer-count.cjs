@@ -6,7 +6,7 @@ function parseViewerCount(value) {
   }
   if (typeof value !== "string") return null;
   const normalized = value.trim().replace(/,/g, "");
-  if (!/^\\d+(?:\\.\\d+)?$/.test(normalized)) return null;
+  if (!/^\d+(?:\.\d+)?$/.test(normalized)) return null;
   const parsed = Number(normalized);
   return Number.isFinite(parsed) && parsed >= 0 ? Math.floor(parsed) : null;
 }
