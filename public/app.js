@@ -456,7 +456,7 @@ async function load(offset = 0, append = false) {
   }
   currentOffset = rooms.length;
   partners(rooms);
-  const isUnfilteredRegionalView = category !== "all" && ["live","female","male","trans","couples","hd","new","popular"].includes(category) &&
+  const isUnfilteredRegionalView = ["all","live","female","male","trans","couples","hd","new","popular"].includes(category) &&
     !q.value && !countrySelect.value && !regionSelect.value && !languageSelect.value && !selectedTag;
   if (isUnfilteredRegionalView) {
     renderRegionalSections(data.regionalRooms || {});

@@ -139,7 +139,7 @@ const roomFeed = {
           regionFilter: !!document.querySelector("#region"),
           homepageHeadlineVisible: (() => { const el=document.querySelector(".directory-section .section-heading h2"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0; })(),
           recruitmentBannerVisible: (() => { const el=document.querySelector(".broadcaster-sidebar"); const r=el?.getBoundingClientRect(); return !!r && r.width>0 && r.height>0 && !!el.querySelector(".creator-banner-art img") && !!el.querySelector(".creator-primary-cta[href=\"/broadcast/\"][data-ncf-path=\"model\"]") && !!el.querySelector(".creator-benefits li") && !el.querySelector('a[href="/broadcast/#platform-chaturbate"], a[href="/broadcast/#platform-bongacams"]'); })(),
-          directoryColumnCount: grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").length : 0,
+          categoryRowLayout: (() => { const visibleCard = categoryCards.find(card => card.getBoundingClientRect().width > 0); const row = visibleCard?.closest(".category-row"); if (!row) return null; const style = getComputedStyle(row); const cardRect = visibleCard.getBoundingClientRect(); return { gridAutoFlow: style.gridAutoFlow, overflowX: style.overflowX, cardWidth: cardRect.width, rowClientWidth: row.clientWidth, rowScrollWidth: row.scrollWidth }; })(),
           headerControlsInsideViewport: [...document.querySelectorAll(".topbar .logo, .topbar #q, .topbar #country, .topbar .quick-exit")].every(el => { const r=el.getBoundingClientRect(); return r.width>0 && r.left>=-1 && r.right<=window.innerWidth+1; }),
           countryHintRemoved: !document.querySelector("#country-hint, #quick"),
           modelFlagsVisible: [...document.querySelectorAll("#grid .model-country-flag, #category-rows .model-country-flag")].length > 0,
@@ -162,8 +162,10 @@ const roomFeed = {
       if (!result.homepageHeadlineVisible) failures.push(viewport.name + ": homepage headline is missing or hidden");
       if (!result.recruitmentBannerVisible) failures.push(viewport.name + ": creator artwork, primary model CTA or benefit list is missing");
       if (!result.headerControlsInsideViewport) failures.push(viewport.name + ": header controls are clipped outside the viewport");
-      const expectedColumns = viewport.width > 980 ? 4 : viewport.width > 640 ? 3 : 2;
-      if (result.directoryColumnCount !== expectedColumns) failures.push(viewport.name + ": expected " + expectedColumns + " directory columns but found " + result.directoryColumnCount);
+      const minimumCardWidth = viewport.width > 980 ? 160 : viewport.width > 640 ? 120 : 130;
+      if (!result.categoryRowLayout || result.categoryRowLayout.gridAutoFlow !== "column") failures.push(viewport.name + ": room cards are not arranged in a horizontal category row");
+      if (result.categoryRowLayout && result.categoryRowLayout.cardWidth < minimumCardWidth) failures.push(viewport.name + ": room cards are too narrow (" + Math.round(result.categoryRowLayout.cardWidth) + "px; expected at least " + minimumCardWidth + "px)");
+      if (result.categoryRowLayout && result.categoryRowLayout.overflowX !== "auto" && result.categoryRowLayout.overflowX !== "scroll") failures.push(viewport.name + ": category row does not support horizontal scrolling");
       if (!result.roomSizeFilter || !result.regionFilter) failures.push(viewport.name + ": directory filters missing");
       if (!result.featuredPanelRemoved || !result.independentDiscoveryVisible) failures.push(viewport.name + ": expected homepage discovery label is missing or a removed featured panel returned");
       if (!result.heroActionsVisible) failures.push(viewport.name + ": ordered sidebar filter flow is not visible");
