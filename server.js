@@ -724,9 +724,9 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
       "isPartOf": { "@type": "WebSite", "name": "NightCamFinds", "url": pageOrigin(req) }
     };
     const jsonLd = JSON.stringify(structuredData).replace(/</g, "\\u003c");
-    html = html.replace("</head>", `<meta property="og:title" content="${escapeSeoHtml(copy[3])}">
-      <meta property="og:description" content="${escapeSeoHtml(copy[2])}">
-      <script type="application/ld+json">${jsonLd}</script></head>`);
+    html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeSeoHtml(copy[3])}">`);
+    html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeSeoHtml(copy[2])}">`);
+    html = html.replace("</head>", `<script type="application/ld+json">${jsonLd}</script></head>`);
   }
   return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));
 }
