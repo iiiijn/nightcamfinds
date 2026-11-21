@@ -23,6 +23,12 @@ function startServer() {
         res.end(fs.readFileSync(businessScriptPath));
         return;
       }
+      if (url.pathname === "/organic-landing-revenue.js") {
+        const organicScriptPath = path.resolve(__dirname, "../public/organic-landing-revenue.js");
+        res.writeHead(200, { "content-type": "text/javascript; charset=utf-8" });
+        res.end(fs.readFileSync(organicScriptPath));
+        return;
+      }
       if (url.pathname.startsWith("/api/")) {
         requests.push({ path: url.pathname, from: url.searchParams.get("from"), to: url.searchParams.get("to") });
         const body = url.pathname === "/api/auth/me"
@@ -99,7 +105,7 @@ function startServer() {
     if (!dashboardSource.includes("const conversionCount=regs===null||pur===null?null:regs+pur")) failures.push("Conversion count does not preserve unavailable inputs.");
     if (dashboardSource.includes("n(m.registrations||0)") || dashboardSource.includes("n(m.purchases||0)")) failures.push("BongaCash funnel still converts unavailable values to zero.");
 
-    const expectedTabs = ["overview", "traffic", "investigation", "revenue", "health"];
+    const expectedTabs = ["overview", "traffic", "investigation", "revenue", "health", "organic"];
     const visibleTabs = await page.locator("[data-dashboard-tab]").evaluateAll(nodes => nodes.map(node => node.dataset.dashboardTab));
     if (JSON.stringify(visibleTabs) !== JSON.stringify(expectedTabs)) failures.push("Expected only the two supported dashboard tabs; found " + visibleTabs.join(", "));
     for (const tab of expectedTabs) {
