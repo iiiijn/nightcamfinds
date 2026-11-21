@@ -64,10 +64,7 @@ test("laptop-width layouts keep search in the top row and use five room columns"
   assert.ok(css.includes("grid-template-columns: repeat(5, minmax(0, 1fr));"));
 });
 
-
-
 test("homepage exposes separate official model signup paths without misusing viewer affiliate routes", () => {
-  const modelPage = read("public/broadcast.html");
   assert.ok(html.includes('href="/broadcast/" data-ncf-path="model"'));
   assert.ok(modelPage.includes("Choose your platform. Build your creator business."));
   assert.ok(modelPage.includes("https://chaturbate.com/in/?tour=LQps&amp;campaign=C6yxN&amp;track=broadcast"));
@@ -81,7 +78,6 @@ test("homepage exposes separate official model signup paths without misusing vie
 });
 
 test("model recruitment copy accurately describes separate referral signup paths", () => {
-  const modelPage = read("public/broadcast.html");
   assert.ok(modelPage.includes("Register for a broadcaster account through the NightCamFinds Chaturbate broadcaster referral link."));
   assert.ok(modelPage.includes("Register through the BongaCash model referral link."));
   assert.ok(modelPage.includes("Separate referral paths"));
@@ -96,10 +92,10 @@ test("model recruitment page retains responsive two-platform cards", () => {
 test("homepage places one clear model-recruitment CTA beside the room directory", () => {
   const directory = html.slice(html.indexOf('<section class="directory-section"'), html.indexOf('<div class="two">'));
   assert.ok(directory.includes('class="broadcaster-sidebar"'));
-  assert.ok(directory.includes('Ready to become a model?'));
+  assert.ok(directory.includes("Ready to become a model?"));
   assert.ok(directory.includes('href="/broadcast/" data-ncf-path="model" data-ncf-placement="home-broadcaster-banner"'));
-  assert.ok(directory.includes('Become a Model'));
-  assert.ok(directory.includes('creator-benefits'));
+  assert.ok(directory.includes("Become a Model"));
+  assert.ok(directory.includes("creator-benefits"));
   assert.ok(!directory.includes('href="/broadcast/#platform-chaturbate"'));
   assert.ok(!directory.includes('href="/broadcast/#platform-bongacams"'));
   assert.ok(read("public/broadcast.html").includes('id="platform-chaturbate"'));
@@ -109,9 +105,11 @@ test("homepage places one clear model-recruitment CTA beside the room directory"
 test("homepage exposes independent live category rows for both providers", () => {
   assert.ok(app.includes('["BongaCams", "bongacams", window.__ncfTopBongaByCategory || {}]'));
   assert.ok(app.includes('["Chaturbate", "chaturbate", window.__ncfTopChaturbateByCategory || {}]'));
-  assert.ok(app.includes('window.__ncfTopBongaByCategory = data.topBongaByCategory || {};'));
+  assert.ok(app.includes("window.__ncfTopBongaByCategory = data.topBongaByCategory || {};"));
   assert.ok(css.includes(".global-platform-group"));
   const server = read("server.js");
-  assert.ok(server.includes("const topBongaByCategory = {};"));
+  assert.ok(server.includes("const homepageTopRooms = buildTopRoomsByProviderCategory(feed.rooms);"));
+  assert.ok(server.includes("const topChaturbateByCategory = homepageTopRooms.chaturbate;"));
+  assert.ok(server.includes("const topBongaByCategory = homepageTopRooms.bongacams;"));
   assert.ok(server.includes("topBongaByCategory,liveCount"));
 });

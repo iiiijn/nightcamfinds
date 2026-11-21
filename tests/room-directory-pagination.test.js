@@ -9,6 +9,7 @@ const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
 const app = fs.readFileSync(path.join(__dirname, "../public/app.js"), "utf8");
 const html = fs.readFileSync(path.join(__dirname, "../public/index.html"), "utf8");
 const css = fs.readFileSync(path.join(__dirname, "../public/styles.css"), "utf8");
+const homepageRanking = fs.readFileSync(path.join(__dirname, "../src/services/homepage-room-ranking.cjs"), "utf8");
 
 test("Chaturbate feed requests bounded regional pages and deduplicates partner results", () => {
   assert.match(server, /fetchPagedResults/);
@@ -24,7 +25,7 @@ test("Bonga feed retains its known API limit until account-specific settings are
   assert.match(server, /BONGACAMS_LIMIT \|\| 100/);
   assert.match(server, /Math\.min\(500/);
 });
- 
+
 test("provider-supplied tags are normalized, safety-screened, counted and filterable", () => {
   assert.match(server, /tags:normalizeTags\(room\.tags\)\.map/);
   assert.match(server, /tags:tags\.map\(tag=>tag\.slice\(0,40\)\)/);
@@ -46,7 +47,7 @@ test("rooms API supports bounded pagination and reports remaining results", () =
 
 test("all room categories receive regional top-room groups from the filtered feed", () => {
   assert.match(server, /buildRegionalRoomGroups\(list,sort,8\)/);
-  assert.match(server, /regionalRooms,topChaturbateByCategory,topBongaByCategory,liveCount:list.length/);
+  assert.match(server, /regionalRooms,topChaturbateByCategory,topBongaByCategory,liveCount:list\.length/);
   assert.match(app, /renderRegionalSections\(data\.regionalRooms/);
   assert.match(app, /category !== "all" && \["live","female","male","trans","couples","hd","new","popular"\]\.includes\(category\)/);
 });
@@ -66,11 +67,14 @@ test("directory UI exposes a working load-more control for additional room pages
   assert.match(app, /grid\.append/);
 });
 
-test("homepage global category picks are sourced from each partner feed and ranked by viewers", () => {
-  assert.match(server, /topChaturbateByCategory\[gender\] = feed\.rooms[\s\S]*?room\.platform === "chaturbate" && room\.gender === gender/);
-  assert.match(server, /topBongaByCategory\[gender\] = feed\.rooms[\s\S]*?room\.platform === "bongacams" && room\.gender === gender/);
-  assert.match(server, /Number\(roomB\.viewerCount \|\| 0\) - Number\(roomA\.viewerCount \|\| 0\)/);
+test("homepage global category picks use separate quality-aware partner rankings", () => {
+  assert.match(server, /const homepageTopRooms = buildTopRoomsByProviderCategory\(feed\.rooms\)/);
+  assert.match(server, /const topChaturbateByCategory = homepageTopRooms\.chaturbate/);
+  assert.match(server, /const topBongaByCategory = homepageTopRooms\.bongacams/);
   assert.match(server, /topChaturbateByCategory,topBongaByCategory,liveCount:list\.length/);
+  assert.match(homepageRanking, /room\.platform === provider && String\(room\.gender \|\| ""\)\.toLowerCase\(\) === category/);
+  assert.match(homepageRanking, /rankRoomsByPreferredPlatform\(eligible, null, "recommended"\)\.slice\(0, limit\)/);
+  assert.doesNotMatch(server, /Number\(roomB\.viewerCount \|\| 0\) - Number\(roomA\.viewerCount \|\| 0\)/);
   assert.match(app, /Popular " \+ platformLabel \+ " " \+ label \+ " Rooms/);
   assert.match(app, /window\.__ncfTopBongaByCategory = data\.topBongaByCategory \|\| \{\}/);
 });
