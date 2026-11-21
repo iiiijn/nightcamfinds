@@ -20,5 +20,5 @@ test('Featured homepage renderer keeps Chaturbate and BongaCams sections indepen
   for (const category of ['female', 'male', 'trans', 'couples']) {
     assert.ok(app.includes('["' + category + '",'));
   }
-  assert.match(app, /"live rooms worldwide"/);
+  assert.match(app, /count\.textContent = rooms\.length \+ " live rooms worldwide"/);
 });
