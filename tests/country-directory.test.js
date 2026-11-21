@@ -304,3 +304,27 @@ test("static public SEO assets use unique canonical sitemap URLs and protect pri
  }
  assert.match(robots,/^Sitemap: https:\/\/nightcamfinds\.com\/sitemap\.xml$/m);
 });
+
+
+test("priority country pages retain their hand-written country-specific content after worldwide markets load",()=>{
+ const prioritySlugs=MARKET_PRIORITY_CODES.map(code=>code.toLowerCase());
+ for(const slug of prioritySlugs){
+  const country=COUNTRIES[slug];
+  assert.ok(country,slug+" must have a country page");
+  assert.ok(country.intro && country.intro.length>=150,slug+" must have a substantive country introduction");
+  assert.ok(Array.isArray(country.paragraphs) && country.paragraphs.length>=2,slug+" must have supporting country-specific copy");
+  assert.ok(Array.isArray(country.faqs) && country.faqs.length>=3,slug+" must have useful country FAQs");
+ }
+ const introTexts=prioritySlugs.map(slug=>COUNTRIES[slug].intro.trim());
+ assert.equal(new Set(introTexts).size,prioritySlugs.length,"priority market introductions must not be replaced by one generic template");
+});
+
+test("all 56 country pages render their own production canonical and matching Open Graph URL",()=>{
+ for(const slug of Object.keys(COUNTRIES)){
+  const canonical="https://nightcamfinds.com/country/"+slug+"/";
+  const html=getCountryPage(slug,"https://preview.example","",true);
+  assert.ok(html,slug+" must render");
+  assert.ok(html.includes('<link rel="canonical" href="'+canonical+'">'),slug+" canonical must use the production URL");
+  assert.ok(html.includes('<meta property="og:url" content="'+canonical+'">'),slug+" Open Graph URL must match canonical");
+ }
+});
