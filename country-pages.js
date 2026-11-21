@@ -368,6 +368,16 @@ ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
       link.href = target.pathname + target.search;
     } catch (_) {}
   });
+  // Register the landing visit immediately; engagement events remain separate.
+  fetch("/api/engage", {
+    method: "POST", credentials: "same-origin", keepalive: true,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      visitId, eventType: "page_view", pagePath: location.pathname, landingPath,
+      platform: "directory", source: attribution.source, medium: attribution.medium,
+      campaign: attribution.campaign, content: attribution.content, placement
+    })
+  }).catch(() => {});
   const sendEngagement = (eventType) => fetch("/api/engage", {
     method: "POST", credentials: "same-origin", keepalive: true,
     headers: { "Content-Type": "application/json" },
