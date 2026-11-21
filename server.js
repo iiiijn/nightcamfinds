@@ -631,14 +631,48 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   const pageCopy = {
     all:["Independent discovery","Who's live in your country, tonight.","Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.","NightCamFinds — Live cam directory"],
     live:["Live now","Rooms that are live now","Currently online rooms from partner platforms. Counts and subjects come from the feed and can change every minute.","Live cams now — NightCamFinds"],
-    female:["Female","Find live female cams","Browse public female rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Female live cams — NightCamFinds"],
-    male:["Male","Find live male cams","Browse public male rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Male live cams — NightCamFinds"],
-    trans:["Trans","Find live trans cams","Browse public trans rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Trans live cams — NightCamFinds"],
-    couples:["Couples","Find live couples cams","Browse public couples rooms that are live now. Filter by country or viewer count, then continue to the room on its partner platform.","Couples live cams — NightCamFinds"],
+    female:["Female live rooms","Browse female live webcam rooms","Discover public female live cam rooms on NightCamFinds. Compare current viewer activity, room details and country information before opening a room on Chaturbate or BongaCams.","Female Live Webcam Rooms | NightCamFinds"],
+    male:["Male live rooms","Browse male live webcam rooms","Discover public male live cam rooms on NightCamFinds. Compare current viewer activity, room details and available country information before visiting a partner platform.","Male Live Webcam Rooms | NightCamFinds"],
+    trans:["Trans live rooms","Discover trans live webcam rooms","Explore public trans live cam rooms on NightCamFinds. Compare room activity and available details, then continue to the partner platform hosting the stream.","Trans Live Webcam Rooms | NightCamFinds"],
+    couples:["Couples live rooms","Explore couples live webcam rooms","Find live couples cam rooms on NightCamFinds. Compare public room activity and available details, then continue to Chaturbate or BongaCams to watch and chat.","Couples Live Webcam Rooms | NightCamFinds"],
     hd:["HD","Find HD live cams","Browse rooms the feed marks as HD. Quality can change with the broadcaster's connection.","HD live cams — NightCamFinds"],
     new:["New","Find new live broadcasters","Browse rooms marked new in the live feed. Availability changes as broadcasters come online and offline.","New live cams — NightCamFinds"],
     popular:["Popular","Find the most watched live rooms","Browse rooms sorted by current viewer count and continue to the broadcaster's room on its partner platform.","Popular live cams — NightCamFinds"],
     countries:["Countries","Live cams by country","Pick a country to filter rooms that publish a country code. Not every room includes one.","Live cams by country — NightCamFinds"]
+  };
+  const categorySeoContent = {
+    female: {
+      name: "Female live webcam rooms",
+      description: "Explore public female live webcam rooms. Compare current viewer activity, room information and available country details before choosing a room.",
+      paragraphs: [
+        "NightCamFinds helps adults discover public female rooms across partner platforms. Listings and viewer counts come from external feeds and can change as broadcasters go online or offline.",
+        "Compare the room information shown in the directory, then open the room on its partner platform. The partner platform provides the video, account services, moderation and any paid features."
+      ]
+    },
+    male: {
+      name: "Male live webcam rooms",
+      description: "Discover public male live webcam rooms and compare current activity and available room details before visiting the partner platform.",
+      paragraphs: [
+        "Browse rooms categorized as male by the available partner feeds. Use current viewer activity and the room details as discovery signals, remembering that listings can change quickly.",
+        "NightCamFinds is an independent directory. Streams, accounts, moderation and payments are provided by the external platform linked from each room."
+      ]
+    },
+    trans: {
+      name: "Trans live webcam rooms",
+      description: "Discover public trans live webcam rooms and compare current room activity and available details across partner platforms.",
+      paragraphs: [
+        "Explore public rooms categorized as trans by partner feeds. Room availability and viewer activity are temporary feed details and may change throughout the day.",
+        "Choose a room using the information available, then continue to the partner platform for its stream, account controls, community rules and optional paid features."
+      ]
+    },
+    couples: {
+      name: "Couples live webcam rooms",
+      description: "Find live couples cam rooms and compare public room activity and available details before continuing to a partner platform.",
+      paragraphs: [
+        "Explore couples cams from the public room listings supplied by Chaturbate and BongaCams. Compare current viewer activity and room information to find a live room that matches your interests.",
+        "Room availability can change at any time. NightCamFinds does not host video or operate partner accounts; the linked platform provides the stream, moderation and any paid features."
+      ]
+    }
   };
   const category = Object.hasOwn(pageCopy, routeKey) ? routeKey : "all";
   let list = feed.rooms.slice();
@@ -659,6 +693,41 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   html=html.replace('<div id="grid" class="grid" aria-live="polite"></div>',`<div id="grid" class="grid" aria-live="polite">${roomMarkup}</div>`);
   html=html.replace('<p id="result-count" class="result-count" aria-live="polite"></p>',`<p id="result-count" class="result-count" aria-live="polite">${hasRooms?list.length+" live rooms":"No live rooms are available right now."}</p>`);
   html = renderHeroCopy(html, copy);
+  const categorySeo = !forced ? categorySeoContent[category] : null;
+  if (categorySeo) {
+    const categoryUrl = `${pageOrigin(req)}${pathname}`;
+    const escapeSeoHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[char]));
+    const relatedCategories = [
+      ["Female rooms", "/female/"], ["Male rooms", "/male/"],
+      ["Trans rooms", "/trans/"], ["Couples rooms", "/couples/"],
+      ["Browse by country", "/countries/"]
+    ].filter(([, href]) => href !== pathname);
+    const relatedLinks = relatedCategories.map(([label, href]) =>
+      `<a href="${href}">${escapeSeoHtml(label)}</a>`
+    ).join(" · ");
+    const seoSection = `<section class="content-section category-seo-content" aria-labelledby="category-seo-heading">
+      <p class="eyebrow">NightCamFinds room directory</p>
+      <h2 id="category-seo-heading">${escapeSeoHtml(categorySeo.name)}</h2>
+      <p>${escapeSeoHtml(categorySeo.description)}</p>
+      ${categorySeo.paragraphs.map((paragraph) => `<p>${escapeSeoHtml(paragraph)}</p>`).join("")}
+      <nav aria-label="Related room categories"><p>Explore more: ${relatedLinks}</p></nav>
+    </section>`;
+    html = html.replace("</main>", `${seoSection}</main>`);
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": categorySeo.name,
+      "description": categorySeo.description,
+      "url": categoryUrl,
+      "isPartOf": { "@type": "WebSite", "name": "NightCamFinds", "url": pageOrigin(req) }
+    };
+    const jsonLd = JSON.stringify(structuredData).replace(/</g, "\\u003c");
+    html = html.replace("</head>", `<meta property="og:title" content="${escapeSeoHtml(copy[3])}">
+      <meta property="og:description" content="${escapeSeoHtml(copy[2])}">
+      <script type="application/ld+json">${jsonLd}</script></head>`);
+  }
   return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));
 }
   if(!full.startsWith(PUBLIC)||!fs.existsSync(full)||fs.statSync(full).isDirectory())return send(res,404,"Not found","text/plain");const types={".html":"text/html",".css":"text/css",".js":"text/javascript",".svg":"image/svg+xml"};send(res,200,fs.readFileSync(full),types[path.extname(full)]||"application/octet-stream");
