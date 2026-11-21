@@ -288,19 +288,19 @@ test("static public SEO assets use unique canonical sitemap URLs and protect pri
  const root=path.join(__dirname,"..");
  const sitemap=fs.readFileSync(path.join(root,"public","sitemap.xml"),"utf8");
  const robots=fs.readFileSync(path.join(root,"public","robots.txt"),"utf8");
- const urls=[...sitemap.matchAll(/<loc>([^<]+)<\\/loc>/g)].map(match=>match[1]);
+ const urls=[...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match=>match[1]);
  assert.ok(urls.length>0,"static sitemap fallback must contain public URLs");
  assert.equal(new Set(urls).size,urls.length,"static sitemap URLs must be unique");
  for(const url of urls){
-  assert.match(url,/^https:\\/\\/nightcamfinds\\.com\\//,"sitemap URLs must use the canonical HTTPS origin");
-  assert.doesNotMatch(url,/\\/(go|bgo|api)\\//,"affiliate redirects and APIs must not be indexed");
+  assert.match(url,/^https:\/\/nightcamfinds\.com\//,"sitemap URLs must use the canonical HTTPS origin");
+  assert.doesNotMatch(url,/\/(go|bgo|api)\//,"affiliate redirects and APIs must not be indexed");
  }
  assert.ok(urls.includes("https://nightcamfinds.com/"));
  assert.ok(urls.includes("https://nightcamfinds.com/sitemap/"));
- const directives=robots.split(/\\r?\\n/).filter(line=>/^Disallow:/.test(line));
+ const directives=robots.split(/\r?\n/).filter(line=>/^Disallow:/.test(line));
  assert.equal(new Set(directives).size,directives.length,"robots exclusions must not be duplicated");
  for(const route of ["/admin.html","/dashboard.html","/dashboard-v2.html","/dashboard-ui.html","/analytics-dashboard.html","/campaign-center.html","/promotools.html","/revenue.html","/go/","/bgo/","/api/"]){
   assert.ok(directives.includes("Disallow: "+route),"missing private or non-indexable route exclusion: "+route);
  }
- assert.match(robots,/^Sitemap: https:\\/\\/nightcamfinds\\.com\\/sitemap\\.xml$/m);
+ assert.match(robots,/^Sitemap: https:\/\/nightcamfinds\.com\/sitemap\.xml$/m);
 });
