@@ -135,7 +135,7 @@ test("does not silently classify BongaCash ban events as purchases or refunds", 
 
 
 test("records a reversal sharing a transaction ID while deduplicating repeat delivery", async () => {
-  const { save } = require("../bongacash.js");
+  const { save } = await import("../bongacash.js");
   const seen = new Set();
   const insertStatements = [];
   const pool = {
