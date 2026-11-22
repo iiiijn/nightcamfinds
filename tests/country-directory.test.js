@@ -15,6 +15,18 @@ test("country values normalize ISO codes and explicit country names only",()=>{
  assert.equal(normalizeCountryCode("россия"),"RU");
  assert.equal(normalizeCountryCode("РОССИЯ"),"RU");assert.equal(normalizeCountryCode("Nairobi"),"");assert.equal(normalizeCountryCode(""),"");
 });
+test("Chaturbate startup normalizer uses explicit country and conservative location resolution",()=>{
+ const source=fs.readFileSync(path.join(__dirname,"..","scripts","patch-country-directory.js"),"utf8");
+ assert.match(source,/const country=resolveChaturbateCountry\(room\.country,room\.location\);/);
+ assert.match(source,/countryName:NAMES\[country\]\|\|country/);
+});
+test("Chaturbate country resolution accepts explicit country names and unambiguous final location components",()=>{
+ assert.equal(resolveChaturbateCountry("Germany",""),"DE");
+ assert.equal(resolveChaturbateCountry("","Berlin, Germany"),"DE");
+ assert.equal(resolveChaturbateCountry("","Nairobi, Kenya"),"KE");
+ assert.equal(resolveChaturbateCountry("","Paris, France / Berlin, Germany"),"");
+ assert.equal(resolveChaturbateCountry("","Berlin"),"");
+});
 test("region and language values normalize without inferring residence from language",()=>{
  assert.equal(normalizeRegion("  Bavaria  "),"Bavaria");assert.equal(normalizeLanguages(["English","German","English"]),"English, German");
  assert.equal(normalizeLanguages({name:"French"}),"French");assert.equal(normalizeRegion(""),"");
