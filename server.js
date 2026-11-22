@@ -353,7 +353,7 @@ async function approvedCountryPlatformPreference(countryCode) {
   }
 }
 function langFor(country) { const iso=String(country||"").toUpperCase(); if(["FR","BE","LU","MC"].includes(iso))return"fr"; if(["DE","AT"].includes(iso))return"de"; if(iso==="CH")return"de"; if(iso==="NL")return"nl"; return"en"; }
-function pageOrigin(req) { if(ORIGIN)return ORIGIN; const proto=req.headers["x-forwarded-proto"]||"https"; return proto+"://"+req.headers.host; }
+function pageOrigin(_req) { return "https://nightcamfinds.com"; }
 function cookieValue(req, name) {
   const prefix = name + "=";
   const entry = String(req.headers.cookie || "").split(";").map((part) => part.trim()).find((part) => part.startsWith(prefix));
