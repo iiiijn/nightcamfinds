@@ -12,7 +12,7 @@ test("all 18 Tier 1 markets have concise, unique search descriptions", () => {
     const description = TIER1_SEO[slug]?.metaDescription;
     assert.equal(typeof description, "string", slug + " must have a meta description");
     assert.ok(description.length >= 70 && description.length <= 160, slug + " description length: " + description.length);
-    const marketLabel = slug === "gb" ? "UK" : COUNTRIES[slug].name.split(" ")[0];
+    const marketLabel = ({ gb: "UK", de: "Deutschland" })[slug] || COUNTRIES[slug].name.split(" ")[0];
     assert.ok(description.toLowerCase().includes(marketLabel.toLowerCase()), slug + " description should identify its market");
     return description;
   });
