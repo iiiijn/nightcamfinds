@@ -100,6 +100,7 @@ if (seoPatch.includes("ncfApplySeoRouteMetadataV14") || seoPatch.includes("NCF_S
 
 const serverSourceForCanonical = fs.readFileSync("server.js", "utf8");
 if (!serverSourceForCanonical.includes('function pageOrigin(_req) { return "https://nightcamfinds.com"; }')) fail("canonical page origin must be fixed to the production domain");
+if (!serverSourceForCanonical.includes('const origin = "https://nightcamfinds.com";')) fail("legal page canonical origin must be fixed to the production domain");
 
 if (failed) {
   console.error("Production verification failed.");
