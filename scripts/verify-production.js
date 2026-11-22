@@ -96,10 +96,10 @@ if (!seoPatch.includes('current.pathname === "/broadcast"')) fail("/broadcast re
 if (!seoPatch.includes('"/broadcast.html"')) fail("/broadcast standalone HTML target is missing");
 if (!seoPatch.includes('if (req.method !== "GET" && req.method !== "HEAD") return false;')) fail("trailing-slash redirects must be limited to GET and HEAD");
 if (/res\.write\s*=|res\.end\s*=/.test(seoPatch)) fail("SEO middleware must not replace or wrap response write/end methods");
-if (/function\\s+ncfApplySeoRouteMetadataV14\\s*\\(/.test(seoPatch)) fail("legacy V14 response metadata helper must not be defined");
-if (/function\\s+ncfRewriteSeoRequestV14\\s*\\(/.test(seoPatch)) fail("legacy V14 request rewrite helper must not be defined");
-if (/function\\s+ncfRedirectSeoNoSlashV14\\s*\\(/.test(seoPatch)) fail("legacy V14 redirect helper must not be defined");
-if (/ncfApplySeoRouteMetadataV14\\s*\\(req,\\s*res\\)\\s*;/.test(seoPatch)) fail("legacy V14 response metadata middleware must not be invoked");
+if (/function\s+ncfApplySeoRouteMetadataV14\s*\(/.test(seoPatch)) fail("legacy V14 response metadata helper must not be defined");
+if (/function\s+ncfRewriteSeoRequestV14\s*\(/.test(seoPatch)) fail("legacy V14 request rewrite helper must not be defined");
+if (/function\s+ncfRedirectSeoNoSlashV14\s*\(/.test(seoPatch)) fail("legacy V14 redirect helper must not be defined");
+if (/ncfApplySeoRouteMetadataV14\s*\(req,\s*res\)\s*;/.test(seoPatch)) fail("legacy V14 response metadata middleware must not be invoked");
 
 const serverSourceForCanonical = fs.readFileSync("server.js", "utf8");
 if (!serverSourceForCanonical.includes('function pageOrigin(_req) { return "https://nightcamfinds.com"; }')) fail("canonical page origin must be fixed to the production domain");
