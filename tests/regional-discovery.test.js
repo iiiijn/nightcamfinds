@@ -2,6 +2,8 @@
 const test=require("node:test");
 const assert=require("node:assert/strict");
 const {CHATURBATE_API_REGIONS,REGION_ORDER,normalizePartnerCountry,getDiscoveryRegion,buildRegionalRoomGroups}=require("../src/services/regional-discovery.cjs");
+const {COUNTRIES}=require("../country-pages.js");
+const {COUNTRY_REGION}=require("../src/services/regional-discovery.cjs");
 test("Chaturbate regional feed buckets cover the five public directory regions",()=>{
  assert.deepEqual(CHATURBATE_API_REGIONS,["asia","europe_russia","northamerica","southamerica","other"]);
 });
@@ -13,6 +15,15 @@ test("country codes map to useful visitor-facing discovery regions",()=>{
  assert.equal(getDiscoveryRegion({country:"DE"}),"Central & Eastern Europe");
  assert.equal(getDiscoveryRegion({country:"AU"}),"Asia-Pacific");
  assert.equal(getDiscoveryRegion({country:"KE"}),"Africa");
+});
+test("all 56 configured directory countries resolve to a deliberate discovery region",()=>{
+ const entries=Object.values(COUNTRIES);
+ assert.equal(entries.length,56);
+ for(const country of entries){
+  assert.ok(COUNTRY_REGION[country.code],country.code+" is missing a discovery region");
+  assert.notEqual(getDiscoveryRegion({country:country.code}),"Other",country.code+" must not fall through to Other");
+ }
+ assert.equal(getDiscoveryRegion({country:"CO"}),"Latin America");
 });
 test("only recognized partner region labels are used when country is missing",()=>{
  assert.equal(getDiscoveryRegion({country:"",partnerRegion:"North America"}),"North America");

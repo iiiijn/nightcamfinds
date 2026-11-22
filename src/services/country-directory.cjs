@@ -35,7 +35,7 @@ function resolveChaturbateCountry(country, location) {
  if (exact) return exact;
  // Accept a recognised country only as the final component of a consistently-delimited location.
  // Mixed separators remain ambiguous and are deliberately rejected.
- const separators = [",", ";", "|"].filter((separator) => text.includes(separator));
+ const separators = [",", ";", "|", "/"].filter((separator) => text.includes(separator));
  if (separators.length !== 1) return "";
  const parts = text.split(separators[0]).map((part) => part.trim());
  if (parts.length < 2 || parts.some((part) => !part)) return "";

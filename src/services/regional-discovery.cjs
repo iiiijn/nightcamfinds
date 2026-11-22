@@ -12,7 +12,7 @@ const COUNTRY_REGION = Object.freeze({
  GR:"Southern Europe",ES:"Southern Europe",IT:"Southern Europe",PT:"Southern Europe",CY:"Southern Europe",
  RU:"Europe & Asia",TR:"Europe & Asia",
  AU:"Asia-Pacific",NZ:"Asia-Pacific",JP:"Asia-Pacific",SG:"Asia-Pacific",KZ:"Asia-Pacific",CN:"Asia-Pacific",IN:"Asia-Pacific",
- AR:"Latin America",MX:"Latin America",BR:"Latin America",
+ AR:"Latin America",MX:"Latin America",BR:"Latin America",CO:"Latin America",
  ZA:"Africa",EG:"Africa",KE:"Africa",
  IL:"Middle East",AE:"Middle East",BH:"Middle East",JO:"Middle East"
 });
