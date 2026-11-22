@@ -6,6 +6,7 @@ const requiredFiles = [
   "scripts/run-production-migrations.js",
   "scripts/fix-server-syntax.js",
   "scripts/patch-country-directory.js",
+  "scripts/patch-chaturbate-api-region.js",
   "scripts/patch-spa-seo-routes.js",
   "scripts/patch-origin-auth.js",
   "src/services/origin-auth.cjs",
@@ -39,7 +40,7 @@ for (const file of requiredFiles.filter(file => file.endsWith(".js"))) {
 
 const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
 const start = String(pkg.scripts?.start || "");
-const expectedStart = "node scripts/run-production-migrations.js && node scripts/fix-server-syntax.js && node scripts/patch-country-directory.js && node scripts/patch-spa-seo-routes.js && node route.js";
+const expectedStart = "node scripts/run-production-migrations.js && node scripts/fix-server-syntax.js && node scripts/patch-country-directory.js && node scripts/patch-chaturbate-api-region.js && node scripts/patch-spa-seo-routes.js && node route.js";
 if (start !== expectedStart) fail(`production start command must be exactly: ${expectedStart}`);
 if (/fix-bonga-affiliate|patch-seo-attribution-v2/.test(start)) fail("non-runtime build patches must not run at startup");
 
@@ -66,6 +67,9 @@ const serverSource = fs.readFileSync("server.js", "utf8");
 const countryDirectoryPatch = require("./patch-country-directory.js");
 const patchedServerSource = countryDirectoryPatch.patchServerSource(serverSource);
 if (!patchedServerSource.includes("NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1")) fail("country directory patch marker is missing");
+const chaturbateRegionPatch = require("./patch-chaturbate-api-region.js");
+const patchedRegionalServerSource = chaturbateRegionPatch.patchChaturbateApiRegion(patchedServerSource);
+if (!patchedRegionalServerSource.includes("NIGHTCAMFINDS_CHATURBATE_API_REGION_V1")) fail("Chaturbate API region preservation patch marker is missing");
 if (patchedServerSource.includes("const countryMatch = pathname.match(")) fail("duplicate early country route remains after patch");
 if (!patchedServerSource.includes("summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms })") || !patchedServerSource.includes("routeHealth.indexable")) fail("country pages must use the minimum indexable room threshold and provider-health diagnostics");
 if (!patchedServerSource.includes("buildCountrySitemap")) fail("dynamic country sitemap filtering is missing");
