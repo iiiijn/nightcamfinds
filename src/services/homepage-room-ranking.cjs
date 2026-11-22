@@ -15,7 +15,12 @@ function buildTopRoomsByProviderCategory(rooms, options = {}) {
   for (const provider of providers) {
     for (const category of categories) {
       const eligible = source.filter(room =>
-        room && room.platform === provider && String(room.gender || "").toLowerCase() === category
+        room &&
+        room.isLive === true &&
+        room.platform === provider &&
+        String(room.gender || "").toLowerCase() === category &&
+        Number.isFinite(Number(room.viewerCount)) &&
+        Number(room.viewerCount) >= 0
       );
       result[provider][category] = rankRoomsByPreferredPlatform(eligible, null, "recommended").slice(0, limit);
     }
