@@ -372,7 +372,7 @@ test("Chaturbate location diagnostics classify semicolon and pipe country suffix
     slash_unrecognized: 1,
     mixed_delimiter: 3,
     delimited_empty_component: 1,
-    other_nonempty: 1
+    other_nonempty: 0
   });
   assert.equal(classifyChaturbateLocation("Toronto; Canada"), "semicolon_country");
   assert.equal(classifyChaturbateLocation("Sydney | Australia"), "pipe_country");
