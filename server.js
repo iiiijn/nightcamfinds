@@ -42,7 +42,6 @@ try {
 }
 
 const PORT = process.env.PORT || 3000;
-const ORIGIN = (process.env.PUBLIC_ORIGIN || "").replace(/\/$/, "");
 const CAMPAIGN = process.env.CB_CAMPAIGN || process.env.CHATURBATE_WM || "C6yxN";
 const TOUR = process.env.CB_TOUR || "LQps";
 const BONGA_CAMPAIGN = process.env.BONGACAMS_CAMPAIGN || process.env.BONGACASH_CAMPAIGN || "840970";
