@@ -4,6 +4,7 @@ const expected = [
   "node scripts/run-production-migrations.js",
   "node scripts/fix-server-syntax.js",
   "node scripts/patch-country-directory.js",
+  "node scripts/patch-chaturbate-api-region.js",
   "node scripts/patch-spa-seo-routes.js",
   "node route.js",
 ];
@@ -21,4 +22,4 @@ if (JSON.stringify(start) !== JSON.stringify(expected)) {
   process.exit(1);
 }
 
-console.log("Production start command is valid; only the two runtime-required compatibility patches run at startup.");
+console.log("Production start command is valid; startup patches run in the required order.");
