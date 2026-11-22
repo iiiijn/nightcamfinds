@@ -11,10 +11,11 @@ const valid = {
   displayName: "Alice",
   roomSubject: "Friendly chat",
   viewerCount: 24,
+  isLive: true,
   href: "https://chaturbate.com/alice/"
 };
 
-test("accepts a well-formed live room from a supported partner domain", () => {
+test("accepts a well-formed confirmed-live room from a supported partner domain", () => {
   assert.equal(isDisplayableRoom(valid), true);
   assert.equal(isDisplayableRoom({
     ...valid,
@@ -23,6 +24,13 @@ test("accepts a well-formed live room from a supported partner domain", () => {
     username: "bob",
     href: "https://www.bongacams.com/bob"
   }), true);
+});
+
+test("rejects offline and unverified-live rooms from every display surface", () => {
+  assert.equal(isDisplayableRoom({ ...valid, isLive: false }), false);
+  assert.equal(isDisplayableRoom({ ...valid, isLive: undefined }), false);
+  assert.equal(isDisplayableRoom({ ...valid, isLive: "true" }), false);
+  assert.equal(isDisplayableRoom({ ...valid, platform: "bongacams", id: "bongacams:bob", username: "bob", isLive: false, href: "https://bongacams.com/bob" }), false);
 });
 
 test("rejects missing identity, invalid viewer counts, and unsupported destinations", () => {
@@ -70,7 +78,8 @@ test("filters invalid entries and deduplicates rooms by stable room id", () => {
     { normalized: { ...valid, displayName: "" }, rawText: "safe title" },
     { normalized: { ...valid, displayName: "Duplicate display name" }, rawText: "safe title" },
     { normalized: valid, rawText: "underage keyword" },
-    { normalized: { ...valid, gender: "unknown" }, rawText: "safe title" }
+    { normalized: { ...valid, gender: "unknown" }, rawText: "safe title" },
+    { normalized: { ...valid, isLive: false }, rawText: "offline" }
   ]);
   assert.equal(rooms.length, 1);
   assert.equal(rooms[0].id, valid.id);
@@ -81,6 +90,7 @@ test("BongaCams feed uses strict category mapping and the shared room validator"
   assert.match(route, /filterDisplayableRooms\(normalized\)/);
   assert.ok(route.includes("/^(?:female|woman|women|f)$/"));
   assert.doesNotMatch(route, /rawGender\.includes\("male"\)/);
+  assert.match(route, /isLive: true, freshness: "FRESH"/);
 });
 
 test("normalizes only explicit provider categories and leaves unknown values uncategorized", () => {

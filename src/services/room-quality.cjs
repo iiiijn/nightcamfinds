@@ -29,6 +29,7 @@ function getRoomRejectionReason(room, rawText = "") {
   if (!room || typeof room !== "object") return "invalid_room";
   const platform = String(room.platform || "").toLowerCase();
   if (!["chaturbate", "bongacams"].includes(platform)) return "unsupported_provider";
+  if (room.isLive !== true) return "not_live";
   const username = String(room.username || "").trim();
   const id = String(room.id || "");
   if (!username || id !== platform + ":" + username) return "invalid_identity";

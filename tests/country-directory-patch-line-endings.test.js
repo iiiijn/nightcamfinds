@@ -13,6 +13,8 @@ test("country directory startup patch supports CRLF checkouts and remains idempo
   assert.ok(patched.includes("NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1"));
   assert.ok(patched.includes("coalesceInFlight(roomFetchesInFlight,cacheKey"));
   assert.ok(patched.includes("summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms })"));
+  assert.ok(patched.includes('viewerCount:Number(room.num_users||0),isLive:true,freshness:"FRESH"'));
+  assert.ok(patched.includes('viewerCount:viewers,isLive:true,freshness:"FRESH"'));
   assert.ok(patched.includes("\r\n"), "the patched file should retain CRLF line endings");
   assert.equal(patched.replace(/\r\n/g, "").includes("\n"), false, "the patched file should not contain mixed line endings");
   assert.equal(patchServerSource(patched), patched, "reapplying the patch should be a no-op");

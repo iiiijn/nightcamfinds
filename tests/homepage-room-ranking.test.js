@@ -24,6 +24,18 @@ test("homepage provider sections use quality-aware ranking rather than viewer co
   assert.ok(result.bongacams.female.every(item => item.platform === "bongacams"));
 });
 
+test("homepage only promotes confirmed-live rooms and still accepts live rooms with zero viewers", () => {
+  const rooms = [
+    room("chaturbate", "female", "online-zero", 0),
+    room("chaturbate", "female", "offline-popular", 9000, { isLive: false }),
+    room("chaturbate", "female", "unverified-popular", 8000, { isLive: undefined }),
+    room("bongacams", "female", "bonga-live", 12)
+  ];
+  const result = buildTopRoomsByProviderCategory(rooms);
+  assert.deepEqual(result.chaturbate.female.map(item => item.username), ["online-zero"]);
+  assert.deepEqual(result.bongacams.female.map(item => item.username), ["bonga-live"]);
+});
+
 test("homepage ranking retains all four categories and caps each provider section", () => {
   const categories = ["female", "male", "trans", "couples"];
   const rooms = categories.flatMap(gender => Array.from({length: 10}, (_, index) =>
