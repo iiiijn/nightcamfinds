@@ -21,10 +21,6 @@ function first(params, names, fallback = "") {
   return fallback;
 }
 
-function eventIdentity(transactionId, type) {
-  return `${clean(transactionId, "", 255)}:${clean(type, "", 40)}`;
-}
-
 function normalizeType(value) {
   const v = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
   if (["refund", "chargeback", "reversal", "adjustment"].includes(v)) return "refund";
@@ -205,4 +201,4 @@ async function stats(pool, from, to) {
   };
 }
 
-module.exports = { ensureTable, save, stats, verifySecret, normalizePostback, normalizeType, eventIdentity };
+module.exports = { ensureTable, save, stats, verifySecret, normalizePostback, normalizeType };
