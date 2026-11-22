@@ -47,7 +47,7 @@ test("rejects youth-related terms in raw feed text even if display cleaning remo
 });
 
 test("cleans room titles without changing ordinary wording", () => {
-  assert.equal(cleanRoomTitle("  Friendly\\n chat\\t tonight  "), "Friendly chat tonight");
+  assert.equal(cleanRoomTitle("  Friendly\n chat\t tonight  "), "Friendly chat tonight");
   assert.equal(cleanRoomTitle("A playful room for music and conversation"), "A playful room for music and conversation");
 });
 
@@ -87,9 +87,9 @@ test("filters invalid entries and deduplicates rooms by stable room id", () => {
 
 test("BongaCams feed uses strict category mapping and the shared room validator", () => {
   const route = require("node:fs").readFileSync(require("node:path").join(__dirname, "../route.js"), "utf8");
-  assert.match(route, /filterDisplayableRooms\\(normalized\\)/);
+  assert.match(route, /filterDisplayableRooms\(normalized\)/);
   assert.ok(route.includes("/^(?:female|woman|women|f)$/"));
-  assert.doesNotMatch(route, /rawGender\\.includes\\("male"\\)/);
+  assert.doesNotMatch(route, /rawGender\.includes\("male"\)/);
 });
 
 test("normalizes only explicit provider categories and leaves unknown values uncategorized", () => {
@@ -109,8 +109,8 @@ test("normalizes only explicit provider categories and leaves unknown values unc
 
 test("directory feed normalizers do not silently classify unknown provider genders as female", () => {
   const server = require("node:fs").readFileSync(require("node:path").join(__dirname, "../server.js"), "utf8");
-  assert.match(server, /gender:normalizeRoomGender\\(room\\.gender\\)/);
-  assert.match(server, /function bongaGender\\(value\\) \\{ return normalizeRoomGender\\(value\\); \\}/);
-  assert.doesNotMatch(server, /GENDER\\[room\\.gender\\]\\s*\\|\\|\\s*"female"/);
-  assert.doesNotMatch(server, /return"female";\\s*\\}/);
+  assert.match(server, /gender:normalizeRoomGender\(room\.gender\)/);
+  assert.match(server, /function bongaGender\(value\) \{ return normalizeRoomGender\(value\); \}/);
+  assert.doesNotMatch(server, /GENDER\[room\.gender\]\s*\|\|\s*"female"/);
+  assert.doesNotMatch(server, /return"female";\s*\}/);
 });
