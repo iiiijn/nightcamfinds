@@ -7,6 +7,7 @@ const path = require("node:path");
 
 const read = (file) => fs.readFileSync(path.join(__dirname, "..", file), "utf8");
 const css = read("public/styles.css");
+const refinementCss = read("public/homepage-refinement.css");
 const app = read("public/app.js");
 const html = read("public/index.html");
 const modelPage = read("public/broadcast.html");
@@ -57,11 +58,12 @@ test("responsive redesign preserves real room rendering and affiliate redirect d
   assert.ok(html.includes("18+ only"));
 });
 
-test("laptop-width layouts keep search in the top row and use five room columns", () => {
-  assert.ok(css.includes("@media (min-width: 761px) and (max-width: 980px)"));
-  assert.ok(css.includes(".topbar {\n    flex-wrap: nowrap;"));
-  assert.ok(css.includes(".topbar #q {\n    flex: 1 1 180px;"));
-  assert.ok(css.includes("grid-template-columns: repeat(5, minmax(0, 1fr));"));
+test("laptop-width layouts keep search in the flex topbar and use the tablet room grid", () => {
+  assert.ok(css.includes(".topbar { min-height: 64px; display: flex; align-items: center; gap: 12px; }"));
+  const topbar = html.slice(html.indexOf('<div class="topbar">'), html.indexOf("</div>", html.indexOf('<div class="topbar">')));
+  assert.ok(topbar.includes('id="q"'));
+  assert.ok(refinementCss.includes("@media (min-width: 641px) and (max-width: 980px)"));
+  assert.ok(refinementCss.includes(".directory-main > .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }"));
 });
 
 test("homepage exposes separate official model signup paths without misusing viewer affiliate routes", () => {
