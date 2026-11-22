@@ -3,6 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { summarizeFeedIngestion, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation } = require("../src/services/feed-ingestion-diagnostics.cjs");
+const { resolveChaturbateCountry } = require("../src/services/country-directory.cjs");
 
 const room = (username, overrides = {}) => ({
   normalized: {
@@ -156,8 +157,10 @@ test("Chaturbate diagnostics count metadata presence without exposing values or 
         comma_unrecognized: 0,
         semicolon_country: 0,
         pipe_country: 0,
+        slash_country: 0,
         semicolon_unrecognized: 0,
         pipe_unrecognized: 0,
+        slash_unrecognized: 0,
         mixed_delimiter: 0,
         delimited_empty_component: 0,
         other_nonempty: 2
@@ -213,8 +216,10 @@ test("Chaturbate location diagnostics classify shapes without exposing location 
       comma_unrecognized: 1,
       semicolon_country: 0,
       pipe_country: 0,
+      slash_country: 0,
       semicolon_unrecognized: 0,
       pipe_unrecognized: 0,
+      slash_unrecognized: 0,
       mixed_delimiter: 0,
       delimited_empty_component: 0,
       other_nonempty: 2
@@ -243,8 +248,10 @@ test("Chaturbate feed metadata includes location shape counts but never raw loca
     comma_unrecognized: 1,
     semicolon_country: 0,
     pipe_country: 0,
+    slash_country: 0,
     semicolon_unrecognized: 0,
     pipe_unrecognized: 0,
+    slash_unrecognized: 0,
     mixed_delimiter: 0,
     delimited_empty_component: 0,
     other_nonempty: 0
@@ -319,8 +326,10 @@ test("Chaturbate location diagnostics recognize a valid country suffix after mul
     comma_unrecognized: 1,
     semicolon_country: 0,
     pipe_country: 0,
+    slash_country: 0,
     semicolon_unrecognized: 0,
     pipe_unrecognized: 0,
+    slash_unrecognized: 0,
     mixed_delimiter: 0,
     delimited_empty_component: 0,
     other_nonempty: 0
@@ -354,9 +363,11 @@ test("Chaturbate location diagnostics classify semicolon and pipe country suffix
     comma_unrecognized: 0,
     semicolon_country: 1,
     pipe_country: 1,
+    slash_country: 1,
     semicolon_unrecognized: 1,
     pipe_unrecognized: 1,
-    mixed_delimiter: 1,
+    slash_unrecognized: 1,
+    mixed_delimiter: 3,
     delimited_empty_component: 1,
     other_nonempty: 1
   });
@@ -366,7 +377,14 @@ test("Chaturbate location diagnostics classify semicolon and pipe country suffix
   assert.equal(classifyChaturbateLocation("Berlin | Unknownland"), "pipe_unrecognized");
   assert.equal(classifyChaturbateLocation("Paris, France | Europe"), "mixed_delimiter");
   assert.equal(classifyChaturbateLocation("London,, United Kingdom"), "delimited_empty_component");
-  assert.equal(classifyChaturbateLocation("Somewhere / Germany"), "other_nonempty");
+  assert.equal(classifyChaturbateLocation("Somewhere / Germany"), "slash_country");
+  assert.equal(classifyChaturbateLocation("Somewhere / Unknownland"), "slash_unrecognized");
+  assert.equal(classifyChaturbateLocation("Paris, France / Germany"), "mixed_delimiter");
+  assert.equal(classifyChaturbateLocation("Paris / France, Germany"), "mixed_delimiter");
+  assert.equal(resolveChaturbateCountry("", "Somewhere / Germany"), "DE");
+  assert.equal(resolveChaturbateCountry("", "Somewhere / Unknownland"), "");
+  assert.equal(resolveChaturbateCountry("", "Paris, France / Germany"), "");
+  assert.equal(resolveChaturbateCountry("", "Paris / France, Germany"), "");
   const serialized = JSON.stringify(result);
   for (const privateValue of ["Toronto", "Sydney", "Springfield", "Unknownland", "private-a"]) {
     assert.equal(serialized.includes(privateValue), false);
