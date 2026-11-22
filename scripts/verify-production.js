@@ -85,22 +85,21 @@ for (const [label, html] of [["hero", renderedHero], ["room cards", renderedCard
 if (!renderedCards.includes("A readable description")) fail("object-valued room descriptions must render their text field");
 
 const seoPatch = fs.readFileSync("scripts/patch-spa-seo-routes.js", "utf8");
-if (!seoPatch.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V14")) fail("SPA SEO patch marker V14 is missing");
-if (!seoPatch.includes("ncfRedirectSeoNoSlashV14")) fail("SEO no-slash redirect helper is missing");
-if (!seoPatch.includes("ncfApplySeoRouteMetadataV14")) fail("SEO metadata helper is missing");
-const seoPathStart = seoPatch.indexOf("const NCF_SEO_PATHS_V14 = new Set([");
-const seoPathEnd = seoPathStart >= 0 ? seoPatch.indexOf("]);", seoPathStart) : -1;
-const seoPathSet = seoPathStart >= 0 && seoPathEnd > seoPathStart ? seoPatch.slice(seoPathStart, seoPathEnd) : "";
-if (!seoPathSet) fail("SEO metadata path allowlist is missing");
-else {
-  for (const path of ["/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/"]) {
-    if (seoPathSet.includes(JSON.stringify(path))) fail(`server-rendered category route must not be rewritten: ${path}`);
-  }
-  if (!seoPathSet.includes(JSON.stringify("/"))) fail("SPA metadata route is missing: /");
-  if (!seoPathSet.includes(JSON.stringify("/broadcast"))) fail("/broadcast metadata route is missing");
-  if (!seoPatch.includes('pathname === "/broadcast" ? "/broadcast.html"')) fail("/broadcast must resolve to its standalone HTML page");
-  if (!seoPatch.includes('"/broadcast": {')) fail("/broadcast SEO metadata is missing");
+if (!seoPatch.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V15")) fail("SPA SEO patch marker V15 is missing");
+if (!seoPatch.includes("ncfRedirectSeoNoSlashV15")) fail("SEO no-slash redirect helper V15 is missing");
+if (!seoPatch.includes("ncfRewriteSeoRequestV15")) fail("SEO request rewrite helper V15 is missing");
+if (!seoPatch.includes('const NCF_SEO_PATHS_V15 = new Set(["/", "/broadcast"]);')) fail("SEO SPA path allowlist must contain only / and /broadcast");
+for (const path of ["/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/"]) {
+  if (seoPatch.includes(JSON.stringify(path))) fail(`server-rendered category route must not be rewritten: ${path}`);
 }
+if (!seoPatch.includes('current.pathname === "/broadcast"')) fail("/broadcast rewrite condition is missing");
+if (!seoPatch.includes('"/broadcast.html"')) fail("/broadcast standalone HTML target is missing");
+if (!seoPatch.includes('if (req.method !== "GET" && req.method !== "HEAD") return false;')) fail("trailing-slash redirects must be limited to GET and HEAD");
+if (/res\.write\s*=|res\.end\s*=/.test(seoPatch)) fail("SEO middleware must not replace or wrap response write/end methods");
+if (seoPatch.includes("ncfApplySeoRouteMetadataV14") || seoPatch.includes("NCF_SEO_PATHS_V14")) fail("legacy V14 response metadata middleware must not be reintroduced");
+
+const serverSourceForCanonical = fs.readFileSync("server.js", "utf8");
+if (!serverSourceForCanonical.includes('function pageOrigin(_req) { return "https://nightcamfinds.com"; }')) fail("canonical page origin must be fixed to the production domain");
 
 if (failed) {
   console.error("Production verification failed.");
