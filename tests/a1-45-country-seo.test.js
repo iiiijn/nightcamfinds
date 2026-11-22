@@ -51,3 +51,25 @@ test("country pages without adequate live-room supply stay out of the index and 
   assert.match(xml, /\/country\/us\//);
   assert.match(getCountryPage("gb", "https://nightcamfinds.com", "", false), /<meta name="robots" content="noindex,follow">/);
 });
+
+
+test("Tier 1 country pages link to other priority markets in the same region", () => {
+  const ukHtml = getCountryPage("gb", "https://preview.example.test", "", true);
+  assert.match(ukHtml, /Explore other Europe markets/);
+  assert.match(ukHtml, /href="\/country\/de\/">Germany live cams/);
+  assert.match(ukHtml, /href="\/country\/fr\/">France live cams/);
+  assert.doesNotMatch(ukHtml, /href="\/country\/gb\/">/);
+  assert.doesNotMatch(ukHtml, /href="\/country\/ca\/">Canada live cams/);
+
+  const usHtml = getCountryPage("us", "https://preview.example.test", "", true);
+  assert.match(usHtml, /Explore other North America markets/);
+  assert.match(usHtml, /href="\/country\/ca\/">Canada live cams/);
+  assert.doesNotMatch(usHtml, /href="\/country\/us\/">/);
+});
+
+test("regional discovery links do not change canonical or low-inventory noindex behavior", () => {
+  const noRooms = getCountryPage("gb", "https://nightcamfinds.com", "", false);
+  assert.match(noRooms, /<meta name="robots" content="noindex,follow">/);
+  assert.match(noRooms, /rel="canonical" href="https:\/\/nightcamfinds\.com\/country\/gb\/">/);
+  assert.match(noRooms, /href="\/country\/de\/">Germany live cams/);
+});
