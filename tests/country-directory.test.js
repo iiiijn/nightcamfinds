@@ -25,6 +25,8 @@ test("Chaturbate country resolution accepts explicit country names and unambiguo
  assert.equal(resolveChaturbateCountry("","Berlin, Germany"),"DE");
  assert.equal(resolveChaturbateCountry("","Nairobi, Kenya"),"KE");
  assert.equal(resolveChaturbateCountry("","Paris, France / Berlin, Germany"),"");
+ assert.equal(resolveChaturbateCountry("","Paris / France, Germany"),"");
+ assert.equal(resolveChaturbateCountry("","Paris, France / Germany"),"");
  assert.equal(resolveChaturbateCountry("","Berlin"),"");
 });
 test("region and language values normalize without inferring residence from language",()=>{
