@@ -1,5 +1,7 @@
 "use strict";
 
+const { MARKET_META, MARKET_PRIORITY_CODES } = require("./src/config/market-countries.cjs");
+
 const COUNTRIES = {
   us: {
     code: "US", name: "United States", adjective: "United States", region: "the United States",
@@ -278,6 +280,16 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
   const title = country.seoTitle || `${country.name} Live Cams | NightCamFinds`;
   const description = country.metaDescription || `Browse public live rooms associated with ${country.name}. Compare categories and current activity on NightCamFinds.`;
   const paragraphs = [country.intro, ...country.paragraphs];
+  const marketMeta = MARKET_META[String(slug).toLowerCase()];
+  const relatedMarkets = marketMeta
+    ? MARKET_PRIORITY_CODES
+        .map((code) => code.toLowerCase())
+        .filter((marketSlug) => marketSlug !== String(slug).toLowerCase())
+        .filter((marketSlug) => MARKET_META[marketSlug]?.regionGroup === marketMeta.regionGroup && COUNTRIES[marketSlug])
+        .sort((a, b) => COUNTRIES[a].name.localeCompare(COUNTRIES[b].name))
+        .slice(0, 6)
+        .map((marketSlug) => [COUNTRIES[marketSlug].name, `/country/${marketSlug}/`])
+    : [];
   const links = [
     ["Female live rooms", "/female/"], ["Male live rooms", "/male/"],
     ["Trans live rooms", "/trans/"], ["Couples live rooms", "/couples/"],
@@ -322,6 +334,7 @@ catch (_) { document.documentElement.classList.add("age-pending"); }
 <header class="country-intro"><p class="eyebrow">NightCamFinds country directory</p><h1>${escapeHtml(country.name)} Live Cams</h1>
 ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
 <section class="country-live-rooms" aria-labelledby="country-live-heading"><h2 id="country-live-heading">Live rooms associated with ${escapeHtml(country.name)}</h2><div class="grid">${roomMarkup || '<p class="empty-state">No live rooms are available in this directory right now. Please check again soon.</p>'}</div></section>
+${relatedMarkets.length ? '<section class="country-related-markets" aria-labelledby="country-related-heading"><h2 id="country-related-heading">Explore other ' + escapeHtml(marketMeta.regionGroup) + ' markets</h2><ul class="country-links">' + relatedMarkets.map(([label, href]) => '<li><a href="' + href + '">' + escapeHtml(label) + ' live cams</a></li>').join("") + '</ul></section>' : ""}
 <section aria-labelledby="country-categories"><h2 id="country-categories">Explore room categories</h2>
 <ul class="country-links">${links.map(([label, href]) => `<li><a href="${href}">${escapeHtml(label)}</a></li>`).join("")}</ul></section>
 <section aria-labelledby="country-faq"><h2 id="country-faq">Frequently asked questions</h2>${faqHtml}</section>
