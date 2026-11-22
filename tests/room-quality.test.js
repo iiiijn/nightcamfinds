@@ -90,6 +90,7 @@ test("BongaCams feed uses strict category mapping and the shared room validator"
   assert.match(route, /filterDisplayableRooms\(normalized\)/);
   assert.ok(route.includes("/^(?:female|woman|women|f)$/"));
   assert.doesNotMatch(route, /rawGender\.includes\("male"\)/);
+  assert.match(route, /isLive: true, freshness: "FRESH"/);
 });
 
 test("normalizes only explicit provider categories and leaves unknown values uncategorized", () => {
