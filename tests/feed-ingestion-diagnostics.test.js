@@ -352,7 +352,10 @@ test("Chaturbate location diagnostics classify semicolon and pipe country suffix
     { username: "private-e", location: "Paris, France | Europe" },
     { username: "private-f", location: "London,, United Kingdom" },
     { username: "private-g", location: "Somewhere / Germany" },
-    { username: "private-h", location: "Nairobi, Kenya" }
+    { username: "private-h", location: "Somewhere / Unknownland" },
+    { username: "private-i", location: "Paris, France / Germany" },
+    { username: "private-j", location: "Paris / France, Germany" },
+    { username: "private-k", location: "Nairobi, Kenya" }
   ];
   const result = summarizeChaturbateLocationShapes(rows);
   assert.deepEqual(result.locationShapeCounts, {
