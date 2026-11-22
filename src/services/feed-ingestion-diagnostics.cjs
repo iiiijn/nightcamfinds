@@ -48,7 +48,7 @@ function classifyChaturbateLocation(value) {
   if (!text) return "missing";
   if (normalizeCountryCode(text)) return "exact_country";
 
-  const separators = [",", ";", "|"].filter((separator) => text.includes(separator));
+  const separators = [",", ";", "|", "/"].filter((separator) => text.includes(separator));
   if (separators.length > 1) return "mixed_delimiter";
   if (separators.length === 0) return "other_nonempty";
 
@@ -58,10 +58,11 @@ function classifyChaturbateLocation(value) {
   if (!normalizeCountryCode(parts[parts.length - 1])) {
     return separator === "," ? "comma_unrecognized"
       : separator === ";" ? "semicolon_unrecognized"
-      : "pipe_unrecognized";
+      : separator === "|" ? "pipe_unrecognized" : "slash_unrecognized";
   }
   if (separator === ",") return parts.length === 2 ? "city_country" : "location_country";
-  return separator === ";" ? "semicolon_country" : "pipe_country";
+  return separator === ";" ? "semicolon_country"
+    : separator === "|" ? "pipe_country" : "slash_country";
 }
 
 function summarizeChaturbateLocationShapes(rows) {
@@ -74,8 +75,10 @@ function summarizeChaturbateLocationShapes(rows) {
     comma_unrecognized: 0,
     semicolon_country: 0,
     pipe_country: 0,
+    slash_country: 0,
     semicolon_unrecognized: 0,
     pipe_unrecognized: 0,
+    slash_unrecognized: 0,
     mixed_delimiter: 0,
     delimited_empty_component: 0,
     other_nonempty: 0
