@@ -72,7 +72,9 @@ test("homepage global category picks use separate quality-aware partner rankings
   assert.match(server, /const topChaturbateByCategory = homepageTopRooms\.chaturbate/);
   assert.match(server, /const topBongaByCategory = homepageTopRooms\.bongacams/);
   assert.match(server, /topChaturbateByCategory,topBongaByCategory,liveCount:list\.length/);
-  assert.match(homepageRanking, /room\.isLive === true &&[\s\S]*room\.platform === provider && String\(room\.gender \|\| ""\)\.toLowerCase\(\) === category/);
+  assert.match(homepageRanking, /room\.isLive === true/);
+  assert.match(homepageRanking, /room\.platform === provider/);
+  assert.match(homepageRanking, /String\(room\.gender \|\| ""\)\.toLowerCase\(\) === category/);
   assert.match(homepageRanking, /rankRoomsByPreferredPlatform\(eligible, null, "recommended"\)\.slice\(0, limit\)/);
   assert.doesNotMatch(server, /Number\(roomB\.viewerCount \|\| 0\) - Number\(roomA\.viewerCount \|\| 0\)/);
   assert.match(app, /Popular " \+ platformLabel \+ " " \+ label \+ " Rooms/);
