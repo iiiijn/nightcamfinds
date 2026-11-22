@@ -94,3 +94,40 @@ test("allows registration callbacks without payout while preserving zero as the 
   assert.equal(result.ok, true);
   assert.equal(result.event.payout, 0);
 });
+
+test("normalizes confirmed BongaCash initial and rebill transaction types as purchases", () => {
+  assert.equal(normalizeType("initial"), "purchase");
+  assert.equal(normalizeType("rebill"), "purchase");
+});
+
+test("accepts the documented BongaCash transaction, member and campaign identifiers", () => {
+  const result = normalizePostback(new URLSearchParams({
+    subid: "ncf_bonga_456",
+    unique_transaction_id: "bonga-tx-456",
+    unique_member_id: "member-789",
+    cid: "840970",
+    type: "initial",
+    commission: "3.25",
+    currency: "USD",
+    country: "GB",
+    date: "2026-11-22"
+  }));
+  assert.equal(result.ok, true);
+  assert.equal(result.event.clickId, "ncf_bonga_456");
+  assert.equal(result.event.transactionId, "bonga-tx-456");
+  assert.equal(result.event.userId, "member-789");
+  assert.equal(result.event.campaignId, "840970");
+  assert.equal(result.event.type, "purchase");
+  assert.equal(result.event.payout, 3.25);
+  assert.equal(result.event.timestamp, "2026-11-22");
+});
+
+test("does not silently classify BongaCash ban events as purchases or refunds", () => {
+  const result = normalizePostback(new URLSearchParams({
+    subid: "ncf_bonga_456",
+    unique_transaction_id: "bonga-ban-456",
+    type: "ban"
+  }));
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "unsupported_event_type");
+});
