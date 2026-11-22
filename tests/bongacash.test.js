@@ -131,3 +131,11 @@ test("does not silently classify BongaCash ban events as purchases or refunds", 
   assert.equal(result.ok, false);
   assert.equal(result.reason, "unsupported_event_type");
 });
+
+
+test("uses transaction plus event type as the idempotency identity", () => {
+  const { eventIdentity } = require("../bongacash.js");
+  assert.equal(eventIdentity("tx-100", "purchase"), "tx-100:purchase");
+  assert.equal(eventIdentity("tx-100", "refund"), "tx-100:refund");
+  assert.equal(eventIdentity("tx-100", "refund"), eventIdentity("tx-100", "refund"));
+});
