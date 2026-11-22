@@ -389,7 +389,7 @@ function legal(title,body) {
   const meta = LEGAL_PAGE_META[title] || { title: title + " | NightCamFinds", description: "Information about NightCamFinds, an independent adult live-room discovery directory." };
   const escapeAttr = value => String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const slug = ({ "About NightCamFinds": "about", "Affiliate disclosure": "affiliate-disclosure", "Privacy policy": "privacy", "Terms": "terms", "Contact": "contact" })[title] || "";
-  const origin = ORIGIN || "https://nightcamfinds.com";
+  const origin = "https://nightcamfinds.com";
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${meta.title}</title><meta name="description" content="${escapeAttr(meta.description)}"><meta name="robots" content="index,follow"><link rel="canonical" href="${origin}/${slug}"><link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css"></head><body><main class="wrap legal"><h1>${title}</h1>${body}<p><a href="/">Back to rooms</a></p></main></body></html>`;
 }
 const pages={
