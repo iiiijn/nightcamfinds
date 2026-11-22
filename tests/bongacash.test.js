@@ -133,9 +133,35 @@ test("does not silently classify BongaCash ban events as purchases or refunds", 
 });
 
 
-test("uses transaction plus event type as the idempotency identity", () => {
-  const { eventIdentity } = require("../bongacash.js");
-  assert.equal(eventIdentity("tx-100", "purchase"), "tx-100:purchase");
-  assert.equal(eventIdentity("tx-100", "refund"), "tx-100:refund");
-  assert.equal(eventIdentity("tx-100", "refund"), eventIdentity("tx-100", "refund"));
+
+test("records a reversal sharing a transaction ID while deduplicating repeat delivery", async () => {
+  const { save } = require("../bongacash.js");
+  const seen = new Set();
+  const insertStatements = [];
+  const pool = {
+    async query(sql, values = []) {
+      if (sql.includes("SELECT click_id FROM bonga_clicks")) return { rows: [{ click_id: values[0] }] };
+      if (sql.includes("INSERT INTO bonga_conversions")) {
+        insertStatements.push(sql);
+        const key = values[1] + ":" + values[2];
+        if (seen.has(key)) return { rowCount: 0, rows: [] };
+        seen.add(key);
+        return { rowCount: 1, rows: [{ transaction_id: values[1] }] };
+      }
+      return { rows: [], rowCount: 0 };
+    }
+  };
+  const purchase = new URLSearchParams({ click_id: "click-1", transaction_id: "tx-1", type: "initial", payout: "4.00" });
+  const refund = new URLSearchParams({ click_id: "click-1", transaction_id: "tx-1", type: "refund", payout: "4.00" });
+
+  const firstPurchase = await save(pool, purchase);
+  const firstRefund = await save(pool, refund);
+  const repeatedRefund = await save(pool, refund);
+
+  assert.equal(firstPurchase.duplicate, false);
+  assert.equal(firstRefund.duplicate, false);
+  assert.equal(firstRefund.type, "refund");
+  assert.equal(repeatedRefund.duplicate, true);
+  assert.equal(seen.size, 2);
+  assert.ok(insertStatements.every(sql => sql.includes("ON CONFLICT (transaction_id, conversion_type) DO NOTHING")));
 });
