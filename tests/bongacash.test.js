@@ -94,3 +94,74 @@ test("allows registration callbacks without payout while preserving zero as the 
   assert.equal(result.ok, true);
   assert.equal(result.event.payout, 0);
 });
+
+test("normalizes confirmed BongaCash initial and rebill transaction types as purchases", () => {
+  assert.equal(normalizeType("initial"), "purchase");
+  assert.equal(normalizeType("rebill"), "purchase");
+});
+
+test("accepts the documented BongaCash transaction, member and campaign identifiers", () => {
+  const result = normalizePostback(new URLSearchParams({
+    subid: "ncf_bonga_456",
+    unique_transaction_id: "bonga-tx-456",
+    unique_member_id: "member-789",
+    cid: "840970",
+    type: "initial",
+    commission: "3.25",
+    currency: "USD",
+    country: "GB",
+    date: "2026-11-22"
+  }));
+  assert.equal(result.ok, true);
+  assert.equal(result.event.clickId, "ncf_bonga_456");
+  assert.equal(result.event.transactionId, "bonga-tx-456");
+  assert.equal(result.event.userId, "member-789");
+  assert.equal(result.event.campaignId, "840970");
+  assert.equal(result.event.type, "purchase");
+  assert.equal(result.event.payout, 3.25);
+  assert.equal(result.event.timestamp, "2026-11-22");
+});
+
+test("does not silently classify BongaCash ban events as purchases or refunds", () => {
+  const result = normalizePostback(new URLSearchParams({
+    subid: "ncf_bonga_456",
+    unique_transaction_id: "bonga-ban-456",
+    type: "ban"
+  }));
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "unsupported_event_type");
+});
+
+
+
+test("records a reversal sharing a transaction ID while deduplicating repeat delivery", async () => {
+  const { save } = await import("../bongacash.js");
+  const seen = new Set();
+  const insertStatements = [];
+  const pool = {
+    async query(sql, values = []) {
+      if (sql.includes("SELECT click_id FROM bonga_clicks")) return { rows: [{ click_id: values[0] }] };
+      if (sql.includes("INSERT INTO bonga_conversions")) {
+        insertStatements.push(sql);
+        const key = values[1] + ":" + values[2];
+        if (seen.has(key)) return { rowCount: 0, rows: [] };
+        seen.add(key);
+        return { rowCount: 1, rows: [{ transaction_id: values[1] }] };
+      }
+      return { rows: [], rowCount: 0 };
+    }
+  };
+  const purchase = new URLSearchParams({ click_id: "click-1", transaction_id: "tx-1", type: "initial", payout: "4.00" });
+  const refund = new URLSearchParams({ click_id: "click-1", transaction_id: "tx-1", type: "refund", payout: "4.00" });
+
+  const firstPurchase = await save(pool, purchase);
+  const firstRefund = await save(pool, refund);
+  const repeatedRefund = await save(pool, refund);
+
+  assert.equal(firstPurchase.duplicate, false);
+  assert.equal(firstRefund.duplicate, false);
+  assert.equal(firstRefund.type, "refund");
+  assert.equal(repeatedRefund.duplicate, true);
+  assert.equal(seen.size, 2);
+  assert.ok(insertStatements.every(sql => sql.includes("ON CONFLICT (transaction_id, conversion_type) DO NOTHING")));
+});

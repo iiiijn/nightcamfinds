@@ -23,8 +23,8 @@ function first(params, names, fallback = "") {
 
 function normalizeType(value) {
   const v = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
-  if (/(refund|chargeback|reversal|adjustment)/.test(v)) return "refund";
-  if (/(purchase|sale|deposit|revshare|ftd)/.test(v)) return "purchase";
+  if (["refund", "chargeback", "reversal", "adjustment"].includes(v)) return "refund";
+  if (["initial", "rebill", "purchase", "sale", "deposit", "revshare", "ftd"].includes(v)) return "purchase";
   if (/(signup|registration|register|lead)/.test(v)) return "registration";
   return v || "unknown";
 }
@@ -40,7 +40,7 @@ function verifySecret(req, params) {
 
 function normalizePostback(params) {
   const clickId = first(params, ["click_id", "clickid", "subid", "sub_id", "sid", "s1", "ref", "track_id"]);
-  const transactionId = first(params, ["transaction_id", "transactionid", "txid", "tid", "action_id", "id"]);
+  const transactionId = first(params, ["unique_transaction_id", "transaction_id", "transactionid", "txid", "tid", "action_id", "id"]);
   const type = normalizeType(first(params, ["type", "event", "event_type", "conversion_type", "action", "status"]));
   const payoutRaw = first(params, ["payout", "commission", "earnings", "revenue", "profit"]);
   const amountRaw = first(params, ["amount", "purchase_amount", "sale_amount", "spend"]);
@@ -50,8 +50,8 @@ function normalizePostback(params) {
   const country = clean(first(params, ["country", "country_code", "geo"], "UNKNOWN"), "UNKNOWN", 16).toUpperCase();
   const track = clean(first(params, ["track", "tracking", "placement", "subid2"]), "", 255);
   const source = clean(first(params, ["source", "traffic_source", "utm_source", "subid1"]), "", 255);
-  const campaign = clean(first(params, ["campaign", "campaign_id", "subid3"]), "", 255);
-  const userId = clean(first(params, ["user_id", "userid", "member_id", "customer_id"]), "", 255);
+  const campaign = clean(first(params, ["cid", "campaign", "campaign_id", "subid3"]), "", 255);
+  const userId = clean(first(params, ["unique_member_id", "user_id", "userid", "member_id", "customer_id"]), "", 255);
   const timestamp = clean(first(params, ["timestamp", "event_timestamp", "date", "datetime"]), "", 100);
   const status = clean(first(params, ["status", "state"]), "", 40);
 
@@ -119,7 +119,7 @@ async function ensureTable(pool) {
       event_timestamp VARCHAR(100),
       status VARCHAR(40),
       raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-      UNIQUE(transaction_id)
+      UNIQUE(transaction_id, conversion_type)
     )
   `);
   await pool.query("ALTER TABLE bonga_conversions ALTER COLUMN click_id TYPE VARCHAR(128)");
@@ -143,24 +143,12 @@ async function save(pool, params) {
   );
   if (!matched.rows.length) throw new Error("unmatched_click_id");
 
-  await pool.query(`
+  const inserted = await pool.query(`
     INSERT INTO bonga_conversions
       (click_id,transaction_id,conversion_type,payout,amount,currency,country,track,source,campaign_id,user_id,event_timestamp,status,raw_payload)
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb)
-    ON CONFLICT (transaction_id) DO UPDATE SET
-      click_id = EXCLUDED.click_id,
-      payout = EXCLUDED.payout,
-      amount = EXCLUDED.amount,
-      currency = EXCLUDED.currency,
-      conversion_type = EXCLUDED.conversion_type,
-      country = EXCLUDED.country,
-      track = EXCLUDED.track,
-      source = EXCLUDED.source,
-      campaign_id = EXCLUDED.campaign_id,
-      user_id = EXCLUDED.user_id,
-      event_timestamp = EXCLUDED.event_timestamp,
-      status = EXCLUDED.status,
-      raw_payload = EXCLUDED.raw_payload
+    ON CONFLICT (transaction_id, conversion_type) DO NOTHING
+    RETURNING transaction_id
   `, [
     event.clickId,
     event.transactionId,
@@ -178,7 +166,7 @@ async function save(pool, params) {
     JSON.stringify(Object.fromEntries(params.entries()))
   ]);
 
-  return { ok: true, type: event.type, transactionId: event.transactionId, clickId: event.clickId };
+  return { ok: true, duplicate: inserted.rowCount === 0, type: event.type, transactionId: event.transactionId, clickId: event.clickId };
 }
 
 async function stats(pool, from, to) {
