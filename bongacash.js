@@ -21,6 +21,10 @@ function first(params, names, fallback = "") {
   return fallback;
 }
 
+function eventIdentity(transactionId, type) {
+  return `${clean(transactionId, "", 255)}:${clean(type, "", 40)}`;
+}
+
 function normalizeType(value) {
   const v = String(value || "").toLowerCase().replace(/[\s-]+/g, "_");
   if (["refund", "chargeback", "reversal", "adjustment"].includes(v)) return "refund";
@@ -119,7 +123,7 @@ async function ensureTable(pool) {
       event_timestamp VARCHAR(100),
       status VARCHAR(40),
       raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-      UNIQUE(transaction_id)
+      UNIQUE(transaction_id, conversion_type)
     )
   `);
   await pool.query("ALTER TABLE bonga_conversions ALTER COLUMN click_id TYPE VARCHAR(128)");
@@ -147,7 +151,7 @@ async function save(pool, params) {
     INSERT INTO bonga_conversions
       (click_id,transaction_id,conversion_type,payout,amount,currency,country,track,source,campaign_id,user_id,event_timestamp,status,raw_payload)
     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb)
-    ON CONFLICT (transaction_id) DO NOTHING
+    ON CONFLICT (transaction_id, conversion_type) DO NOTHING
     RETURNING transaction_id
   `, [
     event.clickId,
@@ -201,4 +205,4 @@ async function stats(pool, from, to) {
   };
 }
 
-module.exports = { ensureTable, save, stats, verifySecret, normalizePostback, normalizeType };
+module.exports = { ensureTable, save, stats, verifySecret, normalizePostback, normalizeType, eventIdentity };
