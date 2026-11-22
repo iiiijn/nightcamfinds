@@ -13,6 +13,7 @@ const room = (username, overrides = {}) => ({
     displayName: "Model " + username,
     gender: "female",
     viewerCount: 10,
+    isLive: true,
     href: "https://chaturbate.com/" + username + "/",
     country: "GB",
     ...overrides
