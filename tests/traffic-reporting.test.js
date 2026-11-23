@@ -75,5 +75,5 @@ test('dashboard exposes and loads the since-cutoff report in the traffic tab', (
   assert.match(html, /loadTrafficSinceCutoff/);
   assert.ok(html.includes('ownerTrafficToggle'));
   assert.ok(html.includes('traceOwnerMode'));
-  assert.match(html, /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins\]/);
+  assert.match(html, /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins(?:,loadRepeatedClickIntelligence)?\]/);
 });
