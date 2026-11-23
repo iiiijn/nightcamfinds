@@ -100,6 +100,92 @@ function patchServerSource(input){
    '  const platforms=[...new Set(feed.rooms.map(r=>r.platform).filter(Boolean))].sort();\n  const regions=[...new Set(feed.rooms.map(r=>r.region).filter(Boolean))].sort();\n  const languages=[...new Set(feed.rooms.flatMap(r=>String(r.languages||"").split(/[,;|]/).map(v=>v.trim()).filter(Boolean)))].sort();\n  if (url.searchParams.get("summary") === "1") return send(res,200,JSON.stringify({liveCount:list.length,platforms,notice:feed.notice}),"application/json");\n  return send(res,200,JSON.stringify({rooms:list.slice(0,60),liveCount:list.length,countries,regions,languages,platforms,notice:feed.notice,',
    "room API discovery facets");
  }
+
+ // A1.54: bounded provider requests and shared persistent stale-while-revalidate snapshots.
+ replaceOnce(\`function fetchJson(url) {
+  return new Promise((resolve, reject) => {
+    const transport = new URL(url).protocol === "http:" ? http : https;
+    transport.get(url, { headers: { "User-Agent": "NightCamFinds/2.0", Accept: "application/json" } }, res => {
+      let body = ""; res.on("data", c => { body += c; });
+      res.on("end", () => { if (res.statusCode >= 400) return reject(new Error("Feed " + res.statusCode)); try { resolve(JSON.parse(body)); } catch (err) { reject(err); } });
+    }).on("error", reject);
+  });
+}\`,
+ \`function fetchJson(url, timeoutMs = 8000) {
+  return new Promise((resolve, reject) => {
+    const transport = new URL(url).protocol === "http:" ? http : https;
+    const request = transport.get(url, { headers: { "User-Agent": "NightCamFinds/2.0", Accept: "application/json" } }, res => {
+      let body = ""; res.on("data", c => { body += c; });
+      res.on("end", () => { if (res.statusCode >= 400) return reject(new Error("Feed " + res.statusCode)); try { resolve(JSON.parse(body)); } catch (err) { reject(err); } });
+    });
+    request.setTimeout(Math.max(1000, Number(timeoutMs) || 8000), () => request.destroy(new Error("Partner feed request timed out.")));
+    request.on("error", reject);
+  });
+}\`,
+ "partner feed request timeout");
+ replaceOnce('const roomCache = new Map();',
+ \`const { createFeedSnapshotCache } = require("./src/services/feed-snapshot-cache.cjs");
+let feedSnapshotTableReady = null;
+async function ensureFeedSnapshotTable() {
+ if (!pgPool) return;
+ if (!feedSnapshotTableReady) feedSnapshotTableReady = pgPool.query("CREATE TABLE IF NOT EXISTS room_feed_snapshots (cache_key VARCHAR(96) PRIMARY KEY, snapshot JSONB NOT NULL, refreshed_at TIMESTAMPTZ NOT NULL)");
+ await feedSnapshotTableReady;
+}
+const roomCache = createFeedSnapshotCache({
+ ttlMs: Math.max(15000, Number(process.env.ROOM_FEED_CACHE_TTL_MS) || 60000),
+ staleMs: Math.max(60000, Number(process.env.ROOM_FEED_CACHE_STALE_MS) || 300000),
+ loadSnapshot: async (key) => {
+  if (!pgPool) return null;
+  await ensureFeedSnapshotTable();
+  const result = await pgPool.query("SELECT snapshot, refreshed_at FROM room_feed_snapshots WHERE cache_key = $1 AND refreshed_at > NOW() - INTERVAL '5 minutes'", [key]);
+  const row = result.rows[0];
+  return row ? { ...row.snapshot, at: new Date(row.refreshed_at).getTime() } : null;
+ },
+ saveSnapshot: async (key, snapshot) => {
+  if (!pgPool) return;
+  await ensureFeedSnapshotTable();
+  await pgPool.query("INSERT INTO room_feed_snapshots (cache_key, snapshot, refreshed_at) VALUES ($1, $2::jsonb, $3) ON CONFLICT (cache_key) DO UPDATE SET snapshot = EXCLUDED.snapshot, refreshed_at = EXCLUDED.refreshed_at", [key, JSON.stringify(snapshot), new Date(snapshot.at)]);
+ }
+});\`);
+ const oldRooms = \`async function rooms(req) {
+ const visitor=visitorCountry(req);
+ const cacheKey=visitor!=="UNKNOWN"?visitor:clientIp(req);
+ const cached=roomCache.get(cacheKey);
+ if(cached&&Date.now()-cached.at<20000&&cached.rooms.length)return cached;
+ const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);
+ const ch=results[0].status==="fulfilled"?results[0].value.rooms:[];
+ const bc=results[1].status==="fulfilled"?results[1].value:[];
+ const notices=[];
+ if(results[0].status==="rejected")notices.push("Chaturbate regional feeds unavailable");
+ else if(results[0].value.notice)notices.push(results[0].value.notice);
+ if(results[1].status==="rejected"&&BONGA_ENABLED)notices.push("BongaCams feed unavailable");
+ const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
+ const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable.")};
+ roomCache.set(cacheKey,entry);
+ if(roomCache.size>50)roomCache.delete(roomCache.keys().next().value);
+ return entry;
+}\`;
+ const newRooms = \`async function rooms(req) {
+ const visitor=visitorCountry(req);
+ const rawIp=clientIp(req);
+ const cacheKey=visitor!=="UNKNOWN"?"country:"+visitor:"ip:"+require("crypto").createHash("sha256").update(rawIp).digest("hex").slice(0,64);
+ return roomCache.get(cacheKey, async () => {
+  const startedAt=Date.now();
+  const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);
+  const ch=results[0].status==="fulfilled"?results[0].value.rooms:[];
+  const bc=results[1].status==="fulfilled"?results[1].value:[];
+  const notices=[];
+  if(results[0].status==="rejected")notices.push("Chaturbate regional feeds unavailable");
+  else if(results[0].value.notice)notices.push(results[0].value.notice);
+  if(results[1].status==="rejected"&&BONGA_ENABLED)notices.push("BongaCams feed unavailable");
+  const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
+  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable."),providerHealth:{chaturbate:results[0].status==="fulfilled"?"available":"unavailable",bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"}};
+  console.info("[room-feed-refresh]",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:visitor!=="UNKNOWN"?"country":"ip",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:"disabled",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));
+  return entry;
+ });
+}\`;
+ replaceOnce(oldRooms,newRooms,"persistent stale-while-revalidate room feed cache");
+
  return ("// "+MARKER+"\n"+source).replace(/\n/g,outputNewline);
 }
 if(require.main===module){
