@@ -20,6 +20,7 @@ const providerHealth = require("./src/services/provider-attribution-health.cjs")
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
 const organicLandingRevenue = require("./src/services/organic-landing-revenue.cjs");
 const telegramCampaignPerformance = require("./src/services/telegram-campaign-performance.cjs");
+const repeatedClickIntelligence = require("./src/services/repeated-click-intelligence.cjs");
 const { cleanRoomTitle, filterDisplayableRooms } = require("./src/services/room-quality.cjs");
 const { isIso3166Alpha2 } = require("./src/services/iso-country-codes.cjs");
 const allowEngagement = createEngagementRateLimiter();
@@ -851,6 +852,31 @@ http.createServer = function routeDashboard(handler) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Individual click trace requires the existing traffic-quality and click-attribution migrations." });
         console.error("Individual click trace failed:", err.message);
         return sendJson(res, 500, { error: "Could not load individual click trace." });
+      }
+    }
+    if (incoming.pathname === "/api/repeated-click-intelligence") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const parsed = repeatedClickIntelligence.parseFilters(incoming.searchParams);
+      if (parsed.error) return sendJson(res, 400, { error: parsed.error });
+      const filters = parsed.value;
+      if (!filters.from && !filters.to) filters.from = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
+      try {
+        const query = repeatedClickIntelligence.buildQuery(filters);
+        const result = await pool.query(query.text, query.params);
+        return sendJson(res, 200, {
+          ...repeatedClickIntelligence.summarize(result.rows),
+          filters,
+          thresholds: query.thresholds,
+          timezone: "UTC",
+          truncated: result.rows.length === 500,
+          note: "Repeated-click anomalies are statistical signals, not proof of bots or malicious intent. High burst means at least 8 redirects for one visit ID in a minute; repeated means at least 40 in an hour. Owner traffic and clicks without visit IDs are excluded. Raw affiliate click records and existing revenue totals are unchanged. Historical click timestamps are grouped into UTC minute and hour buckets."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Repeated-click intelligence requires the existing affiliate click attribution schema." });
+        console.error("Repeated-click intelligence failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load repeated-click intelligence." });
       }
     }
     if (incoming.pathname === "/api/recent-room-clicks") {

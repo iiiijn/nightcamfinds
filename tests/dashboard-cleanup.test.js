@@ -49,7 +49,7 @@ test('dashboard keeps provider diagnostics separate from traffic-channel tag sig
 test('dashboard loads report groups on tab selection and caches GET responses briefly', () => {
   assert.match(script, /async function loadDashboardTab\(tab,force=false\)/);
   assert.match(script, /overview:\[loadRoomCoverage,load,loadRouteSettings,loadCountryCategoryAnalytics\]/);
-  assert.match(script, /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins\]/);
+  assert.match(script, /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins(?:,loadRepeatedClickIntelligence)?\]/);
   assert.match(script, /investigation:\[loadRecentRoomClicks,loadIndividualClickTrace\]/);
   assert.match(script, /revenue:\[loadCampaignPerformance,loadTrafficRevenuePerformance,loadConversionRevenue,loadConversionFunnel\]/);
   assert.match(script, /health:\[loadProviderAttributionHealth\]/);

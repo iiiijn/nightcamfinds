@@ -54,6 +54,6 @@ test('dashboard login loads daily country analytics through shared initializatio
   const tabLoaderStart = html.indexOf('async function loadDashboardTab(tab,force=false)');
   const tabLoaderEnd = html.indexOf('function setDashboardTab(tab)', tabLoaderStart);
   assert.ok(tabLoaderStart >= 0 && tabLoaderEnd > tabLoaderStart);
-  assert.match(html.slice(tabLoaderStart, tabLoaderEnd), /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins\]/);
+  assert.match(html.slice(tabLoaderStart, tabLoaderEnd), /traffic:\[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins(?:,loadRepeatedClickIntelligence)?\]/);
   assert.match(html.slice(loginStart, loginEnd), /showDashboard\(j\.username\);await loadDashboardData\(\)/);
 });
