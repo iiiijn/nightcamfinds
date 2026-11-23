@@ -276,7 +276,7 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
 }[char]));
 
-function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup = "", hasRooms = false) {
+function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup = "", hasRooms = false, eligibleCountrySlugs = null) {
   const country = COUNTRIES[String(slug || "").toLowerCase()];
   if (!country) return null;
   // Country canonicals always use the one production origin. Do not derive
@@ -286,10 +286,14 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
   const description = country.metaDescription || `Browse public live rooms associated with ${country.name}. Compare categories and current activity on NightCamFinds.`;
   const paragraphs = [country.intro, ...country.paragraphs];
   const marketMeta = MARKET_META[String(slug).toLowerCase()];
+  const eligibleMarketSet = Array.isArray(eligibleCountrySlugs)
+    ? new Set(eligibleCountrySlugs.map((value) => String(value || "").toLowerCase()))
+    : null;
   const relatedMarkets = marketMeta
     ? MARKET_PRIORITY_CODES
         .map((code) => code.toLowerCase())
         .filter((marketSlug) => marketSlug !== String(slug).toLowerCase())
+        .filter((marketSlug) => !eligibleMarketSet || eligibleMarketSet.has(marketSlug))
         .filter((marketSlug) => MARKET_META[marketSlug]?.regionGroup === marketMeta.regionGroup && COUNTRIES[marketSlug])
         .sort((a, b) => COUNTRIES[a].name.localeCompare(COUNTRIES[b].name))
         .slice(0, 6)
