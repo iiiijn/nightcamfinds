@@ -6,8 +6,10 @@ function createFeedSnapshotCache(options = {}) {
   const loadSnapshot = typeof options.loadSnapshot === "function" ? options.loadSnapshot : async () => null;
   const saveSnapshot = typeof options.saveSnapshot === "function" ? options.saveSnapshot : async () => {};
   const now = typeof options.now === "function" ? options.now : () => Date.now();
+  const retryMs = Math.max(1000, Number(options.retryMs) || 15000);
   const local = new Map();
   const inFlight = new Map();
+  const lastAttempt = new Map();
 
   function valid(snapshot) {
     return snapshot && Number.isFinite(Number(snapshot.at)) && Array.isArray(snapshot.rooms);
@@ -20,6 +22,8 @@ function createFeedSnapshotCache(options = {}) {
   }
   async function refresh(key, fetcher, staleSnapshot) {
     if (inFlight.has(key)) return inFlight.get(key);
+    if (staleSnapshot && now() - Number(lastAttempt.get(key) || 0) < retryMs) return staleSnapshot;
+    lastAttempt.set(key, now());
     const task = (async () => {
       try {
         const snapshot = await fetcher();
@@ -73,8 +77,8 @@ function createFeedSnapshotCache(options = {}) {
   return {
     get,
     clear(key) {
-      if (key === undefined) local.clear();
-      else local.delete(String(key));
+      if (key === undefined) { local.clear(); lastAttempt.clear(); }
+      else { local.delete(String(key)); lastAttempt.delete(String(key)); }
     },
     get inFlightCount() { return inFlight.size; }
   };
