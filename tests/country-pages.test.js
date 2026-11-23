@@ -98,3 +98,11 @@ test("country landing pages create privacy-conscious engagement and preserve lan
   assert.match(html, /lp: landingPath\.slice\(0, 255\)/);
   assert.match(html, /const placement = "country-" \+ countrySlug/);
 });
+
+test("related country links include only markets that meet the live-room threshold when eligibility is supplied", () => {
+  const html = getCountryPage("de", "https://nightcamfinds.com", "", true, ["gb", "nl", "au"]);
+  assert.match(html, /href="\\/country\\/gb\\/"/);
+  assert.match(html, /href="\\/country\\/nl\\/"/);
+  assert.doesNotMatch(html, /href="\\/country\\/(?:be|dk|no|ch|at)\\/"/);
+  assert.doesNotMatch(html, /href="\\/country\\/au\\/"/);
+});
