@@ -167,7 +167,7 @@ test("country startup patch renders live room cards, applies the ten-room robots
  assert.match(source,/rankRoomsByPreferredPlatform\(feed\.rooms\.filter\(\(room\) => room\.country === iso\)/);
  assert.match(source,/renderRoomCards\(countryRooms\.slice\(0, 60\)/);
  assert.match(source,/summarizeCountryRouteHealth\(\{ providerHealth: feed\.providerHealth, rooms: countryRooms \}\)/);
- assert.match(source,/getCountryPage\(countryRoute\[1\], pageOrigin\(req\), roomMarkup, routeHealth\.indexable\)/);
+ assert.match(source,/getCountryPage\(countryRoute\[1\], pageOrigin\(req\), roomMarkup, routeHealth\.indexable, eligibleCountrySlugs\)/);
  assert.match(source,/function sitemap\(origin,feedRooms\)\{return buildCountrySitemap/);
  assert.match(source,/const feed=await rooms\(req\);return send\(res,200,sitemap\(pageOrigin\(req\),feed\.rooms\)/);
 });
