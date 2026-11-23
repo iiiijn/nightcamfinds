@@ -7,6 +7,7 @@ const intelligence = require('../src/services/repeated-click-intelligence.cjs');
 test('accepts valid optional date filters and rejects invalid or reversed ranges', () => {
   assert.deepEqual(intelligence.parseFilters(new URLSearchParams('from=2026-11-14&to=2026-11-16')), { value: { from: '2026-11-14', to: '2026-11-16' } });
   assert.match(intelligence.parseFilters(new URLSearchParams('from=14-11-2026')).error, /start date/i);
+  assert.match(intelligence.parseFilters(new URLSearchParams('from=2026-02-31')).error, /start date/i);
   assert.match(intelligence.parseFilters(new URLSearchParams('from=2026-11-17&to=2026-11-16')).error, /on or before/i);
 });
 
