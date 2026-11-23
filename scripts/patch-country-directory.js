@@ -24,7 +24,7 @@ function patchServerSource(input){
   "single-flight request helper");
  replaceOnce('const roomCache = new Map();', 'const roomCache = new Map();\nconst roomFetchesInFlight = new Map();', "room feed in-flight map");
  const oldRooms = "async function rooms(req) {\n const visitor=visitorCountry(req);\n const cacheKey=visitor!==\"UNKNOWN\"?visitor:clientIp(req);\n const cached=roomCache.get(cacheKey);\n if(cached&&Date.now()-cached.at<20000&&cached.rooms.length)return cached;\n const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);\n const ch=results[0].status===\"fulfilled\"?results[0].value.rooms:[];\n const bc=results[1].status===\"fulfilled\"?results[1].value:[];\n const notices=[];\n if(results[0].status===\"rejected\")notices.push(\"Chaturbate regional feeds unavailable\");\n else if(results[0].value.notice)notices.push(results[0].value.notice);\n if(results[1].status===\"rejected\"&&BONGA_ENABLED)notices.push(\"BongaCams feed unavailable\");\n const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:\"\"})));\n const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(\" · \"):(combined.length?\"\":\"Live rooms are temporarily unavailable. Please check again shortly.\")};\n roomCache.set(cacheKey,entry);\n if(roomCache.size>50)roomCache.delete(roomCache.keys().next().value);\n return entry;\n}";
- const newRooms = "async function rooms(req) {\n const visitor=visitorCountry(req);\n const cacheKey=visitor!==\"UNKNOWN\"?visitor:clientIp(req);\n const cached=roomCache.get(cacheKey);\n if(cached&&Date.now()-cached.at<20000&&cached.rooms.length)return cached;\n return coalesceInFlight(roomFetchesInFlight,cacheKey,async()=>{\n  const startedAt=Date.now();\n  const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);\n  const ch=results[0].status===\"fulfilled\"?results[0].value.rooms:[];\n  const bc=results[1].status===\"fulfilled\"?results[1].value:[];\n  const notices=[];\n  if(results[0].status===\"rejected\")notices.push(\"Chaturbate regional feeds unavailable\");\n  else if(results[0].value.notice)notices.push(results[0].value.notice);\n  if(results[1].status===\"rejected\"&&BONGA_ENABLED)notices.push(\"BongaCams feed unavailable\");\n  const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:\"\"})));\n  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(\" · \"):(combined.length?\"\":\"Live rooms are temporarily unavailable. Please check again shortly.\")};\n  roomCache.set(cacheKey,entry);\n  if(roomCache.size>50)roomCache.delete(roomCache.keys().next().value);\n  console.info(\"[room-feed-refresh]\",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:visitor!==\"UNKNOWN\"?\"country\":\"ip\",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:\"disabled\",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));\n  return entry;\n });\n}";
+ const newRooms = "async function rooms(req) {\n const visitor=visitorCountry(req);\n const rawIp=clientIp(req);\n const cacheKey=visitor!==\"UNKNOWN\"?\"country:\"+visitor:\"ip:\"+require(\"crypto\").createHash(\"sha256\").update(rawIp).digest(\"hex\").slice(0,64);\n return roomCache.get(cacheKey, async () => {\n  const startedAt=Date.now();\n  const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);\n  const ch=results[0].status===\"fulfilled\"?results[0].value.rooms:[];\n  const bc=results[1].status===\"fulfilled\"?results[1].value:[];\n  const notices=[];\n  if(results[0].status===\"rejected\")notices.push(\"Chaturbate regional feeds unavailable\");\n  else if(results[0].value.notice)notices.push(results[0].value.notice);\n  if(results[1].status===\"rejected\"&&BONGA_ENABLED)notices.push(\"BongaCams feed unavailable\");\n  const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:\"\"})));\n  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(\" · \"):(combined.length?\"\":\"Live rooms are temporarily unavailable. Please check again shortly.\"),providerHealth:{chaturbate:results[0].status===\"fulfilled\"?\"available\":\"unavailable\",bongacams:!BONGA_ENABLED?\"disabled\":results[1].status===\"fulfilled\"?\"available\":\"unavailable\"},cacheable:results[0].status!==\"rejected\"&&(!BONGA_ENABLED||results[1].status!==\"rejected\")&&!notices.length};\n  console.info(\"[room-feed-refresh]\",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:visitor!==\"UNKNOWN\"?\"country\":\"ip\",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:\"disabled\",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));\n  return entry;\n });\n}";
  replaceOnce(oldRooms, newRooms, "coalesce concurrent room feed refreshes");
  const normalizers=/function normalizeChaturbateRoom\(room\) \{[^\n]*\}\nfunction bongaGender\(value\) \{[^\n]*\}\nfunction normalizeBongaRoom\(room\) \{[^\n]*\}/;
  if(!normalizers.test(source))throw new Error("Country directory patch could not locate both partner normalizers");
@@ -148,29 +148,6 @@ const roomCache = createFeedSnapshotCache({
   await pgPool.query("DELETE FROM room_feed_snapshots WHERE refreshed_at < NOW() - INTERVAL '1 day'");
  }
 });`);
- const a154RoomsFunction = `async function rooms(req) {
- const visitor=visitorCountry(req);
- const rawIp=clientIp(req);
- const cacheKey=visitor!=="UNKNOWN"?"country:"+visitor:"ip:"+require("crypto").createHash("sha256").update(rawIp).digest("hex").slice(0,64);
- return roomCache.get(cacheKey, async () => {
-  const startedAt=Date.now();
-  const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);
-  const ch=results[0].status==="fulfilled"?results[0].value.rooms:[];
-  const bc=results[1].status==="fulfilled"?results[1].value:[];
-  const notices=[];
-  if(results[0].status==="rejected")notices.push("Chaturbate regional feeds unavailable");
-  else if(results[0].value.notice)notices.push(results[0].value.notice);
-  if(results[1].status==="rejected"&&BONGA_ENABLED)notices.push("BongaCams feed unavailable");
-  const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
-  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly."),providerHealth:{chaturbate:results[0].status==="fulfilled"?"available":"unavailable",bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"},cacheable:results[0].status!=="rejected"&&(!BONGA_ENABLED||results[1].status!=="rejected")&&!notices.length};
-  console.info("[room-feed-refresh]",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:visitor!=="UNKNOWN"?"country":"ip",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:"disabled",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));
-  return entry;
- });
-}`;
- const roomsStart=source.indexOf("async function rooms(req) {");
- const roomsEnd=source.indexOf("\\nasync function approvedCountryPlatformPreference",roomsStart);
- if(roomsStart<0||roomsEnd<0)throw new Error("A1.54 could not locate the generated room-feed function");
- source=source.slice(0,roomsStart)+a154RoomsFunction+source.slice(roomsEnd);
 
  return ("// "+MARKER+"\n"+source).replace(/\n/g,outputNewline);
 }
