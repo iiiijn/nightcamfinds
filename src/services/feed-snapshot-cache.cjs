@@ -22,7 +22,7 @@ function createFeedSnapshotCache(options = {}) {
   }
   async function refresh(key, fetcher, staleSnapshot) {
     if (inFlight.has(key)) return inFlight.get(key);
-    if (staleSnapshot && now() - Number(lastAttempt.get(key) || 0) < retryMs) return staleSnapshot;
+    if (staleSnapshot && lastAttempt.has(key) && now() - Number(lastAttempt.get(key)) < retryMs) return staleSnapshot;
     lastAttempt.set(key, now());
     const task = (async () => {
       try {
