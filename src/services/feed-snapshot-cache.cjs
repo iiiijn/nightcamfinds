@@ -24,12 +24,19 @@ function createFeedSnapshotCache(options = {}) {
       try {
         const snapshot = await fetcher();
         if (!valid(snapshot)) throw new TypeError("Feed refresh must return a timestamped room snapshot.");
-        if (!snapshot.rooms.length && staleSnapshot && staleSnapshot.rooms.length) {
-          return staleSnapshot;
+        if (snapshot.cacheable === false) {
+          return staleSnapshot
+            ? { ...staleSnapshot, stale: true, refreshError: snapshot.notice || "A provider feed was incomplete." }
+            : snapshot;
         }
-        local.set(key, snapshot);
-        try { await saveSnapshot(key, snapshot); } catch {}
-        return snapshot;
+        if (!snapshot.rooms.length && staleSnapshot && staleSnapshot.rooms.length) {
+          return { ...staleSnapshot, stale: true, refreshError: "The latest provider refresh returned no rooms." };
+        }
+        const cacheableSnapshot = { ...snapshot };
+        delete cacheableSnapshot.cacheable;
+        local.set(key, cacheableSnapshot);
+        try { await saveSnapshot(key, cacheableSnapshot); } catch {}
+        return cacheableSnapshot;
       } catch (error) {
         if (staleSnapshot) return { ...staleSnapshot, stale: true, refreshError: String(error && error.message || "Feed refresh failed") };
         throw error;
