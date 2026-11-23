@@ -322,7 +322,7 @@ test("static public SEO assets use unique canonical sitemap URLs and protect pri
 
 test("XML sitemap contains curated discovery and trust pages, not unverified thin routes",()=>{
  const xml=buildCountrySitemap("https://nightcamfinds.com",[],[]);
- for(const path of ["/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/countries/","/about","/affiliate-disclosure","/privacy","/terms","/contact"]){
+ for(const path of ["/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/countries/","/sitemap/","/about","/affiliate-disclosure","/privacy","/terms","/contact"]){
   assert.ok(xml.includes("<loc>https://nightcamfinds.com"+path+"</loc>"),"missing curated sitemap path "+path);
  }
  for(const path of ["/live/","/popular/","/broadcast"]){
