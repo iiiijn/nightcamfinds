@@ -257,6 +257,11 @@ test("country startup patch uses strict Chaturbate country fallback and remains 
  assert.ok(patched.includes('const { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion'));
  assert.ok(patched.includes('const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");'));
  assert.ok(patched.includes('const country=normalizeBongaCountry(room);'));
+ assert.ok(patched.includes('createFeedSnapshotCache'));
+ assert.ok(patched.includes('room_feed_snapshots'));
+ assert.ok(patched.includes('request.setTimeout'));
+ assert.ok(patched.includes('cacheable:results[0].status!=="rejected"'));
+ assert.ok(patched.includes('createHash("sha256")'));
  assert.equal(patchServerSource(patched),patched);
 });
 
