@@ -179,7 +179,7 @@ const roomCache = createFeedSnapshotCache({
   else if(results[0].value.notice)notices.push(results[0].value.notice);
   if(results[1].status==="rejected"&&BONGA_ENABLED)notices.push("BongaCams feed unavailable");
   const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
-  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable."),providerHealth:{chaturbate:results[0].status==="fulfilled"?"available":"unavailable",bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"}};
+  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable."),providerHealth:{chaturbate:results[0].status==="fulfilled"?"available":"unavailable",bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"},cacheable:results[0].status!=="rejected"&&(!BONGA_ENABLED||results[1].status!=="rejected")&&!notices.length};
   console.info("[room-feed-refresh]",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:visitor!=="UNKNOWN"?"country":"ip",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:"disabled",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));
   return entry;
  });
