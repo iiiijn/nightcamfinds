@@ -160,7 +160,7 @@ const roomCache = createFeedSnapshotCache({
  else if(results[0].value.notice)notices.push(results[0].value.notice);
  if(results[1].status==="rejected"&&BONGA_ENABLED)notices.push("BongaCams feed unavailable");
  const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
- const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable.")};
+ const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly.")};
  roomCache.set(cacheKey,entry);
  if(roomCache.size>50)roomCache.delete(roomCache.keys().next().value);
  return entry;
