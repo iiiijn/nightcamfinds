@@ -75,7 +75,7 @@ function summarize(rows = []) {
   }
   const entries = map => Object.fromEntries([...map.entries()].sort((a,b) => b[1]-a[1]));
   return {
-    affectedVisits: rows.length,
+    affectedVisits: new Set(rows.map(row => row.visit_id)).size,
     flaggedClicks,
     highBurstVisits: rows.filter(row => row.anomaly_class === 'high_burst').length,
     repeatedVisits: rows.filter(row => row.anomaly_class === 'repeated').length,
