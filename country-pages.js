@@ -259,7 +259,12 @@ const COUNTRIES = {
 
 // NIGHTCAMFINDS_WORLDWIDE_MARKETS_V1
 const worldwideMarkets = require("./src/config/market-countries.cjs");
-Object.assign(COUNTRIES, worldwideMarkets.COUNTRIES);
+// Keep the hand-written priority-market copy. Worldwide fallback content is
+// added only for countries without a dedicated definition, preventing near-duplicate
+// country landing pages from being generated for the priority markets.
+for (const [slug, country] of Object.entries(worldwideMarkets.COUNTRIES)) {
+  if (!COUNTRIES[slug]) COUNTRIES[slug] = country;
+}
 for (const [slug, country] of Object.entries(COUNTRIES)) {
   const metadata = worldwideMarkets.MARKET_META[slug];
   if (metadata) Object.assign(country, metadata);
