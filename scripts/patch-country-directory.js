@@ -63,7 +63,7 @@ function patchServerSource(input){
  const earlyEnd=source.indexOf("  if(pages[pathname])",earlyStart);
  if(earlyStart<0||earlyEnd<0)throw new Error("Country directory patch could not locate the early duplicate country route");
  source=source.slice(0,earlyStart)+source.slice(earlyEnd);
-  if(pathname==="/robots.txt") return send(res,200,`User-agent: *\\nAllow: /\\nDisallow: /go/\\nDisallow: /bgo/\\nDisallow: /api/\\nSitemap: ${pageOrigin(req)}/sitemap.xml\\n`,"text/plain");',
+ replaceOnce('  if(pathname==="/robots.txt") return send(res,200,`User-agent: *\\nAllow: /\\nDisallow: /go/\\nDisallow: /bgo/\\nDisallow: /api/\\nSitemap: ${pageOrigin(req)}/sitemap.xml\\n`,"text/plain");',
   '  if(pathname==="/robots.txt") return send(res,200,`User-agent: *\\nAllow: /\\nDisallow: /admin.html\\nDisallow: /dashboard.html\\nDisallow: /dashboard-v2.html\\nDisallow: /dashboard-ui.html\\nDisallow: /analytics-dashboard.html\\nDisallow: /campaign-center.html\\nDisallow: /promotools.html\\nDisallow: /revenue.html\\nDisallow: /go/\\nDisallow: /bgo/\\nDisallow: /api/\\nSitemap: ${pageOrigin(req)}/sitemap.xml\\n`,"text/plain");',
   "robots exclusions");
  const oldSitemap=/function sitemap\(origin\)\{[^\n]*\}/;
