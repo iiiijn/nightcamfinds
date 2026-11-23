@@ -137,14 +137,15 @@ const roomCache = createFeedSnapshotCache({
  loadSnapshot: async (key) => {
   if (!pgPool) return null;
   await ensureFeedSnapshotTable();
-  const result = await pgPool.query("SELECT snapshot, refreshed_at FROM room_feed_snapshots WHERE cache_key = $1 AND refreshed_at > NOW() - INTERVAL '5 minutes'", [key]);
+  const result = await pgPool.query("SELECT snapshot, refreshed_at FROM room_feed_snapshots WHERE cache_key = $1 AND refreshed_at > NOW() - ($2 * INTERVAL '1 millisecond')", [key, Math.max(60000, Number(process.env.ROOM_FEED_CACHE_STALE_MS) || 300000)]);
   const row = result.rows[0];
   return row ? { ...row.snapshot, at: new Date(row.refreshed_at).getTime() } : null;
  },
  saveSnapshot: async (key, snapshot) => {
-  if (!pgPool) return;
+  if (!pgPool || String(key).startsWith("ip:")) return;
   await ensureFeedSnapshotTable();
   await pgPool.query("INSERT INTO room_feed_snapshots (cache_key, snapshot, refreshed_at) VALUES ($1, $2::jsonb, $3) ON CONFLICT (cache_key) DO UPDATE SET snapshot = EXCLUDED.snapshot, refreshed_at = EXCLUDED.refreshed_at", [key, JSON.stringify(snapshot), new Date(snapshot.at)]);
+  await pgPool.query("DELETE FROM room_feed_snapshots WHERE refreshed_at < NOW() - INTERVAL '1 day'");
  }
 });`);
  const newRooms = `async function rooms(req) {
