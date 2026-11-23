@@ -622,7 +622,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   const pageCopy = {
     all:["Independent discovery","Who's live in your country, tonight.","Explore live rooms, compare viewer counts, and open a room on Chaturbate or BongaCams. NightCamFinds does not stream video itself.","NightCamFinds — Live cam directory"],
     live:["Live now","Rooms that are live now","Currently online rooms from partner platforms. Counts and subjects come from the feed and can change every minute.","Live cams now — NightCamFinds"],
-    female:["Female live rooms","Browse female live webcam rooms","Discover public female live cam rooms on NightCamFinds. Compare current viewer activity, room details and country information before opening a room on Chaturbate or BongaCams.","Female Live Webcam Rooms | NightCamFinds"],
+    female:["Female live rooms","Browse female live cam rooms online","Browse public female live cam rooms online on NightCamFinds. Compare current viewer activity, room details, country and partner platform before opening a room on Chaturbate or BongaCams.","Female Live Cam Rooms Online | NightCamFinds"],
     male:["Male live rooms","Browse male live webcam rooms","Discover public male live cam rooms on NightCamFinds. Compare current viewer activity, room details and available country information before visiting a partner platform.","Male Live Webcam Rooms | NightCamFinds"],
     trans:["Trans live rooms","Discover trans live webcam rooms","Explore public trans live cam rooms on NightCamFinds. Compare room activity and available details, then continue to the partner platform hosting the stream.","Trans Live Webcam Rooms | NightCamFinds"],
     couples:["Couples live rooms","Explore couples live webcam rooms","Find live couples cam rooms on NightCamFinds. Compare public room activity and available details, then continue to Chaturbate or BongaCams to watch and chat.","Couples Live Webcam Rooms | NightCamFinds"],
@@ -633,11 +633,11 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   };
   const categorySeoContent = {
     female: {
-      name: "Female live webcam rooms",
-      description: "Explore public female live webcam rooms. Compare current viewer activity, room information and available country details before choosing a room.",
+      name: "Female live cam rooms online",
+      description: "Browse public female live cam rooms online and compare current viewer activity, room details, country and streaming platform before choosing where to watch.",
       paragraphs: [
-        "NightCamFinds helps adults discover public female rooms across partner platforms. Listings and viewer counts come from external feeds and can change as broadcasters go online or offline.",
-        "Compare the room information shown in the directory, then open the room on its partner platform. The partner platform provides the video, account services, moderation and any paid features."
+        "NightCamFinds is a live room discovery directory for adults. Browse female rooms currently listed by Chaturbate and BongaCams, then compare the available room details and viewer activity. Listings can change as broadcasters go online or offline.",
+        "Use the country and platform information shown with each room to narrow your discovery. Viewer counts are a snapshot, not a guarantee of what is happening inside a stream. Open a room on its partner platform to watch, chat and review that platform’s account, moderation and payment options."
       ]
     },
     male: {

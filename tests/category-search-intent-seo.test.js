@@ -9,12 +9,16 @@ test("primary category SEO copy targets live-room discovery intent", () => {
     assert.ok(server.includes(category + ":[") || server.includes(category + ": ["), category + " category copy exists");
   }
   for (const title of [
-    "Female Live Webcam Rooms | NightCamFinds",
+    "Female Live Cam Rooms Online | NightCamFinds",
     "Male Live Webcam Rooms | NightCamFinds",
     "Trans Live Webcam Rooms | NightCamFinds",
     "Couples Live Webcam Rooms | NightCamFinds"
   ]) assert.ok(server.includes(title), title + " title exists");
   assert.ok(server.includes("Find live couples cam rooms"));
+  assert.ok(server.includes("Browse female live cam rooms online"));
+  assert.ok(server.includes("Female Live Cam Rooms Online | NightCamFinds"));
+  assert.ok(server.includes("Browse public female live cam rooms online and compare current viewer activity"));
+  assert.ok(server.includes("Chaturbate and BongaCams"));
 });
 
 test("category pages receive useful server-rendered copy and related category links", () => {
