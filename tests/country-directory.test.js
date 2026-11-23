@@ -367,3 +367,10 @@ test("static fallback sitemap matches the curated discovery set",()=>{
   assert.ok(!sitemap.includes("https://nightcamfinds.com"+path),"static fallback must omit "+path);
  }
 });
+
+
+test("country route passes only currently indexable markets into related links",()=>{
+ const source=fs.readFileSync(path.join(__dirname,"..","scripts","patch-country-directory.js"),"utf8");
+ assert.match(source,/const eligibleCountrySlugs = Object\.entries\(COUNTRIES\)\.filter\(\(\[slug, country\]\) => isIndexableCountryRooms\(feed\.rooms\.filter\(\(room\) => room\.country === country\.code\)\)\)\.map\(\(\[slug\]\) => slug\);/);
+ assert.match(source,/getCountryPage\(countryRoute\[1\], pageOrigin\(req\), roomMarkup, routeHealth\.indexable, eligibleCountrySlugs\)/);
+});
