@@ -128,7 +128,7 @@ function patchServerSource(input){
 let feedSnapshotTableReady = null;
 async function ensureFeedSnapshotTable() {
  if (!pgPool) return;
- if (!feedSnapshotTableReady) feedSnapshotTableReady = pgPool.query("CREATE TABLE IF NOT EXISTS room_feed_snapshots (cache_key VARCHAR(96) PRIMARY KEY, snapshot JSONB NOT NULL, refreshed_at TIMESTAMPTZ NOT NULL)");
+ if (!feedSnapshotTableReady) feedSnapshotTableReady = pgPool.query("CREATE TABLE IF NOT EXISTS room_feed_snapshots (cache_key VARCHAR(96) PRIMARY KEY, snapshot JSONB NOT NULL, refreshed_at TIMESTAMPTZ NOT NULL)").catch(error => { feedSnapshotTableReady = null; throw error; });
  await feedSnapshotTableReady;
 }
 const roomCache = createFeedSnapshotCache({
