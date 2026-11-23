@@ -148,7 +148,7 @@ const roomCache = createFeedSnapshotCache({
   await pgPool.query("DELETE FROM room_feed_snapshots WHERE refreshed_at < NOW() - INTERVAL '1 day'");
  }
 });`);
- const newRooms = `async function rooms(req) {
+ const a154RoomsFunction = `async function rooms(req) {
  const visitor=visitorCountry(req);
  const rawIp=clientIp(req);
  const cacheKey=visitor!=="UNKNOWN"?"country:"+visitor:"ip:"+require("crypto").createHash("sha256").update(rawIp).digest("hex").slice(0,64);
@@ -170,7 +170,7 @@ const roomCache = createFeedSnapshotCache({
  const roomsStart=source.indexOf("async function rooms(req) {");
  const roomsEnd=source.indexOf("\\nasync function approvedCountryPlatformPreference",roomsStart);
  if(roomsStart<0||roomsEnd<0)throw new Error("A1.54 could not locate the generated room-feed function");
- source=source.slice(0,roomsStart)+newRooms+source.slice(roomsEnd);
+ source=source.slice(0,roomsStart)+a154RoomsFunction+source.slice(roomsEnd);
 
  return ("// "+MARKER+"\n"+source).replace(/\n/g,outputNewline);
 }
