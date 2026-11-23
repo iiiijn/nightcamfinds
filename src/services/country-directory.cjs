@@ -59,7 +59,9 @@ function isIndexableCountryRooms(rooms,minimum=10){
 }
 function buildCountrySitemap(origin,rooms,countryEntries,lastmodByPath={}){
  const base=(String(origin||"").endsWith("/")?String(origin||"").slice(0,-1):String(origin||""));
- const staticPaths=["/","/live/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/popular/","/countries/","/sitemap/","/broadcast","/about","/affiliate-disclosure","/privacy","/terms","/contact"];
+ // Include only stable discovery and trust pages in the XML sitemap. Dynamic
+ // feeds below add country pages only when they meet the ten-room quality gate.
+ const staticPaths=["/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/countries/","/sitemap/","/about","/affiliate-disclosure","/privacy","/terms","/contact"];
  const byCountry=new Map();
  for(const room of Array.isArray(rooms)?rooms:[]){
   if(!isValidCountryRoom(room))continue;
@@ -68,7 +70,12 @@ function buildCountrySitemap(origin,rooms,countryEntries,lastmodByPath={}){
   byCountry.get(code).set(room.id.trim(),room);
  }
  const countryPaths=(Array.isArray(countryEntries)?countryEntries:[])
-  .filter(e=>isIndexableCountryRooms([...(byCountry.get(normalizeCountryCode(e.code))||new Map()).values()]))
+  .filter(e=>{
+   const code=normalizeCountryCode(e&&e.code);
+   const slug=String(e&&e.slug||"").toLowerCase();
+   return !!code&&/^[a-z]{2}$/.test(slug)&&slug===code.toLowerCase()&&
+    isIndexableCountryRooms([...(byCountry.get(code)||new Map()).values()]);
+  })
   .map(e=>"/country/"+String(e.slug).toLowerCase()+"/");
  const esc=v=>String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");
  const paths=[...staticPaths,...countryPaths];

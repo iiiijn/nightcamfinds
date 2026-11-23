@@ -318,3 +318,47 @@ test("static public SEO assets use unique canonical sitemap URLs and protect pri
  }
  assert.match(robots,/^Sitemap: https:\/\/nightcamfinds\.com\/sitemap\.xml$/m);
 });
+
+
+test("XML sitemap contains curated discovery and trust pages, not unverified thin routes",()=>{
+ const xml=buildCountrySitemap("https://nightcamfinds.com",[],[]);
+ for(const path of ["/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/countries/","/sitemap/","/about","/affiliate-disclosure","/privacy","/terms","/contact"]){
+  assert.ok(xml.includes("<loc>https://nightcamfinds.com"+path+"</loc>"),"missing curated sitemap path "+path);
+ }
+ for(const path of ["/live/","/popular/","/broadcast"]){
+  assert.ok(!xml.includes("<loc>https://nightcamfinds.com"+path+"</loc>"),"unverified route must stay out of XML sitemap: "+path);
+ }
+});
+
+test("country sitemap rejects malformed or mismatched country slugs",()=>{
+ const rooms=Array.from({length:10},(_,i)=>({id:"us:"+i,platform:"chaturbate",country:"US"}));
+ const xml=buildCountrySitemap("https://nightcamfinds.com",rooms,[
+  {slug:"us",code:"US"},{slug:"gb",code:"US"},{slug:"../us",code:"US"}
+ ]);
+ assert.match(xml,/\/country\/us\//);
+ assert.doesNotMatch(xml,/\/country\/gb\//);
+ assert.doesNotMatch(xml,/\.\.\/us/);
+});
+
+test("priority country pages retain distinct hand-written content and self canonicals",()=>{
+ const intros=MARKET_PRIORITY_CODES.map(code=>{
+  const slug=code.toLowerCase();
+  const country=COUNTRIES[slug];
+  assert.ok(country&&country.intro&&country.paragraphs&&country.paragraphs.length>=3&&country.faqs&&country.faqs.length>=3,slug+" must retain dedicated country content");
+  const html=getCountryPage(slug,"https://preview.example.test","",true);
+  assert.ok(html.includes('rel="canonical" href="https://nightcamfinds.com/country/'+slug+'/"'),slug+" canonical must remain self-referencing");
+  assert.ok(html.includes('property="og:url" content="https://nightcamfinds.com/country/'+slug+'/"'),slug+" Open Graph URL must remain self-referencing");
+  assert.ok(!html.includes("preview.example.test"));
+  return country.intro;
+ });
+ assert.equal(new Set(intros).size,MARKET_PRIORITY_CODES.length,"priority-market introductions must remain distinct");
+});
+
+test("static fallback sitemap matches the curated discovery set",()=>{
+ const sitemap=fs.readFileSync(path.join(__dirname,"..","public","sitemap.xml"),"utf8");
+ assert.match(sitemap,/https:\/\/nightcamfinds\.com\/female\//);
+ assert.match(sitemap,/https:\/\/nightcamfinds\.com\/countries\//);
+ for(const path of ["/live/","/popular/","/broadcast"]){
+  assert.ok(!sitemap.includes("https://nightcamfinds.com"+path),"static fallback must omit "+path);
+ }
+});
