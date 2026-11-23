@@ -11,7 +11,11 @@ test("country directory startup patch supports CRLF checkouts and remains idempo
   const patched = patchServerSource(windowsSource);
 
   assert.ok(patched.includes("NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1"));
-  assert.ok(patched.includes("coalesceInFlight(roomFetchesInFlight,cacheKey"));
+  assert.ok(patched.includes("roomCache.get(cacheKey, async () => {"));
+  assert.ok(patched.includes("createFeedSnapshotCache"));
+  assert.ok(patched.includes("room_feed_snapshots"));
+  assert.ok(patched.includes("request.setTimeout"));
+  assert.ok(patched.includes("cacheable:results[0].status!==\"rejected\""));
   assert.ok(patched.includes("summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms })"));
   assert.ok(patched.includes('viewerCount:Number(room.num_users||0),isLive:true,freshness:"FRESH"'));
   assert.ok(patched.includes('viewerCount:viewers,isLive:true,freshness:"FRESH"'));
