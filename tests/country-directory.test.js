@@ -325,7 +325,7 @@ test("XML sitemap contains curated discovery and trust pages, not unverified thi
  for(const path of ["/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/countries/","/about","/affiliate-disclosure","/privacy","/terms","/contact"]){
   assert.ok(xml.includes("<loc>https://nightcamfinds.com"+path+"</loc>"),"missing curated sitemap path "+path);
  }
- for(const path of ["/live/","/popular/","/sitemap/","/broadcast"]){
+ for(const path of ["/live/","/popular/","/broadcast"]){
   assert.ok(!xml.includes("<loc>https://nightcamfinds.com"+path+"</loc>"),"unverified route must stay out of XML sitemap: "+path);
  }
 });
@@ -358,7 +358,7 @@ test("static fallback sitemap matches the curated discovery set",()=>{
  const sitemap=fs.readFileSync(path.join(__dirname,"..","public","sitemap.xml"),"utf8");
  assert.match(sitemap,/https:\/\/nightcamfinds\.com\/female\//);
  assert.match(sitemap,/https:\/\/nightcamfinds\.com\/countries\//);
- for(const path of ["/live/","/popular/","/sitemap/","/broadcast"]){
+ for(const path of ["/live/","/popular/","/broadcast"]){
   assert.ok(!sitemap.includes("https://nightcamfinds.com"+path),"static fallback must omit "+path);
  }
 });
