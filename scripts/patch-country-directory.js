@@ -102,7 +102,7 @@ function patchServerSource(input){
  }
 
  // A1.54: bounded provider requests and shared persistent stale-while-revalidate snapshots.
- replaceOnce(\`function fetchJson(url) {
+ replaceOnce(`function fetchJson(url) {
   return new Promise((resolve, reject) => {
     const transport = new URL(url).protocol === "http:" ? http : https;
     transport.get(url, { headers: { "User-Agent": "NightCamFinds/2.0", Accept: "application/json" } }, res => {
@@ -110,8 +110,8 @@ function patchServerSource(input){
       res.on("end", () => { if (res.statusCode >= 400) return reject(new Error("Feed " + res.statusCode)); try { resolve(JSON.parse(body)); } catch (err) { reject(err); } });
     }).on("error", reject);
   });
-}\`,
- \`function fetchJson(url, timeoutMs = 8000) {
+}`,
+ `function fetchJson(url, timeoutMs = 8000) {
   return new Promise((resolve, reject) => {
     const transport = new URL(url).protocol === "http:" ? http : https;
     const request = transport.get(url, { headers: { "User-Agent": "NightCamFinds/2.0", Accept: "application/json" } }, res => {
@@ -121,10 +121,10 @@ function patchServerSource(input){
     request.setTimeout(Math.max(1000, Number(timeoutMs) || 8000), () => request.destroy(new Error("Partner feed request timed out.")));
     request.on("error", reject);
   });
-}\`,
+}`,
  "partner feed request timeout");
  replaceOnce('const roomCache = new Map();',
- \`const { createFeedSnapshotCache } = require("./src/services/feed-snapshot-cache.cjs");
+ `const { createFeedSnapshotCache } = require("./src/services/feed-snapshot-cache.cjs");
 let feedSnapshotTableReady = null;
 async function ensureFeedSnapshotTable() {
  if (!pgPool) return;
@@ -146,8 +146,8 @@ const roomCache = createFeedSnapshotCache({
   await ensureFeedSnapshotTable();
   await pgPool.query("INSERT INTO room_feed_snapshots (cache_key, snapshot, refreshed_at) VALUES ($1, $2::jsonb, $3) ON CONFLICT (cache_key) DO UPDATE SET snapshot = EXCLUDED.snapshot, refreshed_at = EXCLUDED.refreshed_at", [key, JSON.stringify(snapshot), new Date(snapshot.at)]);
  }
-});\`);
- const oldRooms = \`async function rooms(req) {
+});`);
+ const oldRooms = `async function rooms(req) {
  const visitor=visitorCountry(req);
  const cacheKey=visitor!=="UNKNOWN"?visitor:clientIp(req);
  const cached=roomCache.get(cacheKey);
@@ -164,8 +164,8 @@ const roomCache = createFeedSnapshotCache({
  roomCache.set(cacheKey,entry);
  if(roomCache.size>50)roomCache.delete(roomCache.keys().next().value);
  return entry;
-}\`;
- const newRooms = \`async function rooms(req) {
+}`;
+ const newRooms = `async function rooms(req) {
  const visitor=visitorCountry(req);
  const rawIp=clientIp(req);
  const cacheKey=visitor!=="UNKNOWN"?"country:"+visitor:"ip:"+require("crypto").createHash("sha256").update(rawIp).digest("hex").slice(0,64);
@@ -183,7 +183,7 @@ const roomCache = createFeedSnapshotCache({
   console.info("[room-feed-refresh]",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:visitor!=="UNKNOWN"?"country":"ip",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:"disabled",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));
   return entry;
  });
-}\`;
+}`;
  replaceOnce(oldRooms,newRooms,"persistent stale-while-revalidate room feed cache");
 
  return ("// "+MARKER+"\n"+source).replace(/\n/g,outputNewline);
