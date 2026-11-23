@@ -62,7 +62,8 @@ test("startup patch wires request coalescing into the existing country feed load
   const { patchServerSource } = require("../scripts/patch-country-directory.js");
   const source = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
   const patched = patchServerSource(source);
-  assert.match(patched, /request-coalescing\.cjs/);
-  assert.match(patched, /coalesceInFlight\(roomFetchesInFlight,cacheKey/);
+  assert.match(patched, /feed-snapshot-cache\.cjs/);
+  assert.match(patched, /roomCache\.get\(cacheKey, async \(\) =>/);
+  assert.match(patched, /createFeedSnapshotCache/);
   assert.match(patched, /\[room-feed-refresh\]/);
 });
