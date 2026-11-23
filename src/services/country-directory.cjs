@@ -61,7 +61,7 @@ function buildCountrySitemap(origin,rooms,countryEntries,lastmodByPath={}){
  const base=(String(origin||"").endsWith("/")?String(origin||"").slice(0,-1):String(origin||""));
  // Include only stable discovery and trust pages in the XML sitemap. Dynamic
  // feeds below add country pages only when they meet the ten-room quality gate.
- const staticPaths=["/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/countries/","/about","/affiliate-disclosure","/privacy","/terms","/contact"];
+ const staticPaths=["/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/countries/","/sitemap/","/about","/affiliate-disclosure","/privacy","/terms","/contact"];
  const byCountry=new Map();
  for(const room of Array.isArray(rooms)?rooms:[]){
   if(!isValidCountryRoom(room))continue;
