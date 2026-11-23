@@ -20,7 +20,7 @@ test("country URLs reach the dedicated server-rendered country page handler", ()
 });
 
 test("SEO request rewriting does not turn country URLs into the homepage URL", () => {
-  assert.ok(patch.includes("const NCF_SEO_PATHS_V15 = new Set([\"/\", \"/broadcast\"]);"));
-  assert.ok(!patch.includes("NCF_SEO_PATHS_V15.has(pathname) || /^\\/country"));
+  assert.ok(patch.includes("const NCF_SEO_PATHS_V16 = new Set([\"/\", \"/broadcast\"]);"));
+  assert.ok(!patch.includes("NCF_SEO_PATHS_V16.has(pathname) || /^\\/country"));
   assert.ok(!patch.includes("ncfApplySeoRouteMetadataV14(req, res);"));
 });

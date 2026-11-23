@@ -90,9 +90,9 @@ if (!renderedCards.includes("A readable description")) fail("object-valued room 
 
 const seoPatch = fs.readFileSync("scripts/patch-spa-seo-routes.js", "utf8");
 if (!seoPatch.includes("NIGHTCAMFINDS_SPA_SEO_ROUTES_V15")) fail("SPA SEO patch marker V15 is missing");
-if (!seoPatch.includes("ncfRedirectSeoNoSlashV15")) fail("SEO no-slash redirect helper V15 is missing");
-if (!seoPatch.includes("ncfRewriteSeoRequestV15")) fail("SEO request rewrite helper V15 is missing");
-if (!seoPatch.includes('const NCF_SEO_PATHS_V15 = new Set(["/", "/broadcast"]);')) fail("SEO SPA path allowlist must contain only / and /broadcast");
+if (!seoPatch.includes("ncfRedirectSeoCanonicalV16")) fail("SEO no-slash redirect helper V16 is missing");
+if (!seoPatch.includes("ncfRewriteSeoRequestV16")) fail("SEO request rewrite helper V16 is missing");
+if (!seoPatch.includes('const NCF_SEO_PATHS_V16 = new Set(["/", "/broadcast"]);')) fail("SEO SPA path allowlist must contain only / and /broadcast");
 for (const path of ["/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/"]) {
   if (seoPatch.includes(JSON.stringify(path))) fail(`server-rendered category route must not be rewritten: ${path}`);
 }
