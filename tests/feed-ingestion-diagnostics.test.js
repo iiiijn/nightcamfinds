@@ -466,6 +466,9 @@ test("accepted country recovery diagnostics count only accepted unique rooms by 
     acceptedUniqueRoomCount: 4,
     acceptedWithRecognizedCountryCount: 3,
     acceptedWithoutRecognizedCountryCount: 1,
+    acceptedExplicitCount: 1,
+    acceptedLocationOnlyCount: 1,
+    acceptedConflictingCount: 1,
     acceptedUnclassifiedCount: 1,
     countries: [
       { country: "FR", acceptedUniqueRoomCount: 1, explicitCountryCount: 0, locationOnlyRecoveryCount: 1, conflictingCountryCount: 0, unrecognizedCountryCount: 0 },
