@@ -241,7 +241,8 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     duplicateRoomCount: duplicateCount,
     missingCountryCount: missingCountry,
     unrecognizedCountryCount: unrecognizedCountry,
-    acceptedCountryRecovery,\n    countryCounts: [...countryCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([country, roomCount]) => ({ country, roomCount })),
+    acceptedCountryRecovery,
+    countryCounts: [...countryCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([country, roomCount]) => ({ country, roomCount })),
     rejectionReasons,
     ...(name === "chaturbate" ? { metadata: { ...summarizeMetadataFieldPresence(raw), locationShapes: summarizeChaturbateLocationShapes(raw), safeValueShapes: summarizeSafeFieldValueShapes(raw, ["country", "location"]), countryCandidates, countryConflicts } } : { metadata: { safeValueShapes: summarizeSafeFieldValueShapes(raw, ["homecountry", "country", "country_code", "hometown"]), countryCandidates, countryConflicts } }),
     pagination: safePagination(pagination)
