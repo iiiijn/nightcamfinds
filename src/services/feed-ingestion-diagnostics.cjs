@@ -128,7 +128,13 @@ function classifySafeValueShape(value) {
   if (text.includes("/")) return "slash_delimited";
   if (/[()\[\]{}]/.test(text)) return "bracketed_text";
   if (/\d/.test(text)) return "contains_digits";
-  if (/[^\u0000-\u024F]/.test(text)) return "non_latin_text";
+  if (/[\u0400-\u052F]/.test(text)) return "cyrillic_text";
+  if (/[\u4E00-\u9FFF\u3040-\u30FF\uAC00-\uD7AF]/.test(text)) return "cjk_text";
+  if (/[\u0600-\u06FF\u0750-\u077F]/.test(text)) return "arabic_text";
+  if (/[\u0590-\u05FF]/.test(text)) return "hebrew_text";
+  if (/[\u0370-\u03FF]/.test(text)) return "greek_text";
+  if (/[\u0900-\u097F]/.test(text)) return "devanagari_text";
+  if (/[^\u0000-\u024F]/.test(text)) return "other_non_latin_text";
   if (/^[\p{L}\s.'’-]+$/u.test(text)) {
     return /\s/.test(text) ? "multiword_text" : "single_word_text";
   }
