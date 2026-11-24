@@ -474,7 +474,7 @@ test("accepted country recovery diagnostics count only accepted unique rooms by 
     ]
   });
   const serializedRecovery = JSON.stringify(result.acceptedCountryRecovery);
-  for (const privateValue of ['"explicit"', "recovered", "conflict", "unrecognized", "London"]) {
+  for (const privateValue of ['"explicit"', '"recovered"', '"conflict"', '"unrecognized"', "London"]) {
     assert.equal(serializedRecovery.includes(privateValue), false);
   }
 });
