@@ -180,6 +180,18 @@ test("Chaturbate diagnostics count metadata presence without exposing values or 
       rowsWithVerifiedCandidateCount: 1,
       candidateCountryCounts: [{ country: "GB", roomCount: 1 }],
       verifiedCandidateFieldCounts: { country: 1, location: 0 }
+    },
+    countryConflicts: {
+      provider: "chaturbate",
+      inspectedRoomCount: 3,
+      explicitRecognizedCount: 1,
+      locationRecognizedCount: 0,
+      matchingCountryCount: 0,
+      conflictingCountryCount: 0,
+      locationOnlyRecoverableCount: 0,
+      neitherRecognizedCount: 2,
+      multipleExplicitFieldConflictCount: 0,
+      conflictCountryPairCounts: []
     }
   });
   assert.equal(JSON.stringify(result).includes("private-one"), false);
