@@ -326,7 +326,7 @@ async function rooms(req) {
  const notices=[];
  if(results[0].status==="rejected")notices.push("Chaturbate regional feeds unavailable");
  else if(results[0].value.notice)notices.push(results[0].value.notice);
- if(results[1].status==="rejected"&&BONGA_ENABLED)notices.push("BongaCams feed unavailable");
+ if(results[1].status==="rejected"&&BONGA_ENABLED){console.warn("[bongacams-feed-unavailable]",results[1].reason&&results[1].reason.message?results[1].reason.message:"unknown feed error");notices.push("BongaCams feed unavailable");}
  const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly.")};
  roomCache.set(cacheKey,entry);
