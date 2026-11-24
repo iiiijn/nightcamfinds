@@ -646,7 +646,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const routeHealth = summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms });
     console.info("[country-route]", JSON.stringify({ country: iso, status: 200, feedHealth: routeHealth.feedHealth, roomCount: routeHealth.roomCount, qualifyingRoomCount: routeHealth.qualifyingRoomCount, indexable: routeHealth.indexable }));
     const roomMarkup = renderRoomCards(countryRooms.slice(0, 60), { category: "all", pagePath: pathname });
-    const eligibleCountrySlugs = Object.entries(COUNTRY_PAGE_CONTENT).filter(([slug, country]) => summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: feed.rooms.filter((room) => room.country === country.code) }).indexable).map(([slug]) => slug);
+    const eligibleCountrySlugs = getEligibleCountrySitemapSlugs({ marketMeta: MARKET_META, countryContent: COUNTRY_PAGE_CONTENT, rooms: feed.rooms });
     const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, routeHealth.indexable, eligibleCountrySlugs);
     if (!countryHtml) return send(res, 404, "Country page not found", "text/plain; charset=utf-8");
     return send(res, 200, countryHtml, "text/html; charset=utf-8");
