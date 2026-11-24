@@ -6,7 +6,8 @@ const { URL } = require("url");
 const { rankRoomsByPreferredPlatform } = require("./src/services/platform-ranking.cjs");
 const { buildTopRoomsByProviderCategory } = require("./src/services/homepage-room-ranking.cjs");
 const { normalizeViewerCount, firstValidViewerCount } = require("./src/services/viewer-count.cjs");
-const { getCountryPage } = require("./country-pages.js");
+const { getCountryPage, COUNTRIES: COUNTRY_PAGE_CONTENT } = require("./country-pages.js");
+const { getEligibleCountrySitemapSlugs } = require("./src/services/country-sitemap-eligibility.cjs");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 const { createPostgresRedirectRateLimiter, createInMemoryRedirectRateLimiter, normalizeClientIp } = require("./src/services/redirect-rate-limiter.cjs");
@@ -398,12 +399,16 @@ const pages={
   "/terms":legal("Terms",`<p><strong>Last updated 13 November 2026.</strong></p><p>You must be at least 18 years old, or the age of majority where you live if that is higher, to use NightCamFinds. Do not access or use this site if adult material is unlawful where you are. You are responsible for complying with the laws that apply to you.</p><p>NightCamFinds is a directory. Streams, chat, tips, and accounts belong to partner platforms. Do not scrape the site in a way that overloads it, attempt to access admin tools, or use the directory to find anyone under 18.</p><p>The directory is provided on an as-available basis. Information is offered for discovery and may change without notice. Nothing on this site guarantees a particular outcome, performer availability or partner-platform approval. NightCamFinds is not responsible for performer conduct, partner-platform services or charges.</p>`),
   "/contact":legal("Contact",`<p>For questions about NightCamFinds, email the site operator at <a href="mailto:${CONTACT}">${CONTACT}</a>.</p><p>You can use this address for privacy requests, correction requests, accessibility feedback, takedown notices and questions about affiliate links or directory listings. When reporting a listing problem, include the page address and the room or platform name so we can understand what you are referring to. Do not include passwords, payment-card details or other sensitive account information.</p><p>NightCamFinds is a directory and does not host partner video or control performer accounts. If your request concerns a stream, a partner-platform account, a payment or a moderation decision, contact that platform directly because it controls those services.</p><p>We review messages as we are able, but we do not promise a particular response time. Sending a message does not guarantee that a listing can be changed or removed.</p>`)
 };
-function sitemap(origin){const paths=["/","/live/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/popular/","/countries/","/broadcast","/about","/affiliate-disclosure","/privacy","/terms","/contact",...MARKETS.map(([slug])=>`/country/${slug}/`)]; return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(p=>`<url><loc>${origin}${p}</loc></url>`).join("")}</urlset>`;}
+function sitemap(origin, eligibleCountrySlugs = []) { const paths = ["/", "/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/", "/broadcast", "/about", "/affiliate-disclosure", "/privacy", "/terms", "/contact", ...eligibleCountrySlugs.map((slug) => `/country/${slug}/`)]; return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((pathname) => `<url><loc>${origin}${pathname}</loc></url>`).join("")}</urlset>`; }
 function withTrack(url,track){try{const next=new URL(url);next.searchParams.set("track",track);return next.toString();}catch{return `https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(track)}`;}}
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,"http://localhost"); const pathname=url.pathname;
   if(pathname==="/robots.txt") return send(res,200,`User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /bgo/\nDisallow: /api/\nSitemap: ${pageOrigin(req)}/sitemap.xml\n`,"text/plain");
-  if(pathname==="/sitemap.xml")return send(res,200,sitemap(pageOrigin(req)),"application/xml");
+  if (pathname === "/sitemap.xml") {
+    const feed = await rooms(req);
+    const eligibleCountrySlugs = getEligibleCountrySitemapSlugs({ marketMeta: MARKET_META, countryContent: COUNTRY_PAGE_CONTENT, rooms: feed.rooms });
+    return send(res, 200, sitemap(pageOrigin(req), eligibleCountrySlugs), "application/xml");
+  }
   if(pathname==="/broadcast"||pathname==="/broadcast/"){const html=fs.readFileSync(path.join(PUBLIC,"broadcast.html"),"utf8");return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));}
   const countryMatch = pathname.match(/^\/country\/([a-z]{2})\/$/);
   if (countryMatch) {
