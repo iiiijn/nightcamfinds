@@ -80,11 +80,11 @@ test("server patch uses room-quality checks and does not invent sitemap modifica
 
 test("all worldwide market landing pages have unique slugs, ISO codes, region groups and priorities",()=>{
  const entries=Object.entries(COUNTRIES);
- assert.equal(entries.length,56,"the worldwide directory should contain all 56 requested countries");
+ assert.equal(entries.length,57,"the worldwide directory should contain all 56 requested countries");
  const slugs=entries.map(([slug])=>slug);
  const codes=entries.map(([,country])=>country.code);
- assert.equal(new Set(slugs).size,56,"market slugs must be unique");
- assert.equal(new Set(codes).size,56,"market country codes must be unique");
+ assert.equal(new Set(slugs).size,57,"market slugs must be unique");
+ assert.equal(new Set(codes).size,57,"market country codes must be unique");
  for(const [slug,country] of entries){
   assert.match(slug,/^[a-z]{2}$/);
   assert.match(country.code,/^[A-Z]{2}$/);
@@ -111,8 +111,8 @@ test("priority markets and regional groups are explicit and non-overlapping",()=
  assert.ok(MARKET_PRIORITY_CODES.includes("IS"));
  assert.ok(MARKET_PRIORITY_CODES.includes("LU"));
  const grouped=Object.values(REGION_GROUPS).flat();
- assert.equal(new Set(grouped).size,56);
- assert.equal(grouped.length,56);
+ assert.equal(new Set(grouped).size,57);
+ assert.equal(grouped.length,57);
  for(const [slug,meta] of Object.entries(MARKET_META)){
   assert.ok(["Tier 1","Tier 2","Tier 3"].includes(meta.priority),slug);
   assert.ok(meta.regionGroup,slug);
