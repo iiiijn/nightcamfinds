@@ -160,6 +160,27 @@ function summarizeSafeFieldValueShapes(rows, fields) {
   return { inspectedRoomCount: source.length, fieldValueShapeCounts: summaries };
 }
 
+function resolveExplicitCountry(row, provider) {
+  if (!row || typeof row !== "object" || Array.isArray(row)) return "";
+  if (provider === "chaturbate") return normalizeCountryCode(row.country);
+  for (const field of ["homecountry", "country", "country_code"]) {
+    const code = normalizeCountryCode(row[field]);
+    if (code) return code;
+  }
+  return "";
+}
+
+function resolveLocationCountry(row, provider) {
+  if (!row || typeof row !== "object" || Array.isArray(row)) return "";
+  if (provider === "chaturbate") return resolveChaturbateCountry("", row.location);
+  const hometown = typeof row.hometown === "string" ? row.hometown.trim() : "";
+  if (!hometown) return "";
+  const exact = normalizeCountryCode(hometown);
+  if (exact) return exact;
+  const parts = hometown.split(",").map((part) => part.trim());
+  return parts.length === 2 && parts.every(Boolean) ? normalizeCountryCode(parts[1]) : "";
+}
+
 function summarizeFeedIngestion({ provider, rawRows = [], entries = [], pagination = null } = {}) {
   const name = String(provider || "").toLowerCase();
   if (!["chaturbate", "bongacams"].includes(name)) throw new TypeError("Unsupported feed provider");
@@ -189,8 +210,12 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
   let normalizedCount = 0;
   let acceptedCount = 0;
   let duplicateCount = 0;
+  let acceptedWithoutCountryCount = 0;
+  let acceptedUnclassifiedCount = 0;
+  const acceptedByCountry = new Map();
   const seen = new Set();
-  for (const entry of normalizedEntries) {
+  for (let index = 0; index < normalizedEntries.length; index += 1) {
+    const entry = normalizedEntries[index];
     const wrapped = entry && Object.prototype.hasOwnProperty.call(entry, "normalized");
     const room = wrapped ? entry.normalized : entry;
     const rawText = wrapped ? entry.rawText || "" : "";
@@ -206,7 +231,46 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     }
     seen.add(room.id);
     acceptedCount += 1;
+
+    const country = normalizeCountryCode(room.country);
+    if (!country) acceptedWithoutCountryCount += 1;
+    const rawRow = raw[index];
+    const explicit = resolveExplicitCountry(rawRow, name);
+    const location = resolveLocationCountry(rawRow, name);
+    let classification = "unrecognized";
+    if (explicit && location && explicit !== location) classification = "conflicting";
+    else if (explicit) classification = "explicit";
+    else if (location) classification = "location_only";
+    else acceptedUnclassifiedCount += 1;
+
+    if (country) {
+      if (!acceptedByCountry.has(country)) {
+        acceptedByCountry.set(country, {
+          country,
+          acceptedUniqueRoomCount: 0,
+          explicitCountryCount: 0,
+          locationOnlyRecoveryCount: 0,
+          conflictingCountryCount: 0,
+          unrecognizedCountryCount: 0
+        });
+      }
+      const summary = acceptedByCountry.get(country);
+      summary.acceptedUniqueRoomCount += 1;
+      if (classification === "explicit") summary.explicitCountryCount += 1;
+      else if (classification === "location_only") summary.locationOnlyRecoveryCount += 1;
+      else if (classification === "conflicting") summary.conflictingCountryCount += 1;
+      else summary.unrecognizedCountryCount += 1;
+    }
   }
+
+  const acceptedCountryRecovery = {
+    acceptedUniqueRoomCount: acceptedCount,
+    acceptedWithRecognizedCountryCount: acceptedCount - acceptedWithoutCountryCount,
+    acceptedWithoutRecognizedCountryCount: acceptedWithoutCountryCount,
+    acceptedUnclassifiedCount,
+    countries: [...acceptedByCountry.values()].sort((a, b) =>
+      b.acceptedUniqueRoomCount - a.acceptedUniqueRoomCount || a.country.localeCompare(b.country))
+  };
 
   const countryCandidates = summarizeCountryCandidates(name, raw);
   const countryConflicts = summarizeCountryConflicts(name, raw);
@@ -220,6 +284,7 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     duplicateRoomCount: duplicateCount,
     missingCountryCount: missingCountry,
     unrecognizedCountryCount: unrecognizedCountry,
+    acceptedCountryRecovery,
     countryCounts: [...countryCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([country, roomCount]) => ({ country, roomCount })),
     rejectionReasons,
     ...(name === "chaturbate" ? { metadata: { ...summarizeMetadataFieldPresence(raw), locationShapes: summarizeChaturbateLocationShapes(raw), safeValueShapes: summarizeSafeFieldValueShapes(raw, ["country", "location"]), countryCandidates, countryConflicts } } : { metadata: { safeValueShapes: summarizeSafeFieldValueShapes(raw, ["homecountry", "country", "country_code", "hometown"]), countryCandidates, countryConflicts } }),
@@ -227,4 +292,4 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
   };
 }
 
-module.exports = { summarizeFeedIngestion, rawCountryValue, safePagination, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation, CHATURBATE_METADATA_FIELDS, classifySafeValueShape, summarizeSafeFieldValueShapes };
+module.exports = { summarizeFeedIngestion, rawCountryValue, safePagination, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation, CHATURBATE_METADATA_FIELDS, classifySafeValueShape, summarizeSafeFieldValueShapes, resolveExplicitCountry, resolveLocationCountry };

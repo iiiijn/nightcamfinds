@@ -440,3 +440,62 @@ test("Chaturbate safe diagnostics distinguish scripts without exposing source te
     assert.equal(serialized.includes(value), false);
   }
 });
+
+
+test("accepted country recovery diagnostics count only accepted unique rooms by safe country provenance", () => {
+  const result = summarizeFeedIngestion({
+    provider: "chaturbate",
+    rawRows: [
+      { country: "GB", location: "London, United Kingdom" },
+      { country: "", location: "Paris, France" },
+      { country: "US", location: "Paris, France" },
+      { country: "", location: "Nairobi" },
+      { country: "DE", location: "Berlin, Germany" }
+    ],
+    entries: [
+      room("explicit", { country: "GB" }),
+      room("recovered", { country: "FR" }),
+      room("conflict", { country: "US" }),
+      room("unrecognized", { country: "" }),
+      room("rejected", { country: "DE", href: "http://chaturbate.com/rejected/" }),
+      room("explicit")
+    ]
+  });
+
+  assert.deepEqual(result.acceptedCountryRecovery, {
+    acceptedUniqueRoomCount: 4,
+    acceptedWithRecognizedCountryCount: 3,
+    acceptedWithoutRecognizedCountryCount: 1,
+    acceptedUnclassifiedCount: 1,
+    countries: [
+      { country: "FR", acceptedUniqueRoomCount: 1, explicitCountryCount: 0, locationOnlyRecoveryCount: 1, conflictingCountryCount: 0, unrecognizedCountryCount: 0 },
+      { country: "GB", acceptedUniqueRoomCount: 1, explicitCountryCount: 1, locationOnlyRecoveryCount: 0, conflictingCountryCount: 0, unrecognizedCountryCount: 0 },
+      { country: "US", acceptedUniqueRoomCount: 1, explicitCountryCount: 0, locationOnlyRecoveryCount: 0, conflictingCountryCount: 1, unrecognizedCountryCount: 0 }
+    ]
+  });
+  const serializedRecovery = JSON.stringify(result.acceptedCountryRecovery);
+  for (const privateValue of ['"explicit"', '"recovered"', '"conflict"', '"unrecognized"', "London"]) {
+    assert.equal(serializedRecovery.includes(privateValue), false);
+  }
+});
+
+test("accepted country recovery diagnostics use Bonga explicit fields before hometown fallback", () => {
+  const result = summarizeFeedIngestion({
+    provider: "bongacams",
+    rawRows: [
+      { homecountry: "Germany", hometown: "Berlin, Germany" },
+      { homecountry: "", country: "", country_code: "", hometown: "Nairobi, Kenya" },
+      { homecountry: "United States", hometown: "Paris, France" }
+    ],
+    entries: [
+      { normalized: { ...room("bonga-explicit").normalized, id: "bongacams:bonga-explicit", platform: "bongacams", href: "https://bongacams.com/bonga-explicit/", country: "DE" }, rawText: "" },
+      { normalized: { ...room("bonga-location").normalized, id: "bongacams:bonga-location", platform: "bongacams", href: "https://bongacams.com/bonga-location/", country: "KE" }, rawText: "" },
+      { normalized: { ...room("bonga-conflict").normalized, id: "bongacams:bonga-conflict", platform: "bongacams", href: "https://bongacams.com/bonga-conflict/", country: "US" }, rawText: "" }
+    ]
+  });
+  assert.deepEqual(result.acceptedCountryRecovery.countries, [
+    { country: "DE", acceptedUniqueRoomCount: 1, explicitCountryCount: 1, locationOnlyRecoveryCount: 0, conflictingCountryCount: 0, unrecognizedCountryCount: 0 },
+    { country: "KE", acceptedUniqueRoomCount: 1, explicitCountryCount: 0, locationOnlyRecoveryCount: 1, conflictingCountryCount: 0, unrecognizedCountryCount: 0 },
+    { country: "US", acceptedUniqueRoomCount: 1, explicitCountryCount: 0, locationOnlyRecoveryCount: 0, conflictingCountryCount: 1, unrecognizedCountryCount: 0 }
+  ]);
+});
