@@ -499,3 +499,44 @@ test("accepted country recovery diagnostics use Bonga explicit fields before hom
     { country: "US", acceptedUniqueRoomCount: 1, explicitCountryCount: 0, locationOnlyRecoveryCount: 0, conflictingCountryCount: 1, unrecognizedCountryCount: 0 }
   ]);
 });
+
+
+test("accepted Bonga recovery marks conflicting explicit country fields even when hometown is absent", () => {
+  const result = summarizeFeedIngestion({
+    provider: "bongacams",
+    rawRows: [
+      { homecountry: "Germany", country: "France", country_code: "DE" },
+      { homecountry: "Germany", country: "Germany", hometown: "Berlin, Germany" },
+      { homecountry: "", country: "", country_code: "", hometown: "Nairobi, Kenya" }
+    ],
+    entries: [
+      { normalized: { ...room("bonga-field-conflict").normalized, id: "bongacams:field-conflict", platform: "bongacams", country: "DE", href: "https://bongacams.com/field-conflict/" }, rawText: "" },
+      { normalized: { ...room("bonga-match").normalized, id: "bongacams:match", platform: "bongacams", country: "DE", href: "https://bongacams.com/match/" }, rawText: "" },
+      { normalized: { ...room("bonga-location-only").normalized, id: "bongacams:location-only", platform: "bongacams", country: "KE", href: "https://bongacams.com/location-only/" }, rawText: "" }
+    ]
+  });
+
+  assert.equal(result.acceptedCountryRecovery.acceptedExplicitCount, 1);
+  assert.equal(result.acceptedCountryRecovery.acceptedLocationOnlyCount, 1);
+  assert.equal(result.acceptedCountryRecovery.acceptedConflictingCount, 1);
+  assert.equal(result.acceptedCountryRecovery.acceptedUnclassifiedCount, 0);
+  assert.deepEqual(result.acceptedCountryRecovery.countries, [
+    { country: "DE", acceptedUniqueRoomCount: 2, explicitCountryCount: 1, locationOnlyRecoveryCount: 0, conflictingCountryCount: 1, unrecognizedCountryCount: 0 },
+    { country: "KE", acceptedUniqueRoomCount: 1, explicitCountryCount: 0, locationOnlyRecoveryCount: 1, conflictingCountryCount: 0, unrecognizedCountryCount: 0 }
+  ]);
+  const serialized = JSON.stringify(result.acceptedCountryRecovery);
+  for (const privateValue of ["bonga-field-conflict", "Germany", "France", "Berlin", "Nairobi"]) {
+    assert.equal(serialized.includes(privateValue), false);
+  }
+});
+
+test("regional feed labels are not treated as country provenance", () => {
+  const result = summarizeFeedIngestion({
+    provider: "chaturbate",
+    rawRows: [{ country: "", location: "", region: "Europe" }],
+    entries: [room("region-only", { country: "" })]
+  });
+  assert.equal(result.acceptedCountryRecovery.acceptedUnclassifiedCount, 1);
+  assert.equal(result.acceptedCountryRecovery.acceptedWithRecognizedCountryCount, 0);
+  assert.deepEqual(result.acceptedCountryRecovery.countries, []);
+});
