@@ -71,7 +71,7 @@ test("server patch uses room-quality checks and does not invent sitemap modifica
  assert.ok(!patched.includes("const countryMatch = pathname.match("));
  assert.ok(patched.includes("summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms })"));
  assert.ok(patched.includes("routeHealth.indexable"));
- assert.ok(patched.includes("buildCountrySitemap"));
+ assert.ok(patched.includes("getEligibleCountrySitemapSlugs"));
  assert.ok(patched.includes("normalizeLanguages(room.spoken_languages"));
  assert.ok(patched.includes('url.searchParams.get("region")'));
  assert.ok(!patched.includes("new Date().toISOString());"));
@@ -287,7 +287,7 @@ test("country startup patch adds the HTML sitemap and keeps runtime robots exclu
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");
  const patched=patchServerSource(source);
  assert.ok(patched.includes("buildHtmlSitemap"));
- assert.ok(patched.includes('if(pathname==="/sitemap/")'));
+ assert.match(patched,/pathname === "\/sitemap\/"/);
  assert.ok(patched.includes("Disallow: /dashboard.html"));
  assert.ok(patched.includes("Disallow: /promotools.html"));
  assert.equal(patchServerSource(patched),patched);
