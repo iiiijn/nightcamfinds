@@ -9,16 +9,13 @@ const { patchChaturbateApiRegion } = require("../scripts/patch-chaturbate-api-re
 const { resolveChaturbateCountry } = require("../src/services/country-directory.cjs");
 const { getDiscoveryRegion, CHATURBATE_API_REGIONS } = require("../src/services/regional-discovery.cjs");
 
-test("Chaturbate startup normalization preserves both provider region sources", () => {
+test("Chaturbate server normalization preserves partner and API region sources", () => {
   const server = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
-  const countryPatched = patchServerSource(server);
-  const patched = patchChaturbateApiRegion(countryPatched);
-
-  assert.ok(patched.includes("NIGHTCAMFINDS_CHATURBATE_API_REGION_V1"));
-  assert.match(patched, /partnerRegion:normalizeRegion\(room\.region\|\|room\.region_name\|\|room\.state\|\|room\.province\)/);
-  assert.match(patched, /apiRegion:normalizeRegion\(apiRegion\)/);
-  assert.match(patched, /region:getDiscoveryRegion\(\{country,partnerRegion:normalizeRegion\(room\.region\|\|room\.region_name\|\|room\.state\|\|room\.province\),apiRegion\}\)/);
-  assert.equal(patchChaturbateApiRegion(patched), patched, "the API-region patch must be idempotent");
+  assert.match(server, /function normalizeChaturbateRoom\(room,apiRegion=""\)/);
+  assert.match(server, /partnerRegion=normalizeRegion\(room\.region\|\|room\.region_name\|\|room\.state\|\|room\.province\)/);
+  assert.match(server, /apiRegion:normalizeRegion\(apiRegion\)/);
+  assert.match(server, /region:getDiscoveryRegion\(\{country,partnerRegion,apiRegion\}\)/);
+  assert.equal(getDiscoveryRegion({ country: "DE", partnerRegion: "Western Europe", apiRegion: "northamerica" }), "Western Europe");
 });
 
 test("all Chaturbate API regions map to deliberate visitor-facing fallbacks", () => {
