@@ -37,6 +37,7 @@
     'Live room coverage':'overview','Country platform preferences':'overview',
     'Best room categories by country':'overview','Platform performance':'overview',
     'Weekly traffic quality':'traffic','Traffic quality since 10 November':'traffic',
+    'Repeated-click intelligence':'traffic',
     'Click origins report':'traffic','Daily clicks by country':'traffic',
     'Country × platform attribution':'traffic','Promo placement performance':'traffic',
     'Recent room clicks':'investigation','Individual click trace':'investigation',
@@ -64,7 +65,7 @@
   const nativeMonthlyLoader=loadDashboardTab;
   const loaders={
     overview:[loadRoomCoverage,load,loadRouteSettings,loadCountryCategoryAnalytics],
-    traffic:[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins],
+    traffic:[loadDailyCountryAnalytics,loadTrafficQualityAnalytics,loadTrafficSinceCutoff,loadOwnerTrafficMode,loadClickOrigins,loadRepeatedClickIntelligence],
     investigation:[loadRecentRoomClicks,loadIndividualClickTrace],
     revenue:[loadCampaignPerformance,loadTrafficRevenuePerformance,loadConversionRevenue,loadConversionFunnel],
     health:[loadProviderAttributionHealth]
