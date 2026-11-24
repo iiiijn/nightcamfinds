@@ -10,7 +10,7 @@ const { resolveChaturbateCountry } = require("../src/services/country-directory.
 
 test("server wires feed ingestion diagnostics to the full ingestion diagnostics service", () => {
   const serverSource = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
-  assert.match(serverSource, /const \\{ summarizeFeedIngestion \\} = require\\("\.\\/src\\/services\\/feed-ingestion-diagnostics\\.cjs"\\);/);
+  assert.ok(serverSource.includes('const { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");'));
   assert.doesNotMatch(serverSource, /summarizeFeedIngestion.*feed-quality-diagnostics/);
 });
 
