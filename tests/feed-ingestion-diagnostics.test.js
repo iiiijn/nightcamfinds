@@ -513,9 +513,9 @@ test("accepted Bonga recovery marks conflicting explicit country fields even whe
       { homecountry: "", country: "", country_code: "", hometown: "Nairobi, Kenya" }
     ],
     entries: [
-      { normalized: { ...room("bonga-field-conflict").normalized, id: "bongacams:field-conflict", platform: "bongacams", country: "DE", href: "https://bongacams.com/field-conflict/" }, rawText: "" },
-      { normalized: { ...room("bonga-match").normalized, id: "bongacams:match", platform: "bongacams", country: "DE", href: "https://bongacams.com/match/" }, rawText: "" },
-      { normalized: { ...room("bonga-location-only").normalized, id: "bongacams:location-only", platform: "bongacams", country: "KE", href: "https://bongacams.com/location-only/" }, rawText: "" }
+      { normalized: { ...room("bonga-field-conflict").normalized, id: "bongacams:bonga-field-conflict", platform: "bongacams", country: "DE", href: "https://bongacams.com/field-conflict/" }, rawText: "" },
+      { normalized: { ...room("bonga-match").normalized, id: "bongacams:bonga-match", platform: "bongacams", country: "DE", href: "https://bongacams.com/match/" }, rawText: "" },
+      { normalized: { ...room("bonga-location-only").normalized, id: "bongacams:bonga-location-only", platform: "bongacams", country: "KE", href: "https://bongacams.com/location-only/" }, rawText: "" }
     ]
   });
 
