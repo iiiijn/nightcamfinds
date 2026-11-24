@@ -2,6 +2,8 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { countCountryContentWords, getEligibleCountrySitemapSlugs } = require("../src/services/country-sitemap-eligibility.cjs");
 
 function content(wordCount) {
@@ -54,4 +56,11 @@ test("word count includes paragraph and FAQ content", () => {
     paragraphs: ["three four"],
     faqs: [["five six", "seven eight"]]
   }), 9);
+});
+
+test("production sitemap route uses live-room and content eligibility", () => {
+  const server = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+  assert.match(server, /getEligibleCountrySitemapSlugs\(\{ marketMeta: MARKET_META, countryContent: COUNTRY_PAGE_CONTENT, rooms: feed\.rooms \}\)/);
+  assert.match(server, /if \(pathname === "\/sitemap\.xml"\) \{[\s\S]*?const feed = await rooms\(req\)/);
+  assert.match(server, /sitemap\(pageOrigin\(req\), eligibleCountrySlugs\)/);
 });
