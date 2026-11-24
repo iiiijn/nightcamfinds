@@ -18,7 +18,7 @@ function countCountryContentWords(country) {
   return parts.filter((part) => typeof part === "string")
     .join(" ")
     .trim()
-    .split(/\\s+/)
+    .split(/\s+/)
     .filter(Boolean).length;
 }
 
