@@ -28,7 +28,7 @@ test("feed diagnostics include candidate aggregates without exposing source valu
   const result = summarizeFeedIngestion({
     provider: "bongacams",
     rawRows: [
-      { username: "secret-user", homecountry: "Deutschland", hometown: "Berlin, Deutschland" },
+      { username: "secret-user", homecountry: "Germany", hometown: "Berlin, Germany" },
       { username: "secret-user-2", homecountry: "Mysteryland", hometown: "Unknown City" }
     ]
   });
@@ -36,7 +36,7 @@ test("feed diagnostics include candidate aggregates without exposing source valu
     { country: "DE", roomCount: 1 }
   ]);
   const serialized = JSON.stringify(result);
-  for (const privateValue of ["secret-user", "Deutschland", "Berlin", "Mysteryland", "Unknown City"]) {
+  for (const privateValue of ["secret-user", "Germany", "Berlin", "Mysteryland", "Unknown City"]) {
     assert.equal(serialized.includes(privateValue), false);
   }
 });
