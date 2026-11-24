@@ -473,8 +473,10 @@ test("accepted country recovery diagnostics count only accepted unique rooms by 
       { country: "US", acceptedUniqueRoomCount: 1, explicitCountryCount: 0, locationOnlyRecoveryCount: 0, conflictingCountryCount: 1, unrecognizedCountryCount: 0 }
     ]
   });
-  assert.equal(JSON.stringify(result.acceptedCountryRecovery).includes("explicit"), false);
-  assert.equal(JSON.stringify(result.acceptedCountryRecovery).includes("London"), false);
+  const serializedRecovery = JSON.stringify(result.acceptedCountryRecovery);
+  for (const privateValue of ['"explicit"', "recovered", "conflict", "unrecognized", "London"]) {
+    assert.equal(serializedRecovery.includes(privateValue), false);
+  }
 });
 
 test("accepted country recovery diagnostics use Bonga explicit fields before hometown fallback", () => {
