@@ -395,3 +395,31 @@ test("Chaturbate location diagnostics classify semicolon and pipe country suffix
     assert.equal(serialized.includes(privateValue), false);
   }
 });
+
+test("Chaturbate safe diagnostics distinguish scripts without exposing source text", () => {
+  const rows = [
+    { location: "россия" },
+    { location: "日本" },
+    { location: "مصر" },
+    { location: "ישראל" },
+    { location: "Ελλάδα" },
+    { location: "भारत" },
+    { location: "未知の場所" },
+    { location: "Nairobi" }
+  ];
+  const result = summarizeFeedIngestion({ provider: "chaturbate", rawRows: rows });
+  assert.deepEqual(result.metadata.safeValueShapes.fieldValueShapeCounts.location, {
+    cyrillic_text: 1,
+    cjk_text: 2,
+    arabic_text: 1,
+    hebrew_text: 1,
+    greek_text: 1,
+    devanagari_text: 1,
+    other_non_latin_text: 0,
+    single_word_text: 1
+  });
+  const serialized = JSON.stringify(result);
+  for (const value of ["россия", "日本", "مصر", "ישראל", "Ελλάδα", "भारत", "未知の場所", "Nairobi"]) {
+    assert.equal(serialized.includes(value), false);
+  }
+});
