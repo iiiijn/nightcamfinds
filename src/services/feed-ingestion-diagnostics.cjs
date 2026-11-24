@@ -210,8 +210,12 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
   let normalizedCount = 0;
   let acceptedCount = 0;
   let duplicateCount = 0;
+  let acceptedWithoutCountryCount = 0;
+  let acceptedUnclassifiedCount = 0;
+  const acceptedByCountry = new Map();
   const seen = new Set();
-  for (const entry of normalizedEntries) {
+  for (let index = 0; index < normalizedEntries.length; index += 1) {
+    const entry = normalizedEntries[index];
     const wrapped = entry && Object.prototype.hasOwnProperty.call(entry, "normalized");
     const room = wrapped ? entry.normalized : entry;
     const rawText = wrapped ? entry.rawText || "" : "";
@@ -227,7 +231,46 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     }
     seen.add(room.id);
     acceptedCount += 1;
+
+    const country = normalizeCountryCode(room.country);
+    if (!country) acceptedWithoutCountryCount += 1;
+    const rawRow = raw[index];
+    const explicit = resolveExplicitCountry(rawRow, name);
+    const location = resolveLocationCountry(rawRow, name);
+    let classification = "unrecognized";
+    if (explicit && location && explicit !== location) classification = "conflicting";
+    else if (explicit) classification = "explicit";
+    else if (location) classification = "location_only";
+    else acceptedUnclassifiedCount += 1;
+
+    if (country) {
+      if (!acceptedByCountry.has(country)) {
+        acceptedByCountry.set(country, {
+          country,
+          acceptedUniqueRoomCount: 0,
+          explicitCountryCount: 0,
+          locationOnlyRecoveryCount: 0,
+          conflictingCountryCount: 0,
+          unrecognizedCountryCount: 0
+        });
+      }
+      const summary = acceptedByCountry.get(country);
+      summary.acceptedUniqueRoomCount += 1;
+      if (classification === "explicit") summary.explicitCountryCount += 1;
+      else if (classification === "location_only") summary.locationOnlyRecoveryCount += 1;
+      else if (classification === "conflicting") summary.conflictingCountryCount += 1;
+      else summary.unrecognizedCountryCount += 1;
+    }
   }
+
+  const acceptedCountryRecovery = {
+    acceptedUniqueRoomCount: acceptedCount,
+    acceptedWithRecognizedCountryCount: acceptedCount - acceptedWithoutCountryCount,
+    acceptedWithoutRecognizedCountryCount: acceptedWithoutCountryCount,
+    acceptedUnclassifiedCount,
+    countries: [...acceptedByCountry.values()].sort((a, b) =>
+      b.acceptedUniqueRoomCount - a.acceptedUniqueRoomCount || a.country.localeCompare(b.country))
+  };
 
   const countryCandidates = summarizeCountryCandidates(name, raw);
   const countryConflicts = summarizeCountryConflicts(name, raw);
