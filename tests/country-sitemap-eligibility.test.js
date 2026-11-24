@@ -30,7 +30,7 @@ test("country sitemap includes only live Tier 1 and Tier 2 markets with adequate
 
 test("Tier 3 countries require stronger content and a live room", () => {
   const marketMeta = { br: { priority: "Tier 3" }, in: { priority: "Tier 3" } };
-  const countryContent = { br: content(179), in: content(180) };
+  const countryContent = { br: content(178), in: content(179) };
   const rooms = [{ country: "BR" }, { country: "IN" }];
   assert.deepEqual(
     getEligibleCountrySitemapSlugs({ marketMeta, countryContent, rooms }),
