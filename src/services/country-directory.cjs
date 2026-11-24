@@ -20,10 +20,44 @@ function textValue(value) {
  if (value&&typeof value==="object") for (const key of ["name","language","label","title","value","code","text"]) if(value[key]!=null){const s=textValue(value[key]);if(s)return s;}
  return "";
 }
+function normalizeCountryNameKey(value) {
+ // Unicode-aware normalization makes accented spellings equivalent without
+ // transliterating unknown scripts or guessing from city names.
+ return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+  .replace(/[’']/g, "'").replace(/[.,]/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
+}
+
+// Verified common provider/display aliases. These are country names, not
+// city-to-country guesses. ISO alpha-2 validation remains the final authority.
+const COUNTRY_ALIAS_CODES = new Map([
+ ["UNITED STATES OF AMERICA","US"],["AMERICA","US"],["GREAT BRITAIN","GB"],
+ ["ENGLAND","GB"],["SCOTLAND","GB"],["WALES","GB"],["NORTHERN IRELAND","GB"],
+ ["KOREA, REPUBLIC OF","KR"],["REPUBLIC OF KOREA","KR"],["SOUTH KOREA","KR"],
+ ["KOREA, DEMOCRATIC PEOPLE'S REPUBLIC OF","KP"],["NORTH KOREA","KP"],
+ ["IRAN, ISLAMIC REPUBLIC OF","IR"],["IRAN","IR"],
+ ["VIET NAM","VN"],["LAO PEOPLE'S DEMOCRATIC REPUBLIC","LA"],["LAOS","LA"],
+ ["SYRIAN ARAB REPUBLIC","SY"],["BOLIVARIAN REPUBLIC OF VENEZUELA","VE"],["VENEZUELA","VE"],
+ ["BOLIVIA, PLURINATIONAL STATE OF","BO"],["BOLIVIA","BO"],
+ ["TANZANIA, UNITED REPUBLIC OF","TZ"],["UNITED REPUBLIC OF TANZANIA","TZ"],
+ ["MOLDOVA, REPUBLIC OF","MD"],["REPUBLIC OF MOLDOVA","MD"],
+ ["MACEDONIA, THE FORMER YUGOSLAV REPUBLIC OF","MK"],
+ ["PALESTINE, STATE OF","PS"],["PALESTINE","PS"],
+ ["HONG KONG","HK"],["MACAO","MO"],["TAIWAN","TW"],
+ ["COTE D'IVOIRE","CI"],["IVORY COAST","CI"],
+ ["CONGO, THE DEMOCRATIC REPUBLIC OF THE","CD"],["DEMOCRATIC REPUBLIC OF THE CONGO","CD"],
+ ["CONGO, THE REPUBLIC OF THE","CG"],["REPUBLIC OF THE CONGO","CG"],
+ ["CZECH REPUBLIC","CZ"],["RUSSIAN FEDERATION","RU"],
+ ["UNITED ARAB EMIRATES","AE"],["UAE","AE"],["TURKIYE","TR"],["TÜRKIYE","TR"]
+]);
 function normalizeCountryCode(value) {
  const raw=textValue(value);
  if(/^[A-Za-z]{2}$/.test(raw)) { const code=raw.toUpperCase(); return isIso3166Alpha2(code) ? code : ""; }
- return COUNTRY_NAME_CODES.get(raw.toUpperCase())||"";
+ const key=normalizeCountryNameKey(raw);
+ if (COUNTRY_NAME_CODES.has(key)) return COUNTRY_NAME_CODES.get(key);
+ if (COUNTRY_ALIAS_CODES.has(key)) return COUNTRY_ALIAS_CODES.get(key);
+ for (const [name, code] of COUNTRY_NAME_CODES) if (normalizeCountryNameKey(name) === key) return code;
+ for (const [name, code] of COUNTRY_ALIAS_CODES) if (normalizeCountryNameKey(name) === key) return code;
+ return "";
 }
 function resolveChaturbateCountry(country, location) {
  const explicit = normalizeCountryCode(country);
