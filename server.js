@@ -7,7 +7,8 @@ const { rankRoomsByPreferredPlatform } = require("./src/services/platform-rankin
 const { buildTopRoomsByProviderCategory } = require("./src/services/homepage-room-ranking.cjs");
 const { normalizeViewerCount, firstValidViewerCount } = require("./src/services/viewer-count.cjs");
 const { getCountryPage, COUNTRIES: COUNTRY_PAGE_CONTENT } = require("./country-pages.js");
-const { resolveChaturbateCountry, normalizeRegion } = require("./src/services/country-directory.cjs");
+const { resolveChaturbateCountry, normalizeRegion, buildHtmlSitemap } = require("./src/services/country-directory.cjs");
+const { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");
 const { getEligibleCountrySitemapSlugs } = require("./src/services/country-sitemap-eligibility.cjs");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
@@ -434,18 +435,18 @@ function sitemap(origin, eligibleCountrySlugs = []) { const paths = ["/", "/live
 function withTrack(url,track){try{const next=new URL(url);next.searchParams.set("track",track);return next.toString();}catch{return `https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(track)}`;}}
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,"http://localhost"); const pathname=url.pathname;
-  if(pathname==="/robots.txt") return send(res,200,`User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /bgo/\nDisallow: /api/\nSitemap: ${pageOrigin(req)}/sitemap.xml\n`,"text/plain");
+  if(pathname==="/robots.txt") return send(res,200,`User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /dashboard.html\nDisallow: /dashboard-v2.html\nDisallow: /dashboard-ui.html\nDisallow: /analytics-dashboard.html\nDisallow: /campaign-center.html\nDisallow: /promotools.html\nDisallow: /revenue.html\nDisallow: /go/\nDisallow: /bgo/\nDisallow: /api/\nSitemap: ${pageOrigin(req)}/sitemap.xml\n`,"text/plain");
   if (pathname === "/sitemap.xml") {
     const feed = await rooms(req);
     const eligibleCountrySlugs = getEligibleCountrySitemapSlugs({ marketMeta: MARKET_META, countryContent: COUNTRY_PAGE_CONTENT, rooms: feed.rooms });
     return send(res, 200, sitemap(pageOrigin(req), eligibleCountrySlugs), "application/xml");
   }
-  if(pathname==="/broadcast"||pathname==="/broadcast/"){const html=fs.readFileSync(path.join(PUBLIC,"broadcast.html"),"utf8");return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));}
-  const countryMatch = pathname.match(/^\/country\/([a-z]{2})\/$/);
-  if (countryMatch) {
-    const countryHtml = getCountryPage(countryMatch[1], pageOrigin(req));
-    if (countryHtml) return send(res, 200, countryHtml, "text/html; charset=utf-8", visitCookieHeaders(req, pathname));
+  if (pathname === "/sitemap/" || pathname === "/sitemap") {
+    const feed = await rooms(req);
+    const countryEntries = Object.entries(COUNTRY_PAGE_CONTENT).map(([slug, country]) => ({ slug, code: country.code, name: country.name }));
+    return send(res, 200, buildHtmlSitemap(pageOrigin(req), feed.rooms, countryEntries), "text/html; charset=utf-8");
   }
+  if(pathname==="/broadcast"||pathname==="/broadcast/"){const html=fs.readFileSync(path.join(PUBLIC,"broadcast.html"),"utf8");return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));}
   if(pages[pathname])return send(res,200,pages[pathname],"text/html; charset=utf-8");
   if(pathname==="/visits"){if(!STATS_KEY||url.searchParams.get("key")!==STATS_KEY)return send(res,404,"Not found","text/plain");const stats=(await statsFromDb())||readStats();const countryRows=Object.entries(stats.countries||{}).sort((a,b)=>b[1]-a[1]).map(([iso,count])=>`<tr><td>${NAMES[iso]||iso}</td><td>${iso}</td><td>${count}</td></tr>`).join("");const categoryRows=Object.entries(stats.byCountryCategory||{}).sort((a,b)=>b[1]-a[1]).map(([key,count])=>{const[iso,category]=key.split(":");return `<tr><td>${NAMES[iso]||iso}</td><td>${category}</td><td>${count}</td></tr>`;}).join("");const sourceRows=Object.entries(stats.byCountrySource||{}).sort((a,b)=>b[1]-a[1]).map(([key,count])=>{const[iso,source]=key.split(":");return `<tr><td>${NAMES[iso]||iso}</td><td>${source}</td><td>${count}</td></tr>`;}).join("");const platformRows=Object.entries(stats.byPlatform||{}).sort((a,b)=>b[1]-a[1]).map(([platform,count])=>`<tr><td>${platform}</td><td>${count}</td></tr>`).join("");return send(res,200,`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>NightCamFinds Click Stats</title><style>body{font-family:system-ui,sans-serif;max-width:1100px;margin:40px auto;padding:0 16px}table{border-collapse:collapse;width:100%;margin:12px 0 32px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f4f4f4}.muted{color:#666}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.kpi{padding:16px;border:1px solid #ddd;border-radius:10px}.kpi strong{font-size:1.7rem;display:block}</style></head><body><h1>NightCamFinds affiliate click stats</h1><p class="muted">Aggregate redirect clicks only. Country comes from a trusted CDN/proxy header when available.</p><div class="grid"><div class="kpi"><span>Total clicks</span><strong>${stats.total||0}</strong></div><div class="kpi"><span>Countries seen</span><strong>${Object.keys(stats.countries||{}).filter(k=>k!=="UNKNOWN").length}</strong></div><div class="kpi"><span>Last updated</span><strong>${stats.updatedAt?new Date(stats.updatedAt).toLocaleString():"Never"}</strong></div></div><h2>Clicks by platform</h2><table><thead><tr><th>Platform</th><th>Clicks</th></tr></thead><tbody>${platformRows||'<tr><td colspan="2">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by visitor country</h2><table><thead><tr><th>Country</th><th>ISO</th><th>Clicks</th></tr></thead><tbody>${countryRows||'<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by country and category</h2><table><thead><tr><th>Country</th><th>Category</th><th>Clicks</th></tr></thead><tbody>${categoryRows||'<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by country and traffic source</h2><table><thead><tr><th>Country</th><th>Source</th><th>Clicks</th></tr></thead><tbody>${sourceRows||'<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><p><a href="/api/stats?key=${encodeURIComponent(STATS_KEY)}">JSON export</a> · <a href="/api/stats.csv?key=${encodeURIComponent(STATS_KEY)}">CSV export</a></p></body></html>`,`text/html; charset=utf-8");}
   if(pathname==="/api/stats"){if(!STATS_KEY||url.searchParams.get("key")!==STATS_KEY)return send(res,404,"Not found","text/plain");return send(res,200,JSON.stringify((await statsFromDb())||readStats()),"application/json");}
@@ -641,9 +642,12 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   if (countryRoute) {
     const feed = await rooms(req);
     const iso = countryRoute[1].toUpperCase();
-    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended").slice(0, 60);
-    const roomMarkup = renderRoomCards(countryRooms, { category: "all", pagePath: pathname });
-    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, countryRooms.length > 0);
+    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended");
+    const routeHealth = summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms });
+    console.info("[country-route]", JSON.stringify({ country: iso, status: 200, feedHealth: routeHealth.feedHealth, roomCount: routeHealth.roomCount, qualifyingRoomCount: routeHealth.qualifyingRoomCount, indexable: routeHealth.indexable }));
+    const roomMarkup = renderRoomCards(countryRooms.slice(0, 60), { category: "all", pagePath: pathname });
+    const eligibleCountrySlugs = Object.entries(COUNTRY_PAGE_CONTENT).filter(([slug, country]) => summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: feed.rooms.filter((room) => room.country === country.code) }).indexable).map(([slug]) => slug);
+    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, routeHealth.indexable, eligibleCountrySlugs);
     if (!countryHtml) return send(res, 404, "Country page not found", "text/plain; charset=utf-8");
     return send(res, 200, countryHtml, "text/html; charset=utf-8");
   }
