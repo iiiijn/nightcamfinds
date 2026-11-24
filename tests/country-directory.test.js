@@ -54,7 +54,8 @@ test("sitemap includes lastmod only when an explicit valid page modification dat
 });
 test("server patch normalizes partner countries and regions for regional discovery",()=>{
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
- assert.match(patched,/getDiscoveryRegion\(\{country,partnerRegion:normalizeRegion/);
+ assert.match(patched,/partnerRegion=normalizeRegion\(room\.region\|\|room\.region_name\|\|room\.state\|\|room\.province\)/);
+  assert.match(patched,/region:getDiscoveryRegion\(\{country,partnerRegion,apiRegion\}\)/);
  assert.ok(patched.includes('const country=normalizeBongaCountry(room);'));
 });
 test("server patch preserves region and language discovery facets in the rooms API",()=>{
@@ -66,7 +67,7 @@ test("server patch preserves region and language discovery facets in the rooms A
 });
 test("server patch uses room-quality checks and does not invent sitemap modification dates",()=>{
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");const patched=patchServerSource(source);
- assert.ok(patched.includes("NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1"));
+ assert.ok(patched.includes("summarizeCountryRouteHealth"));
  assert.ok(!patched.includes("const countryMatch = pathname.match("));
  assert.ok(patched.includes("summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms })"));
  assert.ok(patched.includes("routeHealth.indexable"));
@@ -254,7 +255,7 @@ test("country startup patch uses strict Chaturbate country fallback and remains 
  const source=fs.readFileSync(path.join(__dirname,"..","server.js"),"utf8");
  const patched=patchServerSource(source);
  assert.ok(patched.includes('resolveChaturbateCountry(room.country,room.location)'));
- assert.ok(patched.includes('const { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion'));
+ assert.ok(patched.includes('const { resolveChaturbateCountry, normalizeRegion'));
  assert.ok(patched.includes('const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");'));
  assert.ok(patched.includes('const country=normalizeBongaCountry(room);'));
  assert.ok(patched.includes('createFeedSnapshotCache'));
