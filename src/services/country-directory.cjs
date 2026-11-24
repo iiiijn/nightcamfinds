@@ -23,8 +23,8 @@ function textValue(value) {
 function normalizeCountryNameKey(value) {
  // Unicode-aware normalization makes accented spellings equivalent without
  // transliterating unknown scripts or guessing from city names.
- return String(value || "").normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "")
-  .replace(/[’']/g, "'").replace(/[.,]/g, " ").replace(/\\s+/g, " ").trim().toUpperCase();
+ return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+  .replace(/[’']/g, "'").replace(/[.,]/g, " ").replace(/\s+/g, " ").trim().toUpperCase();
 }
 
 // Verified common provider/display aliases. These are country names, not
@@ -53,7 +53,11 @@ function normalizeCountryCode(value) {
  const raw=textValue(value);
  if(/^[A-Za-z]{2}$/.test(raw)) { const code=raw.toUpperCase(); return isIso3166Alpha2(code) ? code : ""; }
  const key=normalizeCountryNameKey(raw);
- return COUNTRY_NAME_CODES.get(key)||COUNTRY_ALIAS_CODES.get(key)||"";
+ if (COUNTRY_NAME_CODES.has(key)) return COUNTRY_NAME_CODES.get(key);
+ if (COUNTRY_ALIAS_CODES.has(key)) return COUNTRY_ALIAS_CODES.get(key);
+ for (const [name, code] of COUNTRY_NAME_CODES) if (normalizeCountryNameKey(name) === key) return code;
+ for (const [name, code] of COUNTRY_ALIAS_CODES) if (normalizeCountryNameKey(name) === key) return code;
+ return "";
 }
 function resolveChaturbateCountry(country, location) {
  const explicit = normalizeCountryCode(country);
