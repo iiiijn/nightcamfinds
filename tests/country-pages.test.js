@@ -16,7 +16,7 @@ test("all priority country pages render distinct content and canonical URLs", ()
   const pages = slugs.map((slug) => getCountryPage(slug));
   assert.equal(pages.length, 17);
   assert.ok(pages.every(Boolean));
-  assert.equal(new Set(pages).size, 16);
+  assert.equal(new Set(pages).size, 17);
 
   for (const slug of slugs) {
     const html = getCountryPage(slug);
