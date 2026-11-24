@@ -15,7 +15,8 @@ test("Chaturbate server normalization preserves partner and API region sources",
   assert.match(server, /partnerRegion=normalizeRegion\(room\.region\|\|room\.region_name\|\|room\.state\|\|room\.province\)/);
   assert.match(server, /apiRegion:normalizeRegion\(apiRegion\)/);
   assert.match(server, /region:getDiscoveryRegion\(\{country,partnerRegion,apiRegion\}\)/);
-  assert.equal(getDiscoveryRegion({ country: "DE", partnerRegion: "Western Europe", apiRegion: "northamerica" }), "Central & Eastern Europe");\n  assert.equal(getDiscoveryRegion({ country: "", partnerRegion: "Western Europe", apiRegion: "northamerica" }), "Western Europe");
+  assert.equal(getDiscoveryRegion({ country: "DE", partnerRegion: "Western Europe", apiRegion: "northamerica" }), "Central & Eastern Europe");
+  assert.equal(getDiscoveryRegion({ country: "", partnerRegion: "Western Europe", apiRegion: "northamerica" }), "Western Europe");
 });
 
 test("all Chaturbate API regions map to deliberate visitor-facing fallbacks", () => {
