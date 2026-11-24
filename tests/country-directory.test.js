@@ -261,7 +261,8 @@ test("country startup patch uses strict Chaturbate country fallback and remains 
  assert.ok(patched.includes('createFeedSnapshotCache'));
  assert.ok(patched.includes('room_feed_snapshots'));
  assert.ok(patched.includes('cacheable:results[0].status!=="rejected"'));
- assert.ok(patched.includes('createHash("sha256")'));
+ assert.ok(patched.includes('buildFeedCacheKey({country:visitor,clientIp:rawIp})'));
+ assert.ok(patched.includes('require("./src/services/feed-cache-identity.cjs")'));
  assert.equal(patchServerSource(patched),patched);
 });
 
