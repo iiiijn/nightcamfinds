@@ -42,4 +42,35 @@ function summarizeProviderFeedQuality(rooms) {
   });
 }
 
-module.exports = { CATEGORIES, PROVIDERS, summarizeProviderFeedQuality };
+
+/**
+ * Summarize feed ingestion without retaining or logging raw room payloads.
+ * Entries are the normalization results paired with their raw feed rows.
+ */
+function summarizeFeedIngestion({ provider, rawRows, entries, pagination } = {}) {
+  const raw = Array.isArray(rawRows) ? rawRows : [];
+  const normalizedEntries = Array.isArray(entries) ? entries : [];
+  const rooms = normalizedEntries.map((entry) => entry && entry.normalized).filter(Boolean);
+  const countMissing = (field) => rooms.filter((room) => !String(room && room[field] || "").trim()).length;
+  const safePagination = pagination && typeof pagination === "object" ? {
+    pagesFetched: Number.isFinite(pagination.pagesFetched) ? pagination.pagesFetched : null,
+    receivedCount: Number.isFinite(pagination.receivedCount) ? pagination.receivedCount : raw.length,
+    uniqueCount: Number.isFinite(pagination.uniqueCount) ? pagination.uniqueCount : null,
+    duplicateCount: Number.isFinite(pagination.duplicateCount) ? pagination.duplicateCount : null,
+    truncated: Boolean(pagination.truncated),
+    stopReason: typeof pagination.stopReason === "string" ? pagination.stopReason.slice(0, 40) : "unknown",
+    pageSize: Number.isFinite(pagination.pageSize) ? pagination.pageSize : null,
+    maxPages: Number.isFinite(pagination.maxPages) ? pagination.maxPages : null
+  } : null;
+  return {
+    provider: PROVIDERS.includes(provider) ? provider : "unknown",
+    rawCount: raw.length,
+    normalizedCount: rooms.length,
+    rejectedCount: Math.max(0, raw.length - rooms.length),
+    missingCountry: countMissing("country"),
+    missingCategory: countMissing("gender"),
+    pagination: safePagination
+  };
+}
+
+module.exports = { CATEGORIES, PROVIDERS, summarizeProviderFeedQuality, summarizeFeedIngestion };

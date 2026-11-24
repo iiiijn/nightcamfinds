@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { summarizeProviderFeedQuality } = require("../src/services/feed-quality-diagnostics.cjs");
+const { summarizeProviderFeedQuality, summarizeFeedIngestion } = require("../src/services/feed-quality-diagnostics.cjs");
 
 test("reports provider-level country and category quality from normalized rooms", () => {
   const result = summarizeProviderFeedQuality([
@@ -40,4 +40,49 @@ test("ignores rooms from unknown providers", () => {
     { platform: "other", country: "US", gender: "male" }
   ]);
   assert.deepEqual(result.map((row) => row.totalRooms), [0, 0]);
+});
+
+
+test("summarizes feed ingestion counts without exposing raw payloads", () => {
+  const result = summarizeFeedIngestion({
+    provider: "bongacams",
+    rawRows: [{ username: "one" }, { username: "two" }, { username: "bad" }],
+    entries: [
+      { normalized: { country: "GB", gender: "male" } },
+      { normalized: { country: "", gender: "" } },
+      { normalized: null }
+    ],
+    pagination: {
+      pagesFetched: 2, receivedCount: 3, uniqueCount: 2,
+      duplicateCount: 1, truncated: true, stopReason: "max_pages",
+      pageSize: 100, maxPages: 2
+    }
+  });
+
+  assert.deepEqual(result, {
+    provider: "bongacams",
+    rawCount: 3,
+    normalizedCount: 2,
+    rejectedCount: 1,
+    missingCountry: 1,
+    missingCategory: 1,
+    pagination: {
+      pagesFetched: 2, receivedCount: 3, uniqueCount: 2,
+      duplicateCount: 1, truncated: true, stopReason: "max_pages",
+      pageSize: 100, maxPages: 2
+    }
+  });
+  assert.equal(JSON.stringify(result).includes("username"), false);
+});
+
+test("handles absent ingestion diagnostics input safely", () => {
+  assert.deepEqual(summarizeFeedIngestion(), {
+    provider: "unknown",
+    rawCount: 0,
+    normalizedCount: 0,
+    rejectedCount: 0,
+    missingCountry: 0,
+    missingCategory: 0,
+    pagination: null
+  });
 });

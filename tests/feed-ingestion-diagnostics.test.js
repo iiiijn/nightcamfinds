@@ -2,8 +2,17 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { summarizeFeedIngestion, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation } = require("../src/services/feed-ingestion-diagnostics.cjs");
 const { resolveChaturbateCountry } = require("../src/services/country-directory.cjs");
+
+
+test("server wires feed ingestion diagnostics to the full ingestion diagnostics service", () => {
+  const serverSource = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+  assert.ok(serverSource.includes('const { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");'));
+  assert.doesNotMatch(serverSource, /summarizeFeedIngestion.*feed-quality-diagnostics/);
+});
 
 const room = (username, overrides = {}) => ({
   normalized: {
@@ -87,13 +96,6 @@ test("server records each Chaturbate region and exposes provider diagnostics onl
   const fs = require("node:fs");
   const path = require("node:path");
   const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
-  assert.ok(fs.readFileSync(path.join(__dirname, "../scripts/patch-country-directory.js"), "utf8").includes('require("./src/services/feed-ingestion-diagnostics.cjs")'));
-  const { patchServerSource } = require("../scripts/patch-country-directory.js");
-  const patchedServer = patchServerSource(server);
-  assert.ok(patchedServer.includes('require("./src/services/feed-ingestion-diagnostics.cjs")'));
-  assert.ok(patchedServer.includes('summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:{...pages,pageSize:CHATURBATE_PAGE_SIZE,maxPages}})'));
-  assert.ok(patchedServer.includes("pageSize:CHATURBATE_PAGE_SIZE,maxPages"));
-  assert.ok(patchedServer.includes("stopReason:pages.stopReason"));
   assert.ok(server.includes("latestProviderFeedDiagnostics.chaturbateRegions.push"));
   assert.ok(server.includes('summarizeFeedIngestion({provider:"chaturbate",rawRows:pages.items,entries,pagination:{...pages,pageSize:CHATURBATE_PAGE_SIZE,maxPages}})'));
   assert.ok(server.includes("pageSize:CHATURBATE_PAGE_SIZE,maxPages"));
@@ -101,7 +103,6 @@ test("server records each Chaturbate region and exposes provider diagnostics onl
   assert.ok(server.includes("providerIngestion: latestProviderFeedDiagnostics"));
   assert.ok(server.includes('console.info("[provider-feed-diagnostics]"'));
 });
-
 test("feed diagnostics reject unsupported providers and sanitize pagination fields", () => {
   assert.throws(() => summarizeFeedIngestion({ provider: "other" }), /Unsupported feed provider/);
   const result = summarizeFeedIngestion({

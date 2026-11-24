@@ -40,7 +40,7 @@ test("affiliate redirect endpoints return tracked provider URLs and record click
   const bongaFeed = http.createServer((req, res) => {
     bongaFeedRequests += 1;
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify([{ username: "testbongamodel", display_name: "Test Bonga Model", gender: "male", isLive: true, room_url: "https://www.bongacams.com/testbongamodel" }]));
+    res.end(JSON.stringify([{ username: "testbongamodel", display_name: "Test Bonga Model", gender: "male", homecountry: "GB", members_count: 12, isLive: true, chat_url: "https://www.bongacams.com/testbongamodel" }]));
   });
   await new Promise(resolve => bongaFeed.listen(bongaFeedPort, "127.0.0.1", resolve));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "ncf-redirect-stats-"));

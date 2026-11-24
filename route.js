@@ -73,7 +73,8 @@ ensureAffiliateSchema()
 
 function getJson(url) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: { "User-Agent": "NightCamFinds/1.0", "Accept": "application/json,text/plain,*/*" } }, res => {
+    const transport = new URL(url).protocol === "http:" ? http : https;
+    const req = transport.get(url, { headers: { "User-Agent": "NightCamFinds/1.0", "Accept": "application/json,text/plain,*/*" } }, res => {
       let body = "";
       res.setEncoding("utf8");
       res.on("data", chunk => { body += chunk; });

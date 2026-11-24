@@ -56,14 +56,12 @@ test("failed operations are removed so later requests can retry", async () => {
   assert.equal(inFlight.size, 0);
 });
 
-test("startup patch wires request coalescing into the existing country feed loader", () => {
+test("server wires the persistent feed snapshot cache into the room feed loader", () => {
   const fs = require("node:fs");
   const path = require("node:path");
-  const { patchServerSource } = require("../scripts/patch-country-directory.js");
   const source = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
-  const patched = patchServerSource(source);
-  assert.match(patched, /feed-snapshot-cache\.cjs/);
-  assert.match(patched, /roomCache\.get\(cacheKey, async \(\) =>/);
-  assert.match(patched, /createFeedSnapshotCache/);
-  assert.match(patched, /\[room-feed-refresh\]/);
+  assert.match(source, /feed-snapshot-cache\.cjs/);
+  assert.match(source, /roomCache\.get\(cacheKey,async\(\)=>/);
+  assert.match(source, /createFeedSnapshotCache/);
+  assert.match(source, /\[room-feed-refresh\]/);
 });

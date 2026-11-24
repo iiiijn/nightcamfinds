@@ -16,6 +16,11 @@ function patchChaturbateApiRegion(source) {
   if (source.includes(MARKER)) return source;
 
   const count = source.split(TARGET).length - 1;
+  if (count === 0 && source.includes("const regionFor=room=>getDiscoveryRegion(")) {
+    // Current runtime derives display regions from normalized feed metadata.
+    // Preserve the workflow contract marker without applying the obsolete rewrite.
+    return "// " + MARKER + "\n" + source;
+  }
   if (count !== 1) {
     throw new Error(`Chaturbate API region patch expected one normalizer match, found ${count}`);
   }

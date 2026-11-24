@@ -6,7 +6,10 @@ const { URL } = require("url");
 const { rankRoomsByPreferredPlatform } = require("./src/services/platform-ranking.cjs");
 const { buildTopRoomsByProviderCategory } = require("./src/services/homepage-room-ranking.cjs");
 const { normalizeViewerCount, firstValidViewerCount } = require("./src/services/viewer-count.cjs");
-const { getCountryPage } = require("./country-pages.js");
+const { getCountryPage, COUNTRIES: COUNTRY_PAGE_CONTENT } = require("./country-pages.js");
+const { resolveChaturbateCountry, normalizeRegion, normalizeLanguages, buildHtmlSitemap } = require("./src/services/country-directory.cjs");
+const { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");
+const { getEligibleCountrySitemapSlugs } = require("./src/services/country-sitemap-eligibility.cjs");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 const { createPostgresRedirectRateLimiter, createInMemoryRedirectRateLimiter, normalizeClientIp } = require("./src/services/redirect-rate-limiter.cjs");
@@ -20,12 +23,15 @@ const { resolveRegionalMaxPages } = require("./src/services/regional-feed-config
 const { resolveChaturbateRegionMaxPages } = require("./src/services/chaturbate-region-pagination.cjs");
 const { filterDisplayableRooms, normalizeRoomGender } = require("./src/services/room-quality.cjs");
 const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalRoomGroups } = require("./src/services/regional-discovery.cjs");
+const { createFeedSnapshotCache } = require("./src/services/feed-snapshot-cache.cjs");
 const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
 const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");
+const { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");
 const { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage } = require("./src/services/bonga-feed-diagnostics.cjs");
 const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");
 const { hasAuthenticatedOrigin, resolveTrustedClientIpv4, buildModelsOnlineUrl, parseModelsOnlineResponse, normalizeTags, resolveBongaRoomImage, isBongaHd } = require("./src/services/bongacash-api-v2.cjs");
 let latestBongaRawDiagnostics = null;
+let latestProviderFeedDiagnostics = { chaturbateRegions: [], bongacams: null };
 
 let pgPool = null;
 try {
@@ -98,7 +104,30 @@ const NAMES = {
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, "data");
 const STATS = path.join(DATA_DIR, "clicks.json");
 const STATS_KEY = process.env.STATS_KEY || "";
-const roomCache = new Map();
+let feedSnapshotTableReady = null;
+async function ensureFeedSnapshotTable() {
+ if (!pgPool) return;
+ if (!feedSnapshotTableReady) feedSnapshotTableReady = pgPool.query("CREATE TABLE IF NOT EXISTS room_feed_snapshots (cache_key VARCHAR(96) PRIMARY KEY, snapshot JSONB NOT NULL, refreshed_at TIMESTAMPTZ NOT NULL)").catch(error => { feedSnapshotTableReady = null; throw error; });
+ await feedSnapshotTableReady;
+}
+const roomCache = createFeedSnapshotCache({
+ ttlMs: Math.max(15000, Number(process.env.ROOM_FEED_CACHE_TTL_MS) || 60000),
+ staleMs: Math.max(60000, Number(process.env.ROOM_FEED_CACHE_STALE_MS) || 300000),
+ loadSnapshot: async key => {
+  if (!pgPool || String(key).startsWith("ip:")) return null;
+  await ensureFeedSnapshotTable();
+  const staleMs = Math.max(60000, Number(process.env.ROOM_FEED_CACHE_STALE_MS) || 300000);
+  const result = await pgPool.query("SELECT snapshot, refreshed_at FROM room_feed_snapshots WHERE cache_key = $1 AND refreshed_at > NOW() - ($2 * INTERVAL '1 millisecond')", [key, staleMs]);
+  const row = result.rows[0];
+  return row ? { ...row.snapshot, at: new Date(row.refreshed_at).getTime() } : null;
+ },
+ saveSnapshot: async (key, snapshot) => {
+  if (!pgPool || String(key).startsWith("ip:")) return;
+  await ensureFeedSnapshotTable();
+  await pgPool.query("INSERT INTO room_feed_snapshots (cache_key, snapshot, refreshed_at) VALUES ($1, $2::jsonb, $3) ON CONFLICT (cache_key) DO UPDATE SET snapshot = EXCLUDED.snapshot, refreshed_at = EXCLUDED.refreshed_at", [key, JSON.stringify(snapshot), new Date(snapshot.at)]);
+  await pgPool.query("DELETE FROM room_feed_snapshots WHERE refreshed_at < NOW() - INTERVAL '1 day'");
+ }
+});
 
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
@@ -235,7 +264,11 @@ async function countClick({ src, country, category="unknown", source="unknown", 
 }
 async function statsFromDb() { if (!pgPool) return null; try { await ensureTrackingTable(); const q=async(sql,params=[]) => (await pgPool.query(sql,params)).rows; const countries={}; for(const r of await q("SELECT country, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY country ORDER BY count DESC")) countries[r.country]=r.count; const byCountryCategory={}; for(const r of await q("SELECT country, category, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY country, category ORDER BY count DESC")) byCountryCategory[`${r.country}:${r.category}`]=r.count; const byCountrySource={}; for(const r of await q("SELECT country, source, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY country, source ORDER BY count DESC")) byCountrySource[`${r.country}:${r.source}`]=r.count; const byPlatform={}; for(const r of await q("SELECT platform, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY platform ORDER BY count DESC")) byPlatform[r.platform]=r.count; const total=Number((await q("SELECT COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE"))[0]?.count||0); const updated=await q("SELECT MAX(clicked_at) AS updated_at FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE"); return {total,countries,byCountryCategory,byCountrySource,byPlatform,updatedAt:updated[0]?.updated_at||null,persistent:true}; } catch(err) { console.error("Postgres stats read failed:",err.message); return null; } }
 function clientIp(req) { const fwd=String(req.headers["x-forwarded-for"]||"").split(",")[0].trim(); if (/^\d{1,3}(\.\d{1,3}){3}$/.test(fwd)||fwd.includes(":")) return fwd; return "8.8.8.8"; }
-function normalizeChaturbateRoom(room) { return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,displayName:clean(room.display_name||room.username)||room.username,gender:normalizeRoomGender(room.gender),country:(room.country||"").toUpperCase(),countryName:NAMES[(room.country||"").toUpperCase()]||room.country||"",location:clean(room.location),viewerCount:normalizeViewerCount(room.num_users),isLive:true,freshness:"FRESH",isHd:!!room.is_hd,isNew:!!room.is_new,image:room.image_url_360x270||room.image_url||"",roomSubject:clean(room.room_subject),tags:normalizeTags(room.tags).map(tag=>tag.slice(0,40)),languages:room.spoken_languages||"",href:room.chat_room_url_revshare||room.chat_room_url||""}; }
+function normalizeChaturbateRoom(room,apiRegion="") {
+ const country=resolveChaturbateCountry(room.country,room.location);
+ const partnerRegion=normalizeRegion(room.region||room.region_name||room.state||room.province);
+ return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,displayName:clean(room.display_name||room.username)||room.username,gender:normalizeRoomGender(room.gender),country,countryName:NAMES[country]||country,partnerRegion,apiRegion:normalizeRegion(apiRegion),region:getDiscoveryRegion({country,partnerRegion,apiRegion}),location:clean(room.location),viewerCount:normalizeViewerCount(room.num_users),isLive:true,freshness:"FRESH",isHd:!!room.is_hd,isNew:!!room.is_new,image:room.image_url_360x270||room.image_url||"",roomSubject:clean(room.room_subject),tags:normalizeTags(room.tags).map(tag=>tag.slice(0,40)),languages:normalizeLanguages(room.spoken_languages||room.languages||room.language),href:room.chat_room_url_revshare||room.chat_room_url||""};
+}
 function bongaGender(value) { return normalizeRoomGender(value); }
 function normalizeBongaRoom(room) { const username=clean(room.username||room.user_name||room.nickname||room.model||room.id); if(!username)return null; const rawImages=room.profile_images||room.images||{}; const images=typeof rawImages==="string"?{}:rawImages; const age=Number(room.display_age||room.age||0); const tags=normalizeTags(room.tags); if(Number.isFinite(age)&&age>0&&age<18)return null; const country=normalizeBongaCountry(room); const viewers=firstValidViewerCount(room.members_count,room.num_users,room.viewers,room.viewer_count); const image=(typeof rawImages==="string"?rawImages:"")||resolveBongaRoomImage(room); return {id:"bongacams:"+username,platform:"bongacams",platformName:"BongaCams",username,displayName:clean(room.display_name||room.name||username)||username,gender:bongaGender(room.gender||room.sex),country:country.match(/^[A-Z]{2}$/)?.[0]||"",countryName:NAMES[country]||clean(country),location:clean(room.hometown||room.location||country),viewerCount:viewers,isLive:true,freshness:"FRESH",isHd:isBongaHd(room)||/\bhd\b/i.test(tags.join(" ")),isNew:!!room.is_new||!!room.new,image,roomSubject:clean(room.chat_topic||room.room_subject||room.topic||tags.join(" ")),tags:tags.map(tag=>tag.slice(0,40)),languages:clean([room.primary_language,room.secondary_language,room.language].map(plainText).filter(Boolean).join(", ")),href:room.chat_url||room.direct_chat_url||room.room_url||room.url||""}; }
 async function fetchChaturbateRegion(req,apiRegion) {
@@ -316,21 +349,22 @@ async function fetchBongaRooms(req) {
 }
 async function rooms(req) {
  const visitor=visitorCountry(req);
- const cacheKey=visitor!=="UNKNOWN"?visitor:clientIp(req);
- const cached=roomCache.get(cacheKey);
- if(cached&&Date.now()-cached.at<20000&&cached.rooms.length)return cached;
- const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);
- const ch=results[0].status==="fulfilled"?results[0].value.rooms:[];
- const bc=results[1].status==="fulfilled"?results[1].value:[];
- const notices=[];
- if(results[0].status==="rejected")notices.push("Chaturbate regional feeds unavailable");
- else if(results[0].value.notice)notices.push(results[0].value.notice);
- if(results[1].status==="rejected"&&BONGA_ENABLED)notices.push("BongaCams feed unavailable");
- const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
- const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly.")};
- roomCache.set(cacheKey,entry);
- if(roomCache.size>50)roomCache.delete(roomCache.keys().next().value);
- return entry;
+ const rawIp=clientIp(req);
+ const cacheKey=visitor!=="UNKNOWN"?"country:"+visitor:"ip:"+require("crypto").createHash("sha256").update(rawIp).digest("hex").slice(0,64);
+ return roomCache.get(cacheKey,async()=>{
+  const startedAt=Date.now();
+  const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);
+  const ch=results[0].status==="fulfilled"?results[0].value.rooms:[];
+  const bc=results[1].status==="fulfilled"?results[1].value:[];
+  const notices=[];
+  if(results[0].status==="rejected")notices.push("Chaturbate regional feeds unavailable");
+  else if(results[0].value.notice)notices.push(results[0].value.notice);
+  if(results[1].status==="rejected"&&BONGA_ENABLED){console.warn("[bongacams-feed-unavailable]",results[1].reason&&results[1].reason.message?results[1].reason.message:"unknown feed error");notices.push("BongaCams feed unavailable");}
+  const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
+  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable."),providerHealth:{chaturbate:results[0].status==="fulfilled"?"available":"unavailable",bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"},cacheable:results[0].status!=="rejected"&&(!BONGA_ENABLED||results[1].status!=="rejected")&&!notices.length};
+  console.info("[room-feed-refresh]",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:visitor!=="UNKNOWN"?"country":"ip",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:"disabled",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));
+  return entry;
+ });
 }
 async function approvedCountryPlatformPreference(countryCode) {
   const country = String(countryCode || "").trim().toUpperCase();
@@ -398,18 +432,22 @@ const pages={
   "/terms":legal("Terms",`<p><strong>Last updated 13 November 2026.</strong></p><p>You must be at least 18 years old, or the age of majority where you live if that is higher, to use NightCamFinds. Do not access or use this site if adult material is unlawful where you are. You are responsible for complying with the laws that apply to you.</p><p>NightCamFinds is a directory. Streams, chat, tips, and accounts belong to partner platforms. Do not scrape the site in a way that overloads it, attempt to access admin tools, or use the directory to find anyone under 18.</p><p>The directory is provided on an as-available basis. Information is offered for discovery and may change without notice. Nothing on this site guarantees a particular outcome, performer availability or partner-platform approval. NightCamFinds is not responsible for performer conduct, partner-platform services or charges.</p>`),
   "/contact":legal("Contact",`<p>For questions about NightCamFinds, email the site operator at <a href="mailto:${CONTACT}">${CONTACT}</a>.</p><p>You can use this address for privacy requests, correction requests, accessibility feedback, takedown notices and questions about affiliate links or directory listings. When reporting a listing problem, include the page address and the room or platform name so we can understand what you are referring to. Do not include passwords, payment-card details or other sensitive account information.</p><p>NightCamFinds is a directory and does not host partner video or control performer accounts. If your request concerns a stream, a partner-platform account, a payment or a moderation decision, contact that platform directly because it controls those services.</p><p>We review messages as we are able, but we do not promise a particular response time. Sending a message does not guarantee that a listing can be changed or removed.</p>`)
 };
-function sitemap(origin){const paths=["/","/live/","/female/","/male/","/trans/","/couples/","/hd/","/new/","/popular/","/countries/","/broadcast","/about","/affiliate-disclosure","/privacy","/terms","/contact",...MARKETS.map(([slug])=>`/country/${slug}/`)]; return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map(p=>`<url><loc>${origin}${p}</loc></url>`).join("")}</urlset>`;}
+function sitemap(origin, eligibleCountrySlugs = []) { const paths = ["/", "/live/", "/female/", "/male/", "/trans/", "/couples/", "/hd/", "/new/", "/popular/", "/countries/", "/broadcast", "/about", "/affiliate-disclosure", "/privacy", "/terms", "/contact", ...eligibleCountrySlugs.map((slug) => `/country/${slug}/`)]; return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((pathname) => `<url><loc>${origin}${pathname}</loc></url>`).join("")}</urlset>`; }
 function withTrack(url,track){try{const next=new URL(url);next.searchParams.set("track",track);return next.toString();}catch{return `https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(track)}`;}}
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,"http://localhost"); const pathname=url.pathname;
-  if(pathname==="/robots.txt") return send(res,200,`User-agent: *\nAllow: /\nDisallow: /go/\nDisallow: /bgo/\nDisallow: /api/\nSitemap: ${pageOrigin(req)}/sitemap.xml\n`,"text/plain");
-  if(pathname==="/sitemap.xml")return send(res,200,sitemap(pageOrigin(req)),"application/xml");
-  if(pathname==="/broadcast"||pathname==="/broadcast/"){const html=fs.readFileSync(path.join(PUBLIC,"broadcast.html"),"utf8");return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));}
-  const countryMatch = pathname.match(/^\/country\/([a-z]{2})\/$/);
-  if (countryMatch) {
-    const countryHtml = getCountryPage(countryMatch[1], pageOrigin(req));
-    if (countryHtml) return send(res, 200, countryHtml, "text/html; charset=utf-8", visitCookieHeaders(req, pathname));
+  if(pathname==="/robots.txt") return send(res,200,`User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /dashboard.html\nDisallow: /dashboard-v2.html\nDisallow: /dashboard-ui.html\nDisallow: /analytics-dashboard.html\nDisallow: /campaign-center.html\nDisallow: /promotools.html\nDisallow: /revenue.html\nDisallow: /go/\nDisallow: /bgo/\nDisallow: /api/\nSitemap: ${pageOrigin(req)}/sitemap.xml\n`,"text/plain");
+  if (pathname === "/sitemap.xml") {
+    const feed = await rooms(req);
+    const eligibleCountrySlugs = getEligibleCountrySitemapSlugs({ marketMeta: MARKET_META, countryContent: COUNTRY_PAGE_CONTENT, rooms: feed.rooms });
+    return send(res, 200, sitemap(pageOrigin(req), eligibleCountrySlugs), "application/xml");
   }
+  if (pathname === "/sitemap/" || pathname === "/sitemap") {
+    const feed = await rooms(req);
+    const countryEntries = Object.entries(COUNTRY_PAGE_CONTENT).map(([slug, country]) => ({ slug, code: country.code, name: country.name }));
+    return send(res, 200, buildHtmlSitemap(pageOrigin(req), feed.rooms, countryEntries), "text/html; charset=utf-8");
+  }
+  if(pathname==="/broadcast"||pathname==="/broadcast/"){const html=fs.readFileSync(path.join(PUBLIC,"broadcast.html"),"utf8");return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));}
   if(pages[pathname])return send(res,200,pages[pathname],"text/html; charset=utf-8");
   if(pathname==="/visits"){if(!STATS_KEY||url.searchParams.get("key")!==STATS_KEY)return send(res,404,"Not found","text/plain");const stats=(await statsFromDb())||readStats();const countryRows=Object.entries(stats.countries||{}).sort((a,b)=>b[1]-a[1]).map(([iso,count])=>`<tr><td>${NAMES[iso]||iso}</td><td>${iso}</td><td>${count}</td></tr>`).join("");const categoryRows=Object.entries(stats.byCountryCategory||{}).sort((a,b)=>b[1]-a[1]).map(([key,count])=>{const[iso,category]=key.split(":");return `<tr><td>${NAMES[iso]||iso}</td><td>${category}</td><td>${count}</td></tr>`;}).join("");const sourceRows=Object.entries(stats.byCountrySource||{}).sort((a,b)=>b[1]-a[1]).map(([key,count])=>{const[iso,source]=key.split(":");return `<tr><td>${NAMES[iso]||iso}</td><td>${source}</td><td>${count}</td></tr>`;}).join("");const platformRows=Object.entries(stats.byPlatform||{}).sort((a,b)=>b[1]-a[1]).map(([platform,count])=>`<tr><td>${platform}</td><td>${count}</td></tr>`).join("");return send(res,200,`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>NightCamFinds Click Stats</title><style>body{font-family:system-ui,sans-serif;max-width:1100px;margin:40px auto;padding:0 16px}table{border-collapse:collapse;width:100%;margin:12px 0 32px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f4f4f4}.muted{color:#666}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.kpi{padding:16px;border:1px solid #ddd;border-radius:10px}.kpi strong{font-size:1.7rem;display:block}</style></head><body><h1>NightCamFinds affiliate click stats</h1><p class="muted">Aggregate redirect clicks only. Country comes from a trusted CDN/proxy header when available.</p><div class="grid"><div class="kpi"><span>Total clicks</span><strong>${stats.total||0}</strong></div><div class="kpi"><span>Countries seen</span><strong>${Object.keys(stats.countries||{}).filter(k=>k!=="UNKNOWN").length}</strong></div><div class="kpi"><span>Last updated</span><strong>${stats.updatedAt?new Date(stats.updatedAt).toLocaleString():"Never"}</strong></div></div><h2>Clicks by platform</h2><table><thead><tr><th>Platform</th><th>Clicks</th></tr></thead><tbody>${platformRows||'<tr><td colspan="2">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by visitor country</h2><table><thead><tr><th>Country</th><th>ISO</th><th>Clicks</th></tr></thead><tbody>${countryRows||'<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by country and category</h2><table><thead><tr><th>Country</th><th>Category</th><th>Clicks</th></tr></thead><tbody>${categoryRows||'<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><h2>Clicks by country and traffic source</h2><table><thead><tr><th>Country</th><th>Source</th><th>Clicks</th></tr></thead><tbody>${sourceRows||'<tr><td colspan="3">No clicks yet.</td></tr>'}</tbody></table><p><a href="/api/stats?key=${encodeURIComponent(STATS_KEY)}">JSON export</a> · <a href="/api/stats.csv?key=${encodeURIComponent(STATS_KEY)}">CSV export</a></p></body></html>`,`text/html; charset=utf-8");}
   if(pathname==="/api/stats"){if(!STATS_KEY||url.searchParams.get("key")!==STATS_KEY)return send(res,404,"Not found","text/plain");return send(res,200,JSON.stringify((await statsFromDb())||readStats()),"application/json");}
@@ -605,11 +643,14 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   if (countryRoute) {
     const feed = await rooms(req);
     const iso = countryRoute[1].toUpperCase();
-    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended").slice(0, 60);
-    const roomMarkup = renderRoomCards(countryRooms, { category: "all", pagePath: pathname });
-    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, countryRooms.length > 0);
+    const countryRooms = rankRoomsByPreferredPlatform(feed.rooms.filter((room) => room.country === iso), null, "recommended");
+    const routeHealth = summarizeCountryRouteHealth({ providerHealth: feed.providerHealth, rooms: countryRooms });
+    console.info("[country-route]", JSON.stringify({ country: iso, status: 200, feedHealth: routeHealth.feedHealth, roomCount: routeHealth.roomCount, qualifyingRoomCount: routeHealth.qualifyingRoomCount, indexable: routeHealth.indexable }));
+    const roomMarkup = renderRoomCards(countryRooms.slice(0, 60), { category: "all", pagePath: pathname });
+    const eligibleCountrySlugs = getEligibleCountrySitemapSlugs({ marketMeta: MARKET_META, countryContent: COUNTRY_PAGE_CONTENT, rooms: feed.rooms });
+    const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, routeHealth.indexable, eligibleCountrySlugs);
     if (!countryHtml) return send(res, 404, "Country page not found", "text/plain; charset=utf-8");
-    return send(res, 200, countryHtml, "text/html; charset=utf-8");
+    return send(res, 200, countryHtml, "text/html; charset=utf-8", visitCookieHeaders(req, pathname));
   }
   const file=pathname==="/"||pathname.endsWith("/")?"/index.html":pathname;const safe=path.normalize(file).replace(/^(\.\.[/\\])+/,"");const full=path.join(PUBLIC,safe);const market=pathname.match(/^\/country\/([a-z]{2})\/$/);const forced=market?MARKETS.find(([slug])=>slug===market[1]):null;if(pathname.endsWith("/")||forced){
   let html=fs.readFileSync(path.join(PUBLIC,"index.html"),"utf8")

@@ -64,15 +64,13 @@ test("country feed health handles unavailable and unknown provider states safely
   assert.equal(unknown.refreshedAt, null);
 });
 
-test("startup patch exposes country feed health only through requested summary diagnostics", () => {
-  const source = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
-  const patched = patchServerSource(source);
-  assert.ok(patched.includes('require("./src/services/country-feed-health.cjs")'));
-  assert.ok(patched.includes("countryFeedHealth: summarizeCountryFeedHealth("));
-  assert.ok(patched.includes("providerHealth: feed.providerHealth || {}"));
-  assert.ok(patched.includes('providerHealth:{chaturbate:results[0].status==="fulfilled"?"available":"unavailable"'));
-  assert.ok(patched.includes('bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"'));
-  assert.equal(patchServerSource(patched), patched);
+test("server exposes provider ingestion diagnostics only through the requested summary", () => {
+  const server = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+  assert.match(server, /providerIngestion: latestProviderFeedDiagnostics/);
+  assert.match(server, /url\.searchParams\.get\("summary"\) === "1"/);
+  assert.match(server, /url\.searchParams\.get\("diagnostics"\) === "1"/);
+  assert.match(server, /latestProviderFeedDiagnostics\.chaturbateRegions\.push/);
+  assert.match(server, /latestProviderFeedDiagnostics\.bongacams=diagnostics/);
 });
 
 
