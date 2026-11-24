@@ -16,9 +16,9 @@ test("country codes map to useful visitor-facing discovery regions",()=>{
  assert.equal(getDiscoveryRegion({country:"AU"}),"Asia-Pacific");
  assert.equal(getDiscoveryRegion({country:"KE"}),"Africa");
 });
-test("all 56 configured directory countries resolve to a deliberate discovery region",()=>{
+test("all 57 configured directory countries resolve to a deliberate discovery region",()=>{
  const entries=Object.values(COUNTRIES);
- assert.equal(entries.length,56);
+ assert.equal(entries.length,57);
  for(const country of entries){
   assert.ok(COUNTRY_REGION[country.code],country.code+" is missing a discovery region");
   assert.notEqual(getDiscoveryRegion({country:country.code}),"Other",country.code+" must not fall through to Other");

@@ -13,7 +13,7 @@ test("safe value shape classification identifies formats without retaining sourc
   assert.equal(classifySafeValueShape("Nairobi, Kenya"), "comma_delimited");
   assert.equal(classifySafeValueShape("Region/Area"), "slash_delimited");
   assert.equal(classifySafeValueShape("Unknown (Region)"), "bracketed_text");
-  assert.equal(classifySafeValueShape("Москва"), "non_latin_text");
+  assert.equal(classifySafeValueShape("Москва"), "cyrillic_text");
   assert.equal(classifySafeValueShape(["Kenya"]), "array");
   assert.equal(classifySafeValueShape({ name: "Kenya" }), "object");
   assert.equal(classifySafeValueShape("   "), "missing");

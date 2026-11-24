@@ -12,7 +12,7 @@ function introWordCount(html) {
   return match[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().split(" ").length;
 }
 
-test("all 56 supported country pages render distinct, substantive content", () => {
+test("all 57 supported country pages render distinct, substantive content", () => {
   assert.deepEqual(
     expectedCountries.map(([slug]) => slug).sort(),
     Object.keys(COUNTRIES).sort()
