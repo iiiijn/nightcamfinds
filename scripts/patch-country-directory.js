@@ -13,6 +13,13 @@ function patchServerSource(input){
   if(count!==1)throw new Error(`Country directory patch expected one ${label} match, found ${count}`);
   source=source.replace(before,after);
  };
+ // The current server already owns the country sitemap implementation. Older redirect-test
+ // fixtures still call this migration script, so leave the modern implementation intact
+ // instead of reapplying its historical source rewrite against renamed imports.
+ const hasCurrentCountrySitemap = source.includes("getEligibleCountrySitemapSlugs") &&
+  /pathname\s*===\s*["']\/sitemap\.xml["']/.test(source) &&
+  source.includes("COUNTRIES: COUNTRY_PAGE_CONTENT");
+ if (hasCurrentCountrySitemap) return source.replace(/\n/g, outputNewline);
  replaceOnce('const { getCountryPage } = require("./country-pages.js");',
   'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap, buildHtmlSitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
   "country page import");
