@@ -4,6 +4,7 @@ const { normalizeCountryCode, resolveChaturbateCountry } = require("./country-di
 const { getRoomRejectionReason } = require("./room-quality.cjs");
 const { normalizeBongaCountry } = require("./bonga-country-normalizer.cjs");
 const { summarizeCountryCandidates } = require("./country-candidate-diagnostics.cjs");
+const { summarizeCountryConflicts } = require("./country-conflict-diagnostics.cjs");
 
 function rawCountryValue(row, provider) {
   if (!row || typeof row !== "object" || Array.isArray(row)) return { present: false, value: "" };
@@ -208,6 +209,7 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
   }
 
   const countryCandidates = summarizeCountryCandidates(name, raw);
+  const countryConflicts = summarizeCountryConflicts(name, raw);
 
   return {
     provider: name,
@@ -220,7 +222,7 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     unrecognizedCountryCount: unrecognizedCountry,
     countryCounts: [...countryCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([country, roomCount]) => ({ country, roomCount })),
     rejectionReasons,
-    ...(name === "chaturbate" ? { metadata: { ...summarizeMetadataFieldPresence(raw), locationShapes: summarizeChaturbateLocationShapes(raw), safeValueShapes: summarizeSafeFieldValueShapes(raw, ["country", "location"]), countryCandidates } } : { metadata: { safeValueShapes: summarizeSafeFieldValueShapes(raw, ["homecountry", "country", "country_code", "hometown"]), countryCandidates } }),
+    ...(name === "chaturbate" ? { metadata: { ...summarizeMetadataFieldPresence(raw), locationShapes: summarizeChaturbateLocationShapes(raw), safeValueShapes: summarizeSafeFieldValueShapes(raw, ["country", "location"]), countryCandidates, countryConflicts } } : { metadata: { safeValueShapes: summarizeSafeFieldValueShapes(raw, ["homecountry", "country", "country_code", "hometown"]), countryCandidates, countryConflicts } }),
     pagination: safePagination(pagination)
   };
 }
