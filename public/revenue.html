@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>NightCamFinds Affiliate Revenue Dashboard</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0910;--panel:#15121b;--line:#302a38;--text:#f7f4f8;--muted:#aaa2ad;--pink:#ff78aa;--green:#78e6a5;--gold:#ffd27a;--blue:#8bb8ff;--red:#ff91a8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{width:min(1280px,calc(100% - 24px));margin:auto;padding:26px 0 70px}.top,.controls{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.eyebrow{color:var(--pink);font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}h1{margin:5px 0;font-size:30px}.muted,.note{color:var(--muted);line-height:1.5}.controls{justify-content:flex-start;margin:18px 0}.controls label{display:grid;gap:5px;color:var(--muted)}select,input,button{background:#100d15;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:10px 12px}button{cursor:pointer}.primary{background:var(--pink);color:#190b13;border:0;font-weight:800}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin:16px 0}.stat,.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:17px}.stat small{color:var(--muted)}.stat strong{display:block;font-size:25px;margin-top:7px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.panel{margin-top:14px;overflow:auto}.panel h2{margin:0 0 8px;font-size:18px}.table{border-collapse:collapse;width:100%;min-width:620px}.table th,.table td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}.table th{font-size:12px;color:var(--muted)}.status{border-radius:99px;padding:5px 9px;background:#25212b;color:var(--gold);font-weight:700}.ok{color:var(--green)}.warn{color:var(--gold)}.bad{color:var(--red)}.login{max-width:430px;margin:65px auto}.login input{width:100%;margin:6px 0}.error{color:var(--red);min-height:22px}.foot{font-size:12px;color:var(--muted)}a{color:var(--blue)}@media(max-width:760px){.grid{grid-template-columns:1fr}.wrap{width:calc(100% - 14px);padding-top:16px}h1{font-size:25px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section id="login" class="login panel"><div class="eyebrow">Private analytics</div><h1>Affiliate Revenue</h1><p class="muted">Sign in with your NightCamFinds dashboard account.</p><form id="loginForm"><input id="username" autocomplete="username" value="admin" placeholder="Username"><input id="password" type="password" autocomplete="current-password" placeholder="Password"><button class="primary" style="width:100%">Sign in</button></form><p id="loginError" class="error"></p></section>
+<section id="app" hidden>
+<header class="top"><div><div class="eyebrow">NightCamFinds · Performance</div><h1>Affiliate Revenue Dashboard</h1><p class="muted">Track the traffic that produces attributable partner-reported earnings.</p></div><div><span id="status" class="status">Loading</span> <button id="logout">Sign out</button></div></header>
+<div class="controls"><label>Period<select id="range"><option value="today">Today</option><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="all">All time</option></select></label><label>From<input id="from" type="date"></label><label>To<input id="to" type="date"></label><button id="refresh" class="primary">Refresh reports</button><a href="/dashboard">Main dashboard</a></div>
+<div class="stats">
+<div class="stat"><small>Tracked affiliate clicks</small><strong id="clicks">0</strong></div>
+<div class="stat"><small>Matched eligible conversions</small><strong id="matched">0</strong></div>
+<div class="stat"><small>Unmatched eligible conversions</small><strong id="unmatched">0</strong></div>\n<div class="stat"><small>Invalid callback records</small><strong id="invalidCallbacks">0</strong></div>
+<div class="stat"><small>Test callbacks excluded</small><strong id="tests">0</strong></div>
+<div class="stat"><small>Chaturbate attributed USD</small><strong id="cbUsd">$0.00</strong></div>
+<div class="stat"><small>BongaCash manual USD</small><strong id="bongaUsd">$0.00</strong></div>
+<div class="stat"><small>Combined USD reported</small><strong id="combinedUsd">$0.00</strong></div>
+<div class="stat"><small>Blended reported USD per tracked click (not attribution)</small><strong id="epc">$0.00</strong></div>
+</div>
+<p class="note">These are partner-reported and/or manually reconciled figures, not proof that funds have been paid into your account. Chaturbate revenue is counted only for eligible event types with a matched NightCamFinds click ID. BongaCash is shown from your manually entered daily reports. Different currencies are never added together.</p>
+<div class="grid">
+<section class="panel"><h2>Chaturbate attributed payouts by currency</h2><div id="cbCurrencies"></div></section>
+<section class="panel"><h2>Pending unmatched payouts by currency</h2><div id="pendingCurrencies"></div><p class="foot">Pending amounts are not included in attributed earnings.</p></section>
+</div>
+<div class="grid">
+<section class="panel"><h2>Country performance</h2><p class="note">Visits, engaged visits, visits with affiliate redirects, clicks and matched Chaturbate conversions. Redirects are not confirmed human clicks.</p><div id="countries"></div></section>
+<section class="panel"><h2>Campaign and source performance</h2><p class="note">Compare the full visit-to-click funnel by platform, source and campaign. BongaCash earnings are not attributed to campaigns automatically.</p><div id="campaigns"></div></section>
+</div>
+<section class="panel"><h2>Conversion event integrity</h2><div id="integrity"></div></section>
+<section class="panel"><h2>Revenue event breakdown</h2><p class="note">Actual payouts are partner-reported commissions, not proof of funds received. Member spend is the Chaturbate-reported amount spent by referred members. Chaturbate callbacks are filtered by callback received time in UTC; BongaCash uses the manually entered report date. The 20% figure is an illustrative estimate for matched RevShare purchase events only, and applies only if your Chaturbate account is enrolled in the 20% Member RevShare programme. It is not actual earnings.</p><div id="eventBreakdown"></div></section>
+<section class="panel"><h2>BongaCash daily reconciliation</h2>
+<p class="note">Enter the figures exactly as shown in your BongaCash affiliate statistics for the selected reporting date. These are manually reported totals, not automatic postbacks and not click-attributed. Do not enter estimated earnings.</p>
+<form id="bongaReportForm" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0">
+<label>Report date<input id="bongaDate" name="date" type="date" required></label>
+<label>Registrations<input id="bongaRegistrations" name="registrations" type="number" min="0" max="100000000" step="1" required value="0"></label>
+<label>Purchases<input id="bongaPurchases" name="purchases" type="number" min="0" max="100000000" step="1" required value="0"></label>
+<label>Reported earnings (USD)<input id="bongaEarnings" name="earnings" type="number" min="0" max="1000000000000" step="0.01" required value="0.00"></label>
+<label style="grid-column:1/-1">Source / notes<input id="bongaNotes" name="notes" type="text" maxlength="500" placeholder="Example: BongaCash Statistics, campaign 840970"></label>
+<div style="grid-column:1/-1"><button type="submit" id="saveBongaReport">Save daily report</button><span id="bongaFormStatus" class="muted" role="status" aria-live="polite"></span></div>
+</form>
+<div id="bongaReconciliation"></div></section>
+<p class="foot">All date filters use UTC calendar dates. Visits are grouped by first-seen date, redirects by click date and conversions by callback-received date. Engagement counts only distinct unverified visits with active_10s or scroll_50 signals. Redirects are not verified human clicks. Duplicate Chaturbate transaction IDs are prevented by the database uniqueness constraint.</p>
+</section></main>
+<script src="/revenue-summary.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id), fmt=n=>Number(n||0).toLocaleString(), money=n=>'$'+Number(n||0).toFixed(2), pct=(a,b)=>b?(Number(a||0)/Number(b)*100).toFixed(2)+'%':'0.00%';
+function dates(){const r=$('range').value,t=new Date(),iso=d=>d.toISOString().slice(0,10);if(r==='today')return{from:iso(t),to:iso(t)};if(r==='all')return{from:'',to:''};const d=new Date(t);d.setDate(d.getDate()-(Number(r)-1));return{from:iso(d),to:iso(t)}}
+function selected(){const d=dates();return{from:$('from').value||d.from,to:$('to').value||d.to}}
+function query(){const d=selected(),q=new URLSearchParams();if(d.from)q.set('from',d.from);if(d.to)q.set('to',d.to);return q.toString()}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function get(url){const r=await fetch(url,{credentials:'same-origin',cache:'no-store'});const j=await r.json();if(r.status===401){showLogin('Your session expired. Sign in again.');throw Error('Session expired')}if(!r.ok)throw Error(j.error||'Could not load report');return j}
+function currencyTable(obj){const rows=Object.entries(obj||{}).sort((a,b)=>a[0].localeCompare(b[0]));return rows.length?'<table class="table"><thead><tr><th>Currency</th><th>Reported payout</th></tr></thead><tbody>'+rows.map(([c,v])=>'<tr><td>'+esc(c)+'</td><td>'+Number(v||0).toFixed(2)+' '+esc(c)+'</td></tr>').join('')+'</tbody></table>':'<p class="muted">No attributed payouts recorded.</p>'}
+function reportTable(rows,kind){if(!rows.length)return'<p class="muted">No data for this period.</p>';const isCountry=kind==='country';return'<table class="table"><thead><tr><th>'+(isCountry?'Country':'Platform · Source · Campaign')+'</th><th>Visits</th><th>Engaged visits</th><th>Visit-to-click visits</th><th>Affiliate redirects</th><th>Redirects with visit ID</th><th>Redirects missing visit ID</th><th>Matched conversions</th><th>Conversion rate</th><th>Reported payouts</th></tr></thead><tbody>'+rows.slice(0,30).map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+fmt(r.visits)+'</td><td>'+fmt(r.engagedVisits)+' ('+pct(r.engagedVisits,r.visits)+')</td><td>'+fmt(r.visitsWithAffiliateClick)+' ('+pct(r.visitsWithAffiliateClick,r.visits)+')</td><td>'+fmt(r.clicks)+'</td><td>'+fmt(r.clicksWithVisitId)+'</td><td>'+fmt(r.clicksWithoutVisitId)+'</td><td>'+fmt(r.matchedConversions)+'</td><td>'+pct(r.matchedConversions,r.clicks)+'</td><td>'+esc(Object.entries(r.payoutsByCurrency||{}).map(([c,v])=>Number(v).toFixed(2)+' '+c).join(' · ')||'—')+'</td></tr>').join('')+'</tbody></table>'}
+async function load(){ $('status').textContent='Loading';const qs=query();try{
+ const [stats,conv,traffic,bonga]=await Promise.all([
+  get('/api/dashboard-stats?'+qs),get('/api/conversion-revenue?'+qs),get('/api/traffic-revenue-performance?'+qs),get('/api/bongacash-reconciliation?'+qs)
+ ]);
+ const summary=window.NCFRevenueSummary.summarizeConversions(conv.rows||[]);
+ const cbUsd=Number(summary.attributedPayoutsByCurrency.USD||0),bongaUsd=Number(bonga.totals?.earnings||0);
+ const clickTotal=Number(stats.totalClicks||0);
+ $('clicks').textContent=fmt(clickTotal);$('matched').textContent=fmt(summary.matchedConversions);$('unmatched').textContent=fmt(summary.unmatchedConversions);$('invalidCallbacks').textContent=fmt(summary.invalidCallbacks);$('tests').textContent=fmt(summary.testEvents);
+ $('cbUsd').textContent=money(cbUsd);$('bongaUsd').textContent=money(bongaUsd);$('combinedUsd').textContent=money(cbUsd+bongaUsd);$('epc').textContent=money(clickTotal?(cbUsd+bongaUsd)/clickTotal:0);
+ $('cbCurrencies').innerHTML=currencyTable(summary.attributedPayoutsByCurrency);$('pendingCurrencies').innerHTML=currencyTable(summary.pendingPayoutsByCurrency);
+ const groups=window.NCFRevenueSummary.summarizeTraffic(traffic.rows||[]);
+ $('countries').innerHTML=reportTable(groups.countries,'country');$('campaigns').innerHTML=reportTable(groups.campaigns,'campaign');
+ $('integrity').innerHTML='<table class="table"><tbody><tr><th>Matched eligible events</th><td>'+fmt(summary.matchedConversions)+'</td></tr><tr><th>Unmatched eligible events</th><td>'+fmt(summary.unmatchedConversions)+'</td></tr><tr><th>Invalid callback records</th><td>'+fmt(summary.invalidCallbacks)+'</td></tr><tr><th>Test/macro events excluded</th><td>'+fmt(summary.testEvents)+'</td></tr><tr><th>Unsupported or unknown event types excluded</th><td>'+fmt(summary.excludedEvents)+'</td></tr><tr><th>Unique transaction protection</th><td>Database uniqueness constraint on Chaturbate transaction ID</td></tr><tr><th>BongaCash automatic postback</th><td>Disabled. Manual reconciliation only.</td></tr></tbody></table>';
+ const eventRows=Object.entries(summary.eventBreakdownByType||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+ const moneyText=obj=>Object.entries(obj||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([c,v])=>Number(v||0).toFixed(2)+' '+esc(c)).join(' · ')||'—';
+ $('eventBreakdown').innerHTML=eventRows.length?'<table class="table"><thead><tr><th>Event class</th><th>Matched</th><th>Unmatched</th><th>Actual matched payouts</th><th>Pending payouts</th><th>Matched member spend</th><th>Pending member spend</th><th>Illustrative 20% estimate</th></tr></thead><tbody>'+eventRows.map(([key,v])=>'<tr><td>'+esc(v.label||key)+'</td><td>'+fmt(v.matchedConversions)+'</td><td>'+fmt(v.unmatchedConversions)+'</td><td>'+esc(moneyText(v.matchedPayoutsByCurrency))+'</td><td>'+esc(moneyText(v.pendingPayoutsByCurrency))+'</td><td>'+esc(moneyText(v.matchedMemberSpendByCurrency))+'</td><td>'+esc(moneyText(v.pendingMemberSpendByCurrency))+'</td><td>'+esc(moneyText(v.illustrative20PercentByCurrency))+'</td></tr>').join('')+'</tbody></table>':'<p class="muted">No eligible conversion events in this period.</p>';
+
+ $('bongaReconciliation').innerHTML='<p><strong>'+fmt(bonga.totals?.registrations)+' registrations</strong> · <strong>'+fmt(bonga.totals?.purchases)+' purchases</strong> · <strong>'+money(bongaUsd)+' reported earnings</strong> · '+fmt(bonga.totals?.days_reported)+' days reported</p>'+(bonga.entries?.length?'<table class="table"><thead><tr><th>Date</th><th>Registrations</th><th>Purchases</th><th>USD</th><th>Updated</th></tr></thead><tbody>'+bonga.entries.map(e=>'<tr><td>'+esc(String(e.report_date).slice(0,10))+'</td><td>'+fmt(e.registrations)+'</td><td>'+fmt(e.purchases)+'</td><td>'+money(e.earnings)+'</td><td>'+esc(e.updated_at?new Date(e.updated_at).toLocaleString():'—')+'</td></tr>').join('')+'</tbody></table>':'<p class="muted">No BongaCash daily reports have been entered for this period.</p>');
+ $('status').textContent='Updated';$('status').className='status ok';
+ }catch(e){if(e.message!=='Session expired'){$('status').textContent='Report error';$('status').className='status bad';$('integrity').textContent=e.message;console.error(e)}}}
+$('bongaDate').value=new Date().toISOString().slice(0,10);
+$('bongaReportForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const status=$('bongaFormStatus'),button=$('saveBongaReport');
+ status.textContent='Saving report…';button.disabled=true;
+ const payload={
+  date:$('bongaDate').value,
+  registrations:Number($('bongaRegistrations').value),
+  purchases:Number($('bongaPurchases').value),
+  earnings:Number($('bongaEarnings').value),
+  notes:$('bongaNotes').value.trim()
+ };
+ try{
+  const response=await fetch('/api/bongacash-reconciliation',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const result=await response.json();
+  if(response.status===401){showLogin('Your session expired. Sign in again.');return}
+  if(!response.ok)throw Error(result.error||'Could not save daily report');
+  $('bongaRegistrations').value='0';$('bongaPurchases').value='0';$('bongaEarnings').value='0.00';$('bongaNotes').value='';
+  await load();
+  status.textContent='Daily report saved.';
+ }catch(error){status.textContent=error.message;status.className='status bad'}
+ finally{button.disabled=false}
+});
+function showLogin(message){$('login').hidden=false;$('app').hidden=true;$('loginError').textContent=message||''}
+async function auth(){try{const j=await get('/api/auth/me');if(j.authenticated){$('login').hidden=true;$('app').hidden=false;await load()}else showLogin('')}catch(e){showLogin(e.message)}}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();const r=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:$('username').value,password:$('password').value})});const j=await r.json();if(r.ok&&j.authenticated){$('login').hidden=true;$('app').hidden=false;load()}else $('loginError').textContent=j.error||'Sign in failed'});
+$('logout').addEventListener('click',async()=>{await fetch('/api/auth/logout',{credentials:'same-origin'});showLogin('Signed out.')});
+$('refresh').addEventListener('click',load);$('range').addEventListener('change',load);auth();
+</script>
+</body></html>
