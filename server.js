@@ -7,6 +7,7 @@ const { rankRoomsByPreferredPlatform } = require("./src/services/platform-rankin
 const { buildTopRoomsByProviderCategory } = require("./src/services/homepage-room-ranking.cjs");
 const { normalizeViewerCount, firstValidViewerCount } = require("./src/services/viewer-count.cjs");
 const { getCountryPage, COUNTRIES: COUNTRY_PAGE_CONTENT } = require("./country-pages.js");
+const { resolveChaturbateCountry, normalizeRegion } = require("./src/services/country-directory.cjs");
 const { getEligibleCountrySitemapSlugs } = require("./src/services/country-sitemap-eligibility.cjs");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
@@ -21,6 +22,7 @@ const { resolveRegionalMaxPages } = require("./src/services/regional-feed-config
 const { resolveChaturbateRegionMaxPages } = require("./src/services/chaturbate-region-pagination.cjs");
 const { filterDisplayableRooms, normalizeRoomGender } = require("./src/services/room-quality.cjs");
 const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalRoomGroups } = require("./src/services/regional-discovery.cjs");
+const { createFeedSnapshotCache } = require("./src/services/feed-snapshot-cache.cjs");
 const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
 const { summarizeProviderFeedQuality, summarizeFeedIngestion } = require("./src/services/feed-quality-diagnostics.cjs");
 const { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage } = require("./src/services/bonga-feed-diagnostics.cjs");
@@ -100,7 +102,30 @@ const NAMES = {
 const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(__dirname, "data");
 const STATS = path.join(DATA_DIR, "clicks.json");
 const STATS_KEY = process.env.STATS_KEY || "";
-const roomCache = new Map();
+let feedSnapshotTableReady = null;
+async function ensureFeedSnapshotTable() {
+ if (!pgPool) return;
+ if (!feedSnapshotTableReady) feedSnapshotTableReady = pgPool.query("CREATE TABLE IF NOT EXISTS room_feed_snapshots (cache_key VARCHAR(96) PRIMARY KEY, snapshot JSONB NOT NULL, refreshed_at TIMESTAMPTZ NOT NULL)").catch(error => { feedSnapshotTableReady = null; throw error; });
+ await feedSnapshotTableReady;
+}
+const roomCache = createFeedSnapshotCache({
+ ttlMs: Math.max(15000, Number(process.env.ROOM_FEED_CACHE_TTL_MS) || 60000),
+ staleMs: Math.max(60000, Number(process.env.ROOM_FEED_CACHE_STALE_MS) || 300000),
+ loadSnapshot: async key => {
+  if (!pgPool || String(key).startsWith("ip:")) return null;
+  await ensureFeedSnapshotTable();
+  const staleMs = Math.max(60000, Number(process.env.ROOM_FEED_CACHE_STALE_MS) || 300000);
+  const result = await pgPool.query("SELECT snapshot, refreshed_at FROM room_feed_snapshots WHERE cache_key = $1 AND refreshed_at > NOW() - ($2 * INTERVAL '1 millisecond')", [key, staleMs]);
+  const row = result.rows[0];
+  return row ? { ...row.snapshot, at: new Date(row.refreshed_at).getTime() } : null;
+ },
+ saveSnapshot: async (key, snapshot) => {
+  if (!pgPool || String(key).startsWith("ip:")) return;
+  await ensureFeedSnapshotTable();
+  await pgPool.query("INSERT INTO room_feed_snapshots (cache_key, snapshot, refreshed_at) VALUES ($1, $2::jsonb, $3) ON CONFLICT (cache_key) DO UPDATE SET snapshot = EXCLUDED.snapshot, refreshed_at = EXCLUDED.refreshed_at", [key, JSON.stringify(snapshot), new Date(snapshot.at)]);
+  await pgPool.query("DELETE FROM room_feed_snapshots WHERE refreshed_at < NOW() - INTERVAL '1 day'");
+ }
+});
 
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
@@ -237,7 +262,11 @@ async function countClick({ src, country, category="unknown", source="unknown", 
 }
 async function statsFromDb() { if (!pgPool) return null; try { await ensureTrackingTable(); const q=async(sql,params=[]) => (await pgPool.query(sql,params)).rows; const countries={}; for(const r of await q("SELECT country, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY country ORDER BY count DESC")) countries[r.country]=r.count; const byCountryCategory={}; for(const r of await q("SELECT country, category, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY country, category ORDER BY count DESC")) byCountryCategory[`${r.country}:${r.category}`]=r.count; const byCountrySource={}; for(const r of await q("SELECT country, source, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY country, source ORDER BY count DESC")) byCountrySource[`${r.country}:${r.source}`]=r.count; const byPlatform={}; for(const r of await q("SELECT platform, COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE GROUP BY platform ORDER BY count DESC")) byPlatform[r.platform]=r.count; const total=Number((await q("SELECT COUNT(*)::int AS count FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE"))[0]?.count||0); const updated=await q("SELECT MAX(clicked_at) AS updated_at FROM affiliate_clicks WHERE COALESCE(is_owner_traffic,FALSE) IS FALSE"); return {total,countries,byCountryCategory,byCountrySource,byPlatform,updatedAt:updated[0]?.updated_at||null,persistent:true}; } catch(err) { console.error("Postgres stats read failed:",err.message); return null; } }
 function clientIp(req) { const fwd=String(req.headers["x-forwarded-for"]||"").split(",")[0].trim(); if (/^\d{1,3}(\.\d{1,3}){3}$/.test(fwd)||fwd.includes(":")) return fwd; return "8.8.8.8"; }
-function normalizeChaturbateRoom(room) { return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,displayName:clean(room.display_name||room.username)||room.username,gender:normalizeRoomGender(room.gender),country:(room.country||"").toUpperCase(),countryName:NAMES[(room.country||"").toUpperCase()]||room.country||"",location:clean(room.location),viewerCount:normalizeViewerCount(room.num_users),isLive:true,freshness:"FRESH",isHd:!!room.is_hd,isNew:!!room.is_new,image:room.image_url_360x270||room.image_url||"",roomSubject:clean(room.room_subject),tags:normalizeTags(room.tags).map(tag=>tag.slice(0,40)),languages:room.spoken_languages||"",href:room.chat_room_url_revshare||room.chat_room_url||""}; }
+function normalizeChaturbateRoom(room,apiRegion="") {
+ const country=resolveChaturbateCountry(room.country,room.location);
+ const partnerRegion=normalizeRegion(room.region||room.region_name||room.state||room.province);
+ return {id:"chaturbate:"+room.username,platform:"chaturbate",platformName:"Chaturbate",username:room.username,displayName:clean(room.display_name||room.username)||room.username,gender:normalizeRoomGender(room.gender),country,countryName:NAMES[country]||country,partnerRegion,apiRegion:normalizeRegion(apiRegion),region:getDiscoveryRegion({country,partnerRegion,apiRegion}),location:clean(room.location),viewerCount:normalizeViewerCount(room.num_users),isLive:true,freshness:"FRESH",isHd:!!room.is_hd,isNew:!!room.is_new,image:room.image_url_360x270||room.image_url||"",roomSubject:clean(room.room_subject),tags:normalizeTags(room.tags).map(tag=>tag.slice(0,40)),languages:room.spoken_languages||"",href:room.chat_room_url_revshare||room.chat_room_url||""};
+}
 function bongaGender(value) { return normalizeRoomGender(value); }
 function normalizeBongaRoom(room) { const username=clean(room.username||room.user_name||room.nickname||room.model||room.id); if(!username)return null; const rawImages=room.profile_images||room.images||{}; const images=typeof rawImages==="string"?{}:rawImages; const age=Number(room.display_age||room.age||0); const tags=normalizeTags(room.tags); if(Number.isFinite(age)&&age>0&&age<18)return null; const country=normalizeBongaCountry(room); const viewers=firstValidViewerCount(room.members_count,room.num_users,room.viewers,room.viewer_count); const image=(typeof rawImages==="string"?rawImages:"")||resolveBongaRoomImage(room); return {id:"bongacams:"+username,platform:"bongacams",platformName:"BongaCams",username,displayName:clean(room.display_name||room.name||username)||username,gender:bongaGender(room.gender||room.sex),country:country.match(/^[A-Z]{2}$/)?.[0]||"",countryName:NAMES[country]||clean(country),location:clean(room.hometown||room.location||country),viewerCount:viewers,isLive:true,freshness:"FRESH",isHd:isBongaHd(room)||/\bhd\b/i.test(tags.join(" ")),isNew:!!room.is_new||!!room.new,image,roomSubject:clean(room.chat_topic||room.room_subject||room.topic||tags.join(" ")),tags:tags.map(tag=>tag.slice(0,40)),languages:clean([room.primary_language,room.secondary_language,room.language].map(plainText).filter(Boolean).join(", ")),href:room.chat_url||room.direct_chat_url||room.room_url||room.url||""}; }
 async function fetchChaturbateRegion(req,apiRegion) {
@@ -318,21 +347,22 @@ async function fetchBongaRooms(req) {
 }
 async function rooms(req) {
  const visitor=visitorCountry(req);
- const cacheKey=visitor!=="UNKNOWN"?visitor:clientIp(req);
- const cached=roomCache.get(cacheKey);
- if(cached&&Date.now()-cached.at<20000&&cached.rooms.length)return cached;
- const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);
- const ch=results[0].status==="fulfilled"?results[0].value.rooms:[];
- const bc=results[1].status==="fulfilled"?results[1].value:[];
- const notices=[];
- if(results[0].status==="rejected")notices.push("Chaturbate regional feeds unavailable");
- else if(results[0].value.notice)notices.push(results[0].value.notice);
- if(results[1].status==="rejected"&&BONGA_ENABLED){console.warn("[bongacams-feed-unavailable]",results[1].reason&&results[1].reason.message?results[1].reason.message:"unknown feed error");notices.push("BongaCams feed unavailable");}
- const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
- const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable. Please check again shortly.")};
- roomCache.set(cacheKey,entry);
- if(roomCache.size>50)roomCache.delete(roomCache.keys().next().value);
- return entry;
+ const rawIp=clientIp(req);
+ const cacheKey=visitor!=="UNKNOWN"?"country:"+visitor:"ip:"+require("crypto").createHash("sha256").update(rawIp).digest("hex").slice(0,64);
+ return roomCache.get(cacheKey,async()=>{
+  const startedAt=Date.now();
+  const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);
+  const ch=results[0].status==="fulfilled"?results[0].value.rooms:[];
+  const bc=results[1].status==="fulfilled"?results[1].value:[];
+  const notices=[];
+  if(results[0].status==="rejected")notices.push("Chaturbate regional feeds unavailable");
+  else if(results[0].value.notice)notices.push(results[0].value.notice);
+  if(results[1].status==="rejected"&&BONGA_ENABLED){console.warn("[bongacams-feed-unavailable]",results[1].reason&&results[1].reason.message?results[1].reason.message:"unknown feed error");notices.push("BongaCams feed unavailable");}
+  const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
+  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable."),providerHealth:{chaturbate:results[0].status==="fulfilled"?"available":"unavailable",bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"},cacheable:results[0].status!=="rejected"&&(!BONGA_ENABLED||results[1].status!=="rejected")&&!notices.length};
+  console.info("[room-feed-refresh]",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:visitor!=="UNKNOWN"?"country":"ip",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:"disabled",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));
+  return entry;
+ });
 }
 async function approvedCountryPlatformPreference(countryCode) {
   const country = String(countryCode || "").trim().toUpperCase();
