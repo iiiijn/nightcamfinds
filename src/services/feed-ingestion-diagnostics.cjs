@@ -160,14 +160,14 @@ function summarizeSafeFieldValueShapes(rows, fields) {
   return { inspectedRoomCount: source.length, fieldValueShapeCounts: summaries };
 }
 
+function resolveExplicitCountries(row, provider) {
+  if (!row || typeof row !== "object" || Array.isArray(row)) return [];
+  const fields = provider === "chaturbate" ? ["country"] : ["homecountry", "country", "country_code"];
+  return [...new Set(fields.map((field) => normalizeCountryCode(row[field])).filter(Boolean))];
+}
+
 function resolveExplicitCountry(row, provider) {
-  if (!row || typeof row !== "object" || Array.isArray(row)) return "";
-  if (provider === "chaturbate") return normalizeCountryCode(row.country);
-  for (const field of ["homecountry", "country", "country_code"]) {
-    const code = normalizeCountryCode(row[field]);
-    if (code) return code;
-  }
-  return "";
+  return resolveExplicitCountries(row, provider)[0] || "";
 }
 
 function resolveLocationCountry(row, provider) {
@@ -212,6 +212,9 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
   let duplicateCount = 0;
   let acceptedWithoutCountryCount = 0;
   let acceptedUnclassifiedCount = 0;
+  let acceptedExplicitCount = 0;
+  let acceptedLocationOnlyCount = 0;
+  let acceptedConflictingCount = 0;
   const acceptedByCountry = new Map();
   const seen = new Set();
   for (let index = 0; index < normalizedEntries.length; index += 1) {
@@ -267,6 +270,9 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     acceptedUniqueRoomCount: acceptedCount,
     acceptedWithRecognizedCountryCount: acceptedCount - acceptedWithoutCountryCount,
     acceptedWithoutRecognizedCountryCount: acceptedWithoutCountryCount,
+    acceptedExplicitCount,
+    acceptedLocationOnlyCount,
+    acceptedConflictingCount,
     acceptedUnclassifiedCount,
     countries: [...acceptedByCountry.values()].sort((a, b) =>
       b.acceptedUniqueRoomCount - a.acceptedUniqueRoomCount || a.country.localeCompare(b.country))
@@ -292,4 +298,4 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
   };
 }
 
-module.exports = { summarizeFeedIngestion, rawCountryValue, safePagination, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation, CHATURBATE_METADATA_FIELDS, classifySafeValueShape, summarizeSafeFieldValueShapes, resolveExplicitCountry, resolveLocationCountry };
+module.exports = { summarizeFeedIngestion, rawCountryValue, safePagination, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation, CHATURBATE_METADATA_FIELDS, classifySafeValueShape, summarizeSafeFieldValueShapes, resolveExplicitCountry, resolveExplicitCountries, resolveLocationCountry };
