@@ -134,13 +134,16 @@ test("BongaCash V2 parser preserves provider metadata and the documented model s
   assert.throws(() => parseDictionaryResponse([]));
 });
 
-test("country startup patch preserves V2 HD, live-image and safe tags fields", () => {
-  const serverPath = path.join(__dirname, "..", "server.js");
-  const patched = patchServerSource(fs.readFileSync(serverPath, "utf8"));
-  assert.match(patched, /isHd:!!room\.is_hd/);
-  assert.match(patched, /liveImages\.thumbnail_image_big/);
-  assert.ok(patched.indexOf("liveImages.thumbnail_image_big") < patched.indexOf("images.profile_image"));
-  assert.match(patched, /normalizeTags\(room\.tags\)\.join\(" "\)/);
+test("server integration delegates BongaCash V2 image, HD and tag normalization to the service", () => {
+  const serverSource = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+  assert.match(serverSource, /resolveBongaRoomImage, isBongaHd/);
+  assert.match(serverSource, /resolveBongaRoomImage\(room\)/);
+  assert.match(serverSource, /isBongaHd\(room\)/);
+  assert.match(serverSource, /normalizeTags\(room\.tags\)/);
+  const room = { live_images: { thumbnail_image_big: "https://images.example/live.jpg" }, profile_images: { profile_image: "https://images.example/profile.jpg" }, is_hd: true };
+  assert.equal(resolveBongaRoomImage(room), "https://images.example/live.jpg");
+  assert.equal(isBongaHd(room), true);
+  assert.deepEqual(normalizeTags({ "0": "one", "1": "two" }), ["one", "two"]);
 });
 
 test("V2 remains opt-in and falls back to V1 in the server integration", () => {
