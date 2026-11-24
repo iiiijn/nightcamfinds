@@ -2,8 +2,17 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { summarizeFeedIngestion, summarizeMetadataFieldPresence, summarizeChaturbateLocationShapes, classifyChaturbateLocation } = require("../src/services/feed-ingestion-diagnostics.cjs");
 const { resolveChaturbateCountry } = require("../src/services/country-directory.cjs");
+
+
+test("server wires feed ingestion diagnostics to the full ingestion diagnostics service", () => {
+  const serverSource = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+  assert.match(serverSource, /const \\{ summarizeFeedIngestion \\} = require\\("\.\\/src\\/services\\/feed-ingestion-diagnostics\\.cjs"\\);/);
+  assert.doesNotMatch(serverSource, /summarizeFeedIngestion.*feed-quality-diagnostics/);
+});
 
 const room = (username, overrides = {}) => ({
   normalized: {
