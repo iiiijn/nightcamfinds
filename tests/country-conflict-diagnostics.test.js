@@ -14,6 +14,7 @@ test("Chaturbate conflict diagnostics distinguish matching, conflicting and loca
   ];
   const result = summarizeCountryConflicts("chaturbate", rows);
   assert.equal(result.inspectedRoomCount, 4);
+  assert.equal(result.provider, "chaturbate");
   assert.equal(result.explicitRecognizedCount, 2);
   assert.equal(result.locationRecognizedCount, 3);
   assert.equal(result.matchingCountryCount, 1);
