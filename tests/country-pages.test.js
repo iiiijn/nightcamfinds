@@ -4,7 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { COUNTRIES, getCountryPage } = require("../country-pages");
 
-const slugs = ["us", "gb", "ca", "au", "de", "fr", "nl", "no", "ch", "is", "lu", "cz", "ae", "za", "br", "md"];
+const slugs = ["us", "gb", "ca", "au", "de", "fr", "nl", "no", "ch", "is", "lu", "cz", "ae", "za", "br", "md", "co"];
 
 function introWords(html) {
   const match = html.match(/<header class="country-intro">([\s\S]*?)<\/header>/i);
@@ -14,7 +14,7 @@ function introWords(html) {
 
 test("all priority country pages render distinct content and canonical URLs", () => {
   const pages = slugs.map((slug) => getCountryPage(slug));
-  assert.equal(pages.length, 16);
+  assert.equal(pages.length, 17);
   assert.ok(pages.every(Boolean));
   assert.equal(new Set(pages).size, 16);
 
