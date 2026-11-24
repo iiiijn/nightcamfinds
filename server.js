@@ -649,7 +649,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     const eligibleCountrySlugs = getEligibleCountrySitemapSlugs({ marketMeta: MARKET_META, countryContent: COUNTRY_PAGE_CONTENT, rooms: feed.rooms });
     const countryHtml = getCountryPage(countryRoute[1], pageOrigin(req), roomMarkup, routeHealth.indexable, eligibleCountrySlugs);
     if (!countryHtml) return send(res, 404, "Country page not found", "text/plain; charset=utf-8");
-    return send(res, 200, countryHtml, "text/html; charset=utf-8");
+    return send(res, 200, countryHtml, "text/html; charset=utf-8", visitCookieHeaders(req, pathname));
   }
   const file=pathname==="/"||pathname.endsWith("/")?"/index.html":pathname;const safe=path.normalize(file).replace(/^(\.\.[/\\])+/,"");const full=path.join(PUBLIC,safe);const market=pathname.match(/^\/country\/([a-z]{2})\/$/);const forced=market?MARKETS.find(([slug])=>slug===market[1]):null;if(pathname.endsWith("/")||forced){
   let html=fs.readFileSync(path.join(PUBLIC,"index.html"),"utf8")
