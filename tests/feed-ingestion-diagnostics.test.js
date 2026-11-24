@@ -415,7 +415,6 @@ test("Chaturbate safe diagnostics distinguish scripts without exposing source te
     hebrew_text: 1,
     greek_text: 1,
     devanagari_text: 1,
-    other_non_latin_text: 0,
     single_word_text: 1
   });
   const serialized = JSON.stringify(result);
