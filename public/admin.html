@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>NightCamFinds Admin</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="wrap legal">
+    <h1>Admin</h1>
+    <form id="login" class="panel">
+      <label>Username <input name="username" autocomplete="username"></label>
+      <label>Password <input name="password" type="password" autocomplete="current-password"></label>
+      <label>Authenticator code <input name="totp" inputmode="numeric" autocomplete="one-time-code"></label>
+      <button>Sign in</button>
+      <p class="muted">Development default password must be changed on first login. Owner MFA is required before production. If MFA is not enrolled, status is REQUIRES_VERIFICATION and production startup is refused. BongaCash postbacks: REQUIRES_VERIFICATION.</p>
+    </form>
+    <section id="dash" hidden>
+      <div class="actions">
+        <button data-kill="maintenance">Maintenance</button>
+        <button data-kill="redirectsEnabled">Toggle redirects</button>
+        <button data-kill="postbacksEnabled">Toggle postbacks</button>
+        <button data-provider="chaturbate">Toggle Chaturbate</button>
+        <button data-provider="bongacash">Toggle BongaCash</button>
+      </div>
+      <pre id="out"></pre>
+    </section>
+  </main>
+  <script>
+    const login = document.querySelector("#login");
+    const dash = document.querySelector("#dash");
+    const out = document.querySelector("#out");
+    async function load() {
+      const res = await fetch("/api/admin/state");
+      if (!res.ok) return;
+      login.hidden = true;
+      dash.hidden = false;
+      document.querySelector("#enroll").hidden = false;
+      out.textContent = JSON.stringify(await res.json(), null, 2);
+    }
+    login.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = Object.fromEntries(new FormData(login));
+      const res = await fetch("/api/admin/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      if (!res.ok) return alert("Login failed");
+      load();
+    });
+    document.body.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-kill], button[data-provider]");
+      if (!btn) return;
+      const state = await fetch("/api/admin/state").then((r) => r.json());
+      const patch = {};
+      if (btn.dataset.kill) patch[btn.dataset.kill] = !state.settings[btn.dataset.kill];
+      if (btn.dataset.provider) patch.providers = { [btn.dataset.provider]: !state.settings.providers[btn.dataset.provider] };
+      await fetch("/api/admin/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) });
+      load();
+    });
+    document.querySelector("#enroll").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const body = Object.fromEntries(new FormData(e.target));
+      const res = await fetch("/api/admin/mfa/enroll", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) return alert(data.error || "enrollment rejected");
+      document.querySelector("#qr").innerHTML = `<img alt="MFA enrollment QR" src="${data.qr}"><p>Recovery codes, shown once:</p><pre>${data.recoveryCodes.join("\n")}</pre>`;
+      e.target.reset();
+    });
+    load();
+  </script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>NightCamFinds — Live cam directory</title>
+  <meta name="description" content="Browse live rooms by country from Chaturbate and BongaCams. NightCamFinds does not stream video.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="__CANONICAL__">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <meta property="og:title" content="NightCamFinds — Live cam directory">
+  <meta property="og:description" content="Independent 18+ directory of live rooms from partner cam platforms. Browse, filter, and open a room on the partner site.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="__OG_URL__">
+  <meta property="og:image" content="__ORIGIN__/og.svg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="ncf-country" content="__COUNTRY__">
+  <meta name="ncf-force" content="__FORCE__">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"NightCamFinds","url":"__CANONICAL__"}</script>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/homepage-refinement.css">
+  <script>
+    try {
+      if (localStorage.getItem("ncf18") === "1") document.documentElement.classList.add("ok");
+      else document.documentElement.classList.add("age-pending");
+    } catch (_) { document.documentElement.classList.add("age-pending"); }
+  </script>
+</head>
+<body>
+  <div class="age-gate" id="gate">
+    <div class="panel">
+      <p class="eyebrow">Adults only</p>
+      <h2>This site is for people 18 or older.</h2>
+      <p class="muted">NightCamFinds is an independent directory. It does not host video. You must be 18 or the age of majority where you live. This notice is not a government age-verification system.</p>
+      <div class="actions"><button id="enter" type="button">I am 18 or older</button><a class="btn ghost" href="https://www.google.com">Leave</a></div>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <div class="w">
+      <div class="topbar">
+        <a class="logo" href="/">NightCam<span>Finds</span></a>
+        <span class="chip age-chip">18+</span>
+        <input id="q" type="search" placeholder="Search models, rooms or languages" aria-label="Search models, rooms or languages" inputmode="search" autocomplete="off">
+        <label class="sr-only" for="country">Your country</label>
+        <select id="country" aria-label="Country"><option value="">All countries</option></select>
+        <button class="btn ghost quick-exit" id="quick-exit" type="button">Quick exit</button>
+      </div>
+      <div class="header-tools">
+        <label class="sr-only" for="language">Language</label>
+        <select id="language" aria-label="Language"><option value="">All languages</option></select>
+      </div>
+      <nav class="category-nav discovery-tabs" aria-label="Room categories"><a href="/">Featured</a><a href="/female/">Women</a><a href="/male/">Men</a><a href="/couples/">Couples</a><a href="/trans/">Trans</a></nav>
+    </div>
+  </header>
+
+  <main id="top" class="w">
+    <!-- Directory-first homepage: hero and pre-directory promotions intentionally removed. -->
+    <section class="directory-section" aria-label="Live room directory">
+      <p id="kicker" class="sr-only">Independent discovery</p>
+      <h1 id="page-title" class="sr-only">Discover live cams right now</h1>
+      <div class="section-heading">
+        <div><p class="eyebrow">Live directory</p><h2>Discover live models</h2><a class="creator-entry-cta" href="/broadcast/" data-ncf-path="model" data-ncf-placement="home-top-cta">Become a Model <span aria-hidden="true">→</span></a><a class="directory-browse-link" href="#category-rows" data-ncf-path="viewer">Browse live rooms</a></div>
+        <div class="secondary-filters">
+          <select id="sort" aria-label="Sort rooms"><option value="recommended">Recommended</option><option value="viewers">Most viewers</option><option value="newest">Newest</option></select>
+        </div>
+      </div>
+      <div class="directory-layout">
+        <div class="directory-main">
+          <div id="notice" class="notice" hidden>Live rooms are temporarily unavailable. Please check again shortly.</div>
+          <p id="result-count" class="result-count" aria-live="polite"></p>
+          <div id="category-rows"></div>
+          
+          <div id="grid" class="grid" aria-live="polite"></div>
+          <button id="load-more" class="btn ghost" type="button" hidden>Load more rooms</button>
+        </div>
+        <aside class="bonga-promo-sidebar" aria-label="Broadcaster signup and BongaCams promotions">
+          <section class="broadcaster-sidebar" aria-labelledby="broadcaster-sidebar-title">
+            <div class="creator-banner-art"><img src="/creator-studio.svg" alt="Illustration of an adult creator building a brand in a pink and purple studio" loading="lazy"></div>
+            <p class="eyebrow">Your creator journey starts here</p>
+            <h2 id="broadcaster-sidebar-title">Ready to become a model?</h2>
+            <p>Choose the platform that fits your goals. Apply directly, complete its verification and build your audience on your schedule.</p>
+            <ul class="creator-benefits" aria-label="What to expect">
+              <li>Compare Chaturbate and BongaCams</li>
+              <li>Register directly with your chosen platform</li>
+              <li>Stay in control of your content and schedule</li>
+            </ul>
+            <a class="btn broadcaster-choice creator-primary-cta" href="/broadcast/" data-ncf-path="model" data-ncf-placement="home-broadcaster-banner">Become a Model</a>
+            <p class="model-recruitment-note">18+ only. Platform eligibility and approval requirements apply. Earnings vary and are not guaranteed.</p>
+          </section>
+          <section class="sidebar-filter-group" aria-labelledby="regions-title"><h3 id="regions-title">Browse by region</h3><select id="region" aria-label="Region"><option value="">All regions</option></select></section>
+          <section class="sidebar-filter-group" aria-labelledby="room-size-title"><h3 id="room-size-title">Room size</h3><select id="room-size" aria-label="Room size"><option value="">All room sizes</option><option value="intimate">Intimate · 0–50 viewers</option><option value="mid-sized">Mid-sized · 51–500 viewers</option><option value="high-traffic">High-traffic · 501+ viewers</option></select></section>
+          <section id="popular-tags" class="popular-tags sidebar-filter-group" aria-label="Popular room tags" hidden><div class="popular-tags-heading"><h3>Popular tags</h3><button id="clear-tag" class="btn ghost" type="button" hidden>Clear tag</button></div><div id="popular-tags-list" class="popular-tags-list"></div></section>
+          <section id="chaturbate-live-promo" class="cb-live-promo" hidden aria-label="Chaturbate live rooms"></section>
+          <section id="chaturbate-category-promo" class="cb-category-promo" hidden aria-label="Chaturbate categories"></section>
+          <section id="bonga-live-promo" class="promo-strip" hidden aria-label="BongaCams live rooms"></section>
+          <div id="cb-banner-promo" class="cb-banner-promo" hidden aria-label="Chaturbate banner promotion"></div>
+          <div id="bonga-dynamic-banner" class="bonga-dynamic-banner" hidden aria-label="BongaCams live model promotion"></div>
+          <section id="bonga-static-banners" class="bonga-static-banners" hidden aria-label="BongaCams banner promotions"></section>
+          <section id="bonga-category-widget" class="bonga-category-widget" hidden aria-label="BongaCams category widget"></section>
+        </aside>
+      </div>
+    </section>
+
+    <div class="two">
+      <section class="info-box">
+        <p class="eyebrow">Start exploring</p><h2>Chat free</h2>
+        <p>Open a public room on its partner platform. Account creation, chat access and room rules are handled by that platform.</p>
+        <p class="small-note">Tips and private shows cost money on partner platforms. They are optional and subject to each platform’s prices.</p>
+        <div class="actions" id="partner-actions"></div>
+      </section>
+      <section class="info-box" id="crew">
+        <p class="eyebrow">NightCamFinds updates</p><h2>Night Crew</h2>
+        <p>We’re planning a room and directory update email. Email signup is not available yet, so no address is collected here.</p>
+        <span class="status-note">Email updates are not active yet.</span>
+      </section>
+    </div>
+
+    <section class="content-section">
+      <p class="eyebrow">Platform overview</p><h2>Chaturbate or BongaCams?</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>What to know</th><th>Chaturbate</th><th>BongaCams</th></tr></thead>
+        <tbody>
+          <tr><td>Room listings</td><td>Partner live feed</td><td>Partner live feed</td></tr>
+          <tr><td>Video and accounts</td><td>Provided by Chaturbate</td><td>Provided by BongaCams</td></tr>
+          <tr><td>Pricing and paid features</td><td>Set by the partner platform</td><td>Set by the partner platform</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="content-section faq-section">
+      <p class="eyebrow">Helpful information</p><h2>Questions</h2>
+      <details><summary>Is browsing NightCamFinds free?</summary><p>Yes. Browsing this directory is free. Tips and private shows on partner platforms cost money and are optional.</p></details>
+      <details><summary>Where does the video play?</summary><p>On the partner platform’s own player after you choose a room. NightCamFinds does not host or stream video.</p></details>
+      <details><summary>Do country and language labels verify a broadcaster?</summary><p>No. Country and language details come from partner feeds. They may be incomplete and are not independent identity or location verification.</p></details>
+      <details><summary>How does NightCamFinds earn revenue?</summary><p>Some room links are affiliate links. We may earn a commission if you register or make a purchase on a partner platform, at no additional cost to you.</p></details>
+    </section>
+
+<section class="market-links" id="markets">
+    <h2>Browse worldwide markets</h2>
+    <p class="muted">Explore country directories by region. Country listings depend on partner-feed coverage and are indexed only when they meet the live-room quality threshold.</p>
+    <div class="market-region-grid"><section class="market-region" id="markets-north-america"><h3>North America</h3><ul><li><a href="/country/us/">United States</a></li><li><a href="/country/ca/">Canada</a></li></ul></section><section class="market-region" id="markets-europe"><h3>Europe</h3><ul><li><a href="/country/gb/">United Kingdom</a></li><li><a href="/country/de/">Germany</a></li><li><a href="/country/fr/">France</a></li><li><a href="/country/nl/">Netherlands</a></li><li><a href="/country/ie/">Ireland</a></li><li><a href="/country/se/">Sweden</a></li><li><a href="/country/no/">Norway</a></li><li><a href="/country/dk/">Denmark</a></li><li><a href="/country/fi/">Finland</a></li><li><a href="/country/ch/">Switzerland</a></li><li><a href="/country/at/">Austria</a></li><li><a href="/country/be/">Belgium</a></li><li><a href="/country/is/">Iceland</a></li><li><a href="/country/lu/">Luxembourg</a></li><li><a href="/country/cz/">Czechia</a></li><li><a href="/country/ee/">Estonia</a></li><li><a href="/country/it/">Italy</a></li><li><a href="/country/sk/">Slovakia</a></li><li><a href="/country/si/">Slovenia</a></li><li><a href="/country/pl/">Poland</a></li><li><a href="/country/lv/">Latvia</a></li><li><a href="/country/gr/">Greece</a></li><li><a href="/country/es/">Spain</a></li><li><a href="/country/lt/">Lithuania</a></li><li><a href="/country/ro/">Romania</a></li><li><a href="/country/hu/">Hungary</a></li><li><a href="/country/cy/">Cyprus</a></li><li><a href="/country/bg/">Bulgaria</a></li><li><a href="/country/hr/">Croatia</a></li><li><a href="/country/pt/">Portugal</a></li><li><a href="/country/mk/">North Macedonia</a></li><li><a href="/country/rs/">Serbia</a></li><li><a href="/country/ua/">Ukraine</a></li><li><a href="/country/by/">Belarus</a></li><li><a href="/country/md/">Republic of Moldova</a></li><li><a href="/country/ba/">Bosnia and Herzegovina</a></li></ul></section><section class="market-region" id="markets-europe-asia"><h3>Europe & Asia</h3><ul><li><a href="/country/ru/">Russia</a></li><li><a href="/country/tr/">Turkey</a></li></ul></section><section class="market-region" id="markets-asia-pacific"><h3>Asia-Pacific</h3><ul><li><a href="/country/au/">Australia</a></li><li><a href="/country/nz/">New Zealand</a></li><li><a href="/country/jp/">Japan</a></li><li><a href="/country/sg/">Singapore</a></li><li><a href="/country/kz/">Kazakhstan</a></li><li><a href="/country/cn/">China</a></li><li><a href="/country/in/">India</a></li></ul></section><section class="market-region" id="markets-middle-east"><h3>Middle East</h3><ul><li><a href="/country/il/">Israel</a></li><li><a href="/country/ae/">United Arab Emirates</a></li><li><a href="/country/bh/">Bahrain</a></li><li><a href="/country/jo/">Jordan</a></li></ul></section><section class="market-region" id="markets-africa"><h3>Africa</h3><ul><li><a href="/country/za/">South Africa</a></li><li><a href="/country/eg/">Egypt</a></li></ul></section><section class="market-region" id="markets-latin-america"><h3>Latin America</h3><ul><li><a href="/country/ar/">Argentina</a></li><li><a href="/country/mx/">Mexico</a></li><li><a href="/country/br/">Brazil</a></li></ul></section></div></section>
+    <footer><span><strong>18+ only.</strong> Independent directory. Video plays on partner sites, not here. Some links are affiliate links.</span><a href="/about">About</a><a href="/earn/">Earn with Chaturbate</a><a href="/affiliate-disclosure">Affiliate disclosure</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/contact">Contact</a><a href="/sitemap/">Site map</a></footer>
+  </main>
+  <aside id="stickyPromo" class="sticky-promo" aria-label="Live promotion" hidden></aside>
+  <script src="/visit-tracking.js" defer></script>
+  <script src="/app.js" defer></script>
+  <script src="/loyalty.js" defer></script>
+  <script src="/promo.js" defer></script>
+</body>
+</html>
