@@ -174,6 +174,12 @@ test("Chaturbate diagnostics count metadata presence without exposing values or 
         country: { two_letter_code: 1, missing: 2 },
         location: { single_word_text: 2, missing: 1 }
       }
+    },
+    countryCandidates: {
+      inspectedRoomCount: 3,
+      rowsWithVerifiedCandidateCount: 1,
+      candidateCountryCounts: [{ country: "GB", roomCount: 1 }],
+      verifiedCandidateFieldCounts: { country: 1, location: 0 }
     }
   });
   assert.equal(JSON.stringify(result).includes("private-one"), false);
