@@ -238,13 +238,22 @@ function summarizeFeedIngestion({ provider, rawRows = [], entries = [], paginati
     const country = normalizeCountryCode(room.country);
     if (!country) acceptedWithoutCountryCount += 1;
     const rawRow = raw[index];
-    const explicit = resolveExplicitCountry(rawRow, name);
+    const explicitCountries = resolveExplicitCountries(rawRow, name);
+    const explicit = explicitCountries[0] || "";
     const location = resolveLocationCountry(rawRow, name);
     let classification = "unrecognized";
-    if (explicit && location && explicit !== location) classification = "conflicting";
-    else if (explicit) classification = "explicit";
-    else if (location) classification = "location_only";
-    else acceptedUnclassifiedCount += 1;
+    if (explicitCountries.length > 1 || (explicit && location && explicit !== location)) {
+      classification = "conflicting";
+      acceptedConflictingCount += 1;
+    } else if (explicit) {
+      classification = "explicit";
+      acceptedExplicitCount += 1;
+    } else if (location) {
+      classification = "location_only";
+      acceptedLocationOnlyCount += 1;
+    } else {
+      acceptedUnclassifiedCount += 1;
+    }
 
     if (country) {
       if (!acceptedByCountry.has(country)) {
