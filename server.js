@@ -24,6 +24,7 @@ const { resolveChaturbateRegionMaxPages } = require("./src/services/chaturbate-r
 const { filterDisplayableRooms, normalizeRoomGender } = require("./src/services/room-quality.cjs");
 const { CHATURBATE_API_REGIONS, REGION_ORDER, getDiscoveryRegion, buildRegionalRoomGroups } = require("./src/services/regional-discovery.cjs");
 const { createFeedSnapshotCache } = require("./src/services/feed-snapshot-cache.cjs");
+const { buildFeedCacheKey } = require("./src/services/feed-cache-identity.cjs");
 const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
 const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");
 const { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");
@@ -319,7 +320,8 @@ async function fetchBongaV2Rooms(req) {
  const maxPages=Math.max(1,Math.ceil(BONGA_LIMIT/pageSize));
  let providerMetadata=null;
  const pages=await fetchPagedResults(async ({offset,limit})=>{
-  const requestUrl=buildModelsOnlineUrl({campaignId:BONGA_CAMPAIGN,clientIp,limit,offset});
+  const remainingLimit=Math.max(1,Math.min(limit,BONGA_LIMIT-offset));
+  const requestUrl=buildModelsOnlineUrl({campaignId:BONGA_CAMPAIGN,clientIp,limit:remainingLimit,offset});
   const response=parseModelsOnlineResponse(await fetchJson(requestUrl));
   if(offset===0)providerMetadata=response;
   return response.models;
@@ -337,6 +339,7 @@ async function fetchBongaV2Rooms(req) {
  return filterDisplayableRooms(entries);
 }
 async function fetchBongaRooms(req) {
+ console.info("BongaCams feed configuration.",JSON.stringify({enabled:BONGA_ENABLED,configuredApiVersion:BONGA_API_VERSION,limit:BONGA_LIMIT,trustedClientIpHeaderConfigured:Boolean(BONGA_TRUSTED_CLIENT_IP_HEADER),originAuthConfigured:Boolean(BONGA_ORIGIN_AUTH_SECRET)}));
  if(!BONGA_ENABLED)return[];
  if(BONGA_API_VERSION==="2") {
   try {
@@ -350,7 +353,7 @@ async function fetchBongaRooms(req) {
 async function rooms(req) {
  const visitor=visitorCountry(req);
  const rawIp=clientIp(req);
- const cacheKey=visitor!=="UNKNOWN"?"country:"+visitor:"ip:"+require("crypto").createHash("sha256").update(rawIp).digest("hex").slice(0,64);
+ const cacheKey=buildFeedCacheKey({country:visitor,clientIp:rawIp});
  return roomCache.get(cacheKey,async()=>{
   const startedAt=Date.now();
   const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);
@@ -362,7 +365,7 @@ async function rooms(req) {
   if(results[1].status==="rejected"&&BONGA_ENABLED){console.warn("[bongacams-feed-unavailable]",results[1].reason&&results[1].reason.message?results[1].reason.message:"unknown feed error");notices.push("BongaCams feed unavailable");}
   const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
   const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable."),providerHealth:{chaturbate:results[0].status==="fulfilled"?"available":"unavailable",bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"},cacheable:results[0].status!=="rejected"&&(!BONGA_ENABLED||results[1].status!=="rejected")&&!notices.length};
-  console.info("[room-feed-refresh]",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:visitor!=="UNKNOWN"?"country":"ip",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:"disabled",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));
+  console.info("[room-feed-refresh]",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:"visitor-ip",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:"disabled",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));
   return entry;
  });
 }
