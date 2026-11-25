@@ -10,6 +10,7 @@ const { getCountryPage, COUNTRIES: COUNTRY_PAGE_CONTENT } = require("./country-p
 const { resolveChaturbateCountry, normalizeRegion, normalizeLanguages, buildHtmlSitemap } = require("./src/services/country-directory.cjs");
 const { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");
 const { getEligibleCountrySitemapSlugs } = require("./src/services/country-sitemap-eligibility.cjs");
+const { renderCategorySeoHtml } = require("./src/services/category-seo-renderer.cjs");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 const { createPostgresRedirectRateLimiter, createInMemoryRedirectRateLimiter, normalizeClientIp } = require("./src/services/redirect-rate-limiter.cjs");
@@ -752,40 +753,19 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   const categorySeo = !forced ? categorySeoContent[category] : null;
   if (categorySeo) {
     const categoryUrl = `${pageOrigin(req)}${pathname}`;
-    const escapeSeoHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-    }[char]));
-    const relatedCategories = [
-      ["Female rooms", "/female/"], ["Male rooms", "/male/"],
-      ["Trans rooms", "/trans/"], ["Couples rooms", "/couples/"],
-      ["Browse by country", "/countries/"]
-    ].filter(([, href]) => href !== pathname);
-    const relatedLinks = relatedCategories.map(([label, href]) =>
-      `<a href="${href}">${escapeSeoHtml(label)}</a>`
-    ).join(" · ");
-    const seoSection = `<section class="content-section category-seo-content" aria-labelledby="category-seo-heading">
-      <p class="eyebrow">NightCamFinds room directory</p>
-      <h2 id="category-seo-heading">${escapeSeoHtml(categorySeo.name)}</h2>
-      <p>${escapeSeoHtml(categorySeo.description)}</p>
-      ${categorySeo.paragraphs.map((paragraph) => `<p>${escapeSeoHtml(paragraph)}</p>`).join("")}
-      <nav aria-label="Related room categories"><p>Explore more: ${relatedLinks}</p></nav>
-    </section>`;
-    html = html.replace("<footer>", `${seoSection}<footer>`);
-    const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "CollectionPage",
-      "name": categorySeo.name,
-      "description": categorySeo.description,
-      "url": categoryUrl,
-      "isPartOf": { "@type": "WebSite", "name": "NightCamFinds", "url": pageOrigin(req) }
-    };
-    const jsonLd = JSON.stringify(structuredData).replace(/</g, "\\u003c");
-    const seoTitle = categorySeo.title || copy[3];
-    html = html.replace(/<title>[^<]*<\/title>/, `<title>${escapeSeoHtml(seoTitle)}</title>`);
-    html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapeSeoHtml(categorySeo.description)}">`);
-    html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeSeoHtml(seoTitle)}">`);
-    html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeSeoHtml(categorySeo.description)}">`);
-    html = html.replace("</head>", `<script type="application/ld+json">${jsonLd}</script></head>`);
+    const eligibleCountrySlugs = getEligibleCountrySitemapSlugs({
+      marketMeta: MARKET_META,
+      countryContent: COUNTRY_PAGE_CONTENT,
+      rooms: feed.rooms
+    });
+    const countryLinks = eligibleCountrySlugs
+      .map((slug) => {
+        const country = COUNTRY_PAGE_CONTENT[slug];
+        return country ? { name: country.name, href: `/country/${slug}/` } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    html = renderCategorySeoHtml(html, { ...categorySeo, currentPath: pathname, fallbackTitle: copy[3] }, categoryUrl, countryLinks);
   }
   return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));
 }
