@@ -377,7 +377,7 @@ async function rooms(req) {
   const providerHealth = { chaturbate: results[0].status === "fulfilled" ? "available" : "unavailable", bongacams: !BONGA_ENABLED ? "disabled" : results[1].status === "fulfilled" ? "available" : "unavailable" };
   const cacheable = results[0].status !== "rejected" && (!BONGA_ENABLED || results[1].status !== "rejected") && !notices.length;
   latestFeedRefreshState = { ...latestFeedRefreshState, lastCompletedAt: new Date(completedAt).toISOString(), lastSuccessfulAt: cacheable ? new Date(completedAt).toISOString() : latestFeedRefreshState.lastSuccessfulAt, providerHealth, regions: latestProviderFeedDiagnostics.chaturbateRegions.map(({ apiRegion, pagination }) => ({ apiRegion, truncated: Boolean(pagination && pagination.truncated), stopReason: pagination && pagination.stopReason || "unknown", pagesFetched: pagination && pagination.pagesFetched || 0, receivedCount: pagination && pagination.receivedCount || 0 })) };
-  const entry={at:completedAt,rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable."),providerHealth,cacheable};
+  const entry={at:completedAt,rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable."),providerHealth,cacheable:results[0].status!=="rejected"&&(!BONGA_ENABLED||results[1].status!=="rejected")&&!notices.length};
   console.info("[room-feed-refresh]",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:"visitor-ip",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:"disabled",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));
   return entry;
  });
