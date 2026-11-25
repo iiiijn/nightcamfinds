@@ -10,6 +10,8 @@ const requiredFiles = [
   "scripts/patch-spa-seo-routes.js",
   "scripts/patch-origin-auth.js",
   "src/services/origin-auth.cjs",
+  "src/services/feed-health.cjs",
+  "tests/feed-health.test.js",
   "tests/origin-auth.test.js",
   "docs/phase-a1-7-security-rollout.md",
   ".github/workflows/verify-production.yml",
@@ -30,7 +32,7 @@ for (const file of requiredFiles) {
   if (!fs.existsSync(file)) fail(`missing ${file}`);
 }
 
-for (const file of requiredFiles.filter(file => file.endsWith(".js"))) {
+for (const file of requiredFiles.filter(file => /\\.(?:c?js)$/.test(file))) {
   const result = spawnSync(process.execPath, ["--check", file], { stdio: "pipe", encoding: "utf8" });
   if (result.status !== 0) {
     fail(`syntax error in ${file}`);
@@ -51,6 +53,7 @@ if (!render.includes("scripts/patch-spa-seo-routes.js")) fail("Render build must
 if (!render.includes("scripts/fix-bonga-affiliate.js")) fail("Render build must apply the Bonga affiliate patch");
 if (!render.includes("scripts/patch-origin-auth.js")) fail("Render build must apply the staged origin-auth patch after the other route patches");
 if (!render.includes("startCommand: npm start")) fail("Render must start through npm start");
+if (!render.includes("healthCheckPath: /healthz")) fail("Render must use the lightweight /healthz liveness endpoint");
 
 const route = fs.readFileSync("route.js", "utf8");
 const originAuthPatch = require("./patch-origin-auth.js");
@@ -64,6 +67,10 @@ if (!route.includes('target.searchParams.set("c", BONGA_CAMPAIGN)')) fail("Bonga
 
 
 const serverSource = fs.readFileSync("server.js", "utf8");
+if (!serverSource.includes('pathname === "/healthz"')) fail("lightweight /healthz endpoint is missing");
+if (!serverSource.includes('pathname === "/api/health"')) fail("feed diagnostics /api/health endpoint is missing");
+if (!serverSource.includes("buildFeedHealthSnapshot")) fail("feed health snapshot helper is not integrated");
+if (!serverSource.includes("fallbackUsed: true")) fail("Bonga V2 fallback state is not tracked");
 const countryDirectoryPatch = require("./patch-country-directory.js");
 const patchedServerSource = countryDirectoryPatch.patchServerSource(serverSource);
 if (patchedServerSource !== serverSource) fail("modern country directory server must not require a legacy source rewrite");
