@@ -3,10 +3,11 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 
 const server = fs.readFileSync("server.js", "utf8");
+const renderer = fs.readFileSync("src/services/category-seo-renderer.cjs", "utf8");
 
 test("primary category SEO copy targets live-room discovery intent", () => {
   for (const category of ["female", "male", "trans", "couples"]) {
-    assert.ok(server.includes(category + ":[") || server.includes(category + ": ["), category + " category copy exists");
+    assert.ok(server.includes(category + ":{") || server.includes(category + ": {"), category + " category copy exists");
   }
   for (const title of [
     "Female Live Cam Rooms Online | NightCamFinds",
@@ -21,17 +22,17 @@ test("primary category SEO copy targets live-room discovery intent", () => {
   assert.ok(server.includes("Chaturbate and BongaCams"));
 });
 
-test("category pages receive useful server-rendered copy and related category links", () => {
-  assert.ok(server.includes("categorySeoContent"));
-  assert.ok(server.includes("category-seo-content"));
-  assert.ok(server.includes("Related room categories"));
+test("category pages render useful copy and links to eligible country directories", () => {
   assert.ok(server.includes("renderCategorySeoHtml"));
   assert.ok(server.includes("getEligibleCountrySitemapSlugs"));
+  assert.ok(renderer.includes("category-seo-content"));
+  assert.ok(renderer.includes("Related room categories"));
+  assert.ok(renderer.includes("Eligible country room directories"));
 });
 
-test("category pages publish CollectionPage structured data and category Open Graph metadata", () => {
-  assert.ok(server.includes('"@type": "CollectionPage"'));
-  assert.ok(server.includes("application/ld+json"));
-  assert.ok(server.includes("og:title"));
-  assert.ok(server.includes("og:description"));
+test("category pages publish CollectionPage structured data and Open Graph metadata", () => {
+  assert.ok(renderer.includes('"@type": "CollectionPage"'));
+  assert.ok(renderer.includes("application/ld+json"));
+  assert.ok(renderer.includes("og:title"));
+  assert.ok(renderer.includes("og:description"));
 });
