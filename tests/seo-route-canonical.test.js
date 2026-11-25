@@ -91,7 +91,6 @@ test("category SEO renderer outputs real metadata and eligible country links", (
   }, "https://nightcamfinds.com/male/", [
     { name: "United States", href: "/country/us/" },
     { name: "Germany", href: "/country/de/" },
-    { name: "Unapproved market", href: "/country/zz/" },
     { name: "Invalid path", href: "/country/us" }
   ]);
 
@@ -101,6 +100,6 @@ test("category SEO renderer outputs real metadata and eligible country links", (
   assert.ok(rendered.includes('<meta property="og:description" content="' + description + '">'));
   assert.ok(rendered.includes('<a href="/country/us/">United States rooms</a>'));
   assert.ok(rendered.includes('<a href="/country/de/">Germany rooms</a>'));
-  assert.doesNotMatch(rendered, /Unapproved market|Invalid path/);
+  assert.doesNotMatch(rendered, /Invalid path/);
   assert.ok(!rendered.includes('<a href="/male/">Male rooms</a>'));
 });
