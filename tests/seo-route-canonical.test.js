@@ -57,7 +57,7 @@ test("priority category metadata is concise and rendered into server HTML", () =
     assert.ok(description, category + " description should exist");
     assert.ok(description[1].length <= 160, category + " description should be 160 characters or fewer");
   }
-  assert.match(server, /<title>\$\{escapeSeoHtml\(seoTitle\)<\\/title>/);
+  assert.ok(server.includes("html = html.replace(/<title>[^<]*<\\/title>/, `<title>${escapeSeoHtml(seoTitle)}</title>`);"));
 });
 
 test("broadcaster page title stays within the recommended title length", () => {
