@@ -322,6 +322,9 @@ test('shared visit tracking decorates server-rendered and dynamically added affi
       getItem(key) { return session.has(key) ? session.get(key) : null; },
       setItem(key, value) { session.set(key, String(value)); }
     },
+    localStorage: {
+      getItem() { return 'denied'; }
+    },
     crypto: {
       getRandomValues(bytes) {
         for (let i = 0; i < bytes.length; i++) bytes[i] = i + 1;
