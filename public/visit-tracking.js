@@ -178,7 +178,8 @@
       affiliate_platform: platform,
       page_path: root.location.pathname,
       landing_page_path: getLandingPath(root.location.pathname),
-      link_path: (() => { try { return new URL(anchor.href, root.location.href).pathname; } catch (_) { return ''; } })()
+      link_path: (() => { try { return new URL(anchor.href, root.location.href).pathname; } catch (_) { return ''; } })(),
+      transport_type: 'beacon'
     });
   }
 
