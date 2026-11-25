@@ -58,7 +58,8 @@ test("priority category metadata is concise and rendered into server HTML", () =
     assert.ok(description, category + " description should exist");
     assert.ok(description[1].length <= 160, category + " description should be 160 characters or fewer");
   }
-  assert.ok(server.includes("seoTitle") && server.includes("categorySeo.description"), "server should render explicit category metadata");
+  const renderer = fs.readFileSync(path.join(__dirname, "..", "src", "services", "category-seo-renderer.cjs"), "utf8");
+  assert.ok(server.includes("renderCategorySeoHtml") && renderer.includes("categorySeo.description"), "server should render explicit category metadata");
 });
 
 test("broadcaster page title stays within the recommended title length", () => {
