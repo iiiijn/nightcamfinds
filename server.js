@@ -27,12 +27,14 @@ const { createFeedSnapshotCache } = require("./src/services/feed-snapshot-cache.
 const { buildFeedCacheKey } = require("./src/services/feed-cache-identity.cjs");
 const { summarizeRoomCoverage } = require("./src/services/room-coverage.cjs");
 const { summarizeProviderFeedQuality } = require("./src/services/feed-quality-diagnostics.cjs");
+const { buildFeedHealthSnapshot } = require("./src/services/feed-health.cjs");
 const { summarizeFeedIngestion } = require("./src/services/feed-ingestion-diagnostics.cjs");
 const { summarizeBongaRawFields, summarizeBongaFieldValues, summarizeBongaCountryCoverage } = require("./src/services/bonga-feed-diagnostics.cjs");
 const { normalizeBongaCountry } = require("./src/services/bonga-country-normalizer.cjs");
 const { hasAuthenticatedOrigin, resolveTrustedClientIpv4, buildModelsOnlineUrl, parseModelsOnlineResponse, normalizeTags, resolveBongaRoomImage, isBongaHd } = require("./src/services/bongacash-api-v2.cjs");
 let latestBongaRawDiagnostics = null;
 let latestProviderFeedDiagnostics = { chaturbateRegions: [], bongacams: null };
+let latestFeedRefreshState = { lastAttemptAt: null, lastCompletedAt: null, lastSuccessfulAt: null, providerHealth: { chaturbate: "unknown", bongacams: "unknown" }, bonga: { configuredVersion: "1", activeVersion: null, fallbackUsed: false } };
 
 let pgPool = null;
 try {
@@ -339,16 +341,22 @@ async function fetchBongaV2Rooms(req) {
  return filterDisplayableRooms(entries);
 }
 async function fetchBongaRooms(req) {
+ latestFeedRefreshState.bonga = { configuredVersion: BONGA_API_VERSION, activeVersion: null, fallbackUsed: false };
  console.info("BongaCams feed configuration.",JSON.stringify({enabled:BONGA_ENABLED,configuredApiVersion:BONGA_API_VERSION,limit:BONGA_LIMIT,trustedClientIpHeaderConfigured:Boolean(BONGA_TRUSTED_CLIENT_IP_HEADER),originAuthConfigured:Boolean(BONGA_ORIGIN_AUTH_SECRET)}));
  if(!BONGA_ENABLED)return[];
  if(BONGA_API_VERSION==="2") {
   try {
-   return await fetchBongaV2Rooms(req);
+   const rooms = await fetchBongaV2Rooms(req);
+   latestFeedRefreshState.bonga = { configuredVersion: "2", activeVersion: "2", fallbackUsed: false };
+   return rooms;
   } catch(error) {
+   latestFeedRefreshState.bonga = { configuredVersion: "2", activeVersion: "1", fallbackUsed: true };
    console.warn("BongaCash V2 feed failed; falling back to V1:",error.message);
   }
  }
- return fetchBongaV1Rooms();
+ const rooms = await fetchBongaV1Rooms();
+ latestFeedRefreshState.bonga.activeVersion = "1";
+ return rooms;
 }
 async function rooms(req) {
  const visitor=visitorCountry(req);
@@ -356,6 +364,7 @@ async function rooms(req) {
  const cacheKey=buildFeedCacheKey({country:visitor,clientIp:rawIp});
  return roomCache.get(cacheKey,async()=>{
   const startedAt=Date.now();
+  latestFeedRefreshState.lastAttemptAt = new Date(startedAt).toISOString();
   const results=await Promise.allSettled([fetchChaturbateRooms(req),fetchBongaRooms(req)]);
   const ch=results[0].status==="fulfilled"?results[0].value.rooms:[];
   const bc=results[1].status==="fulfilled"?results[1].value:[];
@@ -364,7 +373,11 @@ async function rooms(req) {
   else if(results[0].value.notice)notices.push(results[0].value.notice);
   if(results[1].status==="rejected"&&BONGA_ENABLED){console.warn("[bongacams-feed-unavailable]",results[1].reason&&results[1].reason.message?results[1].reason.message:"unknown feed error");notices.push("BongaCams feed unavailable");}
   const combined=filterDisplayableRooms([...ch,...bc].map(normalized=>({normalized,rawText:""})));
-  const entry={at:Date.now(),rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable."),providerHealth:{chaturbate:results[0].status==="fulfilled"?"available":"unavailable",bongacams:!BONGA_ENABLED?"disabled":results[1].status==="fulfilled"?"available":"unavailable"},cacheable:results[0].status!=="rejected"&&(!BONGA_ENABLED||results[1].status!=="rejected")&&!notices.length};
+  const completedAt = Date.now();
+  const providerHealth = { chaturbate: results[0].status === "fulfilled" ? "available" : "unavailable", bongacams: !BONGA_ENABLED ? "disabled" : results[1].status === "fulfilled" ? "available" : "unavailable" };
+  const cacheable = results[0].status !== "rejected" && (!BONGA_ENABLED || results[1].status !== "rejected") && !notices.length;
+  latestFeedRefreshState = { ...latestFeedRefreshState, lastCompletedAt: new Date(completedAt).toISOString(), lastSuccessfulAt: cacheable ? new Date(completedAt).toISOString() : latestFeedRefreshState.lastSuccessfulAt, providerHealth, regions: latestProviderFeedDiagnostics.chaturbateRegions.map(({ apiRegion, pagination }) => ({ apiRegion, truncated: Boolean(pagination && pagination.truncated), stopReason: pagination && pagination.stopReason || "unknown", pagesFetched: pagination && pagination.pagesFetched || 0, receivedCount: pagination && pagination.receivedCount || 0 })) };
+  const entry={at:completedAt,rooms:combined,notice:notices.length?notices.join(" · "):(combined.length?"":"Live rooms are temporarily unavailable."),providerHealth,cacheable};
   console.info("[room-feed-refresh]",JSON.stringify({elapsedMs:Date.now()-startedAt,cacheScope:"visitor-ip",chaturbateStatus:results[0].status,bongacamsStatus:BONGA_ENABLED?results[1].status:"disabled",chaturbateRooms:ch.length,bongacamsRooms:bc.length,totalRooms:combined.length}));
   return entry;
  });
@@ -439,6 +452,11 @@ function sitemap(origin, eligibleCountrySlugs = []) { const paths = ["/", "/live
 function withTrack(url,track){try{const next=new URL(url);next.searchParams.set("track",track);return next.toString();}catch{return `https://chaturbate.com/in/?tour=${encodeURIComponent(TOUR)}&campaign=${encodeURIComponent(CAMPAIGN)}&track=${encodeURIComponent(track)}`;}}
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url,"http://localhost"); const pathname=url.pathname;
+  if (pathname === "/healthz") return send(res, 200, JSON.stringify({ status: "ok", uptimeSeconds: Math.floor(process.uptime()) }), "application/json; charset=utf-8", { "Cache-Control": "no-store" });
+  if (pathname === "/api/health") {
+    const health = buildFeedHealthSnapshot({ ...latestFeedRefreshState, bonga: latestFeedRefreshState.bonga }, Date.now());
+    return send(res, 200, JSON.stringify({ status: health.status, uptimeSeconds: Math.floor(process.uptime()), feed: health }), "application/json; charset=utf-8", { "Cache-Control": "no-store" });
+  }
   if(pathname==="/robots.txt") return send(res,200,`User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /dashboard.html\nDisallow: /dashboard-v2.html\nDisallow: /dashboard-ui.html\nDisallow: /analytics-dashboard.html\nDisallow: /campaign-center.html\nDisallow: /promotools.html\nDisallow: /revenue.html\nDisallow: /go/\nDisallow: /bgo/\nDisallow: /api/\nSitemap: ${pageOrigin(req)}/sitemap.xml\n`,"text/plain");
   if (pathname === "/sitemap.xml") {
     const feed = await rooms(req);
