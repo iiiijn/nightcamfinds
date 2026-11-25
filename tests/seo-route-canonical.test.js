@@ -41,3 +41,28 @@ test("XML sitemap source excludes redirecting live route and keeps broadcast can
   assert.doesNotMatch(broadcastHtml, /<link rel="canonical" href="https:\/\/nightcamfinds\.com\/broadcast\/">/);
   assert.equal(canonicalSeoRedirectPath("/broadcast/"), "/broadcast");
 });
+
+
+test("priority category metadata is concise and rendered into server HTML", () => {
+  const server = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+  for (const [category, title] of [
+    ["female", "Female Live Cams Online | NightCamFinds"],
+    ["male", "Male Live Cams Online | NightCamFinds"],
+    ["couples", "Couples Live Cams Online | NightCamFinds"]
+  ]) {
+    const block = server.match(new RegExp(category + ": \\{([\\s\\S]*?)\\n    \\}"));
+    assert.ok(block, category + " SEO metadata should exist");
+    assert.ok(block[1].includes("title: \"" + title + "\""), category + " title should be explicit");
+    const description = block[1].match(/description: "([^"]+)"/);
+    assert.ok(description, category + " description should exist");
+    assert.ok(description[1].length <= 160, category + " description should be 160 characters or fewer");
+  }
+  assert.match(server, /<title>\$\{escapeSeoHtml\(seoTitle\)<\\/title>/);
+});
+
+test("broadcaster page title stays within the recommended title length", () => {
+  const broadcast = fs.readFileSync(path.join(__dirname, "..", "public", "broadcast.html"), "utf8");
+  const title = broadcast.match(/<title>([^<]+)<\\/title>/);
+  assert.ok(title);
+  assert.ok(title[1].length <= 60);
+});
