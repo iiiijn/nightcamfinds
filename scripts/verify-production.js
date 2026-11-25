@@ -32,7 +32,7 @@ for (const file of requiredFiles) {
   if (!fs.existsSync(file)) fail(`missing ${file}`);
 }
 
-for (const file of requiredFiles.filter(file => /\\.(?:c?js)$/.test(file))) {
+for (const file of requiredFiles.filter(file => /\.(?:c?js)$/.test(file))) {
   const result = spawnSync(process.execPath, ["--check", file], { stdio: "pipe", encoding: "utf8" });
   if (result.status !== 0) {
     fail(`syntax error in ${file}`);
