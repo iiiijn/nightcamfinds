@@ -82,3 +82,26 @@ test('same tagged campaign preserves its visit ID across internal navigation and
   assert.match(helper, /if \(validVisitId\(cachedVisitId\) && !newCampaignEntry\) return cachedVisitId/);
   assert.match(helper, /if \(!newCampaignEntry\) \{[\s\S]*sessionStorage\.getItem\('ncf_visit_id'\)/);
 });
+
+
+test('GA4 is consent-gated, uses the approved property, and avoids advertising signals', () => {
+  assert.match(helper, /G-W0HBR8LBKQ/);
+  assert.match(helper, /ncf_ga4_analytics_consent/);
+  assert.match(helper, /if \(!hasAnalyticsConsent\(\) \|\| root\.__NCF_GA4_INITIALIZED__\) return/);
+  assert.match(helper, /allow_google_signals: false/);
+  assert.match(helper, /allow_ad_personalization_signals: false/);
+  assert.match(helper, /page_location: root\.location\.origin \+ root\.location\.pathname/);
+  assert.match(helper, /Reject optional analytics/);
+});
+
+test('affiliate clicks emit a GA4 event without transmitting room IDs or visit IDs', () => {
+  assert.match(helper, /sendGa4Event\('affiliate_link_click'/);
+  assert.match(helper, /affiliate_platform: platform/);
+  assert.match(helper, /landing_page_path: getLandingPath/);
+  assert.doesNotMatch(helper, /click_id:|visit_id:|room_username:/);
+});
+
+test('public broadcaster and earning pages load the shared analytics preferences helper', () => {
+  assert.match(broadcast, /\/visit-tracking\.js/);
+  assert.match(earn, /\/visit-tracking\.js/);
+});
