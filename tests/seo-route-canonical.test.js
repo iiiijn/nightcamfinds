@@ -50,7 +50,7 @@ test("priority category metadata is concise and rendered into server HTML", () =
     ["male", "Male Live Cams Online | NightCamFinds"],
     ["couples", "Couples Live Cams Online | NightCamFinds"]
   ]) {
-    const block = server.match(new RegExp(category + ": \\{([\\s\\S]*?)\\n    \\}"));
+    const block = server.match(new RegExp("\\b" + category + ": \\{([\\s\\S]*?)\\n    \\}"));
     assert.ok(block, category + " SEO metadata should exist");
     assert.ok(block[1].includes("title: \"" + title + "\""), category + " title should be explicit");
     const description = block[1].match(/description: "([^"]+)"/);
