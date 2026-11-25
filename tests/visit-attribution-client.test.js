@@ -107,3 +107,10 @@ test('public broadcaster and earning pages load the shared analytics preferences
   assert.match(broadcast, /\/visit-tracking\.js/);
   assert.match(earn, /\/visit-tracking\.js/);
 });
+
+
+test('privacy policy explains optional GA4 consent and data boundaries', () => {
+  assert.match(server, /optional Google Analytics 4 measurement/);
+  assert.match(server, /Analytics preferences/);
+  assert.match(server, /does not intentionally send visit IDs, affiliate click IDs, room usernames/);
+});
