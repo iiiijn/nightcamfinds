@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { canonicalSeoRedirectPath } = require("../src/services/seo-route-canonical.cjs");
+const { renderCategorySeoHtml } = require("../src/services/category-seo-renderer.cjs");
 
 test("live route variants canonicalize to the homepage", () => {
   assert.equal(canonicalSeoRedirectPath("/live"), "/");
@@ -67,4 +68,38 @@ test("broadcaster page title stays within the recommended title length", () => {
   const title = titleEnd >= titleStart ? broadcast.slice(titleStart, titleEnd) : "";
   assert.ok(title);
   assert.ok(title.length <= 60);
+});
+
+
+test("category SEO renderer outputs real metadata and eligible country links", () => {
+  const baseHtml = [
+    "<html><head>",
+    "<title>Old title</title>",
+    '<meta name="description" content="Old description">',
+    '<meta property="og:title" content="Old OG title">',
+    '<meta property="og:description" content="Old OG description">',
+    "</head><body><main></main><footer></footer></body></html>"
+  ].join("");
+  const description = "Browse public male live webcam rooms and compare current activity and room details before visiting a partner platform.";
+  const rendered = renderCategorySeoHtml(baseHtml, {
+    name: "Male live webcam rooms",
+    title: "Male Live Cams Online | NightCamFinds",
+    description,
+    currentPath: "/male/",
+    paragraphs: ["Compare current room details."]
+  }, "https://nightcamfinds.com/male/", [
+    { name: "United States", href: "/country/us/" },
+    { name: "Germany", href: "/country/de/" },
+    { name: "Unapproved market", href: "/country/zz/" },
+    { name: "Invalid path", href: "/country/us" }
+  ]);
+
+  assert.match(rendered, /<title>Male Live Cams Online \| NightCamFinds<\\/title>/);
+  assert.match(rendered, new RegExp('<meta name="description" content="' + description.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&") + '">'));
+  assert.match(rendered, /<meta property="og:title" content="Male Live Cams Online \| NightCamFinds">/);
+  assert.match(rendered, /<meta property="og:description" content="Browse public male live webcam rooms/);
+  assert.match(rendered, /href="\\/country\\/us\\/">United States rooms<\\/a>/);
+  assert.match(rendered, /href="\\/country\\/de\\/">Germany rooms<\\/a>/);
+  assert.doesNotMatch(rendered, /Unapproved market|Invalid path/);
+  assert.doesNotMatch(rendered, /href="\\/male\\/">Male rooms/);
 });
