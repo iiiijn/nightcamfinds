@@ -9,6 +9,8 @@ const app = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
 const index = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 const country = fs.readFileSync(path.join(__dirname, '../country-pages.js'), 'utf8');
 const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+const broadcast = fs.readFileSync(path.join(__dirname, '../public/broadcast.html'), 'utf8');
+const earn = fs.readFileSync(path.join(__dirname, '../public/earn.html'), 'utf8');
 
 test('visit identifier helper falls back to a same-origin session cookie when sessionStorage is unavailable', () => {
   assert.match(helper, /sessionStorage\.getItem\('ncf_visit_id'\)/);
