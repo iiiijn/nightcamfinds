@@ -25,7 +25,8 @@ test("category pages receive useful server-rendered copy and related category li
   assert.ok(server.includes("categorySeoContent"));
   assert.ok(server.includes("category-seo-content"));
   assert.ok(server.includes("Related room categories"));
-  assert.ok(server.includes("categorySeo.paragraphs.map"));
+  assert.ok(server.includes("renderCategorySeoHtml"));
+  assert.ok(server.includes("getEligibleCountrySitemapSlugs"));
 });
 
 test("category pages publish CollectionPage structured data and category Open Graph metadata", () => {
