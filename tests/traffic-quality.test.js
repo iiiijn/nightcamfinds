@@ -297,6 +297,7 @@ test('shared visit tracking decorates server-rendered and dynamically added affi
   let clickHandler = null;
   const document = {
     documentElement: {},
+    querySelector() { return null; },
     querySelectorAll() { return anchors; },
     addEventListener(type, handler, capture) {
       if (type === 'click' && capture === true) clickHandler = handler;
