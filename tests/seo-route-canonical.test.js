@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const { canonicalSeoRedirectPath } = require("../src/services/seo-route-canonical.cjs");
 
 test("live route variants canonicalize to the homepage", () => {
