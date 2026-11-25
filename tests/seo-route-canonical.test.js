@@ -94,12 +94,12 @@ test("category SEO renderer outputs real metadata and eligible country links", (
     { name: "Invalid path", href: "/country/us" }
   ]);
 
-  assert.match(rendered, /<title>Male Live Cams Online \| NightCamFinds<\\/title>/);
-  assert.match(rendered, new RegExp('<meta name="description" content="' + description.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&") + '">'));
-  assert.match(rendered, /<meta property="og:title" content="Male Live Cams Online \| NightCamFinds">/);
-  assert.match(rendered, /<meta property="og:description" content="Browse public male live webcam rooms/);
-  assert.match(rendered, /href="\\/country\\/us\\/">United States rooms<\\/a>/);
-  assert.match(rendered, /href="\\/country\\/de\\/">Germany rooms<\\/a>/);
+  assert.ok(rendered.includes("<title>Male Live Cams Online | NightCamFinds</title>"));
+  assert.ok(rendered.includes('<meta name="description" content="' + description + '">'));
+  assert.ok(rendered.includes('<meta property="og:title" content="Male Live Cams Online | NightCamFinds">'));
+  assert.ok(rendered.includes('<meta property="og:description" content="' + description + '">'));
+  assert.ok(rendered.includes('<a href="/country/us/">United States rooms</a>'));
+  assert.ok(rendered.includes('<a href="/country/de/">Germany rooms</a>'));
   assert.doesNotMatch(rendered, /Unapproved market|Invalid path/);
-  assert.doesNotMatch(rendered, /href="\\/male\\/">Male rooms/);
+  assert.ok(!rendered.includes('<a href="/male/">Male rooms</a>'));
 });
