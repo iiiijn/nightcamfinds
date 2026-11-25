@@ -172,7 +172,7 @@
     let platform = 'unknown';
     try {
       const url = new URL(anchor.getAttribute('href') || anchor.href, root.location.href);
-      platform = /^\\/bgo\\//i.test(url.pathname) ? 'bongacams' : /^\\/go\\//i.test(url.pathname) ? 'chaturbate' : 'unknown';
+      platform = /^\/bgo\//i.test(url.pathname) ? 'bongacams' : /^\/go\//i.test(url.pathname) ? 'chaturbate' : 'unknown';
     } catch (_) {}
     sendGa4Event('affiliate_link_click', {
       affiliate_platform: platform,
