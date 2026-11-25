@@ -297,6 +297,7 @@ test('shared visit tracking decorates server-rendered and dynamically added affi
   let clickHandler = null;
   const document = {
     documentElement: {},
+    querySelector() { return null; },
     querySelectorAll() { return anchors; },
     addEventListener(type, handler, capture) {
       if (type === 'click' && capture === true) clickHandler = handler;
@@ -321,6 +322,9 @@ test('shared visit tracking decorates server-rendered and dynamically added affi
     sessionStorage: {
       getItem(key) { return session.has(key) ? session.get(key) : null; },
       setItem(key, value) { session.set(key, String(value)); }
+    },
+    localStorage: {
+      getItem() { return 'denied'; }
     },
     crypto: {
       getRandomValues(bytes) {

@@ -9,6 +9,8 @@ const app = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
 const index = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
 const country = fs.readFileSync(path.join(__dirname, '../country-pages.js'), 'utf8');
 const server = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+const broadcast = fs.readFileSync(path.join(__dirname, '../public/broadcast.html'), 'utf8');
+const earn = fs.readFileSync(path.join(__dirname, '../public/earn.html'), 'utf8');
 
 test('visit identifier helper falls back to a same-origin session cookie when sessionStorage is unavailable', () => {
   assert.match(helper, /sessionStorage\.getItem\('ncf_visit_id'\)/);
@@ -81,4 +83,34 @@ test('a different tagged campaign entry gets a fresh visit ID and landing path',
 test('same tagged campaign preserves its visit ID across internal navigation and refreshes', () => {
   assert.match(helper, /if \(validVisitId\(cachedVisitId\) && !newCampaignEntry\) return cachedVisitId/);
   assert.match(helper, /if \(!newCampaignEntry\) \{[\s\S]*sessionStorage\.getItem\('ncf_visit_id'\)/);
+});
+
+
+test('GA4 is consent-gated, uses the approved property, and avoids advertising signals', () => {
+  assert.match(helper, /G-W0HBR8LBKQ/);
+  assert.match(helper, /ncf_ga4_analytics_consent/);
+  assert.match(helper, /if \(!hasAnalyticsConsent\(\) \|\| root\.__NCF_GA4_INITIALIZED__\) return/);
+  assert.match(helper, /allow_google_signals: false/);
+  assert.match(helper, /allow_ad_personalization_signals: false/);
+  assert.match(helper, /page_location: root\.location\.origin \+ root\.location\.pathname/);
+  assert.match(helper, /Reject optional analytics/);
+});
+
+test('affiliate clicks emit a GA4 event without transmitting room IDs or visit IDs', () => {
+  assert.match(helper, /sendGa4Event\('affiliate_link_click'/);
+  assert.match(helper, /affiliate_platform: platform/);
+  assert.match(helper, /landing_page_path: getLandingPath/);
+  assert.doesNotMatch(helper, /click_id:|visit_id:|room_username:/);
+});
+
+test('public broadcaster and earning pages load the shared analytics preferences helper', () => {
+  assert.match(broadcast, /\/visit-tracking\.js/);
+  assert.match(earn, /\/visit-tracking\.js/);
+});
+
+
+test('privacy policy explains optional GA4 consent and data boundaries', () => {
+  assert.match(server, /optional Google Analytics 4 measurement/);
+  assert.match(server, /Analytics preferences/);
+  assert.match(server, /does not intentionally send visit IDs, affiliate click IDs, room usernames/);
 });
