@@ -12,6 +12,7 @@ const requiredFiles = [
   "src/services/origin-auth.cjs",
   "src/services/feed-health.cjs",
   "tests/feed-health.test.js",
+  "tests/health-route-delegation.test.js",
   "tests/origin-auth.test.js",
   "docs/phase-a1-7-security-rollout.md",
   ".github/workflows/verify-production.yml",
@@ -56,6 +57,8 @@ if (!render.includes("startCommand: npm start")) fail("Render must start through
 if (!render.includes("healthCheckPath: /healthz")) fail("Render must use the lightweight /healthz liveness endpoint");
 
 const route = fs.readFileSync("route.js", "utf8");
+if (!route.includes('if (incoming.pathname === "/api/health") return handler(req, res);')) fail("dashboard middleware must delegate /api/health to the canonical feed-health handler");
+if (/incoming\.pathname === "\/api\/health"[\s\S]{0,300}databaseConfigured/.test(route)) fail("legacy database-only /api/health response must not shadow feed diagnostics");
 const originAuthPatch = require("./patch-origin-auth.js");
 const patchedRoute = originAuthPatch.patchSource(route);
 if (!patchedRoute.includes(originAuthPatch.MARKER)) fail("Cloudflare origin-auth guard is missing from the build output");

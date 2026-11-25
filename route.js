@@ -921,13 +921,9 @@ http.createServer = function routeDashboard(handler) {
         return sendJson(res, 500, { error: "Could not load recent room clicks." });
       }
     }
-    if (incoming.pathname === "/api/health") {
-      return sendJson(res, 200, {
-        ok: true,
-        databaseConfigured: Boolean(databaseUrl),
-        timestamp: new Date().toISOString()
-      });
-    }
+    // Delegate to server.js so the canonical feed-health response is not shadowed here.
+    if (incoming.pathname === "/api/health") return handler(req, res);
+
     if (incoming.pathname === "/telegram-campaigns.html") {
       if (!validDashboardSession(req)) {
         res.writeHead(302, { "Location": "/dashboard", "Cache-Control": "no-store" });
