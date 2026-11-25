@@ -10,6 +10,7 @@ const { getCountryPage, COUNTRIES: COUNTRY_PAGE_CONTENT } = require("./country-p
 const { resolveChaturbateCountry, normalizeRegion, normalizeLanguages, buildHtmlSitemap } = require("./src/services/country-directory.cjs");
 const { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");
 const { getEligibleCountrySitemapSlugs } = require("./src/services/country-sitemap-eligibility.cjs");
+const { renderCategorySeoHtml } = require("./src/services/category-seo-renderer.cjs");
 const { renderRoomCards, renderHeroCopy, plainText } = require("./src/services/room-page-renderer.cjs");
 const { classifyUserAgent } = require("./src/services/traffic-quality.cjs");
 const { createPostgresRedirectRateLimiter, createInMemoryRedirectRateLimiter, normalizeClientIp } = require("./src/services/redirect-rate-limiter.cjs");
@@ -696,7 +697,8 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   const categorySeoContent = {
     female: {
       name: "Female live cam rooms online",
-      description: "Browse public female live cam rooms online and compare current viewer activity, room details, country and streaming platform before choosing where to watch.",
+      title: "Female Live Cams Online | NightCamFinds",
+      description: "Browse public female live cam rooms and compare current activity, room details and partner platforms before choosing a room.",
       paragraphs: [
         "NightCamFinds is a live room discovery directory for adults. Browse female rooms currently listed by Chaturbate and BongaCams, then compare the available room details and viewer activity. Listings can change as broadcasters go online or offline.",
         "Use the country and platform information shown with each room to narrow your discovery. Viewer counts are a snapshot, not a guarantee of what is happening inside a stream. Open a room on its partner platform to watch, chat and review that platform’s account, moderation and payment options."
@@ -704,7 +706,8 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     },
     male: {
       name: "Male live webcam rooms",
-      description: "Discover public male live webcam rooms and compare current activity and available room details before visiting the partner platform.",
+      title: "Male Live Cams Online | NightCamFinds",
+      description: "Discover public male live webcam rooms and compare current activity and room details before visiting a partner platform.",
       paragraphs: [
         "Browse rooms categorized as male by the available partner feeds. Use current viewer activity and the room details as discovery signals, remembering that listings can change quickly.",
         "NightCamFinds is an independent directory. Streams, accounts, moderation and payments are provided by the external platform linked from each room."
@@ -720,7 +723,8 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     },
     couples: {
       name: "Couples live webcam rooms",
-      description: "Find live couples cam rooms and compare public room activity and available details before continuing to a partner platform.",
+      title: "Couples Live Cams Online | NightCamFinds",
+      description: "Find live couples cam rooms and compare current activity and room details before visiting their partner platforms.",
       paragraphs: [
         "Explore couples cams from the public room listings supplied by Chaturbate and BongaCams. Compare current viewer activity and room information to find a live room that matches your interests.",
         "Room availability can change at any time. NightCamFinds does not host video or operate partner accounts; the linked platform provides the stream, moderation and any paid features."
@@ -749,37 +753,19 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
   const categorySeo = !forced ? categorySeoContent[category] : null;
   if (categorySeo) {
     const categoryUrl = `${pageOrigin(req)}${pathname}`;
-    const escapeSeoHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-    }[char]));
-    const relatedCategories = [
-      ["Female rooms", "/female/"], ["Male rooms", "/male/"],
-      ["Trans rooms", "/trans/"], ["Couples rooms", "/couples/"],
-      ["Browse by country", "/countries/"]
-    ].filter(([, href]) => href !== pathname);
-    const relatedLinks = relatedCategories.map(([label, href]) =>
-      `<a href="${href}">${escapeSeoHtml(label)}</a>`
-    ).join(" · ");
-    const seoSection = `<section class="content-section category-seo-content" aria-labelledby="category-seo-heading">
-      <p class="eyebrow">NightCamFinds room directory</p>
-      <h2 id="category-seo-heading">${escapeSeoHtml(categorySeo.name)}</h2>
-      <p>${escapeSeoHtml(categorySeo.description)}</p>
-      ${categorySeo.paragraphs.map((paragraph) => `<p>${escapeSeoHtml(paragraph)}</p>`).join("")}
-      <nav aria-label="Related room categories"><p>Explore more: ${relatedLinks}</p></nav>
-    </section>`;
-    html = html.replace("<footer>", `${seoSection}<footer>`);
-    const structuredData = {
-      "@context": "https://schema.org",
-      "@type": "CollectionPage",
-      "name": categorySeo.name,
-      "description": categorySeo.description,
-      "url": categoryUrl,
-      "isPartOf": { "@type": "WebSite", "name": "NightCamFinds", "url": pageOrigin(req) }
-    };
-    const jsonLd = JSON.stringify(structuredData).replace(/</g, "\\u003c");
-    html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escapeSeoHtml(copy[3])}">`);
-    html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escapeSeoHtml(copy[2])}">`);
-    html = html.replace("</head>", `<script type="application/ld+json">${jsonLd}</script></head>`);
+    const eligibleCountrySlugs = getEligibleCountrySitemapSlugs({
+      marketMeta: MARKET_META,
+      countryContent: COUNTRY_PAGE_CONTENT,
+      rooms: feed.rooms
+    });
+    const countryLinks = eligibleCountrySlugs
+      .map((slug) => {
+        const country = COUNTRY_PAGE_CONTENT[slug];
+        return country ? { name: country.name, href: `/country/${slug}/` } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    html = renderCategorySeoHtml(html, { ...categorySeo, currentPath: pathname, fallbackTitle: copy[3] }, categoryUrl, countryLinks);
   }
   return send(res,200,html,"text/html; charset=utf-8",visitCookieHeaders(req, pathname));
 }
