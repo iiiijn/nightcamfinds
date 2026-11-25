@@ -44,7 +44,7 @@ function renderCategorySeoHtml(html, categorySeo, categoryUrl, countryLinks = []
   };
   const jsonLd = JSON.stringify(structuredData).replace(/</g, "\\u003c");
   const seoTitle = categorySeo.title || categorySeo.fallbackTitle || "";
-  html = html.replace(/<title>[^<]*<\\/title>/, `<title>${escape(seoTitle)}</title>`);
+  html = html.replace(/<title>[^<]*<\/title>/, `<title>${escape(seoTitle)}</title>`);
   html = html.replace(/<meta name="description" content="[^"]*">/, `<meta name="description" content="${escape(categorySeo.description)}">`);
   html = html.replace(/<meta property="og:title" content="[^"]*">/, `<meta property="og:title" content="${escape(seoTitle)}">`);
   html = html.replace(/<meta property="og:description" content="[^"]*">/, `<meta property="og:description" content="${escape(categorySeo.description)}">`);
