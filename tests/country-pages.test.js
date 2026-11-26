@@ -99,9 +99,30 @@ test("country landing pages create privacy-conscious engagement and preserve lan
   assert.match(html, /const placement = "country-" \+ countrySlug/);
 });
 
-test("related country links include only markets that meet the live-room threshold when eligibility is supplied", () => {
-  const html = getCountryPage("de", "https://nightcamfinds.com", "", true, ["gb", "nl", "au"]);
+test("related country links include every eligible Tier 1, Tier 2 and Tier 3 market grouped by region", () => {
+  const eligible = ["gb", "nl", "pl", "ru", "ro", "lv", "au"];
+  const html = getCountryPage("de", "https://nightcamfinds.com", "", true, eligible);
+  assert.match(html, /Explore country markets/);
+  assert.match(html, /<h3>Europe<\/h3>/);
+  assert.match(html, /<h3>Europe &amp; Asia<\/h3>/);
+  for (const slug of eligible) {
+    assert.ok(html.includes('href="/country/' + slug + '/"'), slug + " should be linked");
+  }
+  for (const slug of ["de", "be", "dk", "no", "ch", "at", "se"]) {
+    assert.ok(!html.includes('href="/country/' + slug + '/"'), slug + " should not be linked");
+  }
+  const countryLinks = [...html.matchAll(/href="\/country\/([a-z]{2})\/"/g)].map((match) => match[1]);
+  assert.equal(countryLinks.length, eligible.length);
+  assert.equal(new Set(countryLinks).size, eligible.length);
+});
+
+test("country market navigation includes Russia and Poland when they qualify, regardless of tier", () => {
+  const { MARKET_META } = require("../src/config/market-countries.cjs");
+  assert.equal(MARKET_META.ru.priority, "Tier 3");
+  assert.equal(MARKET_META.pl.priority, "Tier 2");
+  const html = getCountryPage("ru", "https://nightcamfinds.com", "", true, ["ru", "pl", "ro", "gb"]);
+  assert.ok(html.includes('href="/country/pl/"'));
+  assert.ok(html.includes('href="/country/ro/"'));
   assert.ok(html.includes('href="/country/gb/"'));
-  assert.ok(html.includes('href="/country/nl/"'));
-  for (const slug of ["be", "dk", "no", "ch", "at", "au"]) assert.ok(!html.includes('href="/country/' + slug + '/"'));
+  assert.ok(!html.includes('href="/country/ru/"'));
 });
