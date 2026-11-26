@@ -223,10 +223,10 @@ test("adds event_key to an existing BongaCash conversions table before indexing 
   await ensureTable(pool);
 
   const addColumnIndex = statements.findIndex(sql =>
-    /ALTER TABLE bonga_conversions ADD COLUMN IF NOT EXISTS event_key VARCHAR\\(320\\)/i.test(sql)
+    sql.includes("ALTER TABLE bonga_conversions ADD COLUMN IF NOT EXISTS event_key VARCHAR(320)")
   );
   const createIndexIndex = statements.findIndex(sql =>
-    /CREATE UNIQUE INDEX IF NOT EXISTS bonga_conversions_event_key_uidx/i.test(sql)
+    sql.includes("CREATE UNIQUE INDEX IF NOT EXISTS bonga_conversions_event_key_uidx")
   );
 
   assert.notEqual(addColumnIndex, -1);
