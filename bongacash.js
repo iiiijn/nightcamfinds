@@ -128,6 +128,8 @@ async function ensureTable(pool) {
     )
   `);
   await pool.query("ALTER TABLE bonga_conversions ALTER COLUMN click_id TYPE VARCHAR(128)");
+  // Existing installations do not gain new columns from CREATE TABLE IF NOT EXISTS.
+  await pool.query("ALTER TABLE bonga_conversions ADD COLUMN IF NOT EXISTS event_key VARCHAR(320)");
   await pool.query("ALTER TABLE bonga_conversions ADD COLUMN IF NOT EXISTS status VARCHAR(40)");
   await pool.query("CREATE INDEX IF NOT EXISTS bonga_conversions_received_at_idx ON bonga_conversions(received_at)");
   await pool.query("CREATE INDEX IF NOT EXISTS bonga_conversions_click_id_idx ON bonga_conversions(click_id)");
