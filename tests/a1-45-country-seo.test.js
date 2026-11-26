@@ -53,16 +53,20 @@ test("country pages without adequate live-room supply stay out of the index and 
 });
 
 
-test("Tier 1 country pages link to other priority markets in the same region", () => {
+test("country pages link to all configured markets in regional groups", () => {
   const ukHtml = getCountryPage("gb", "https://preview.example.test", "", true);
-  assert.match(ukHtml, /Explore other Europe markets/);
+  assert.match(ukHtml, /Explore country markets/);
+  assert.match(ukHtml, /<h3>Europe<\/h3>/);
   assert.match(ukHtml, /href="\/country\/de\/">Germany live cams/);
   assert.match(ukHtml, /href="\/country\/fr\/">France live cams/);
+  assert.match(ukHtml, /href="\/country\/pl\/">Poland live cams/);
+  assert.match(ukHtml, /href="\/country\/ru\/">Russia live cams/);
+  assert.match(ukHtml, /<h3>North America<\/h3>/);
+  assert.match(ukHtml, /href="\/country\/ca\/">Canada live cams/);
   assert.doesNotMatch(ukHtml, /href="\/country\/gb\/">/);
-  assert.doesNotMatch(ukHtml, /href="\/country\/ca\/">Canada live cams/);
 
   const usHtml = getCountryPage("us", "https://preview.example.test", "", true);
-  assert.match(usHtml, /Explore other North America markets/);
+  assert.match(usHtml, /Explore country markets/);
   assert.match(usHtml, /href="\/country\/ca\/">Canada live cams/);
   assert.doesNotMatch(usHtml, /href="\/country\/us\/">/);
 });
