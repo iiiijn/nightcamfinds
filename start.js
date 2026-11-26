@@ -20,6 +20,7 @@ try {
   console.warn("Chaturbate postback database unavailable:", err.message);
 }
 
+const dashboardSession = require("./src/services/dashboard-session.cjs");
 const ADMIN_USER = process.env.ADMIN_USER || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || process.env.DASHBOARD_PASSWORD || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "";
@@ -37,33 +38,16 @@ function clientAddress(req) {
   return String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown").split(",")[0].trim();
 }
 function parseCookies(req) {
-  const out = {};
-  for (const part of String(req.headers.cookie || "").split(";")) {
-    const i = part.indexOf("=");
-    if (i > 0) { try { out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim()); } catch {} }
-  }
-  return out;
+  return dashboardSession.parseCookies(req.headers.cookie);
 }
 function sessionCookie(username) {
-  const payload = `${username}.${Date.now()}.${crypto.randomBytes(18).toString("hex")}`;
-  const signature = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
-  return `${payload}.${signature}`;
+  return dashboardSession.createSessionToken({ username, secret: SESSION_SECRET });
 }
 function validSession(req) {
-  if (!SESSION_SECRET) return false;
-  const token = parseCookies(req).ncf_session;
-  if (!token) return false;
-  const parts = token.split(".");
-  if (parts.length !== 4) return false;
-  const [username, issuedAt, nonce, signature] = parts;
-  const payload = `${username}.${issuedAt}.${nonce}`;
-  const expected = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
-  const issued = Number(issuedAt);
-  return safeEqual(signature, expected) && username === ADMIN_USER && Number.isFinite(issued) &&
-    Date.now() - issued <= SESSION_TTL && Date.now() >= issued - 60000;
+  return dashboardSession.isValidSession(req.headers.cookie, { secret: SESSION_SECRET, username: ADMIN_USER });
 }
 function cookieHeader(value, maxAge = SESSION_TTL / 1000) {
-  return `ncf_session=${encodeURIComponent(value)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${Math.max(0, Math.floor(maxAge))}`;
+  return dashboardSession.cookieHeader(value, maxAge);
 }
 function json(res, status, body, headers = {}) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", ...headers });
