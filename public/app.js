@@ -149,6 +149,8 @@ function sendEngagement(eventType) {
     })
   }).catch(() => {});
 }
+// Mark this page as having the directory-owned core engagement tracker.
+window.__NCF_CORE_ENGAGEMENT_INITIALIZED__ = true;
 // Record the landing visit immediately. Engagement remains a separate signal.
 sendEngagement("page_view");
 let activeTimer;

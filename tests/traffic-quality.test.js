@@ -411,3 +411,17 @@ test('page_view records the visit immediately without inserting a page_view enga
   assert.match(route, /event_type IN \('active_10s','scroll_50'\)/);
   assert.match(route, /eligibleForEngagementMetrics: effectiveTrafficClass === "unverified" && !VISIT_EVENTS\.has\(event\.eventType\)/);
 });
+
+
+test('promotional script does not duplicate core page engagement events', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const promo = fs.readFileSync(path.join(__dirname, '../public/promo.js'), 'utf8');
+  const app = fs.readFileSync(path.join(__dirname, '../public/app.js'), 'utf8');
+  assert.match(app, /sendEngagement\("page_view"\);/);
+  assert.match(app, /sendEngagement\("active_10s"\)/);
+  assert.match(app, /sendEngagement\("scroll_50"\)/);
+  assert.match(app, /window\.__NCF_CORE_ENGAGEMENT_INITIALIZED__ = true/);
+  assert.match(promo, /if \(!window\.__NCF_CORE_ENGAGEMENT_INITIALIZED__\) \{[\s\S]*recordEngagement\('page_view'\)[\s\S]*recordEngagement\('active_10s'\)[\s\S]*recordEngagement\('scroll_50'\)/);
+  assert.match(promo, /recordEngagement\(['"]bonga_(?:static_banner|category_widget|banner)_/);
+});
