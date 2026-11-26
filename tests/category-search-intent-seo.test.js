@@ -15,7 +15,7 @@ test("primary category SEO copy targets live-room discovery intent", () => {
     "Trans Live Webcam Rooms | NightCamFinds",
     "Couples Live Webcam Rooms | NightCamFinds"
   ]) assert.ok(server.includes(title), title + " title exists");
-  assert.ok(server.includes("Find live couples cam rooms"));
+  assert.ok(server.includes("Find couples live cam rooms online"));
   assert.ok(server.includes("Browse female live cam rooms online"));
   assert.ok(server.includes("Female Live Cam Rooms Online | NightCamFinds"));
   assert.ok(server.includes("Browse female live cam rooms online from Chaturbate and BongaCams."));
@@ -30,7 +30,7 @@ test("country directory SEO targets country-based discovery across both partner 
   assert.ok(server.includes("Live Cams by Country | Chaturbate & BongaCams | NightCamFinds"));
   assert.ok(server.includes("Find Chaturbate and BongaCams live cams by country."));
   assert.ok(server.includes("Find live cams by country using the location information supplied"));
-  assert.ok(server.includes("country labels are supplied by partner feeds"));
+  assert.ok(server.includes("Country labels are supplied by partner feeds"));
 });
 
 test("category pages render useful copy and links to eligible country directories", () => {
