@@ -703,6 +703,15 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     countries:["Countries","Live cams by country","Pick a country to filter rooms that publish a country code. Not every room includes one.","Live cams by country — NightCamFinds"]
   };
   const categorySeoContent = {
+    countries: {
+      name: "Live cam rooms by country",
+      title: "Live Cams by Country | Chaturbate & BongaCams | NightCamFinds",
+      description: "Browse live cam rooms by country from Chaturbate and BongaCams. Compare public rooms by location and open them on their partner platforms.",
+      paragraphs: [
+        "Explore public live cam rooms grouped by the country information supplied in the Chaturbate and BongaCams partner feeds. Choose a country to see currently listed rooms, then compare room details and activity before opening a listing.",
+        "Country information depends on what each broadcaster and partner feed provides, so some rooms may have no country listed. Room availability changes as broadcasters come online or offline. NightCamFinds is an independent 18+ discovery directory and does not host streams or operate partner accounts."
+      ]
+    },
     female: {
       name: "Female live cam rooms online",
       title: "Female Live Cams Online | NightCamFinds",
