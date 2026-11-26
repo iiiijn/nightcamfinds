@@ -53,7 +53,9 @@ test("protected production route exposes read-only conversion health and never r
   assert.match(route, /incoming\.pathname === "\/api\/affiliate-conversion-health"/);
   assert.match(route, /validDashboardSession\(req\)/);
   assert.match(route, /postbackSecretConfigured: Boolean\(String\(process\.env\.CB_POSTBACK_SECRET/);
-  assert.match(route, /COUNT\(\*\) FILTER \(WHERE NOT /);
+  assert.match(route, /unsupported_event_types/);
+  assert.match(route, /unresolved_macro_events/);
+  assert.match(route, /unsupportedEventTypes: row\.unsupported_event_types/);
   assert.match(route, /bongacash_daily_reconciliation/);
   assert.ok(!route.includes("process.env.CB_POSTBACK_SECRET,"));
 });
@@ -63,5 +65,7 @@ test("revenue dashboard loads and displays conversion pipeline health", () => {
   assert.match(html, /id="conversionHealth"/);
   assert.match(html, /\/api\/affiliate-conversion-health\?/);
   assert.match(html, /Matching coverage/);
+  assert.match(html, /Unsupported event types excluded/);
+  assert.match(html, /Unresolved macro\/test callbacks/);
   assert.match(html, /Reconciliation status/);
 });
