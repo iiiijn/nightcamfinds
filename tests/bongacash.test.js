@@ -144,7 +144,7 @@ test("records a reversal sharing a transaction ID while deduplicating repeat del
       if (sql.includes("SELECT click_id FROM bonga_clicks")) return { rows: [{ click_id: values[0] }] };
       if (sql.includes("INSERT INTO bonga_conversions")) {
         insertStatements.push(sql);
-        const key = values[1] + ":" + values[2];
+        const key = values[2];
         if (seen.has(key)) return { rowCount: 0, rows: [] };
         seen.add(key);
         return { rowCount: 1, rows: [{ transaction_id: values[1] }] };
@@ -164,7 +164,7 @@ test("records a reversal sharing a transaction ID while deduplicating repeat del
   assert.equal(firstRefund.type, "refund");
   assert.equal(repeatedRefund.duplicate, true);
   assert.equal(seen.size, 2);
-  assert.ok(insertStatements.every(sql => sql.includes("ON CONFLICT (transaction_id, conversion_type) DO NOTHING")));
+  assert.ok(insertStatements.every(sql => sql.includes("ON CONFLICT (event_key) DO NOTHING")));
 });
 
 
