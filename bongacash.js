@@ -131,6 +131,7 @@ async function ensureTable(pool) {
   await pool.query("ALTER TABLE bonga_conversions ADD COLUMN IF NOT EXISTS status VARCHAR(40)");
   await pool.query("CREATE INDEX IF NOT EXISTS bonga_conversions_received_at_idx ON bonga_conversions(received_at)");
   await pool.query("CREATE INDEX IF NOT EXISTS bonga_conversions_click_id_idx ON bonga_conversions(click_id)");
+  await pool.query("CREATE UNIQUE INDEX IF NOT EXISTS bonga_conversions_event_key_uidx ON bonga_conversions(event_key)");
 }
 
 async function save(pool, params) {
