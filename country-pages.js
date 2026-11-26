@@ -1,6 +1,6 @@
 "use strict";
 
-const { MARKET_META, MARKET_PRIORITY_CODES } = require("./src/config/market-countries.cjs");
+const { MARKET_META } = require("./src/config/market-countries.cjs");
 
 const COUNTRIES = {
   us: {
