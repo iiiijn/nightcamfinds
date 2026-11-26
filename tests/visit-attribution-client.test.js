@@ -72,17 +72,18 @@ test('country and promotional landing pages record page views immediately', () =
 });
 
 
-test('a different tagged campaign entry gets a fresh visit ID and landing path', () => {
+test('a different tagged campaign entry preserves the visit ID and refreshes landing attribution', () => {
   assert.match(helper, /function incomingCampaignKey\(\)/);
   assert.match(helper, /ncf_visit_campaign_key/);
   assert.match(helper, /const newCampaignEntry = Boolean\(campaignKey && campaignKey !== previousCampaignKey\)/);
-  assert.match(helper, /if \(newCampaignEntry\) \{[\s\S]*cachedVisitId = '';[\s\S]*cachedLandingPath = ''/);
-  assert.match(helper, /root\.sessionStorage\.setItem\('ncf_landing_path', root\.location\.pathname \|\| '\/'\)/);
+  assert.match(helper, /if \(newCampaignEntry\) \{[\s\S]*cachedLandingPath = '';[\s\S]*sessionStorage\.setItem\('ncf_landing_path'/);
+  assert.doesNotMatch(helper, /cachedVisitId = ''/);
 });
 
-test('same tagged campaign preserves its visit ID across internal navigation and refreshes', () => {
-  assert.match(helper, /if \(validVisitId\(cachedVisitId\) && !newCampaignEntry\) return cachedVisitId/);
-  assert.match(helper, /if \(!newCampaignEntry\) \{[\s\S]*sessionStorage\.getItem\('ncf_visit_id'\)/);
+test('cached and session visit IDs remain stable across campaign changes and refreshes', () => {
+  assert.match(helper, /if \(validVisitId\(cachedVisitId\)\) \{[\s\S]*writeCookie\('ncf_visit_id', cachedVisitId\)[\s\S]*return cachedVisitId/);
+  assert.match(helper, /sessionStorage\.getItem\('ncf_visit_id'\)/);
+  assert.doesNotMatch(helper, /if \(!newCampaignEntry\) \{[\s\S]*sessionStorage\.getItem\('ncf_visit_id'\)/);
 });
 
 
