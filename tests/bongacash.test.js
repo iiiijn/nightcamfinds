@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizePostback, normalizeType } from "../bongacash.js";
+import { ensureTable, normalizePostback, normalizeType } from "../bongacash.js";
 
 test("normalizes BongaCash purchase postbacks", () => {
   const params = new URLSearchParams({
@@ -85,14 +85,15 @@ test("accepts formatted numeric payouts but rejects malformed optional amounts",
   assert.equal(invalidAmount.reason, "invalid_amount");
 });
 
-test("allows registration callbacks without payout while preserving zero as the payout placeholder", () => {
+test("allows signup callbacks without transaction ID or payout", () => {
   const result = normalizePostback(new URLSearchParams({
     click_id: "ncf_bonga_123",
-    transaction_id: "tx-registration",
-    type: "registration"
+    event: "registration"
   }));
   assert.equal(result.ok, true);
   assert.equal(result.event.payout, 0);
+  assert.equal(result.event.transactionId, null);
+  assert.match(result.event.eventKey, /^registration:ncf_bonga_123:/);
 });
 
 test("normalizes confirmed BongaCash initial and rebill transaction types as purchases", () => {
@@ -143,7 +144,7 @@ test("records a reversal sharing a transaction ID while deduplicating repeat del
       if (sql.includes("SELECT click_id FROM bonga_clicks")) return { rows: [{ click_id: values[0] }] };
       if (sql.includes("INSERT INTO bonga_conversions")) {
         insertStatements.push(sql);
-        const key = values[1] + ":" + values[2];
+        const key = values[2];
         if (seen.has(key)) return { rowCount: 0, rows: [] };
         seen.add(key);
         return { rowCount: 1, rows: [{ transaction_id: values[1] }] };
@@ -163,5 +164,85 @@ test("records a reversal sharing a transaction ID while deduplicating repeat del
   assert.equal(firstRefund.type, "refund");
   assert.equal(repeatedRefund.duplicate, true);
   assert.equal(seen.size, 2);
-  assert.ok(insertStatements.every(sql => sql.includes("ON CONFLICT (transaction_id, conversion_type) DO NOTHING")));
+  assert.ok(insertStatements.every(sql => sql.includes("ON CONFLICT (event_key) DO NOTHING")));
+});
+
+
+test("maps documented subid2 to source attribution, not placement", () => {
+  const result = normalizePostback(new URLSearchParams({
+    subid: "ncf_bonga_789", subid2: "telegram-post-4", event: "registration"
+  }));
+  assert.equal(result.ok, true);
+  assert.equal(result.event.source, "telegram-post-4");
+  assert.equal(result.event.track, "");
+});
+
+test("deduplicates identical signup deliveries using a stable event key", () => {
+  const first = normalizePostback(new URLSearchParams({
+    subid: "click-1", event: "registration", unique_member_id: "member-1"
+  }));
+  const retry = normalizePostback(new URLSearchParams({
+    subid: "click-1", event: "registration", unique_member_id: "member-1"
+  }));
+  assert.equal(first.ok, true);
+  assert.equal(first.event.eventKey, retry.event.eventKey);
+});
+
+test("keeps signup event keys within the database limit for long member IDs", () => {
+  const longMemberId = "member-" + "x".repeat(1000);
+  const result = normalizePostback(new URLSearchParams({
+    subid: "click-long-member",
+    event: "registration",
+    unique_member_id: longMemberId
+  }));
+  assert.equal(result.ok, true);
+  assert.ok(result.event.eventKey.length <= 320);
+  assert.equal(result.event.eventKey.length, 13 + "click-long-member".length + 1 + 64);
+  assert.equal(result.event.userId.length, 255);
+});
+
+test("accepts source_id from the configured BongaCash signup and purchase callback URLs", () => {
+  const signup = normalizePostback(new URLSearchParams({
+    event: "registration",
+    click_id: "ncf_bonga_signup_1",
+    source_id: "telegram-source-1",
+    payout: "0"
+  }));
+  assert.equal(signup.ok, true);
+  assert.equal(signup.event.source, "telegram-source-1");
+
+  const purchase = normalizePostback(new URLSearchParams({
+    event: "purchase",
+    click_id: "ncf_bonga_purchase_1",
+    source_id: "x-campaign-2",
+    transaction_id: "bonga-tx-1",
+    payout: "2.75"
+  }));
+  assert.equal(purchase.ok, true);
+  assert.equal(purchase.event.source, "x-campaign-2");
+  assert.equal(purchase.event.transactionId, "bonga-tx-1");
+  assert.equal(purchase.event.payout, 2.75);
+});
+
+test("adds event_key to an existing BongaCash conversions table before indexing it", async () => {
+  const statements = [];
+  const pool = {
+    async query(sql) {
+      statements.push(sql);
+      return { rows: [], rowCount: 0 };
+    }
+  };
+
+  await ensureTable(pool);
+
+  const addColumnIndex = statements.findIndex(sql =>
+    sql.includes("ALTER TABLE bonga_conversions ADD COLUMN IF NOT EXISTS event_key VARCHAR(320)")
+  );
+  const createIndexIndex = statements.findIndex(sql =>
+    sql.includes("CREATE UNIQUE INDEX IF NOT EXISTS bonga_conversions_event_key_uidx")
+  );
+
+  assert.notEqual(addColumnIndex, -1);
+  assert.notEqual(createIndexIndex, -1);
+  assert.ok(addColumnIndex < createIndexIndex);
 });

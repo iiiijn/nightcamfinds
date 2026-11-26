@@ -42,7 +42,7 @@ test("verified revenue excludes unmatched events and preserves currency grouping
 test("BongaCash automatic callback remains explicitly unsupported and not connected", () => {
   assert.ok(start.includes("bongacashConnected: false"));
   assert.ok(routes.includes('incoming.pathname === "/api/bongacash/postback"'));
-  assert.ok(routes.includes("sendJson(res, 410"));
+  assert.ok(routes.includes('process.env.BONGACASH_POSTBACK_ENABLED !== "true"'));
   assert.match(audit, /must remain disabled/i);
   assert.match(audit, /does not document a server-to-server postback endpoint/i);
 });

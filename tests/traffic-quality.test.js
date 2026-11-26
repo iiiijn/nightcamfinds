@@ -213,7 +213,7 @@ test('engagement endpoint rate-limits and BongaCash remains manual-only', () => 
   const route = fs.readFileSync(path.join(__dirname, '../route.js'), 'utf8');
   assert.match(route, /allowEngagement\(event\.visitId\)/);
   assert.match(route, /Engagement event rate limit reached/);
-  assert.match(route, /BongaCash postbacks are not supported/);
+  assert.match(route, /BONGACASH_POSTBACK_ENABLED !== "true"/);
   assert.doesNotMatch(route, /bongacashPostbackConfigured|bongaPostbackConfigured/);
 });
 

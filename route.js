@@ -943,7 +943,20 @@ http.createServer = function routeDashboard(handler) {
       catch (err) { console.error("BongaCams feed error:", err.message); return sendJson(res, 502, { rooms: [], platform: "bongacams", error: err.message }); }
     }
     if (incoming.pathname === "/api/bongacash/postback") {
-      return sendJson(res, 410, { error: "BongaCash postbacks are not supported. Use manual affiliate-report reconciliation." });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "GET required." });
+      if (process.env.BONGACASH_POSTBACK_ENABLED !== "true") return sendJson(res, 503, { error: "BongaCash automatic postbacks are not enabled yet." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      try {
+        const result = await bongacash.save(pool, incoming.searchParams);
+        return sendJson(res, 200, { ok: true, duplicate: result.duplicate });
+      } catch (error) {
+        const reason = String(error.message || "");
+        const status = reason === "unmatched_click_id" ? 404
+          : ["missing_click_id","missing_transaction_id","missing_payout","invalid_payout","invalid_amount","invalid_currency","unsupported_event_type"].includes(reason) ? 400
+          : 503;
+        console.warn(JSON.stringify({ event: "bongacash_postback_rejected", reason: reason.slice(0, 64) }));
+        return sendJson(res, status, { ok: false, error: status === 503 ? "Postback could not be stored." : reason });
+      }
     }
     if (incoming.pathname === "/api/country-platform-settings") {
       if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
