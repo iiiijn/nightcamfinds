@@ -5,8 +5,6 @@ const { MARKET_META } = require("./src/config/market-countries.cjs");
 const COUNTRIES = {
   us: {
     code: "US", name: "United States", adjective: "United States", region: "the United States",
-    seoTitle: "US Live Cams by Country | NightCamFinds",
-    metaDescription: "Browse live cams associated with the US. Compare current room listings, categories and viewer activity on Chaturbate and BongaCams.",
     intro: "Explore public live rooms associated with the United States. NightCamFinds helps adult visitors compare currently listed rooms, viewer activity, categories and partner platforms before choosing where to continue. Listings come from partner feeds, so availability, room subjects and viewer counts can change without notice.",
     paragraphs: [
       "Use the category links to narrow the directory to female, male, trans or couples rooms. Where a broadcaster feed supplies a country label, it can help you discover rooms associated with the United States; it is not a guarantee of a performer's residence or nationality.",
@@ -63,8 +61,6 @@ const COUNTRIES = {
   },
   de: {
     code: "DE", name: "Germany", adjective: "German", region: "Germany",
-    seoTitle: "Germany Live Cams | Chaturbate & BongaCams | NightCamFinds",
-    metaDescription: "Browse live cams associated with Germany. Compare current room listings, categories and viewer activity on Chaturbate and BongaCams.",
     intro: "Entdecken Sie öffentliche Live-Räume mit Deutschland-Bezug im NightCamFinds-Verzeichnis. Vergleichen Sie verfügbare Kategorien, Rauminformationen und aktuelle Zuschauerzahlen, bevor Sie zur jeweiligen Partnerplattform wechseln. Die Angaben stammen aus externen Feeds und können sich jederzeit ändern. Ein Raum ist möglicherweise nicht mehr live, wenn Sie ihn öffnen.",
     paragraphs: [
       "Über die Kategorie-Links finden Sie Angebote aus den Bereichen Female, Male, Trans und Paare. Ein Länderhinweis wird nur angezeigt, wenn der Partner-Feed entsprechende Daten liefert. Er bestätigt weder Wohnort noch Staatsangehörigkeit oder Identität einer Person.",
