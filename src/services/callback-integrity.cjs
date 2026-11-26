@@ -29,6 +29,7 @@ function unsupportedEventTypePredicate(alias = 'cc') {
 }
 function invalidCallbackPredicate(alias = 'cc') {
   const table = checkedAlias(alias);
-  return '(' + unresolvedMacroPredicate(table) + ' OR ' + unsupportedEventTypePredicate(table) + ')';
+  const macro = unresolvedMacroPredicate(table).slice(1, -1);
+  return '(' + macro + ' OR ' + unsupportedEventTypePredicate(table) + ')';
 }
 module.exports = { SUPPORTED_EVENT_TYPES, unresolvedMacroPredicate, unsupportedEventTypePredicate, invalidCallbackPredicate };
