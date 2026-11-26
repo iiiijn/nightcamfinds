@@ -17,7 +17,7 @@ test("builds a parameterized, bounded unmatched callback query", () => {
   assert.match(query.text, /matches_affiliate_ledger/);
   assert.match(query.text, /has_unresolved_macro/);
   assert.match(query.text, /unsupported_event_type/);
-  assert.match(query.text, /NOT IN \\('tokens_signup-referral'/);
+  assert.match(query.text, /NOT IN \('tokens_signup-referral'/);
   assert.match(query.text, /LIMIT \$3/);
   assert.ok(!query.text.includes("2026-11-01"));
 });
