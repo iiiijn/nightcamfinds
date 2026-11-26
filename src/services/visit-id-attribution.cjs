@@ -7,7 +7,13 @@ function validVisitId(value) {
 }
 
 function resolveVisitIdentity({ queryVisitId, cookieVisitId, createVisitId }) {
-  if (validVisitId(cookieVisitId)) return { visitId: String(cookieVisitId), origin: "cookie" };
+  if (validVisitId(cookieVisitId)) {
+    const identity = { visitId: String(cookieVisitId), origin: "cookie" };
+    if (validVisitId(queryVisitId) && String(queryVisitId).toLowerCase() !== String(cookieVisitId).toLowerCase()) {
+      identity.identityConflict = true;
+    }
+    return identity;
+  }
   if (validVisitId(queryVisitId)) return { visitId: String(queryVisitId), origin: "query" };
   if (typeof createVisitId !== "function") throw new TypeError("createVisitId must be a function");
   const generated = createVisitId();

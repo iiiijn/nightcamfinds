@@ -203,17 +203,23 @@
     if (!previousCampaignKey) previousCampaignKey = readCookie('ncf_visit_campaign_key');
     const newCampaignEntry = Boolean(campaignKey && campaignKey !== previousCampaignKey);
     if (newCampaignEntry) {
-      cachedVisitId = '';
+      // Campaign changes update click attribution and the landing path, not the
+      // browsing-session identity. Keeping one ID prevents cookie/session drift.
       cachedLandingPath = '';
+      try { root.sessionStorage.setItem('ncf_visit_campaign_key', campaignKey); } catch (_) {}
+      try { root.sessionStorage.setItem('ncf_landing_path', root.location.pathname || '/'); } catch (_) {}
+      writeCookie('ncf_visit_campaign_key', campaignKey);
+      writeCookie('ncf_landing_path', root.location.pathname || '/');
     }
-    if (validVisitId(cachedVisitId) && !newCampaignEntry) return cachedVisitId;
+    if (validVisitId(cachedVisitId)) {
+      writeCookie('ncf_visit_id', cachedVisitId);
+      return cachedVisitId;
+    }
     let id = '';
-    if (!newCampaignEntry) {
-      try { id = root.sessionStorage.getItem('ncf_visit_id') || ''; } catch (_) {}
-      if (!validVisitId(id)) {
-        const cookieId = readCookie('ncf_visit_id');
-        if (validVisitId(cookieId)) id = cookieId;
-      }
+    try { id = root.sessionStorage.getItem('ncf_visit_id') || ''; } catch (_) {}
+    if (!validVisitId(id)) {
+      const cookieId = readCookie('ncf_visit_id');
+      if (validVisitId(cookieId)) id = cookieId;
     }
     if (!validVisitId(id)) {
       try {
@@ -232,10 +238,6 @@
     // First-party session cookies bridge browsers where sessionStorage is unavailable.
     writeCookie('ncf_visit_id', id);
     if (campaignKey) writeCookie('ncf_visit_campaign_key', campaignKey);
-    if (newCampaignEntry) {
-      try { root.sessionStorage.setItem('ncf_landing_path', root.location.pathname || '/'); } catch (_) {}
-      writeCookie('ncf_landing_path', root.location.pathname || '/');
-    }
     return id;
   }
 
