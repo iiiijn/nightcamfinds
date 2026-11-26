@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizePostback, normalizeType } from "../bongacash.js";
+import { ensureTable, normalizePostback, normalizeType } from "../bongacash.js";
 
 test("normalizes BongaCash purchase postbacks", () => {
   const params = new URLSearchParams({
@@ -209,4 +209,27 @@ test("accepts source_id from the configured BongaCash signup and purchase callba
   assert.equal(purchase.event.source, "x-campaign-2");
   assert.equal(purchase.event.transactionId, "bonga-tx-1");
   assert.equal(purchase.event.payout, 2.75);
+});
+
+test("adds event_key to an existing BongaCash conversions table before indexing it", async () => {
+  const statements = [];
+  const pool = {
+    async query(sql) {
+      statements.push(sql);
+      return { rows: [], rowCount: 0 };
+    }
+  };
+
+  await ensureTable(pool);
+
+  const addColumnIndex = statements.findIndex(sql =>
+    /ALTER TABLE bonga_conversions ADD COLUMN IF NOT EXISTS event_key VARCHAR\\(320\\)/i.test(sql)
+  );
+  const createIndexIndex = statements.findIndex(sql =>
+    /CREATE UNIQUE INDEX IF NOT EXISTS bonga_conversions_event_key_uidx/i.test(sql)
+  );
+
+  assert.notEqual(addColumnIndex, -1);
+  assert.notEqual(createIndexIndex, -1);
+  assert.ok(addColumnIndex < createIndexIndex);
 });
