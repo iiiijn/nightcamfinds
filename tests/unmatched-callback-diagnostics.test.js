@@ -15,6 +15,9 @@ test("builds a parameterized, bounded unmatched callback query", () => {
   assert.match(query.text, /affiliate_clicks/);
   assert.match(query.text, /matches_chaturbate_ledger/);
   assert.match(query.text, /matches_affiliate_ledger/);
+  assert.match(query.text, /has_unresolved_macro/);
+  assert.match(query.text, /unsupported_event_type/);
+  assert.match(query.text, /NOT IN \\('tokens_signup-referral'/);
   assert.match(query.text, /LIMIT \$3/);
   assert.ok(!query.text.includes("2026-11-01"));
 });
@@ -33,6 +36,8 @@ test("returns safe metadata only and never exposes click or transaction identifi
     country: "us",
     currency: "usd",
     eligible: true,
+    has_unresolved_macro: false,
+    unsupported_event_type: false,
     has_click_id: true,
     matches_chaturbate_ledger: false,
     matches_affiliate_ledger: false,
@@ -45,7 +50,7 @@ test("returns safe metadata only and never exposes click or transaction identifi
     eventType: "revshare_purchase",
     country: "US",
     currency: "USD",
-    callbackClass: "eligible",
+    callbackClass: "eligible_unmatched",
     hasClickId: true,
     matchesChaturbateLedger: false,
     matchesAffiliateLedger: false,
@@ -76,4 +81,15 @@ test("revenue dashboard requests and renders unmatched callback diagnostics", ()
   assert.match(html, /Chaturbate unmatched callback diagnostics/);
   assert.match(html, /Matches Chaturbate ledger/);
   assert.match(html, /Matches affiliate ledger/);
+});
+
+test("classifies unsupported event types separately from unresolved test macros", () => {
+  const rows = toSafeDiagnosticRows([
+    { conversion_type: "unknown", unsupported_event_type: true, has_unresolved_macro: false, eligible: false },
+    { conversion_type: "{type}", unsupported_event_type: true, has_unresolved_macro: true, eligible: false },
+    { conversion_type: "revshare_purchase", unsupported_event_type: false, has_unresolved_macro: false, eligible: true }
+  ]);
+  assert.deepEqual(rows.map(row => row.callbackClass), [
+    "unsupported_event_type", "test_or_unresolved_macro", "eligible_unmatched"
+  ]);
 });
