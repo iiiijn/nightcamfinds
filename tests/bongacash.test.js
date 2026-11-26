@@ -85,14 +85,15 @@ test("accepts formatted numeric payouts but rejects malformed optional amounts",
   assert.equal(invalidAmount.reason, "invalid_amount");
 });
 
-test("allows registration callbacks without payout while preserving zero as the payout placeholder", () => {
+test("allows signup callbacks without transaction ID or payout", () => {
   const result = normalizePostback(new URLSearchParams({
     click_id: "ncf_bonga_123",
-    transaction_id: "tx-registration",
-    type: "registration"
+    event: "registration"
   }));
   assert.equal(result.ok, true);
   assert.equal(result.event.payout, 0);
+  assert.equal(result.event.transactionId, null);
+  assert.match(result.event.eventKey, /^registration:ncf_bonga_123:/);
 });
 
 test("normalizes confirmed BongaCash initial and rebill transaction types as purchases", () => {
@@ -164,4 +165,25 @@ test("records a reversal sharing a transaction ID while deduplicating repeat del
   assert.equal(repeatedRefund.duplicate, true);
   assert.equal(seen.size, 2);
   assert.ok(insertStatements.every(sql => sql.includes("ON CONFLICT (transaction_id, conversion_type) DO NOTHING")));
+});
+
+
+test("maps documented subid2 to source attribution, not placement", () => {
+  const result = normalizePostback(new URLSearchParams({
+    subid: "ncf_bonga_789", subid2: "telegram-post-4", event: "registration"
+  }));
+  assert.equal(result.ok, true);
+  assert.equal(result.event.source, "telegram-post-4");
+  assert.equal(result.event.track, "");
+});
+
+test("deduplicates identical signup deliveries using a stable event key", () => {
+  const first = normalizePostback(new URLSearchParams({
+    subid: "click-1", event: "registration", unique_member_id: "member-1"
+  }));
+  const retry = normalizePostback(new URLSearchParams({
+    subid: "click-1", event: "registration", unique_member_id: "member-1"
+  }));
+  assert.equal(first.ok, true);
+  assert.equal(first.event.eventKey, retry.event.eventKey);
 });
