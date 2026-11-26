@@ -25,6 +25,22 @@ test("prefers the first-party cookie over a query visit ID", () => {
   }), { visitId: existingId, origin: "cookie" });
 });
 
+test("keeps the cookie authoritative but flags a conflicting valid query ID", () => {
+  assert.deepEqual(resolveVisitIdentity({
+    cookieVisitId: existingId,
+    queryVisitId: secondId,
+    createVisitId: () => { throw new Error("must not generate"); }
+  }), { visitId: existingId, origin: "cookie", identityConflict: true });
+});
+
+test("does not flag matching cookie and query visit IDs as a conflict", () => {
+  assert.deepEqual(resolveVisitIdentity({
+    cookieVisitId: existingId,
+    queryVisitId: existingId,
+    createVisitId: () => { throw new Error("must not generate"); }
+  }), { visitId: existingId, origin: "cookie" });
+});
+
 test("uses a valid query visit ID when the cookie is unavailable", () => {
   assert.deepEqual(resolveVisitIdentity({
     cookieVisitId: "",
@@ -62,4 +78,60 @@ test("does not overwrite established cookies or persist unsafe landing paths", (
     landingPath: "//evil.example/path"
   });
   assert.deepEqual(cookies, []);
+});
+
+
+test("campaign changes preserve the browsing visit ID and refresh landing attribution", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const vm = require("node:vm");
+  const helper = fs.readFileSync(path.join(__dirname, "../public/visit-tracking.js"), "utf8");
+  const visitId = existingId;
+  const session = new Map([
+    ["ncf_visit_id", visitId],
+    ["ncf_visit_campaign_key", "old|email|launch|a"],
+    ["ncf_landing_path", "/"]
+  ]);
+  const cookies = new Map([["ncf_visit_id", visitId]]);
+  const document = {
+    documentElement: {},
+    querySelector() { return null; },
+    querySelectorAll() { return []; },
+    addEventListener() {},
+    getElementById() { return null; }
+  };
+  Object.defineProperty(document, "cookie", {
+    get() { return [...cookies.entries()].map(([key, value]) => key + "=" + value).join("; "); },
+    set(value) {
+      const pair = String(value).split(";", 1)[0];
+      const separator = pair.indexOf("=");
+      if (separator > 0) cookies.set(pair.slice(0, separator), pair.slice(separator + 1));
+    }
+  });
+  const root = {
+    document,
+    location: {
+      href: "https://nightcamfinds.com/country/us/?utm_source=newsletter&utm_medium=email&utm_campaign=spring",
+      search: "?utm_source=newsletter&utm_medium=email&utm_campaign=spring",
+      origin: "https://nightcamfinds.com",
+      protocol: "https:",
+      pathname: "/country/us/"
+    },
+    sessionStorage: {
+      getItem(key) { return session.has(key) ? session.get(key) : null; },
+      setItem(key, value) { session.set(key, String(value)); }
+    },
+    localStorage: { getItem() { return "denied"; } },
+    crypto: {
+      getRandomValues(bytes) {
+        for (let i = 0; i < bytes.length; i++) bytes[i] = i + 1;
+        return bytes;
+      }
+    }
+  };
+  vm.runInNewContext(helper, { window: root, URL, URLSearchParams, Uint8Array });
+  assert.equal(root.NCFVisitTracking.getVisitId(), visitId);
+  assert.equal(session.get("ncf_visit_id"), visitId);
+  assert.equal(session.get("ncf_landing_path"), "/country/us/");
+  assert.equal(cookies.get("ncf_visit_id"), visitId);
 });
