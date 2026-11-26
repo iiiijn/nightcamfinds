@@ -752,7 +752,7 @@ http.createServer = function routeDashboard(handler) {
       if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
       const from = incoming.searchParams.get("from") || "";
       const to = incoming.searchParams.get("to") || "";
-      const validDate = value => !value || /^\\d{4}-\\d{2}-\\d{2}$/.test(value);
+      const validDate = value => !value || /^\d{4}-\d{2}-\d{2}$/.test(value);
       if (!validDate(from) || !validDate(to) || (from && to && from > to)) {
         return sendJson(res, 400, { error: "Invalid reporting date range." });
       }
