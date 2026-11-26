@@ -18,16 +18,19 @@ test("primary category SEO copy targets live-room discovery intent", () => {
   assert.ok(server.includes("Find live couples cam rooms"));
   assert.ok(server.includes("Browse female live cam rooms online"));
   assert.ok(server.includes("Female Live Cam Rooms Online | NightCamFinds"));
-  assert.ok(server.includes("Browse public female live cam rooms and compare current activity, room details and partner platforms"));
+  assert.ok(server.includes("Browse female live cam rooms online from Chaturbate and BongaCams."));
   assert.ok(server.includes("Chaturbate and BongaCams"));
+  assert.ok(server.includes("Find male live webcam rooms online"));
+  assert.ok(server.includes("Find couples live cam rooms online"));
+  assert.ok(server.includes("Chaturbate Germany"));
 });
 
 test("country directory SEO targets country-based discovery across both partner platforms", () => {
   assert.ok(server.includes('countries: {'));
   assert.ok(server.includes("Live Cams by Country | Chaturbate & BongaCams | NightCamFinds"));
-  assert.ok(server.includes("Browse live cam rooms by country from Chaturbate and BongaCams."));
-  assert.ok(server.includes("Explore public live cam rooms grouped by the country information supplied"));
-  assert.ok(server.includes("some rooms may have no country listed"));
+  assert.ok(server.includes("Find Chaturbate and BongaCams live cams by country."));
+  assert.ok(server.includes("Find live cams by country using the location information supplied"));
+  assert.ok(server.includes("country labels are supplied by partner feeds"));
 });
 
 test("category pages render useful copy and links to eligible country directories", () => {
