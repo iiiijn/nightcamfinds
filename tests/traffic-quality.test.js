@@ -421,6 +421,7 @@ test('promotional script does not duplicate core page engagement events', () => 
   assert.match(app, /sendEngagement\("page_view"\);/);
   assert.match(app, /sendEngagement\("active_10s"\)/);
   assert.match(app, /sendEngagement\("scroll_50"\)/);
-  assert.doesNotMatch(promo, /recordEngagement\(['"](?:page_view|active_10s|scroll_50)['"]/);
+  assert.match(app, /window\.__NCF_CORE_ENGAGEMENT_INITIALIZED__ = true/);
+  assert.match(promo, /if \(!window\.__NCF_CORE_ENGAGEMENT_INITIALIZED__\) \{[\s\S]*recordEngagement\('page_view'\)[\s\S]*recordEngagement\('active_10s'\)[\s\S]*recordEngagement\('scroll_50'\)/);
   assert.match(promo, /recordEngagement\(['"]bonga_(?:static_banner|category_widget|banner)_/);
 });
