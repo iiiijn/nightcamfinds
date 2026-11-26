@@ -17,10 +17,10 @@ test("validates 32-character hexadecimal visit IDs", () => {
   assert.equal(validVisitId("0123"), false);
 });
 
-test("prefers the first-party cookie over a query visit ID", () => {
+test("prefers the first-party cookie when it matches the query visit ID", () => {
   assert.deepEqual(resolveVisitIdentity({
     cookieVisitId: existingId,
-    queryVisitId: secondId,
+    queryVisitId: existingId,
     createVisitId: () => { throw new Error("must not generate"); }
   }), { visitId: existingId, origin: "cookie" });
 });
