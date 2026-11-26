@@ -41,22 +41,24 @@ function verifySecret(req, params) {
 function normalizePostback(params) {
   const clickId = first(params, ["click_id", "clickid", "subid", "sub_id", "sid", "s1", "ref", "track_id"]);
   const transactionId = first(params, ["unique_transaction_id", "transaction_id", "transactionid", "txid", "tid", "action_id", "id"]);
-  const type = normalizeType(first(params, ["type", "event", "event_type", "conversion_type", "action", "status"]));
+  const explicitEvent = first(params, ["event"]);
+  const type = normalizeType(explicitEvent || first(params, ["type", "event_type", "conversion_type", "action", "status"]));
   const payoutRaw = first(params, ["payout", "commission", "earnings", "revenue", "profit"]);
   const amountRaw = first(params, ["amount", "purchase_amount", "sale_amount", "spend"]);
   const payout = money(payoutRaw);
   const amount = money(amountRaw);
   const currency = clean(first(params, ["currency", "currency_code"], "USD"), "USD", 16).toUpperCase();
   const country = clean(first(params, ["country", "country_code", "geo"], "UNKNOWN"), "UNKNOWN", 16).toUpperCase();
-  const track = clean(first(params, ["track", "tracking", "placement", "subid2"]), "", 255);
-  const source = clean(first(params, ["source", "traffic_source", "utm_source", "subid1"]), "", 255);
+  const track = clean(first(params, ["track", "tracking", "placement"]), "", 255);
+  // BongaCash documents subid2 as the traffic-source identifier.
+  const source = clean(first(params, ["subid2", "source", "traffic_source", "utm_source", "subid1"]), "", 255);
   const campaign = clean(first(params, ["cid", "campaign", "campaign_id", "subid3"]), "", 255);
   const userId = clean(first(params, ["unique_member_id", "user_id", "userid", "member_id", "customer_id"]), "", 255);
   const timestamp = clean(first(params, ["timestamp", "event_timestamp", "date", "datetime"]), "", 100);
   const status = clean(first(params, ["status", "state"]), "", 40);
 
   if (!clickId) return { ok: false, reason: "missing_click_id" };
-  if (!transactionId) return { ok: false, reason: "missing_transaction_id" };
+  if (type !== "registration" && !transactionId) return { ok: false, reason: "missing_transaction_id" };
   if (!["registration", "purchase", "refund"].includes(type)) return { ok: false, reason: "unsupported_event_type" };
   if (!currency || !/^[A-Z]{3,8}$/.test(currency)) return { ok: false, reason: "invalid_currency" };
   if (type !== "registration" && payoutRaw === "") return { ok: false, reason: "missing_payout" };
@@ -68,7 +70,7 @@ function normalizePostback(params) {
     ok: true,
     event: {
       clickId: clean(clickId, "", 128),
-      transactionId: clean(transactionId, "", 255),
+      transactionId: clean(transactionId, "", 255) || null,
       type,
       payout: type === "refund" ? -Math.abs(payout) : (payout ?? 0),
       amount: type === "refund" ? -Math.abs(amount ?? 0) : (amount ?? 0),
@@ -79,7 +81,10 @@ function normalizePostback(params) {
       campaignId: campaign,
       userId,
       timestamp,
-      status
+      status,
+      eventKey: type === "registration"
+        ? "registration:" + clean(clickId, "", 128) + ":" + (clean(userId, "", 255) || crypto.createHash("sha256").update([...params.entries()].sort(([a],[b]) => a.localeCompare(b)).map(([k,v]) => k + "=" + v).join("&")).digest("hex"))
+        : type + ":" + clean(transactionId, "", 255)
     }
   };
 }
@@ -106,7 +111,8 @@ async function ensureTable(pool) {
       id BIGSERIAL PRIMARY KEY,
       received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       click_id VARCHAR(128) NOT NULL,
-      transaction_id VARCHAR(255) NOT NULL,
+      transaction_id VARCHAR(255),
+      event_key VARCHAR(320),
       conversion_type VARCHAR(40) NOT NULL DEFAULT 'unknown',
       payout NUMERIC(18,6) NOT NULL DEFAULT 0,
       amount NUMERIC(18,6) NOT NULL DEFAULT 0,
@@ -118,8 +124,7 @@ async function ensureTable(pool) {
       user_id VARCHAR(255),
       event_timestamp VARCHAR(100),
       status VARCHAR(40),
-      raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
-      UNIQUE(transaction_id, conversion_type)
+      raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb
     )
   `);
   await pool.query("ALTER TABLE bonga_conversions ALTER COLUMN click_id TYPE VARCHAR(128)");
@@ -145,13 +150,14 @@ async function save(pool, params) {
 
   const inserted = await pool.query(`
     INSERT INTO bonga_conversions
-      (click_id,transaction_id,conversion_type,payout,amount,currency,country,track,source,campaign_id,user_id,event_timestamp,status,raw_payload)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb)
-    ON CONFLICT (transaction_id, conversion_type) DO NOTHING
-    RETURNING transaction_id
+      (click_id,transaction_id,event_key,conversion_type,payout,amount,currency,country,track,source,campaign_id,user_id,event_timestamp,status,raw_payload)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb)
+    ON CONFLICT (event_key) DO NOTHING
+    RETURNING event_key
   `, [
     event.clickId,
     event.transactionId,
+    event.eventKey,
     event.type,
     event.payout,
     event.amount,
