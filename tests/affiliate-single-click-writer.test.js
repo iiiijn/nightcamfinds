@@ -30,5 +30,5 @@ test("BongaCash postback endpoint is GET-only and gated until explicit activatio
   assert.match(route, /\/api\/bongacash\/postback/);
   assert.match(route, /BONGACASH_POSTBACK_ENABLED !== "true"/);
   assert.match(route, /req\.method !== "GET"/);
-  assert.match(route, /bongacash\.save\(pool, params\)/);
+  assert.match(route, /bongacash\.save\(pool, incoming\.searchParams\)/);
 });
