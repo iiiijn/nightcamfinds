@@ -188,6 +188,19 @@ test("deduplicates identical signup deliveries using a stable event key", () => 
   assert.equal(first.event.eventKey, retry.event.eventKey);
 });
 
+test("keeps signup event keys within the database limit for long member IDs", () => {
+  const longMemberId = "member-" + "x".repeat(1000);
+  const result = normalizePostback(new URLSearchParams({
+    subid: "click-long-member",
+    event: "registration",
+    unique_member_id: longMemberId
+  }));
+  assert.equal(result.ok, true);
+  assert.ok(result.event.eventKey.length <= 320);
+  assert.equal(result.event.eventKey.length, 13 + "click-long-member".length + 1 + 64);
+  assert.equal(result.event.userId.length, 255);
+});
+
 test("accepts source_id from the configured BongaCash signup and purchase callback URLs", () => {
   const signup = normalizePostback(new URLSearchParams({
     event: "registration",
