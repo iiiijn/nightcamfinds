@@ -22,6 +22,14 @@ test("primary category SEO copy targets live-room discovery intent", () => {
   assert.ok(server.includes("Chaturbate and BongaCams"));
 });
 
+test("country directory SEO targets country-based discovery across both partner platforms", () => {
+  assert.ok(server.includes('countries: {'));
+  assert.ok(server.includes("Live Cams by Country | Chaturbate & BongaCams | NightCamFinds"));
+  assert.ok(server.includes("Browse live cam rooms by country from Chaturbate and BongaCams."));
+  assert.ok(server.includes("Explore public live cam rooms grouped by the country information supplied"));
+  assert.ok(server.includes("some rooms may have no country listed"));
+});
+
 test("category pages render useful copy and links to eligible country directories", () => {
   assert.ok(server.includes("renderCategorySeoHtml"));
   assert.ok(server.includes("getEligibleCountrySitemapSlugs"));
