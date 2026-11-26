@@ -54,7 +54,8 @@ test("US and Germany country pages use concise search-intent metadata", () => {
     assert.equal(country.seoTitle, title);
     assert.ok(country.metaDescription.length <= 160, slug + " meta description should be 160 characters or fewer");
     assert.ok(country.metaDescription.includes("Chaturbate and BongaCams"));
-    assert.ok(html.includes("<title>" + title + "</title>"));
+    const escapedTitle = title.replace(/&/g, "&amp;");
+    assert.ok(html.includes("<title>" + escapedTitle + "</title>"));
   }
 });
 
@@ -91,7 +92,8 @@ test("all 18 Tier 1 pages have distinct SEO titles and descriptions", () => {
     assert.ok(country.metaDescription, slug + " should define a meta description");
     titles.push(country.seoTitle);
     descriptions.push(country.metaDescription);
-    assert.ok(html.includes("<title>" + country.seoTitle + "</title>"));
+    const escapedTitle = country.seoTitle.replace(/&/g, "&amp;");
+    assert.ok(html.includes("<title>" + escapedTitle + "</title>"));
     const escapedDescription = country.metaDescription.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     assert.ok(html.includes('name="description" content="' + escapedDescription + '"'));
   }
