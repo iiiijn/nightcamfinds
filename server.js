@@ -248,7 +248,14 @@ async function countClick({ src, country, category="unknown", source="unknown", 
             );
           }
           await fallbackClient.query("COMMIT");
-          console.warn("Traffic-quality schema unavailable; affiliate click saved without visit linkage.");
+          console.warn(JSON.stringify({
+      event: "affiliate_click_saved_without_visit_linkage",
+      clickId: clickId || null,
+      platform,
+      reason: "traffic_quality_schema_unavailable",
+      databaseCode: String(err.code || "unknown").slice(0, 32),
+      visitIdPresent: Boolean(visitId)
+    }));
           return;
         } catch (fallbackError) {
           if (fallbackClient) { try { await fallbackClient.query("ROLLBACK"); } catch {} }
@@ -600,6 +607,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
       clickId,
       platform,
       visitIdOrigin,
+      identityConflict: visitIdentity.identityConflict === true,
       landingPath
     }));
     let target;
