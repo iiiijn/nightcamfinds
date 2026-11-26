@@ -18,7 +18,7 @@ test("primary category SEO copy targets live-room discovery intent", () => {
   assert.ok(server.includes("Find couples live cam rooms online"));
   assert.ok(server.includes("Browse female live cam rooms online"));
   assert.ok(server.includes("Female Live Cam Rooms Online | NightCamFinds"));
-  assert.ok(server.includes("Browse female live cam rooms online from Chaturbate and BongaCams."));
+  assert.ok(server.includes("Browse female live cam rooms from Chaturbate and BongaCams."));
   assert.ok(server.includes("Chaturbate and BongaCams"));
   assert.ok(server.includes("Find male live webcam rooms online"));
   assert.ok(server.includes("Find couples live cam rooms online"));
