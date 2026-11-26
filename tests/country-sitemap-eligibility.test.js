@@ -131,7 +131,7 @@ test("word count includes paragraph and FAQ content", () => {
 
 test("production sitemap route uses the shared eligibility helper and live feed", () => {
   const server = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
-  assert.ok(server.includes('getEligibleCountrySitemapSlugs({ marketMeta: MARKET_META, countryContent: COUNTRY_PAGE_CONTENT, rooms: feed.rooms })'));
+  assert.match(server, /getEligibleCountrySitemapSlugs\(\s*\{\s*marketMeta:\s*MARKET_META,\s*countryContent:\s*COUNTRY_PAGE_CONTENT,\s*rooms:\s*feed\.rooms\s*\}\s*\)/);
   assert.ok(server.includes('if (pathname === "/sitemap.xml") {'));
   assert.ok(server.includes('sitemap(pageOrigin(req), eligibleCountrySlugs)'));
 });
