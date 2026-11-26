@@ -18,6 +18,7 @@ const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const { invalidCallbackPredicate } = require("./src/services/callback-integrity.cjs");
 const { buildAffiliateConversionHealth } = require("./src/services/affiliate-conversion-health.cjs");
+const { buildUnmatchedCallbackDiagnosticsQuery, toSafeDiagnosticRows } = require("./src/services/unmatched-callback-diagnostics.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
 const organicLandingRevenue = require("./src/services/organic-landing-revenue.cjs");
@@ -743,6 +744,36 @@ http.createServer = function routeDashboard(handler) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Telegram campaign reporting requires the existing affiliate click, traffic visit and Chaturbate conversion tables." });
         console.error("Telegram campaign performance failed:", err.message);
         return sendJson(res, 500, { error: "Could not load Telegram campaign performance." });
+      }
+    }
+    if (incoming.pathname === "/api/unmatched-chaturbate-callbacks") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const from = incoming.searchParams.get("from") || "";
+      const to = incoming.searchParams.get("to") || "";
+      const validDate = value => !value || /^\\d{4}-\\d{2}-\\d{2}$/.test(value);
+      if (!validDate(from) || !validDate(to) || (from && to && from > to)) {
+        return sendJson(res, 400, { error: "Invalid reporting date range." });
+      }
+      const query = buildUnmatchedCallbackDiagnosticsQuery({ from, to, limit: 50 });
+      try {
+        const result = await pool.query(query.text, query.params);
+        const total = Number(result.rows[0]?.total_in_range || 0);
+        return sendJson(res, 200, {
+          rows: toSafeDiagnosticRows(result.rows),
+          total,
+          returned: result.rows.length,
+          truncated: total > result.rows.length,
+          limit: query.limit,
+          filters: { from: from || null, to: to || null },
+          timezone: "UTC",
+          privacy: "Click IDs, transaction IDs, raw callback payloads, secrets and payout values are never returned."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Unmatched callback diagnostics require the existing Chaturbate conversion and click-ledger schema." });
+        console.error("Unmatched Chaturbate callback diagnostics failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load unmatched callback diagnostics." });
       }
     }
     if (incoming.pathname === "/api/affiliate-conversion-health") {
