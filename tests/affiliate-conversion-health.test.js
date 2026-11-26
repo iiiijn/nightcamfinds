@@ -9,11 +9,14 @@ const { buildAffiliateConversionHealth } = require("../src/services/affiliate-co
 test("reports Chaturbate callback authentication and matching separately", () => {
   const result = buildAffiliateConversionHealth({
     postbackSecretConfigured: true,
-    callbackCounts: { totalEvents: 10, eligibleEvents: 8, matchedEvents: 6, unmatchedEvents: 2, missingClickId: 1 }
+    callbackCounts: { totalEvents: 10, eligibleEvents: 6, matchedEvents: 4, unmatchedEvents: 2, missingClickId: 1, unsupportedEventTypes: 3, unresolvedMacroEvents: 1 }
   });
   assert.equal(result.chaturbate.authentication, "configured");
   assert.equal(result.chaturbate.callbackLedger, "events_received");
-  assert.equal(result.chaturbate.matchingCoverage, 0.75);
+  assert.equal(result.chaturbate.matchingCoverage, 0.6667);
+  assert.equal(result.chaturbate.unsupportedEventTypes, 3);
+  assert.equal(result.chaturbate.unresolvedMacroEvents, 1);
+  assert.match(result.chaturbate.eligibilityRule, /supported Chaturbate event types/);
   assert.equal(result.chaturbate.unmatchedEvents, 2);
   assert.equal(result.chaturbate.missingClickId, 1);
 });
