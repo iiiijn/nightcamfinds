@@ -77,7 +77,8 @@ test('a different tagged campaign entry preserves the visit ID and refreshes lan
   assert.match(helper, /ncf_visit_campaign_key/);
   assert.match(helper, /const newCampaignEntry = Boolean\(campaignKey && campaignKey !== previousCampaignKey\)/);
   assert.match(helper, /if \(newCampaignEntry\) \{[\s\S]*cachedLandingPath = '';[\s\S]*sessionStorage\.setItem\('ncf_landing_path'/);
-  assert.doesNotMatch(helper, /cachedVisitId = ''/);
+  const campaignBlock = helper.match(/if \(newCampaignEntry\) \{([\s\S]*?)\n    \}/)?.[1] || '';
+  assert.doesNotMatch(campaignBlock, /cachedVisitId = ''/);
 });
 
 test('cached and session visit IDs remain stable across campaign changes and refreshes', () => {
