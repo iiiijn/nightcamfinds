@@ -187,3 +187,26 @@ test("deduplicates identical signup deliveries using a stable event key", () => 
   assert.equal(first.ok, true);
   assert.equal(first.event.eventKey, retry.event.eventKey);
 });
+
+test("accepts source_id from the configured BongaCash signup and purchase callback URLs", () => {
+  const signup = normalizePostback(new URLSearchParams({
+    event: "registration",
+    click_id: "ncf_bonga_signup_1",
+    source_id: "telegram-source-1",
+    payout: "0"
+  }));
+  assert.equal(signup.ok, true);
+  assert.equal(signup.event.source, "telegram-source-1");
+
+  const purchase = normalizePostback(new URLSearchParams({
+    event: "purchase",
+    click_id: "ncf_bonga_purchase_1",
+    source_id: "x-campaign-2",
+    transaction_id: "bonga-tx-1",
+    payout: "2.75"
+  }));
+  assert.equal(purchase.ok, true);
+  assert.equal(purchase.event.source, "x-campaign-2");
+  assert.equal(purchase.event.transactionId, "bonga-tx-1");
+  assert.equal(purchase.event.payout, 2.75);
+});
