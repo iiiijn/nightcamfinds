@@ -51,7 +51,7 @@ function normalizePostback(params) {
   const country = clean(first(params, ["country", "country_code", "geo"], "UNKNOWN"), "UNKNOWN", 16).toUpperCase();
   const track = clean(first(params, ["track", "tracking", "placement"]), "", 255);
   // BongaCash documents subid2 as the traffic-source identifier.
-  const source = clean(first(params, ["subid2", "source", "traffic_source", "utm_source", "subid1"]), "", 255);
+  const source = clean(first(params, ["source_id", "subid2", "source", "traffic_source", "utm_source", "subid1"]), "", 255);
   const campaign = clean(first(params, ["cid", "campaign", "campaign_id", "subid3"]), "", 255);
   const userId = clean(first(params, ["unique_member_id", "user_id", "userid", "member_id", "customer_id"]), "", 255);
   const timestamp = clean(first(params, ["timestamp", "event_timestamp", "date", "datetime"]), "", 100);
