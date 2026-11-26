@@ -7,11 +7,11 @@ function buildUnmatchedCallbackDiagnosticsQuery({ from = "", to = "", limit = 50
   const where = [];
   if (from) {
     params.push(`${from}T00:00:00.000Z`);
-    where.push(`cc.received_at >= $\${params.length}`);
+    where.push(`cc.received_at >= ${params.length}`);
   }
   if (to) {
     params.push(`${to}T23:59:59.999Z`);
-    where.push(`cc.received_at <= $\${params.length}`);
+    where.push(`cc.received_at <= ${params.length}`);
   }
   const invalid = invalidCallbackPredicate("cc");
   params.push(Math.max(1, Math.min(100, Number(limit) || 50)));
@@ -34,7 +34,7 @@ function buildUnmatchedCallbackDiagnosticsQuery({ from = "", to = "", limit = 50
     "FROM diagnostic_rows",
     "WHERE eligible IS FALSE OR stored_as_matched IS FALSE OR (matches_chaturbate_ledger IS FALSE AND matches_affiliate_ledger IS FALSE)",
     "ORDER BY received_at DESC, id DESC",
-    `LIMIT $\${limitParam}`
+    `LIMIT ${limitParam}`
   ].filter(Boolean).join(" ");
   return { text, params, limit: params[limitParam - 1] };
 }
