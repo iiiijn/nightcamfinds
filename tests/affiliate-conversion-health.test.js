@@ -67,5 +67,7 @@ test("revenue dashboard loads and displays conversion pipeline health", () => {
   assert.match(html, /Matching coverage/);
   assert.match(html, /Unsupported event types excluded/);
   assert.match(html, /Unresolved macro\/test callbacks/);
+  assert.match(html, /Unsupported event types excluded/);
+  assert.match(html, /Unresolved macro\/test callbacks/);
   assert.match(html, /Reconciliation status/);
 });
