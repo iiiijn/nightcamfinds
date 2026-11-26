@@ -1,6 +1,6 @@
 'use strict';
 const { validDate } = require('./click-origins.cjs');
-const { invalidCallbackPredicate, unresolvedMacroPredicate } = require('./callback-integrity.cjs');
+const { invalidCallbackPredicate, unresolvedMacroPredicate, unsupportedEventTypePredicate } = require('./callback-integrity.cjs');
 function buildQuery(filters = {}) {
   const from=String(filters.from||'').trim(), to=String(filters.to||'').trim();
   if((from&&!validDate(from))||(to&&!validDate(to))) return {error:'Dates must be valid calendar dates in YYYY-MM-DD format.'};
@@ -10,6 +10,7 @@ function buildQuery(filters = {}) {
   if(to){params.push(to);where.push("cc.received_at < (($"+params.length+"::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");}
   const isMacro=unresolvedMacroPredicate('cc');
   const isInvalid=invalidCallbackPredicate('cc');
+  const isUnsupported=unsupportedEventTypePredicate('cc');
   const eventClass="CASE WHEN LOWER(cc.conversion_type)='revshare_purchase' THEN 'member_purchase_revshare' WHEN LOWER(cc.conversion_type) IN ('tokens_signup-referral','ppr_signup-referral','revshare_signup-referral') THEN 'signup_referral' WHEN LOWER(cc.conversion_type) IN ('tokens_broadcaster-referral','ppr_broadcaster-referral','revshare_broadcaster-referral') THEN 'broadcaster_referral' WHEN LOWER(cc.conversion_type)='revshare_webmaster-commission' THEN 'webmaster_commission' WHEN LOWER(cc.conversion_type)='revshare_payout-adjustment' THEN 'payout_adjustment' ELSE 'other' END";
   const text=[
     'SELECT',
@@ -21,7 +22,7 @@ function buildQuery(filters = {}) {
     "LOWER(COALESCE(NULLIF(cc.conversion_type, ''), 'unknown')) AS conversion_type,",
     "COALESCE(NULLIF(UPPER(cc.currency), ''), 'UNSPECIFIED') AS currency,",
     isMacro+' AS is_test,',
-    "CASE WHEN "+isInvalid+" THEN 'invalid_callback' WHEN NULLIF(BTRIM(cc.click_id), '') IS NULL THEN 'missing_click_id' WHEN cc.matched_click IS TRUE THEN 'matched' ELSE 'click_id_not_found' END AS match_status,",
+    "CASE WHEN "+isMacro+" THEN 'invalid_callback' WHEN "+isUnsupported+" THEN 'unsupported_event_type' WHEN NULLIF(BTRIM(cc.click_id), '') IS NULL THEN 'missing_click_id' WHEN cc.matched_click IS TRUE THEN 'matched' ELSE 'click_id_not_found' END AS match_status,",
     eventClass+' AS event_class,',
     'COUNT(*)::int AS conversions,',
     'COUNT(*) FILTER (WHERE cc.matched_click IS TRUE AND NOT '+isInvalid+')::int AS matched_conversions,',
