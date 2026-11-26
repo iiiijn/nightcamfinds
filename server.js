@@ -715,7 +715,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     female: {
       name: "Female live cam rooms online",
       title: "Female Live Cams Online | NightCamFinds",
-      description: "Browse female live cam rooms online from Chaturbate and BongaCams. Filter by country, compare current viewer activity and room details, and open a listing on its partner platform.",
+      description: "Browse female live cam rooms from Chaturbate and BongaCams. Compare viewer activity, country details and current listings.",
       paragraphs: [
         "Discover female live cam rooms online from the public listings supplied by Chaturbate and BongaCams. Compare current viewer activity, room subjects, country information and platform before choosing a listing. Rooms can go offline or change while you browse.",
         "Use the country and platform information shown with each room to narrow your discovery. Viewer counts are a snapshot, not a guarantee of what is happening inside a stream. Open a room on its partner platform to watch, chat and review that platform’s account, moderation and payment options."
@@ -724,7 +724,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     male: {
       name: "Male live webcam rooms",
       title: "Male Live Cams Online | NightCamFinds",
-      description: "Find male live webcam rooms online from Chaturbate and BongaCams. Compare current viewer activity, available country information and room details before opening a listing.",
+      description: "Find male live webcam rooms from Chaturbate and BongaCams. Compare viewer activity, country details and current listings.",
       paragraphs: [
         "Use the male live webcam directory to compare public rooms categorized as male by Chaturbate and BongaCams feeds. Viewer counts and room details are live-feed snapshots, so availability can change quickly.",
         "NightCamFinds is an independent directory. Streams, accounts, moderation and payments are provided by the external platform linked from each room."
@@ -741,7 +741,7 @@ if(pathname==="/api/surprise"){const feed=await rooms(req);const room=feed.rooms
     couples: {
       name: "Couples live webcam rooms",
       title: "Couples Live Cams Online | NightCamFinds",
-      description: "Browse couples live cam rooms online from Chaturbate and BongaCams. Compare current viewer activity, room details and available country information before visiting the partner platform.",
+      description: "Browse couples live cam rooms from Chaturbate and BongaCams. Compare viewer activity, country details and current listings.",
       paragraphs: [
         "Browse couples cams from public Chaturbate and BongaCams room listings. Compare viewer activity, room descriptions and available country information to find a live room that matches your interests. Listings can change as broadcasters go online and offline.",
         "Room availability can change at any time. NightCamFinds does not host video or operate partner accounts; the linked platform provides the stream, moderation and any paid features."
