@@ -16,7 +16,7 @@ const ownerTrafficCookie = require("./src/services/owner-traffic-cookie.cjs");
 const { displaySource } = require("./src/services/source-evidence.cjs");
 const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
-const { invalidCallbackPredicate } = require("./src/services/callback-integrity.cjs");
+const { invalidCallbackPredicate, unresolvedMacroPredicate, unsupportedEventTypePredicate } = require("./src/services/callback-integrity.cjs");
 const { buildAffiliateConversionHealth } = require("./src/services/affiliate-conversion-health.cjs");
 const { buildUnmatchedCallbackDiagnosticsQuery, toSafeDiagnosticRows } = require("./src/services/unmatched-callback-diagnostics.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
@@ -784,12 +784,16 @@ http.createServer = function routeDashboard(handler) {
       const bongaRange = rangeClause(incoming, "report_date");
       try {
         const invalid = invalidCallbackPredicate("cc");
+        const unresolvedMacro = unresolvedMacroPredicate("cc");
+        const unsupportedType = unsupportedEventTypePredicate("cc");
         const callbackSql = [
           "SELECT COUNT(*)::int AS total_events,",
           "COUNT(*) FILTER (WHERE NOT " + invalid + ")::int AS eligible_events,",
           "COUNT(*) FILTER (WHERE NOT " + invalid + " AND cc.matched_click IS TRUE)::int AS matched_events,",
           "COUNT(*) FILTER (WHERE NOT " + invalid + " AND cc.matched_click IS NOT TRUE)::int AS unmatched_events,",
-          "COUNT(*) FILTER (WHERE NOT " + invalid + " AND (cc.click_id IS NULL OR BTRIM(cc.click_id) = ''))::int AS missing_click_id",
+          "COUNT(*) FILTER (WHERE NOT " + invalid + " AND (cc.click_id IS NULL OR BTRIM(cc.click_id) = ''))::int AS missing_click_id,",
+          "COUNT(*) FILTER (WHERE NOT " + unresolvedMacro + " AND " + unsupportedType + ")::int AS unsupported_event_types,",
+          "COUNT(*) FILTER (WHERE " + unresolvedMacro + ")::int AS unresolved_macro_events",
           "FROM cb_conversions cc",
           cbRange.where
         ].filter(Boolean).join(" ");
@@ -816,7 +820,9 @@ http.createServer = function routeDashboard(handler) {
             eligibleEvents: row.eligible_events,
             matchedEvents: row.matched_events,
             unmatchedEvents: row.unmatched_events,
-            missingClickId: row.missing_click_id
+            missingClickId: row.missing_click_id,
+            unsupportedEventTypes: row.unsupported_event_types,
+            unresolvedMacroEvents: row.unresolved_macro_events
           },
           reconciliation
         });
