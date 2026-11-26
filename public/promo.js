@@ -108,8 +108,28 @@
       })
     }).catch(() => {});
   }
-  // Core page-view and engagement signals are owned by public/app.js.
-  // This script records only promotional telemetry to avoid duplicate requests.
+  // The directory owns core engagement when app.js is present. Some standalone
+  // promotional landing pages load promo.js without app.js, so retain their
+  // page-view and engagement signals only in that case.
+  if (!window.__NCF_CORE_ENGAGEMENT_INITIALIZED__) {
+    recordEngagement('page_view');
+    let activeTimer;
+    function scheduleActiveEngagement() {
+      clearTimeout(activeTimer);
+      if (!document.hidden) activeTimer = setTimeout(() => recordEngagement('active_10s'), 10000);
+    }
+    document.addEventListener('visibilitychange', scheduleActiveEngagement);
+    scheduleActiveEngagement();
+    let scrollQualified = false;
+    window.addEventListener('scroll', () => {
+      if (scrollQualified) return;
+      const height = document.documentElement.scrollHeight - window.innerHeight;
+      if (height > 0 && window.scrollY / height >= 0.5) {
+        scrollQualified = true;
+        recordEngagement('scroll_50');
+      }
+    }, { passive: true });
+  }
 
   function trackUrl(room, placement) {
     const platform = room.platform === 'bongacams' ? 'bongacams' : 'chaturbate';
