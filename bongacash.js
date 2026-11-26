@@ -83,7 +83,9 @@ function normalizePostback(params) {
       timestamp,
       status,
       eventKey: type === "registration"
-        ? "registration:" + clean(clickId, "", 128) + ":" + (clean(userId, "", 255) || crypto.createHash("sha256").update([...params.entries()].sort(([a],[b]) => a.localeCompare(b)).map(([k,v]) => k + "=" + v).join("&")).digest("hex"))
+        ? "registration:" + clean(clickId, "", 128) + ":" + crypto.createHash("sha256")
+          .update(userId || [...params.entries()].sort(([a],[b]) => a.localeCompare(b)).map(([k,v]) => k + "=" + v).join("&"))
+          .digest("hex")
         : type + ":" + clean(transactionId, "", 255)
     }
   };
