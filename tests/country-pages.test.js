@@ -44,6 +44,21 @@ test("country page output escapes an untrusted origin value", () => {
   assert.ok(!html.includes('href="https://nightcamfinds.com/" onmouseover='));
 });
 
+test("US and Germany country pages use concise search-intent metadata", () => {
+  for (const [slug, title] of [
+    ["us", "US Live Cams by Country | NightCamFinds"],
+    ["de", "Germany Live Cams | Chaturbate & BongaCams | NightCamFinds"]
+  ]) {
+    const country = COUNTRIES[slug];
+    const html = getCountryPage(slug, "https://nightcamfinds.com", "", true);
+    assert.equal(country.seoTitle, title);
+    assert.ok(country.metaDescription.length <= 160, slug + " meta description should be 160 characters or fewer");
+    assert.ok(country.metaDescription.includes("Chaturbate and BongaCams"));
+    const escapedTitle = title.replace(/&/g, "&amp;");
+    assert.ok(html.includes("<title>" + escapedTitle + "</title>"));
+  }
+});
+
 test("country pages index only when server-rendered rooms are available", () => {
   const populated = getCountryPage("us", "https://nightcamfinds.com", '<a class="card" href="/go/example">Room</a>', true);
   const empty = getCountryPage("us", "https://nightcamfinds.com", '<p class="empty-state">No live rooms</p>', false);
@@ -77,7 +92,8 @@ test("all 18 Tier 1 pages have distinct SEO titles and descriptions", () => {
     assert.ok(country.metaDescription, slug + " should define a meta description");
     titles.push(country.seoTitle);
     descriptions.push(country.metaDescription);
-    assert.ok(html.includes("<title>" + country.seoTitle + "</title>"));
+    const escapedTitle = country.seoTitle.replace(/&/g, "&amp;");
+    assert.ok(html.includes("<title>" + escapedTitle + "</title>"));
     const escapedDescription = country.metaDescription.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
     assert.ok(html.includes('name="description" content="' + escapedDescription + '"'));
   }
