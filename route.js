@@ -3,6 +3,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const dashboardSession = require("./src/services/dashboard-session.cjs");
 const { Pool } = require("pg");
 const bongacash = require("./bongacash");
 const { isSameOriginRequest } = require("./src/services/country-settings-origin.cjs");
@@ -131,12 +132,7 @@ function sendJson(res, status, data) {
 }
 
 function parseCookies(req) {
-  const out = {};
-  for (const part of String(req.headers.cookie || "").split(";")) {
-    const i = part.indexOf("=");
-    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
-  }
-  return out;
+  return dashboardSession.parseCookies(req.headers.cookie);
 }
 
 function safeEqual(a, b) {
@@ -146,16 +142,7 @@ function safeEqual(a, b) {
 }
 
 function validDashboardSession(req) {
-  if (!SESSION_SECRET) return false;
-  const token = parseCookies(req).ncf_session;
-  if (!token) return false;
-  const parts = token.split(".");
-  if (parts.length !== 4) return false;
-  const [username, issuedAt, nonce, signature] = parts;
-  const payload = `${username}.${issuedAt}.${nonce}`;
-  const expected = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
-  const issued = Number(issuedAt);
-  return safeEqual(signature, expected) && username === ADMIN_USER && Number.isFinite(issued) && Date.now() - issued <= 12 * 60 * 60 * 1000 && Date.now() >= issued - 60000;
+  return dashboardSession.isValidSession(req.headers.cookie, { secret: SESSION_SECRET, username: ADMIN_USER });
 }
 
 function rangeClause(incoming, column = "received_at") {
