@@ -17,6 +17,7 @@ const { displaySource } = require("./src/services/source-evidence.cjs");
 const campaignPerformance = require("./src/services/campaign-performance.cjs");
 const conversionRevenue = require("./src/services/conversion-revenue.cjs");
 const { invalidCallbackPredicate } = require("./src/services/callback-integrity.cjs");
+const { buildAffiliateConversionHealth } = require("./src/services/affiliate-conversion-health.cjs");
 const providerHealth = require("./src/services/provider-attribution-health.cjs");
 const trafficRevenuePerformance = require("./src/services/traffic-revenue-performance.cjs");
 const organicLandingRevenue = require("./src/services/organic-landing-revenue.cjs");
@@ -742,6 +743,62 @@ http.createServer = function routeDashboard(handler) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Telegram campaign reporting requires the existing affiliate click, traffic visit and Chaturbate conversion tables." });
         console.error("Telegram campaign performance failed:", err.message);
         return sendJson(res, 500, { error: "Could not load Telegram campaign performance." });
+      }
+    }
+    if (incoming.pathname === "/api/affiliate-conversion-health") {
+      if (!validDashboardSession(req)) return sendJson(res, 401, { error: "Unauthorized" });
+      if (req.method !== "GET") return sendJson(res, 405, { error: "Method not allowed." });
+      if (!pool) return sendJson(res, 503, { error: "Database is not configured." });
+      const cbRange = rangeClause(incoming, "cc.received_at");
+      const bongaRange = rangeClause(incoming, "report_date");
+      try {
+        const invalid = invalidCallbackPredicate("cc");
+        const callbackSql = [
+          "SELECT COUNT(*)::int AS total_events,",
+          "COUNT(*) FILTER (WHERE NOT " + invalid + ")::int AS eligible_events,",
+          "COUNT(*) FILTER (WHERE NOT " + invalid + " AND cc.matched_click IS TRUE)::int AS matched_events,",
+          "COUNT(*) FILTER (WHERE NOT " + invalid + " AND cc.matched_click IS NOT TRUE)::int AS unmatched_events,",
+          "COUNT(*) FILTER (WHERE NOT " + invalid + " AND (cc.click_id IS NULL OR BTRIM(cc.click_id) = ''))::int AS missing_click_id",
+          "FROM cb_conversions cc",
+          cbRange.where
+        ].filter(Boolean).join(" ");
+        const callbackResult = await pool.query(callbackSql, cbRange.params);
+        let reconciliation = { schemaReady: true, daysReported: 0, latestReportDate: null };
+        try {
+          const bongaSql = [
+            "SELECT COUNT(*)::int AS days_reported, MAX(report_date)::text AS latest_report_date",
+            "FROM bongacash_daily_reconciliation",
+            bongaRange.where
+          ].filter(Boolean).join(" ");
+          const bongaResult = await pool.query(bongaSql, bongaRange.params);
+          reconciliation.daysReported = Number(bongaResult.rows[0]?.days_reported || 0);
+          reconciliation.latestReportDate = bongaResult.rows[0]?.latest_report_date || null;
+        } catch (err) {
+          if (err.code === "42P01") reconciliation = { schemaReady: false, daysReported: 0, latestReportDate: null };
+          else throw err;
+        }
+        const row = callbackResult.rows[0] || {};
+        const health = buildAffiliateConversionHealth({
+          postbackSecretConfigured: Boolean(String(process.env.CB_POSTBACK_SECRET || "").trim()),
+          callbackCounts: {
+            totalEvents: row.total_events,
+            eligibleEvents: row.eligible_events,
+            matchedEvents: row.matched_events,
+            unmatchedEvents: row.unmatched_events,
+            missingClickId: row.missing_click_id
+          },
+          reconciliation
+        });
+        return sendJson(res, 200, {
+          ...health,
+          filters: { from: incoming.searchParams.get("from") || null, to: incoming.searchParams.get("to") || null },
+          timezone: "UTC",
+          note: "Health indicators describe stored callback and manual reconciliation records. A configured secret does not prove Chaturbate is sending valid callbacks; reported earnings are not proof of payment."
+        });
+      } catch (err) {
+        if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Affiliate conversion health requires the existing Chaturbate conversion and attribution schema." });
+        console.error("Affiliate conversion health failed:", err.message);
+        return sendJson(res, 500, { error: "Could not load affiliate conversion health." });
       }
     }
     if (incoming.pathname === "/api/conversion-revenue") {
