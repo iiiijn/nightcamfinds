@@ -1,6 +1,6 @@
 "use strict";
 
-const { MARKET_META, MARKET_PRIORITY_CODES } = require("./src/config/market-countries.cjs");
+const { MARKET_META } = require("./src/config/market-countries.cjs");
 
 const COUNTRIES = {
   us: {
@@ -289,16 +289,25 @@ function getCountryPage(slug, origin = "https://nightcamfinds.com", roomMarkup =
   const eligibleMarketSet = Array.isArray(eligibleCountrySlugs)
     ? new Set(eligibleCountrySlugs.map((value) => String(value || "").toLowerCase()))
     : null;
-  const relatedMarkets = marketMeta
-    ? MARKET_PRIORITY_CODES
-        .map((code) => code.toLowerCase())
-        .filter((marketSlug) => marketSlug !== String(slug).toLowerCase())
-        .filter((marketSlug) => !eligibleMarketSet || eligibleMarketSet.has(marketSlug))
-        .filter((marketSlug) => MARKET_META[marketSlug]?.regionGroup === marketMeta.regionGroup && COUNTRIES[marketSlug])
-        .sort((a, b) => COUNTRIES[a].name.localeCompare(COUNTRIES[b].name))
-        .slice(0, 6)
-        .map((marketSlug) => [COUNTRIES[marketSlug].name, `/country/${marketSlug}/`])
-    : [];
+  const relatedMarketsByRegion = new Map();
+  if (marketMeta) {
+    for (const marketSlug of Object.keys(MARKET_META)) {
+      if (marketSlug === String(slug).toLowerCase()) continue;
+      if (eligibleMarketSet && !eligibleMarketSet.has(marketSlug)) continue;
+      const relatedCountry = COUNTRIES[marketSlug];
+      const relatedMeta = MARKET_META[marketSlug];
+      if (!relatedCountry || !relatedMeta) continue;
+      const region = relatedMeta.regionGroup || "Other markets";
+      if (!relatedMarketsByRegion.has(region)) relatedMarketsByRegion.set(region, []);
+      relatedMarketsByRegion.get(region).push([relatedCountry.name, `/country/${marketSlug}/`]);
+    }
+  }
+  const relatedMarketGroups = [...relatedMarketsByRegion.entries()]
+    .sort(([regionA], [regionB]) => regionA.localeCompare(regionB))
+    .map(([region, markets]) => ({
+      region,
+      markets: markets.sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
+    }));
   const links = [
     ["Female live rooms", "/female/"], ["Male live rooms", "/male/"],
     ["Trans live rooms", "/trans/"], ["Couples live rooms", "/couples/"],
@@ -343,7 +352,7 @@ catch (_) { document.documentElement.classList.add("age-pending"); }
 <header class="country-intro"><p class="eyebrow">NightCamFinds country directory</p><h1>${escapeHtml(country.name)} Live Cams</h1>
 ${paragraphs.map((p) => `<p>${escapeHtml(p)}</p>`).join("")}</header>
 <section class="country-live-rooms" aria-labelledby="country-live-heading"><h2 id="country-live-heading">Live rooms associated with ${escapeHtml(country.name)}</h2><div class="grid">${roomMarkup || '<p class="empty-state">No live rooms are available in this directory right now. Please check again soon.</p>'}</div></section>
-${relatedMarkets.length ? '<section class="country-related-markets" aria-labelledby="country-related-heading"><h2 id="country-related-heading">Explore other ' + escapeHtml(marketMeta.regionGroup) + ' markets</h2><ul class="country-links">' + relatedMarkets.map(([label, href]) => '<li><a href="' + href + '">' + escapeHtml(label) + ' live cams</a></li>').join("") + '</ul></section>' : ""}
+${relatedMarketGroups.length ? '<section class="country-related-markets" aria-labelledby="country-related-heading"><h2 id="country-related-heading">Explore country markets</h2>' + relatedMarketGroups.map(({ region, markets }) => '<div class="country-related-region"><h3>' + escapeHtml(region) + '</h3><ul class="country-links">' + markets.map(([label, href]) => '<li><a href="' + href + '">' + escapeHtml(label) + ' live cams</a></li>').join("") + '</ul></div>').join("") + '</section>' : ""}
 <section aria-labelledby="country-categories"><h2 id="country-categories">Explore room categories</h2>
 <ul class="country-links">${links.map(([label, href]) => `<li><a href="${href}">${escapeHtml(label)}</a></li>`).join("")}</ul></section>
 <section aria-labelledby="country-faq"><h2 id="country-faq">Frequently asked questions</h2>${faqHtml}</section>
