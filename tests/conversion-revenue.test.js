@@ -8,7 +8,7 @@ const built=conversionRevenue.buildQuery({from:'2026-11-01',to:'2026-11-07'});
 assert.deepEqual(built.params,['2026-11-01','2026-11-07']);
 assert.match(built.text,/AS event_class/);assert.match(built.text,/cc\.country/);assert.match(built.text,/AS click_country/);assert.match(built.text,/AS reported_payout/);assert.match(built.text,/AS reported_spend/);
 assert.match(built.text,/SUM\(cc\.payout\)/);assert.match(built.text,/SUM\(cc\.amount\).*revshare_purchase/);assert.match(built.text,/GROUP BY 1,2,3,4,5,6,7,8,9,10/);
-assert.match(built.text,/jsonb_each_text/);assert.match(built.text,/cc\.matched_click IS TRUE/);assert.match(built.text,/missing_click_id/);assert.match(built.text,/click_id_not_found/);assert.equal(built.dateBasis,'callback_received_at_utc');
+assert.match(built.text,/jsonb_each_text/);assert.match(built.text,/NOT IN \\('tokens_signup-referral'/);assert.match(built.text,/unsupported_event_type/);assert.match(built.text,/cc\.matched_click IS TRUE/);assert.match(built.text,/missing_click_id/);assert.match(built.text,/click_id_not_found/);assert.equal(built.dateBasis,'callback_received_at_utc');
 });
 test('rejects invalid dates and reversed date ranges',()=>{assert.match(conversionRevenue.buildQuery({from:'2026-02-31'}).error,/calendar dates/);assert.match(conversionRevenue.buildQuery({from:'2026-11-08',to:'2026-11-07'}).error,/on or before/);});
 test('uses parameterized UTC date filters',()=>{const built=conversionRevenue.buildQuery({from:'2026-11-01',to:'2026-11-07'});assert.doesNotMatch(built.text,/2026-11/);assert.match(built.text,/received_at >= \(\$1::date AT TIME ZONE 'UTC'\)/);assert.match(built.text,/received_at < \(\(\$2::date \+ INTERVAL '1 day'\) AT TIME ZONE 'UTC'\)/);});
