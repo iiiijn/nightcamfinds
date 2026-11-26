@@ -52,7 +52,7 @@ test('provider attribution health explicitly reports BongaCash as manual-only, n
   assert.match(route, /BongaCash's public FAQ/);
   assert.match(dashboard, /BongaCash automatic postbacks are disabled/);
   assert.match(route, /\/api\/bongacash\/postback/);
-  assert.match(route, /sendJson\(res, 410/);
+  assert.match(route, /BONGACASH_POSTBACK_ENABLED !== "true"/);\n  assert.match(route, /req\.method !== "GET"/);
 });
 
 test('environment and operational documentation distinguish Chaturbate secret from legacy BongaCash setting', () => {
