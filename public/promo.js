@@ -108,24 +108,8 @@
       })
     }).catch(() => {});
   }
-  // Register the promotional landing visit immediately, without counting it as engagement.
-  recordEngagement('page_view');
-  let engagementTimer;
-  function scheduleEngagement() {
-    clearTimeout(engagementTimer);
-    if (!document.hidden) engagementTimer = setTimeout(() => recordEngagement('active_10s'), 10000);
-  }
-  document.addEventListener('visibilitychange', scheduleEngagement);
-  scheduleEngagement();
-  let scrolledEnough = false;
-  window.addEventListener('scroll', () => {
-    if (scrolledEnough) return;
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    if (max > 0 && window.scrollY / max >= 0.5) {
-      scrolledEnough = true;
-      recordEngagement('scroll_50');
-    }
-  }, { passive: true });
+  // Core page-view and engagement signals are owned by public/app.js.
+  // This script records only promotional telemetry to avoid duplicate requests.
 
   function trackUrl(room, placement) {
     const platform = room.platform === 'bongacams' ? 'bongacams' : 'chaturbate';
