@@ -28,7 +28,7 @@ test("removing duplicate click tracking keeps Chaturbate postbacks enabled", () 
 test("BongaCash postback endpoint explicitly directs to manual reconciliation", () => {
   const route = fs.readFileSync(path.join(__dirname, "../route.js"), "utf8");
   assert.match(route, /\/api\/bongacash\/postback/);
-  assert.match(route, /sendJson\(res, 410/);
+  assert.match(route, /BONGACASH_POSTBACK_ENABLED !== "true"/);
   assert.match(route, /BongaCash postbacks are not supported/);
   assert.doesNotMatch(route, /bongacash\.save\(pool, params\)/);
 });
