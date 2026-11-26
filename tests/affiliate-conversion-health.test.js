@@ -9,11 +9,14 @@ const { buildAffiliateConversionHealth } = require("../src/services/affiliate-co
 test("reports Chaturbate callback authentication and matching separately", () => {
   const result = buildAffiliateConversionHealth({
     postbackSecretConfigured: true,
-    callbackCounts: { totalEvents: 10, eligibleEvents: 8, matchedEvents: 6, unmatchedEvents: 2, missingClickId: 1 }
+    callbackCounts: { totalEvents: 10, eligibleEvents: 6, matchedEvents: 4, unmatchedEvents: 2, missingClickId: 1, unsupportedEventTypes: 3, unresolvedMacroEvents: 1 }
   });
   assert.equal(result.chaturbate.authentication, "configured");
   assert.equal(result.chaturbate.callbackLedger, "events_received");
-  assert.equal(result.chaturbate.matchingCoverage, 0.75);
+  assert.equal(result.chaturbate.matchingCoverage, 0.6667);
+  assert.equal(result.chaturbate.unsupportedEventTypes, 3);
+  assert.equal(result.chaturbate.unresolvedMacroEvents, 1);
+  assert.match(result.chaturbate.eligibilityRule, /supported Chaturbate event types/);
   assert.equal(result.chaturbate.unmatchedEvents, 2);
   assert.equal(result.chaturbate.missingClickId, 1);
 });
@@ -50,7 +53,9 @@ test("protected production route exposes read-only conversion health and never r
   assert.match(route, /incoming\.pathname === "\/api\/affiliate-conversion-health"/);
   assert.match(route, /validDashboardSession\(req\)/);
   assert.match(route, /postbackSecretConfigured: Boolean\(String\(process\.env\.CB_POSTBACK_SECRET/);
-  assert.match(route, /COUNT\(\*\) FILTER \(WHERE NOT /);
+  assert.match(route, /unsupported_event_types/);
+  assert.match(route, /unresolved_macro_events/);
+  assert.match(route, /unsupportedEventTypes: row\.unsupported_event_types/);
   assert.match(route, /bongacash_daily_reconciliation/);
   assert.ok(!route.includes("process.env.CB_POSTBACK_SECRET,"));
 });
@@ -60,5 +65,9 @@ test("revenue dashboard loads and displays conversion pipeline health", () => {
   assert.match(html, /id="conversionHealth"/);
   assert.match(html, /\/api\/affiliate-conversion-health\?/);
   assert.match(html, /Matching coverage/);
+  assert.match(html, /Unsupported event types excluded/);
+  assert.match(html, /Unresolved macro\/test callbacks/);
+  assert.match(html, /Unsupported event types excluded/);
+  assert.match(html, /Unresolved macro\/test callbacks/);
   assert.match(html, /Reconciliation status/);
 });

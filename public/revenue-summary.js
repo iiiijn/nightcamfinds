@@ -8,7 +8,7 @@ function summarizeConversions(rows=[]){
 const out={matchedConversions:0,unmatchedConversions:0,invalidCallbacks:0,testEvents:0,excludedEvents:0,attributedPayoutsByCurrency:{},pendingPayoutsByCurrency:{},matchedPurchaseSpendByCurrency:{},illustrative20PercentByCurrency:{},eventBreakdownByType:{}};
 for(const row of rows){
 const count=Math.max(0,Number(row.conversions||0)),type=String(row.conversionType||'').toLowerCase(),eventClass=String(row.eventClass||'other');
-if(row.matchStatus==='invalid_callback'||row.isTest){if(row.matchStatus==='invalid_callback')out.invalidCallbacks+=count;if(row.isTest)out.testEvents+=count;continue;}
+if(row.matchStatus==='invalid_callback'||row.matchStatus==='unsupported_event_type'||row.isTest){if(row.matchStatus==='invalid_callback'||row.matchStatus==='unsupported_event_type')out.invalidCallbacks+=count;if(row.matchStatus==='unsupported_event_type')out.excludedEvents+=count;if(row.isTest)out.testEvents+=count;continue;}
 if(!CREDITED_EVENT_TYPES.has(type)){out.excludedEvents+=count;continue;}
 const matched=Math.max(0,Number(row.matchedConversions||0)),unmatched=Math.max(0,Number(row.unmatchedConversions||0)),currency=String(row.currency||'UNSPECIFIED').trim().toUpperCase()||'UNSPECIFIED',payout=Number(row.reportedPayout||0),spend=Number(row.reportedSpend||0);
 out.matchedConversions+=matched;out.unmatchedConversions+=unmatched;
