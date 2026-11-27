@@ -12,8 +12,9 @@ test('builds a country and campaign funnel with currency-separated matched payou
   assert.match(built.text, /FROM traffic_visits tv/);
   assert.match(built.text, /traffic_engagement_events e/);
   assert.match(built.text, /visits_with_affiliate_click/);
-  assert.match(built.text, /acv\.clicked_at >= \(\$1::date AT TIME ZONE 'UTC'\)/);
+  assert.match(built.text, /acv\.clicked_at >= \(\$1::date AT TIME ZONE 'Africa/Nairobi'\)/);
   assert.match(built.text, /clicks_with_visit_id/);
+  assert.match(built.text, /Africa\/Nairobi/);
   assert.match(built.text, /clicks_without_visit_id/);
   assert.match(built.text, /FROM cb_conversions cc/);
   assert.match(built.text, /cc\.matched_click IS TRUE/);
@@ -28,11 +29,11 @@ test('builds a country and campaign funnel with currency-separated matched payou
   assert.ok(built.text.includes('AND NOT (EXISTS'));
 });
 
-test('uses independent parameterized UTC date windows for clicks, visits and conversions', () => {
+test('uses independent parameterized Nairobi calendar date windows for clicks, visits and conversions', () => {
   const built = performance.buildQuery({ from: '2026-11-01', to: '2026-11-07' });
-  assert.match(built.text, /ac\.clicked_at >= \(\$1::date AT TIME ZONE 'UTC'\)/);
-  assert.match(built.text, /tv\.first_seen_at >= \(\$1::date AT TIME ZONE 'UTC'\)/);
-  assert.match(built.text, /cc\.received_at >= \(\$1::date AT TIME ZONE 'UTC'\)/);
+  assert.match(built.text, /ac\.clicked_at >= \(\$1::date AT TIME ZONE 'Africa/Nairobi'\)/);
+  assert.match(built.text, /tv\.first_seen_at >= \(\$1::date AT TIME ZONE 'Africa/Nairobi'\)/);
+  assert.match(built.text, /cc\.received_at >= \(\$1::date AT TIME ZONE 'Africa/Nairobi'\)/);
   assert.doesNotMatch(built.text, /2026-11/);
 });
 
