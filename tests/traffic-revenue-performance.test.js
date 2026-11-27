@@ -71,6 +71,8 @@ test('route exposes visit funnel and tracking quality fields without a second qu
   assert.match(endpoint, /clicksWithVisitId: Number\(row\.clicks_with_visit_id \|\| 0\)/);
   assert.match(endpoint, /clicksWithoutVisitId: Number\(row\.clicks_without_visit_id \|\| 0\)/);
   assert.match(endpoint, /visitsWithAffiliateClick: Number\(row\.visits_with_affiliate_click \|\| 0\)/);
+  assert.match(endpoint, /dateBasis: "click_date_visit_first_seen_conversion_received_at_africa_nairobi"/);
+  assert.match(endpoint, /timezone: "Africa\/Nairobi"/);
   assert.match(endpoint, /const clicks = await pool\.query\(query\.text, query\.params\.clicks\)/);
   assert.doesNotMatch(endpoint, /visits\.rows/);
 });
