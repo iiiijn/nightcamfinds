@@ -25,11 +25,11 @@ test('groups affiliate activity and matched Chaturbate payouts by original landi
 
 test('keeps date filters parameterized and applies Nairobi calendar windows independently to clicks, visits and conversions', () => {
   const built = report.buildQuery({ from: '2026-11-01', to: '2026-11-07' });
-  assert.match(built.text, /ac\.clicked_at >= \(\$1::date AT TIME ZONE 'Africa/Nairobi'\)/);
-  assert.match(built.text, /tv\.first_seen_at >= \(\$1::date AT TIME ZONE 'Africa/Nairobi'\)/);
-  assert.match(built.text, /cc\.received_at >= \(\$1::date AT TIME ZONE 'Africa/Nairobi'\)/);
+  assert.match(built.text, /ac\.clicked_at >= \(\$1::date AT TIME ZONE 'Africa\/Nairobi'\)/);
+  assert.match(built.text, /tv\.first_seen_at >= \(\$1::date AT TIME ZONE 'Africa\/Nairobi'\)/);
+  assert.match(built.text, /cc\.received_at >= \(\$1::date AT TIME ZONE 'Africa\/Nairobi'\)/);
   assert.equal(built.dateBasis, 'click_date_visit_first_seen_conversion_received_at_africa_nairobi');
-  assert.match(built.text, /ac\.clicked_at < \(\(\$2::date \+ INTERVAL '1 day'\) AT TIME ZONE 'Africa/Nairobi'\)/);
+  assert.match(built.text, /ac\.clicked_at < \(\(\$2::date \+ INTERVAL '1 day'\) AT TIME ZONE 'Africa\/Nairobi'\)/);
   assert.doesNotMatch(built.text, /2026-11/);
 });
 
