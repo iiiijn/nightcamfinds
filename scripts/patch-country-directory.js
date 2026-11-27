@@ -3,7 +3,8 @@ const fs=require("fs");
 const path=require("path");
 const MARKER="NIGHTCAMFINDS_COUNTRY_DIRECTORY_V1";
 function patchServerSource(input){
- let source=String(input||"");
+ const originalSource=String(input||"");
+ let source=originalSource;
  if(source.includes(MARKER))return source;
  const outputNewline=source.includes("\r\n")?"\r\n":"\n";
  // Match source snippets consistently on Windows and Unix checkouts.
@@ -19,7 +20,7 @@ function patchServerSource(input){
  const hasCurrentCountrySitemap = source.includes("getEligibleCountrySitemapSlugs") &&
   /pathname\s*===\s*["']\/sitemap\.xml["']/.test(source) &&
   source.includes("COUNTRIES: COUNTRY_PAGE_CONTENT");
- if (hasCurrentCountrySitemap) return source.replace(/\n/g, outputNewline);
+ if (hasCurrentCountrySitemap) return originalSource;
  replaceOnce('const { getCountryPage } = require("./country-pages.js");',
   'const { COUNTRIES, getCountryPage } = require("./country-pages.js");\nconst { normalizeCountryCode, resolveChaturbateCountry, normalizeRegion, normalizeLanguages, isIndexableCountryRooms, buildCountrySitemap, buildHtmlSitemap } = require("./src/services/country-directory.cjs");\nconst { summarizeCountryRouteHealth } = require("./src/services/country-route-health.cjs");\nconst { summarizeCountryFeedHealth } = require("./src/services/country-feed-health.cjs");',
   "country page import");
