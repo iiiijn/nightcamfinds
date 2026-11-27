@@ -40,7 +40,7 @@ function buildQuery(filters = {}) {
   const text = [
     'WITH click_groups AS (',
     " SELECT COALESCE(NULLIF(BTRIM(ac.landing_path), ''), 'unknown') AS landing_path,",
-    " LOWER(COALESCE(NULLIF(BTRIM(ac.category), ''), 'unknown')) AS category,"
+    " LOWER(COALESCE(NULLIF(BTRIM(ac.category), ''), 'unknown')) AS category,",
     " UPPER(COALESCE(NULLIF(ac.country, ''), 'UNKNOWN')) AS country,",
     " LOWER(COALESCE(NULLIF(ac.platform, ''), 'unknown')) AS platform,",
     " COALESCE(NULLIF(LOWER(ac.source), ''), 'unknown') AS source,",
@@ -52,10 +52,10 @@ function buildQuery(filters = {}) {
     " COUNT(*) FILTER (WHERE tv.visit_id IS NULL AND ac.is_bot IS NOT TRUE AND COALESCE(ac.bot_reason, '') <> 'suspected_automation_user_agent')::int AS unclassified_clicks",
     ' FROM affiliate_clicks ac LEFT JOIN traffic_visits tv ON tv.visit_id = ac.visit_id',
     ' WHERE ' + clickWhere.join(' AND '),
-    ' GROUP BY 1,2,3,4,5,6,7',
+    ' GROUP BY 1,2,3,4,5,6',
     '), visit_groups AS (',
     " SELECT COALESCE(NULLIF(BTRIM(tv.landing_path), ''), 'unknown') AS landing_path,",
-    " 'unknown'::text AS category,
+    " 'unknown'::text AS category,",
     " UPPER(COALESCE(NULLIF(tv.country, ''), 'UNKNOWN')) AS country,",
     " LOWER(COALESCE(NULLIF(tv.platform, ''), 'unknown')) AS platform,",
     " COALESCE(NULLIF(LOWER(tv.source), ''), 'unknown') AS source,",
@@ -66,6 +66,7 @@ function buildQuery(filters = {}) {
     ' GROUP BY 1,2,3,4,5,6',
     '), matched_by_currency AS (',
     " SELECT COALESCE(NULLIF(BTRIM(ac.landing_path), ''), 'unknown') AS landing_path,",
+    " LOWER(COALESCE(NULLIF(BTRIM(ac.category), ''), 'unknown')) AS category,",
     " UPPER(COALESCE(NULLIF(ac.country, ''), 'UNKNOWN')) AS country,",
     " LOWER(COALESCE(NULLIF(ac.platform, ''), 'chaturbate')) AS platform,",
     " COALESCE(NULLIF(LOWER(ac.source), ''), 'unknown') AS source,",
@@ -80,7 +81,7 @@ function buildQuery(filters = {}) {
     " AND LOWER(cc.conversion_type) IN ('tokens_signup-referral','tokens_broadcaster-referral','ppr_signup-referral','ppr_broadcaster-referral','revshare_signup-referral','revshare_broadcaster-referral','revshare_purchase','revshare_webmaster-commission','revshare_payout-adjustment')",
     ' AND NOT ' + invalidCallback,
     conversionWhere.length ? ' AND ' + conversionWhere.join(' AND ') : '',
-    ' GROUP BY 1,2,3,4,5,6',
+    ' GROUP BY 1,2,3,4,5,6,7',
     '), conversion_groups AS (',
     ' SELECT landing_path, category, country, platform, source, campaign, SUM(conversions)::int AS matched_conversions,',
     " jsonb_object_agg(currency, reported_payout) AS reported_payouts_by_currency FROM matched_by_currency GROUP BY 1,2,3,4,5,6",
@@ -94,7 +95,7 @@ function buildQuery(filters = {}) {
     ')',
     ' SELECT g.*, COALESCE(c.matched_conversions,0)::int AS matched_conversions,',
     " COALESCE(c.reported_payouts_by_currency,'{}'::jsonb) AS reported_payouts_by_currency",
-    ' FROM all_groups g LEFT JOIN conversion_groups c USING (landing_path,country,platform,source,campaign)',
+    ' FROM all_groups g LEFT JOIN conversion_groups c USING (landing_path,category,country,platform,source,campaign)',
     ' ORDER BY matched_conversions DESC, clicks DESC, visits DESC, landing_path ASC LIMIT 2000'
   ].join('\n');
   return { text, params, filters: { from, to }, dateBasis: 'click_date_visit_first_seen_conversion_received_at_africa_nairobi' };
