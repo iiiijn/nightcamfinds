@@ -7,6 +7,10 @@ test('groups affiliate activity and matched Chaturbate payouts by original landi
   const built = report.buildQuery({ from: '2026-11-01', to: '2026-11-07' });
   assert.deepEqual(built.params, ['2026-11-01', '2026-11-07']);
   assert.match(built.text, /ac\.landing_path/);
+  assert.match(built.text, /ac\.category/);
+  assert.match(built.text, /AS category/);
+  assert.match(built.text, /'unknown'::text AS category/);
+  assert.match(built.text, /USING \(landing_path,category,country,platform,source,campaign\)/);
   assert.match(built.text, /tv\.landing_path/);
   assert.match(built.text, /cc\.matched_click IS TRUE/);
   assert.match(built.text, /click_id = cc\.click_id/);
@@ -19,12 +23,13 @@ test('groups affiliate activity and matched Chaturbate payouts by original landi
   assert.match(built.text, /LIMIT 2000/);
 });
 
-test('keeps date filters parameterized and applies them independently to clicks, visits and conversions', () => {
+test('keeps date filters parameterized and applies Nairobi calendar windows independently to clicks, visits and conversions', () => {
   const built = report.buildQuery({ from: '2026-11-01', to: '2026-11-07' });
-  assert.match(built.text, /ac\.clicked_at >= \(\$1::date AT TIME ZONE 'UTC'\)/);
-  assert.match(built.text, /tv\.first_seen_at >= \(\$1::date AT TIME ZONE 'UTC'\)/);
-  assert.match(built.text, /cc\.received_at >= \(\$1::date AT TIME ZONE 'UTC'\)/);
-  assert.match(built.text, /ac\.clicked_at < \(\(\$2::date \+ INTERVAL '1 day'\) AT TIME ZONE 'UTC'\)/);
+  assert.match(built.text, /ac\.clicked_at >= \(\$1::date AT TIME ZONE 'Africa\/Nairobi'\)/);
+  assert.match(built.text, /tv\.first_seen_at >= \(\$1::date AT TIME ZONE 'Africa\/Nairobi'\)/);
+  assert.match(built.text, /cc\.received_at >= \(\$1::date AT TIME ZONE 'Africa\/Nairobi'\)/);
+  assert.equal(built.dateBasis, 'click_date_visit_first_seen_conversion_received_at_africa_nairobi');
+  assert.match(built.text, /ac\.clicked_at < \(\(\$2::date \+ INTERVAL '1 day'\) AT TIME ZONE 'Africa\/Nairobi'\)/);
   assert.doesNotMatch(built.text, /2026-11/);
 });
 
@@ -56,6 +61,9 @@ test('route keeps organic landing report private and separates reported payout f
   const endpoint = route.slice(start, route.indexOf('if (incoming.pathname === "/api/telegram-campaign-performance")', start));
   assert.match(endpoint, /validDashboardSession\(req\)/);
   assert.match(endpoint, /reportedPayoutsByCurrency/);
+  assert.match(endpoint, /category: row\.category \|\| "unknown"/);
+  assert.match(endpoint, /timezone: "Africa\/Nairobi"/);
+  assert.match(endpoint, /traffic_visits does not store category/);
   assert.match(endpoint, /provider-reported, not verified cash received/);
 });
 
@@ -73,6 +81,9 @@ test('organic landing-page dashboard exposes separate X campaign summaries and a
   assert.match(script, /x_female_models/);
   assert.match(script, /x_male_models/);
   assert.match(script, /X campaign performance/);
+  assert.match(script, /Landing Pages & Categories/);
+  assert.match(script, /<th>Category<\/th>/);
+  assert.match(script, /Africa\/Nairobi/);
   assert.match(script, /organic-table-scroll/);
   assert.match(script, /Affiliate redirects/);
   assert.match(script, /Countries:/);

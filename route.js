@@ -660,8 +660,9 @@ http.createServer = function routeDashboard(handler) {
             reportedPayoutsByCurrency: row.reported_payouts_by_currency || {}
           })),
           filters: query.filters,
+          dateBasis: "click_date_visit_first_seen_conversion_received_at_africa_nairobi",
           truncated: clicks.rows.length === 2000,
-          timezone: "UTC",
+          timezone: "Africa/Nairobi",
           note: "Visits are grouped by first-seen date, affiliate redirects by click date and Chaturbate callbacks by received date. Raw recorded redirects are preserved. Known and suspected bot clicks are separate; unverifiedNotFlaggedClicks means clicks with a linked unverified visit and no stored bot flag, not verified humans. Unclassified clicks lack a linked visit record and are not included in that unverified count. Engaged visits are distinct unverified visit IDs with active_10s or scroll_50 signals. Visits with affiliate redirects are distinct visit IDs with at least one linked redirect. Redirects are not verified human clicks. Only non-test Chaturbate postback events with a stored matched click ID are attributed to campaign groups. BongaCams earnings remain manually reconciled and are not assigned to campaigns. Payouts remain separated by currency and are provider-reported, not verified cash received."
         });
       } catch (err) {
@@ -681,6 +682,7 @@ http.createServer = function routeDashboard(handler) {
         return sendJson(res, 200, {
           rows: result.rows.map(row => ({
             landingPath: row.landing_path || "unknown",
+            category: row.category || "unknown",
             country: row.country || "UNKNOWN",
             platform: row.platform || "unknown",
             source: row.source || "unknown",
@@ -696,9 +698,10 @@ http.createServer = function routeDashboard(handler) {
             reportedPayoutsByCurrency: row.reported_payouts_by_currency || {}
           })),
           filters: query.filters,
+          dateBasis: query.dateBasis,
           truncated: result.rows.length === 2000,
-          timezone: "UTC",
-          note: "Landing pages are taken from the original stored landing_path on affiliate clicks and visits. Only matched, non-test Chaturbate postbacks with a stored click ID are attributed to a landing page. Payouts are provider-reported, not verified cash received, and currencies are kept separate. BongaCash earnings remain manual and are not automatically attributed to landing pages. Clicks are redirects, not verified human visits; known bots, suspected bots, unverified-not-flagged and unclassified clicks remain separate."
+          timezone: "Africa/Nairobi",
+          note: "Landing pages are taken from the original stored landing_path on affiliate clicks and visits. Category is attributed from the affiliate click and its matched Chaturbate conversion; traffic_visits does not store category, so visit counts are explicitly grouped as unknown category rather than inferred. Only matched, non-test Chaturbate postbacks with a stored click ID are attributed to a landing page and category. Payouts are provider-reported, not verified cash received, and currencies are kept separate. BongaCash earnings remain manual and are not automatically attributed to landing pages. Clicks are redirects, not verified human visits; known bots, suspected bots, unverified-not-flagged and unclassified clicks remain separate."
         });
       } catch (err) {
         if (err.code === "42P01" || err.code === "42703") return sendJson(res, 503, { error: "Organic landing-page reporting requires the existing affiliate click, traffic visit and Chaturbate conversion attribution columns." });

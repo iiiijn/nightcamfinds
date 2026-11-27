@@ -13,14 +13,14 @@ function buildQuery(filters = {}) {
   const visitParams = [], visitWhere = [];
   const conversionParams = [], conversionWhere = [];
   if (from) {
-    clickParams.push(from); clickWhere.push("ac.clicked_at >= ($" + clickParams.length + "::date AT TIME ZONE 'UTC')"); visitClickWhere.push("acv.clicked_at >= ($" + clickParams.length + "::date AT TIME ZONE 'UTC')");
-    visitParams.push(from); visitWhere.push("tv.first_seen_at >= ($" + visitParams.length + "::date AT TIME ZONE 'UTC')");
-    conversionParams.push(from); conversionWhere.push("cc.received_at >= ($" + conversionParams.length + "::date AT TIME ZONE 'UTC')");
+    clickParams.push(from); clickWhere.push("ac.clicked_at >= ($" + clickParams.length + "::date AT TIME ZONE 'Africa/Nairobi')"); visitClickWhere.push("acv.clicked_at >= ($" + clickParams.length + "::date AT TIME ZONE 'Africa/Nairobi')");
+    visitParams.push(from); visitWhere.push("tv.first_seen_at >= ($" + visitParams.length + "::date AT TIME ZONE 'Africa/Nairobi')");
+    conversionParams.push(from); conversionWhere.push("cc.received_at >= ($" + conversionParams.length + "::date AT TIME ZONE 'Africa/Nairobi')");
   }
   if (to) {
-    clickParams.push(to); clickWhere.push("ac.clicked_at < (($" + clickParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')"); visitClickWhere.push("acv.clicked_at < (($" + clickParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
-    visitParams.push(to); visitWhere.push("tv.first_seen_at < (($" + visitParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
-    conversionParams.push(to); conversionWhere.push("cc.received_at < (($" + conversionParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'UTC')");
+    clickParams.push(to); clickWhere.push("ac.clicked_at < (($" + clickParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'Africa/Nairobi')"); visitClickWhere.push("acv.clicked_at < (($" + clickParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'Africa/Nairobi')");
+    visitParams.push(to); visitWhere.push("tv.first_seen_at < (($" + visitParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'Africa/Nairobi')");
+    conversionParams.push(to); conversionWhere.push("cc.received_at < (($" + conversionParams.length + "::date + INTERVAL '1 day') AT TIME ZONE 'Africa/Nairobi')");
   }
 
   const invalidCallback = invalidCallbackPredicate('cc');
